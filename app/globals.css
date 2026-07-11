@@ -1,22 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #0b2636;
-  --ink-soft: #526d7a;
-  --paper: #edf4f6;
-  --paper-bright: #f8fbfc;
-  --line: rgba(11, 38, 54, 0.14);
-  --line-strong: rgba(11, 38, 54, 0.24);
-  --ocean: #0c4b6a;
-  --ocean-mid: #0b3853;
-  --ocean-deep: #061b2b;
-  --seafoam: #9fd8e5;
+  --ink: #f0f7ff;
+  --ink-soft: #9cb5cd;
+  --paper: #081a33;
+  --paper-bright: #0c2341;
+  --line: rgba(162, 197, 229, 0.14);
+  --line-strong: rgba(162, 197, 229, 0.27);
+  --ocean: #1b64a2;
+  --ocean-mid: #104477;
+  --ocean-deep: #041326;
+  --seafoam: #a8d8f2;
   --lime: #d8ed94;
   --coral: #ff725c;
   --amber: #f3b85b;
-  --quiet: #8ca2ad;
-  --contour-line: rgba(159, 216, 229, 0.09);
-  --panel-line: rgba(237, 244, 246, 0.14);
+  --quiet: #7890a8;
+  --contour-line: rgba(146, 196, 235, 0.13);
+  --panel-line: rgba(192, 218, 241, 0.16);
+  --topo-line: rgba(136, 188, 231, 0.105);
+  --topo-line-bright: rgba(171, 211, 242, 0.14);
   --font-sans: var(--font-manrope), system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), monospace;
 }
@@ -32,7 +34,7 @@ html {
 
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--ocean-deep);
   color: var(--ink);
   font-family: var(--font-sans);
   min-width: 320px;
@@ -68,8 +70,13 @@ svg {
   min-height: 100vh;
   overflow: clip;
   background:
-    linear-gradient(90deg, transparent 0, transparent calc(100% - 1px), rgba(11, 38, 54, 0.035) calc(100% - 1px)) 0 0 / 7.5rem 100%,
-    var(--paper);
+    radial-gradient(circle at 74% 18%, rgba(28, 100, 168, 0.27), transparent 32rem),
+    radial-gradient(circle at 16% 68%, rgba(14, 65, 120, 0.34), transparent 38rem),
+    repeating-radial-gradient(ellipse 68% 40% at -8% 12%, transparent 0 29px, var(--topo-line-bright) 30px 31px, transparent 32px 54px),
+    repeating-radial-gradient(ellipse 53% 33% at 108% 59%, transparent 0 36px, var(--topo-line) 37px 38px, transparent 39px 66px),
+    repeating-radial-gradient(ellipse 38% 24% at 52% 105%, transparent 0 42px, rgba(136, 188, 231, 0.075) 43px 44px, transparent 45px 76px),
+    linear-gradient(145deg, #071a34 0%, #0a2850 43%, #06172e 100%);
+  background-attachment: fixed;
 }
 
 .topbar {
@@ -82,8 +89,9 @@ svg {
   min-height: 72px;
   padding: 0 4vw;
   border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  background: rgba(5, 20, 40, 0.86);
   backdrop-filter: blur(18px);
+  box-shadow: 0 12px 34px rgba(1, 9, 21, 0.18);
 }
 
 .brand {
@@ -103,7 +111,8 @@ svg {
   padding: 5px;
   border-radius: 50%;
   color: var(--lime);
-  background: var(--ocean-deep);
+  background: #031126;
+  box-shadow: inset 0 0 0 1px rgba(168, 216, 242, 0.14), 0 0 24px rgba(27, 100, 162, 0.2);
 }
 
 .brand em {
@@ -156,7 +165,7 @@ svg {
   padding: 0.5rem 0.72rem;
   border: 1px solid var(--line);
   border-radius: 100px;
-  background: rgba(255, 255, 255, 0.42);
+  background: rgba(14, 48, 85, 0.66);
   font-family: var(--font-mono);
   font-size: 0.62rem;
   font-weight: 600;
@@ -185,7 +194,7 @@ button.data-pill {
 }
 
 .install-button {
-  color: var(--paper-bright);
+  color: var(--ink);
   background: var(--ocean);
   cursor: pointer;
 }
@@ -208,12 +217,13 @@ button.data-pill {
   bottom: -14rem;
   width: 42rem;
   height: 42rem;
-  border: 1px solid rgba(12, 75, 106, 0.1);
+  border: 1px solid rgba(168, 216, 242, 0.2);
   border-radius: 48% 52% 56% 44%;
   box-shadow:
-    0 0 0 3.6rem rgba(12, 75, 106, 0.032),
-    0 0 0 7.2rem rgba(12, 75, 106, 0.024),
-    0 0 0 10.8rem rgba(12, 75, 106, 0.016);
+    0 0 0 3.6rem rgba(168, 216, 242, 0.075),
+    0 0 0 7.2rem rgba(168, 216, 242, 0.052),
+    0 0 0 10.8rem rgba(168, 216, 242, 0.035),
+    0 0 80px rgba(26, 104, 178, 0.2);
   content: "";
   transform: rotate(12deg);
   pointer-events: none;
@@ -309,16 +319,19 @@ footer {
   padding: 1.25rem;
   border: 1px solid var(--line-strong);
   border-radius: 3px;
-  background: rgba(251, 250, 244, 0.66);
+  background:
+    linear-gradient(135deg, rgba(24, 71, 119, 0.72), rgba(7, 29, 57, 0.84)),
+    rgba(6, 27, 53, 0.78);
   text-align: left;
-  box-shadow: 0 18px 60px rgba(6, 27, 43, 0.07);
+  box-shadow: 0 18px 60px rgba(1, 9, 21, 0.3);
   cursor: pointer;
   transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
 .next-window-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 24px 70px rgba(6, 27, 43, 0.12);
+  border-color: rgba(168, 216, 242, 0.42);
+  box-shadow: 0 24px 70px rgba(1, 9, 21, 0.4), 0 0 34px rgba(27, 100, 162, 0.13);
 }
 
 .score-orbit {
@@ -328,9 +341,9 @@ footer {
   height: 98px;
   border: 1px solid currentColor;
   border-radius: 50%;
-  color: var(--ocean);
+  color: var(--ocean-deep);
   background: var(--lime);
-  box-shadow: inset 0 0 0 7px rgba(251, 250, 244, 0.52);
+  box-shadow: inset 0 0 0 7px rgba(4, 19, 38, 0.16);
 }
 
 .score-orbit.good { background: var(--seafoam); }
@@ -418,7 +431,8 @@ footer {
   flex-wrap: wrap;
   gap: 1rem;
   padding: 1.05rem 4vw;
-  background: var(--paper);
+  background: rgba(6, 24, 47, 0.88);
+  backdrop-filter: blur(18px);
 }
 
 .time-tabs {
@@ -439,7 +453,7 @@ footer {
 }
 
 .time-tabs button.active {
-  color: var(--paper-bright);
+  color: var(--ink);
   background: var(--ocean);
 }
 
@@ -451,7 +465,7 @@ footer {
   padding: 0.28rem 0.45rem;
   border: 1px solid var(--line);
   border-radius: 2px;
-  background: var(--paper-bright);
+  background: rgba(13, 44, 79, 0.78);
 }
 
 .custom-date-range > span {
@@ -482,14 +496,15 @@ footer {
   border-radius: 2px;
   outline: 0;
   color: var(--ink);
-  background: var(--paper);
+  color-scheme: dark;
+  background: rgba(4, 19, 38, 0.72);
   font-family: var(--font-mono);
   font-size: 0.58rem;
   font-weight: 600;
 }
 
 .custom-date-range input:focus-visible {
-  outline: 2px solid var(--ocean);
+  outline: 2px solid var(--seafoam);
   outline-offset: 1px;
 }
 
@@ -507,7 +522,7 @@ footer {
   padding: 0 0.4rem 0 0.75rem;
   border: 1px solid var(--line);
   border-radius: 2px;
-  background: var(--paper-bright);
+  background: rgba(13, 44, 79, 0.78);
 }
 
 .filters label > span {
@@ -526,6 +541,7 @@ footer {
   background: transparent;
   font-size: 0.7rem;
   font-weight: 700;
+  color-scheme: dark;
 }
 
 .location-button,
@@ -535,8 +551,16 @@ footer {
   justify-content: center;
   min-height: 40px;
   border: 1px solid var(--line);
-  background: var(--paper-bright);
+  background: rgba(13, 44, 79, 0.78);
   cursor: pointer;
+}
+
+.location-button:hover,
+.view-toggle button:hover,
+.filters label:hover,
+.custom-date-range:hover {
+  border-color: var(--line-strong);
+  background: rgba(20, 59, 101, 0.88);
 }
 
 .location-button {
@@ -573,7 +597,7 @@ footer {
   margin: 0.25rem 0 0;
   padding: 0.4rem 0.65rem;
   border-radius: 2px;
-  color: var(--paper-bright);
+  color: var(--ink);
   background: var(--ocean-deep);
   font-family: var(--font-mono);
   font-size: 0.58rem;
@@ -592,7 +616,7 @@ footer {
 
 .closure-notice a {
   border-bottom: 1px solid var(--line-strong);
-  color: var(--ocean);
+  color: var(--seafoam);
   font-weight: 700;
 }
 
@@ -727,7 +751,7 @@ footer {
 .map-legend i.cluster {
   width: 10px;
   height: 10px;
-  border: 1px solid var(--paper-bright);
+  border: 1px solid var(--ink);
   background: var(--ocean);
 }
 
@@ -744,7 +768,7 @@ footer {
   padding: 0.6rem 0.78rem;
   border: 1px solid rgba(237, 244, 246, 0.22);
   border-radius: 2px;
-  color: var(--paper-bright);
+  color: var(--ink);
   background: rgba(6, 27, 43, 0.9);
   box-shadow: 0 8px 24px rgba(3, 14, 24, 0.22);
   backdrop-filter: blur(12px);
@@ -780,7 +804,7 @@ footer {
   height: 100%;
   overflow: hidden;
   border-left: 1px solid var(--panel-line);
-  color: var(--paper-bright);
+  color: var(--ink);
   background:
     radial-gradient(125% 72% at 110% 8%, transparent 44%, var(--contour-line) 44.3%, transparent 44.8%, transparent 52%, rgba(159, 216, 229, 0.06) 52.3%, transparent 52.8%),
     radial-gradient(105% 62% at -15% 96%, transparent 48%, rgba(159, 216, 229, 0.07) 48.3%, transparent 48.8%, transparent 58%, rgba(159, 216, 229, 0.045) 58.3%, transparent 58.8%),
@@ -998,6 +1022,8 @@ footer {
   gap: 1.5rem;
   padding: 2.8rem 4vw;
   border-bottom: 1px solid var(--line);
+  background: rgba(4, 19, 38, 0.46);
+  backdrop-filter: blur(5px);
 }
 
 .score-note-number {
@@ -1007,7 +1033,7 @@ footer {
   height: 74px;
   border: 1px solid var(--ocean);
   border-radius: 50%;
-  color: var(--ocean);
+  color: var(--ocean-deep);
   background: var(--lime);
   font-family: var(--font-mono);
   font-size: 1.5rem;
@@ -1045,11 +1071,15 @@ footer {
 }
 
 .source-section {
+  position: relative;
   display: grid;
   grid-template-columns: 0.8fr 1.2fr;
   gap: 8vw;
   padding: 5rem 4vw;
   scroll-margin-top: 88px;
+  background:
+    repeating-radial-gradient(ellipse 75% 48% at 112% 45%, transparent 0 38px, rgba(168, 216, 242, 0.09) 39px 40px, transparent 41px 70px),
+    linear-gradient(125deg, rgba(5, 22, 43, 0.48), rgba(12, 43, 79, 0.32));
 }
 
 .source-heading h2 {
@@ -1124,11 +1154,14 @@ footer {
   gap: 2rem;
   padding: 2.5rem 4vw;
   color: rgba(243, 242, 234, 0.64);
-  background: var(--ocean-deep);
+  border-top: 1px solid var(--line);
+  background:
+    repeating-radial-gradient(ellipse 46% 76% at 0% 115%, transparent 0 28px, rgba(168, 216, 242, 0.075) 29px 30px, transparent 31px 52px),
+    rgba(3, 15, 31, 0.92);
 }
 
 .footer-brand {
-  color: var(--paper-bright);
+  color: var(--ink);
 }
 
 footer p {
@@ -1152,7 +1185,7 @@ footer > div {
   position: fixed;
   inset: 0;
   z-index: 80;
-  background: rgba(5, 16, 13, 0.57);
+  background: rgba(1, 8, 19, 0.68);
   backdrop-filter: blur(7px);
   animation: fade-in 160ms ease-out;
 }
@@ -1177,8 +1210,12 @@ footer > div {
   scrollbar-gutter: stable;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
-  background: var(--paper-bright);
-  box-shadow: -24px 0 80px rgba(5, 16, 13, 0.28);
+  border-left: 1px solid var(--line-strong);
+  background:
+    radial-gradient(circle at 108% 8%, rgba(30, 100, 169, 0.22), transparent 18rem),
+    repeating-radial-gradient(ellipse 70% 40% at 112% 72%, transparent 0 34px, rgba(168, 216, 242, 0.065) 35px 36px, transparent 37px 62px),
+    var(--paper-bright);
+  box-shadow: -24px 0 80px rgba(1, 8, 19, 0.46);
   animation: slide-in 230ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -1209,7 +1246,7 @@ footer > div {
 .sheet-close:focus-visible,
 .place-media-links a:focus-visible,
 .site-card:focus-visible {
-  outline: 2px solid var(--ocean);
+  outline: 2px solid var(--seafoam);
   outline-offset: 3px;
 }
 
@@ -1235,9 +1272,9 @@ footer > div {
   border-radius: 100px;
 }
 
-.confidence.high { color: #267659; background: rgba(81, 185, 144, 0.12); }
-.confidence.medium { color: #886522; background: rgba(243, 184, 91, 0.13); }
-.confidence.low { color: #a44334; background: rgba(255, 114, 92, 0.11); }
+.confidence.high { color: #7ee2ba; background: rgba(81, 185, 144, 0.12); }
+.confidence.medium { color: #f4c876; background: rgba(243, 184, 91, 0.13); }
+.confidence.low { color: #ff9483; background: rgba(255, 114, 92, 0.11); }
 
 .detail-sheet h2 {
   max-width: 370px;
@@ -1259,7 +1296,7 @@ footer > div {
   gap: 1.2rem;
   margin-top: 1.7rem;
   padding: 1.15rem;
-  color: var(--paper-bright);
+  color: var(--ink);
   background: var(--ocean-deep);
 }
 
@@ -1300,7 +1337,7 @@ footer > div {
 }
 
 .detail-score-block > p strong {
-  color: var(--paper-bright);
+  color: var(--ink);
 }
 
 .component-block,
@@ -1480,7 +1517,7 @@ footer > div {
   display: inline-flex;
   margin-top: 0.75rem;
   border-bottom: 1px solid var(--line-strong);
-  color: var(--ocean);
+  color: var(--seafoam);
   font-size: 0.58rem;
   font-weight: 750;
 }
@@ -1522,8 +1559,8 @@ footer > div {
   min-height: 42px;
   padding: 0.58rem 0.65rem;
   border: 1px solid var(--line);
-  color: var(--ocean);
-  background: rgba(159, 216, 229, 0.1);
+  color: var(--seafoam);
+  background: rgba(58, 126, 184, 0.14);
   font-size: 0.57rem;
   font-weight: 750;
   line-height: 1.3;
@@ -1536,17 +1573,17 @@ footer > div {
 
 .place-media-links a:focus-visible,
 .community-sources a:focus-visible {
-  outline: 2px solid var(--ocean);
+  outline: 2px solid var(--seafoam);
   outline-offset: 2px;
 }
 
 .community-pulse-block {
   position: relative;
   padding: 1.1rem;
-  border: 1px solid rgba(12, 75, 106, 0.2);
+  border: 1px solid var(--line-strong);
   background:
-    radial-gradient(90% 120% at 110% -15%, transparent 47%, rgba(12, 75, 106, 0.08) 47.5%, transparent 48%, transparent 56%, rgba(12, 75, 106, 0.055) 56.5%, transparent 57%),
-    rgba(159, 216, 229, 0.08);
+    radial-gradient(90% 120% at 110% -15%, transparent 47%, rgba(168, 216, 242, 0.11) 47.5%, transparent 48%, transparent 56%, rgba(168, 216, 242, 0.07) 56.5%, transparent 57%),
+    rgba(15, 55, 95, 0.46);
 }
 
 .community-pulse-heading {
@@ -1563,10 +1600,10 @@ footer > div {
 .community-pulse-heading > span {
   flex: 0 0 auto;
   padding: 0.3rem 0.42rem;
-  border: 1px solid rgba(12, 75, 106, 0.2);
+  border: 1px solid var(--line-strong);
   border-radius: 100px;
-  color: var(--ocean);
-  background: rgba(248, 251, 252, 0.72);
+  color: var(--seafoam);
+  background: rgba(5, 24, 48, 0.7);
   font-family: var(--font-mono);
   font-size: 0.43rem;
   font-weight: 650;
@@ -1579,9 +1616,9 @@ footer > div {
 }
 
 .community-themes span {
-  border-color: rgba(12, 75, 106, 0.2);
-  color: var(--ocean);
-  background: rgba(248, 251, 252, 0.65);
+  border-color: var(--line-strong);
+  color: var(--seafoam);
+  background: rgba(5, 24, 48, 0.62);
 }
 
 .community-meta {
@@ -1601,7 +1638,7 @@ footer > div {
 .community-sources a {
   width: fit-content;
   border-bottom: 1px solid var(--line-strong);
-  color: var(--ocean);
+  color: var(--seafoam);
   font-size: 0.54rem;
   font-weight: 700;
   line-height: 1.45;
@@ -1613,7 +1650,7 @@ footer > div {
   margin-top: 1.2rem;
   padding: 1rem;
   border: 1px solid rgba(159, 216, 229, 0.2);
-  color: var(--paper-bright);
+  color: var(--ink);
   background: var(--ocean-deep);
 }
 
@@ -1623,7 +1660,7 @@ footer > div {
   justify-content: space-between;
   margin-top: 1.6rem;
   padding: 0.95rem 1rem;
-  color: var(--paper-bright);
+  color: var(--ink);
   background: var(--ocean);
   font-size: 0.69rem;
   font-weight: 750;
@@ -1758,7 +1795,7 @@ footer > div {
   width: 100%;
   margin-top: 1rem;
   padding: 0.7rem 0.75rem;
-  color: var(--paper-bright);
+  color: var(--ink);
   background: var(--ocean);
   font-size: 0.62rem;
   font-weight: 700;
@@ -1831,7 +1868,7 @@ footer > div {
   gap: 0.7rem;
   margin: 1.2rem 0 1.5rem;
   padding: 1rem;
-  color: var(--paper-bright);
+  color: var(--ink);
   background: var(--ocean-deep);
 }
 
@@ -1848,7 +1885,7 @@ footer > div {
 }
 
 .method-callout p strong {
-  color: var(--paper-bright);
+  color: var(--ink);
 }
 
 .method-callout code {
@@ -1937,7 +1974,8 @@ footer > div {
 
 @media (max-width: 720px) {
   .app-shell {
-    background: var(--paper);
+    background-color: var(--paper);
+    background-attachment: scroll;
   }
 
   .topbar {
