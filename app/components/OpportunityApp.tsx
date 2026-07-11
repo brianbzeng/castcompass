@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ContourMap } from "./ContourMap";
 import {
   ArrowIcon,
@@ -26,6 +26,8 @@ import type {
   SourceFreshness,
   TimeFilter,
 } from "../types";
+
+const PACIFIC_TIME_ZONE = "America/Los_Angeles";
 
 const FALLBACK_SITES: FishingSite[] = [
   {
@@ -297,9 +299,15 @@ function googleDirectionsUrl(site: FishingSite) {
 function formatWindow(startIso: string, endIso: string, compact = false) {
   const start = new Date(startIso);
   const end = new Date(endIso);
-  const sameDay = start.toDateString() === new Date().toDateString();
-  const day = sameDay ? "Today" : start.toLocaleDateString("en-US", { weekday: "short" });
-  const timeOptions: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
+  const sameDay = dateInputValue(start) === dateInputValue(new Date());
+  const day = sameDay
+    ? "Today"
+    : start.toLocaleDateString("en-US", { weekday: "short", timeZone: PACIFIC_TIME_ZONE });
+  const timeOptions: Intl.DateTimeFormatOptions = {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: PACIFIC_TIME_ZONE,
+  };
   if (compact) return `${day}, ${start.toLocaleTimeString("en-US", timeOptions)}`;
   return `${day} · ${start.toLocaleTimeString("en-US", timeOptions)}–${end.toLocaleTimeString("en-US", timeOptions)}`;
 }
@@ -314,10 +322,21 @@ function formatAge(iso: string) {
 }
 
 function dateInputValue(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: PACIFIC_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value ?? "1970";
+  const month = parts.find((part) => part.type === "month")?.value ?? "01";
+  const day = parts.find((part) => part.type === "day")?.value ?? "01";
   return `${year}-${month}-${day}`;
+}
+
+function shiftDateInput(value: string, days: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  return dateInputValue(new Date(Date.UTC(year, month - 1, day + days, 12)));
 }
 
 function dateFromInput(value: string) {
@@ -330,9 +349,7 @@ function isFiniteNumber(value: unknown): value is number {
 }
 
 function defaultCustomEnd() {
-  const end = new Date();
-  end.setDate(end.getDate() + 2);
-  return dateInputValue(end);
+  return shiftDateInput(dateInputValue(new Date()), 2);
 }
 
 function filterWindow(
@@ -348,12 +365,10 @@ function filterWindow(
 
   const now = new Date(nowMs);
   if (filter === "today") {
-    return start.toDateString() === now.toDateString() || (start.getTime() <= nowMs && end.getTime() > nowMs);
+    return dateInputValue(start) === dateInputValue(now) || (start.getTime() <= nowMs && end.getTime() > nowMs);
   }
   if (filter === "tomorrow") {
-    const tomorrow = new Date(now);
-    tomorrow.setDate(now.getDate() + 1);
-    return start.toDateString() === tomorrow.toDateString();
+    return dateInputValue(start) === shiftDateInput(dateInputValue(now), 1);
   }
 
   const rangeStart = dateFromInput(customStart);
@@ -413,6 +428,9 @@ function SourceStatus({ source }: { source: SourceFreshness }) {
 }
 
 export function OpportunityApp() {
+  const detailDialogRef = useRef<HTMLElement>(null);
+  const detailTriggerRef = useRef<HTMLElement | null>(null);
+  const detailTriggerSiteIdRef = useRef<string | null>(null);
   const [sites, setSites] = useState<FishingSite[]>(FALLBACK_SITES);
   const [snapshot, setSnapshot] = useState<OpportunitySnapshot>(fallbackSnapshot);
   const [communityPulses, setCommunityPulses] = useState<CommunityPulse[]>([]);
@@ -461,6 +479,72 @@ export function OpportunityApp() {
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
+
+  useEffect(() => {
+    if (!selectedSiteId || !detailDialogRef.current) return;
+
+    const dialog = detailDialogRef.current;
+    const previousBodyOverflow = document.body.style.overflow;
+    const focusFrame = window.requestAnimationFrame(() => dialog.focus({ preventScroll: true }));
+
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setSelectedSiteId(null);
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => element.getAttribute("aria-hidden") !== "true");
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus({ preventScroll: true });
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey && (activeElement === first || !dialog.contains(activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (activeElement === last || !dialog.contains(activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousBodyOverflow;
+
+      const trigger = detailTriggerRef.current;
+      const triggerSiteId = detailTriggerSiteIdRef.current;
+      window.requestAnimationFrame(() => {
+        if (trigger?.isConnected) {
+          trigger.focus({ preventScroll: true });
+          return;
+        }
+
+        if (!triggerSiteId) return;
+        document
+          .querySelector<HTMLElement>(`[data-detail-trigger-for="${triggerSiteId}"]`)
+          ?.focus({ preventScroll: true });
+      });
+    };
+  }, [selectedSiteId]);
 
   const windowsBySite = useMemo(
     () => latestPerSite(snapshot.windows, timeFilter, clockMs, customStart, customEnd),
@@ -541,6 +625,40 @@ export function OpportunityApp() {
     setInstallPrompt(null);
   }, [installPrompt]);
 
+  const openSiteDetail = useCallback((siteId: string) => {
+    const activeElement = document.activeElement;
+    detailTriggerRef.current = activeElement instanceof HTMLElement ? activeElement : null;
+    detailTriggerSiteIdRef.current = siteId;
+    setSelectedSiteId(siteId);
+  }, []);
+
+  const closeSiteDetail = useCallback(() => {
+    setSelectedSiteId(null);
+  }, []);
+
+  const scrollToSection = useCallback((sectionId: "forecast" | "sources") => {
+    setShowMethod(false);
+    setShowCompare(false);
+
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById(sectionId);
+      if (!target) return;
+
+      const topbar = document.querySelector<HTMLElement>(".topbar");
+      const topbarHeight = topbar?.getBoundingClientRect().height ?? 0;
+      const top = target.getBoundingClientRect().top + window.scrollY - topbarHeight - 16;
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      window.scrollTo({
+        top: Math.max(0, top),
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+      });
+
+      const hash = `#${sectionId}`;
+      if (window.location.hash !== hash) window.history.pushState(null, "", hash);
+    });
+  }, []);
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -550,14 +668,19 @@ export function OpportunityApp() {
           <em>Bay Area beta</em>
         </a>
         <nav className="desktop-nav" aria-label="Primary navigation">
-          <a href="#forecast">Forecast</a>
+          <button type="button" onClick={() => scrollToSection("forecast")}>Forecast</button>
           <button type="button" onClick={() => setShowMethod(true)}>How it works</button>
-          <a href="#sources">Data</a>
+          <button type="button" onClick={() => scrollToSection("sources")}>Data</button>
         </nav>
         <div className="topbar-actions">
-          <span className={`data-pill ${dataState}`}>
+          <button
+            className={`data-pill ${dataState}`}
+            type="button"
+            onClick={() => scrollToSection("sources")}
+            aria-label={`Open forecast data sources. Current status: ${dataState}`}
+          >
             <i /> {dataState === "loading" ? "Loading" : dataState === "live" ? "Live data" : "Cached"}
-          </span>
+          </button>
           {installPrompt ? (
             <button className="install-button" type="button" onClick={triggerInstall}>
               <DownloadIcon /> Install
@@ -582,7 +705,7 @@ export function OpportunityApp() {
             </p>
           </div>
           {bestSite && bestWindow ? (
-            <button className="next-window-card" type="button" onClick={() => setSelectedSiteId(bestSite.id)}>
+            <button className="next-window-card" type="button" onClick={() => openSiteDetail(bestSite.id)}>
               <div className={`score-orbit ${scoreTone(bestWindow.score)}`}>
                 <span>{Math.round(bestWindow.score)}</span>
                 <small>of 100</small>
@@ -680,11 +803,12 @@ export function OpportunityApp() {
             sites={rankedSites}
             windowsBySite={windowsBySite}
             selectedSiteId={selectedSiteId}
-            onSelectSite={setSelectedSiteId}
+            onSelectSite={openSiteDetail}
             userPosition={userPosition}
           />
-          <div className="map-overlay-label"><LayersIcon /> {rankedSites.length} accessible casting zones</div>
+          <div className="map-overlay-label"><LayersIcon /> {rankedSites.length} zones · tap grouped circles to expand</div>
           <div className="map-legend">
+            <span><i className="cluster" />Grouped</span>
             <span><i className="excellent" />80+</span>
             <span><i className="good" />65–79</span>
             <span><i className="fair" />45–64</span>
@@ -711,7 +835,8 @@ export function OpportunityApp() {
                   type="button"
                   className={`site-card ${selectedSiteId === site.id ? "selected" : ""}`}
                   key={site.id}
-                  onClick={() => setSelectedSiteId(site.id)}
+                  data-detail-trigger-for={site.id}
+                  onClick={() => openSiteDetail(site.id)}
                 >
                   <span className="site-rank">{String(index + 1).padStart(2, "0")}</span>
                   <div className={`site-score ${scoreTone(window.score)}`}>{Math.round(window.score)}</div>
@@ -772,17 +897,37 @@ export function OpportunityApp() {
 
       {selectedSite && selectedWindow ? (
         <div className="detail-layer" role="presentation" onClick={(event) => {
-          if (event.target === event.currentTarget) setSelectedSiteId(null);
+          if (event.target === event.currentTarget) closeSiteDetail();
         }}>
-          <aside className="detail-sheet" aria-label={`${selectedSite.name} forecast details`}>
+          <aside
+            ref={detailDialogRef}
+            className="detail-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="detail-title"
+            tabIndex={-1}
+          >
             <div className="sheet-handle" />
-            <button className="sheet-close" type="button" onClick={() => setSelectedSiteId(null)} aria-label="Close details"><CloseIcon /></button>
+            <button className="sheet-close" type="button" onClick={closeSiteDetail} aria-label="Close details"><CloseIcon /></button>
             <div className="sheet-topline">
               <span>{selectedSite.region} · {selectedSite.type}</span>
               <span className={`confidence ${selectedWindow.confidence}`}>{selectedWindow.confidence} confidence</span>
             </div>
-            <h2>{selectedSite.name}</h2>
+            <h2 id="detail-title">{selectedSite.name}</h2>
             <p className="sheet-window"><ClockIcon /> {formatWindow(selectedWindow.start, selectedWindow.end)}</p>
+
+            <div className="place-media-block">
+              <h3>See the access</h3>
+              <p>Open current Google Maps imagery and routing outside ContourCast.</p>
+              <div className="place-media-links">
+                <a href={googleMapsSearchUrl(selectedSite)} target="_blank" rel="noreferrer">Photos &amp; reviews ↗</a>
+                <a href={googleStreetViewUrl(selectedSite)} target="_blank" rel="noreferrer">Street View 360° ↗</a>
+                <a href={googleSatelliteUrl(selectedSite)} target="_blank" rel="noreferrer">Satellite view ↗</a>
+                <a href={googleDirectionsUrl(selectedSite)} target="_blank" rel="noreferrer">Directions ↗</a>
+              </div>
+              <small>Street View coverage varies, and Google may open the nearest available panorama.</small>
+            </div>
+
             <div className="detail-score-block">
               <div className={`detail-score ${scoreTone(selectedWindow.score)}`}>
                 <strong>{Math.round(selectedWindow.score)}</strong>
@@ -845,18 +990,6 @@ export function OpportunityApp() {
               {selectedSite.accessSourceUrl ? (
                 <a href={selectedSite.accessSourceUrl} target="_blank" rel="noreferrer">Check official access status ↗</a>
               ) : null}
-            </div>
-
-            <div className="place-media-block">
-              <h3>See the access</h3>
-              <p>Open current Google Maps imagery and routing outside ContourCast.</p>
-              <div className="place-media-links">
-                <a href={googleMapsSearchUrl(selectedSite)} target="_blank" rel="noreferrer">Photos &amp; reviews ↗</a>
-                <a href={googleStreetViewUrl(selectedSite)} target="_blank" rel="noreferrer">Street View 360° ↗</a>
-                <a href={googleSatelliteUrl(selectedSite)} target="_blank" rel="noreferrer">Satellite view ↗</a>
-                <a href={googleDirectionsUrl(selectedSite)} target="_blank" rel="noreferrer">Directions ↗</a>
-              </div>
-              <small>Street View coverage varies, and Google may open the nearest available panorama.</small>
             </div>
 
             <div className="community-pulse-block">
@@ -928,7 +1061,15 @@ export function OpportunityApp() {
                 The research pipeline sends six-channel bathymetry patches into a self-supervised ResNet/SimCLR encoder, then fine-tunes presence and <code>log1p(CPUA)</code> heads. It is promoted only after geographically blocked validation shows a reliable ranking gain over simpler baselines.
               </p>
             </div>
-            <a href="#sources" onClick={() => setShowMethod(false)}>Inspect source freshness <ArrowIcon /></a>
+            <a
+              href="#sources"
+              onClick={(event) => {
+                event.preventDefault();
+                scrollToSection("sources");
+              }}
+            >
+              Inspect source freshness <ArrowIcon />
+            </a>
           </section>
         </div>
       ) : null}
@@ -958,7 +1099,7 @@ export function OpportunityApp() {
                     <MetricBar label="Conditions" value={window.dynamicScore} note="Fresh inputs" />
                     <button type="button" onClick={() => {
                       setShowCompare(false);
-                      setSelectedSiteId(site.id);
+                      openSiteDetail(site.id);
                     }}>Open details <ArrowIcon /></button>
                   </article>
                 );

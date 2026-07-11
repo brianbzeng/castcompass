@@ -70,16 +70,42 @@ test("keeps the score framed as a relative ranking", async () => {
   assert.match(app, /\["today", "Today"\]/);
   assert.match(app, /\["custom", "Custom"\]/);
   assert.doesNotMatch(app, /Best next|\["weekend", "Weekend"\]/);
+  assert.match(app, /America\/Los_Angeles/);
 });
 
-test("uses the blue vector map and exposes a deterministic Bay recenter control", async () => {
+test("uses a marine basemap with map-native clustered points and deterministic Bay controls", async () => {
   const map = await readFile(
     new URL("../app/components/ContourMap.tsx", import.meta.url),
     "utf8",
   );
 
-  assert.match(map, /tiles\.openfreemap\.org\/styles\/fiord/);
-  assert.match(map, /bathymetry-vectors/);
+  assert.match(map, /World_Ocean_Base/);
+  assert.match(map, /World_Ocean_Reference/);
+  assert.match(map, /type: "geojson"/);
+  assert.match(map, /cluster: true/);
+  assert.match(map, /scrollZoom: false/);
+  assert.match(map, /cooperativeGestures: true/);
+  assert.match(map, /new ResizeObserver/);
+  assert.match(map, /retainPadding: false/);
   assert.match(map, /Center Bay/);
+  assert.doesNotMatch(map, /new maplibregl\.Marker/);
+  assert.doesNotMatch(map, /openfreemap|versatiles/i);
   assert.doesNotMatch(map, /tile\.openstreetmap\.org/);
+});
+
+test("keeps maps and source navigation immediately reachable", async () => {
+  const [app, css] = await Promise.all([
+    readFile(new URL("../app/components/OpportunityApp.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.ok(app.indexOf('className="place-media-block"') < app.indexOf('className="detail-score-block"'));
+  assert.match(app, /scrollToSection\("sources"\)/);
+  assert.match(app, /role="dialog"/);
+  assert.match(app, /aria-modal="true"/);
+  assert.match(css, /\.map-wrap\s*\{[^}]*min-height:\s*0/s);
+  assert.match(css, /\.ranking-panel\s*\{[^}]*overflow:\s*hidden/s);
+  assert.match(css, /\.site-list\s*\{[^}]*overscroll-behavior-y:\s*auto/s);
+  assert.match(css, /\.detail-sheet\s*\{[^}]*height:\s*100dvh/s);
+  assert.match(css, /\.source-section\s*\{[^}]*scroll-margin-top:\s*88px/s);
 });

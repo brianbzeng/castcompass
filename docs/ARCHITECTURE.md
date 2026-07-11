@@ -6,7 +6,7 @@
 flowchart TB
     subgraph Client["Cloudflare-hosted PWA"]
       UI["Next.js / TypeScript UI"]
-      MAP["MapLibre + OpenFreeMap vector map"]
+      MAP["MapLibre + ArcGIS World Ocean map"]
       SW["Service worker cache"]
       CACHE["Last verified snapshot"]
       UI --> MAP
@@ -86,7 +86,7 @@ Stale or missing values are not silently imputed as live observations. The API c
 - API reads prefer Postgres when configured and fall back to the packaged verified snapshot on database failure.
 - The PWA uses the API when `NEXT_PUBLIC_API_URL` is set and the static snapshot otherwise.
 - The service worker uses network-first caching for forecast JSON and navigation, retaining the last successful response for offline use.
-- OpenFreeMap vector tiles and the optional VersaTiles regional bathymetry overlay are external and may not be available offline; rankings and site details remain available. The bathymetry overlay is coarse explanatory context, not navigation data and not the live habitat model.
+- ArcGIS World Ocean base/reference tiles are external and may not be available offline; rankings and site details remain available. Basemap bathymetry is explanatory context, not navigation data and not the live habitat model.
 
 ## Security and privacy
 

@@ -164,6 +164,10 @@ svg {
   text-transform: uppercase;
 }
 
+button.data-pill {
+  cursor: pointer;
+}
+
 .data-pill i {
   width: 7px;
   height: 7px;
@@ -606,6 +610,7 @@ footer {
 .map-wrap {
   position: relative;
   min-width: 0;
+  min-height: 0;
   overflow: hidden;
   background: var(--ocean-deep);
 }
@@ -614,12 +619,14 @@ footer {
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: inherit;
+  min-height: 0;
   overflow: hidden;
   background: var(--ocean-deep);
 }
 
 .contour-map {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   background:
@@ -662,60 +669,6 @@ footer {
 
 .maplibregl-ctrl-attrib a {
   color: inherit !important;
-}
-
-.map-score-marker {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  padding: 0;
-  border: 2px solid var(--paper-bright);
-  border-radius: 50%;
-  color: var(--ocean-deep);
-  background: var(--quiet);
-  font-family: var(--font-mono);
-  font-size: 0.74rem;
-  font-weight: 600;
-  box-shadow: 0 5px 18px rgba(7, 25, 21, 0.4);
-  cursor: pointer;
-  transition: transform 160ms ease, box-shadow 160ms ease;
-}
-
-.map-score-marker::after {
-  position: absolute;
-  inset: -6px;
-  border: 1px solid currentColor;
-  border-radius: inherit;
-  content: "";
-  opacity: 0;
-  transition: opacity 160ms ease;
-}
-
-.map-score-marker:hover,
-.map-score-marker.selected {
-  z-index: 4;
-  transform: scale(1.18);
-  box-shadow: 0 7px 24px rgba(7, 25, 21, 0.55);
-}
-
-.map-score-marker.selected::after {
-  opacity: 0.65;
-}
-
-.map-score-marker.excellent { background: var(--lime); }
-.map-score-marker.good { background: var(--seafoam); }
-.map-score-marker.fair { background: #e8d8a6; }
-.map-score-marker.quiet { background: #a9b1aa; }
-
-.user-location-marker {
-  width: 18px;
-  height: 18px;
-  border: 3px solid var(--paper-bright);
-  border-radius: 50%;
-  background: #4a9dff;
-  box-shadow: 0 0 0 7px rgba(74, 157, 255, 0.2), 0 4px 14px rgba(7, 25, 21, 0.4);
 }
 
 .map-overlay-label,
@@ -771,6 +724,12 @@ footer {
 .map-legend i.excellent { background: var(--lime); }
 .map-legend i.good { background: var(--seafoam); }
 .map-legend i.fair { background: #e8d8a6; }
+.map-legend i.cluster {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--paper-bright);
+  background: var(--ocean);
+}
 
 .map-center-button {
   position: absolute;
@@ -817,6 +776,9 @@ footer {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
   border-left: 1px solid var(--panel-line);
   color: var(--paper-bright);
   background:
@@ -874,8 +836,10 @@ footer {
 }
 
 .site-list {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior-y: auto;
   scrollbar-color: rgba(159, 216, 229, 0.34) transparent;
 }
 
@@ -1085,6 +1049,7 @@ footer {
   grid-template-columns: 0.8fr 1.2fr;
   gap: 8vw;
   padding: 5rem 4vw;
+  scroll-margin-top: 88px;
 }
 
 .source-heading h2 {
@@ -1192,17 +1157,33 @@ footer > div {
   animation: fade-in 160ms ease-out;
 }
 
+.detail-layer {
+  overflow: hidden;
+}
+
 .detail-sheet {
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
   width: min(480px, 94vw);
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
   padding: 1.6rem 1.8rem 2rem;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-color: rgba(12, 75, 106, 0.38) transparent;
+  scrollbar-gutter: stable;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   background: var(--paper-bright);
   box-shadow: -24px 0 80px rgba(5, 16, 13, 0.28);
   animation: slide-in 230ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.detail-sheet:focus {
+  outline: none;
 }
 
 .sheet-handle {
@@ -1215,12 +1196,21 @@ footer > div {
   right: 1rem;
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border: 1px solid var(--line);
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
+}
+
+.desktop-nav button:focus-visible,
+.data-pill:focus-visible,
+.sheet-close:focus-visible,
+.place-media-links a:focus-visible,
+.site-card:focus-visible {
+  outline: 2px solid var(--ocean);
+  outline-offset: 3px;
 }
 
 .sheet-close svg {
@@ -2217,7 +2207,8 @@ footer > div {
     right: auto;
     bottom: auto;
     width: 100%;
-    max-height: 90vh;
+    height: 90dvh;
+    max-height: 90dvh;
     padding: 1.7rem 1rem calc(1.4rem + env(safe-area-inset-bottom));
     border-radius: 18px 18px 0 0;
     animation-name: sheet-up;
