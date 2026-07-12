@@ -1,9 +1,9 @@
 # ContourCast model card
 
-**Status:** architecture and evaluation scaffold implemented; deep model
-untrained; no official-data performance has been measured.
+**Status:** multiscale encoder and official-bathymetry self-supervised pilot
+implemented; catch heads remain untrained; no catch performance measured.
 
-**Version:** 0.1.0
+**Version:** 0.2.0
 
 ## Model purpose
 
@@ -33,18 +33,24 @@ predeclared metrics under the same geographic folds.
 
 ## Deep-learning architecture
 
-`pipeline/contourcast/deep_model.py` defines, but does not train:
+`pipeline/contourcast/deep_model.py` defines:
 
-- a compact ResNet-style encoder with a six-channel input stem;
+- a configurable ResNet-style encoder for the declared feature stack;
 - three residual stages with spatial downsampling and global average pooling;
+- a shared-weight multiscale encoder with learned scale attention;
 - a SimCLR-style projection head for self-supervised terrain pretraining;
 - a two-head fine-tuning model:
   - occurrence logit;
   - conditional `log1p(CPUE)` prediction.
+- a multiple-instance two-head model for coarse released fishing blocks. It
+  pools several terrain patches to the block label without inventing a point.
 
-Self-supervised views use flips, small intensity scaling, Gaussian noise, and
-channel dropout. Their appropriateness must be reviewed against bathymetric
-semantics before a real experiment. The contrastive objective is NT-Xent. The
+Self-supervised views use small translations, Gaussian noise, and semantic
+channel dropout. Reflections are disabled by default so shoreline-relative
+orientation, bedform direction, and linear alignment remain meaningful. The
+contrastive objective is NT-Xent, with nearby overlapping locations excluded
+from the negative-pair set so the model is not rewarded for separating the same
+geomorphic structure sampled twice. The
 fine-tuning objective combines binary cross-entropy and positive-only SmoothL1
 log-CPUE loss, with optional batch-normalized sample-count weights for released
 CRFS reliability fields. Loss weights, random seeds, architecture width/depth, optimizer,
@@ -152,7 +158,7 @@ channel order, source version, or coverage contract fails.
 | --- | --- | --- |
 | Synthetic smoke workflow | Implemented | Plumbing test only; numeric output intentionally not reported here |
 | Official-data classical baselines | Unrun | No result |
-| Self-supervised pretraining | Unrun | No checkpoint |
+| Self-supervised pretraining | Pilot completed on official USGS 2 m bathymetry | Optimization/provenance validation only; not catch accuracy |
 | Two-head fine-tuning | Unrun | No checkpoint |
 | Geographic generalization | Unrun | No result |
 | Calibration / ablations | Unrun on official data | No result |

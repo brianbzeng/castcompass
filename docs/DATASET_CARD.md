@@ -1,9 +1,10 @@
 # ContourCast dataset card
 
-**Status:** data-contract and processing pipeline implemented; official data not
-bundled; no production training dataset has been assembled or approved.
+**Status:** data contract, multiscale structure pipeline, and one reproducible
+official-data self-supervised pilot implemented. Official rasters and weights
+are not bundled. No supervised catch-training dataset has been approved.
 
-**Version:** 0.1.0
+**Version:** 0.2.0
 
 ## Intended dataset
 
@@ -24,6 +25,9 @@ The machine-readable manifests are in `pipeline/sources/`.
 | Source | Steward | Intended use | Official access |
 | --- | --- | --- | --- |
 | CUDEM / Coastal Relief bathymetry | NOAA National Centers for Environmental Information | Elevation/bathymetry raster and published metadata | [NOAA Coastal Elevation Models](https://www.ncei.noaa.gov/products/coastal-elevation-models), [NOAA Bathymetry](https://www.ncei.noaa.gov/products/bathymetry) |
+| BlueTopo | NOAA Office of Coast Survey | Coverage backbone with elevation, uncertainty, and data-quality layers | [NOAA BlueTopo](https://www.nauticalcharts.noaa.gov/data/bluetopo.html) |
+| Offshore San Francisco State Waters | U.S. Geological Survey | 2 m bathymetry/backscatter, seafloor character, habitat, geology, and video ground truth | [USGS DS 781 data catalog](https://pubs.usgs.gov/ds/781/OffshoreSanFrancisco/data_catalog_OffshoreSanFrancisco.html) |
+| Central San Francisco Bay multibeam | U.S. Geological Survey | 4 m bathymetry/backscatter and bedform structure | [USGS DS 55](https://pubs.usgs.gov/dds/dds-55/pacmaps/sf_data.htm) |
 | California Recreational Fisheries Survey (CRFS) | California Department of Fish and Wildlife | California marine recreational catch/effort samples or estimates | [CDFW CRFS](https://wildlife.ca.gov/Conservation/Marine/CRFS/Additional-Information) |
 | RecFIN Data Warehouse | Pacific States Marine Fisheries Commission | Official distribution/query system for Pacific Coast recreational-fisheries data, including CRFS | [RecFIN](https://www.recfin.org/) |
 
@@ -77,7 +81,9 @@ Canonical fields are:
 
 The importer never converts an area centroid, port, district, or survey stratum
 into a purported catch location. An area-only record may support aggregate
-descriptive analysis, but it cannot enter the point-level terrain model.
+descriptive analysis. A future weakly supervised experiment may represent the
+entire released area as a bag of terrain patches and supervise only the bag;
+attention on individual patches is not ground-truthed hotspot evidence.
 
 Sample data and expanded survey estimates have different meanings. Expansion
 weights, strata, modes, uncertainty fields, and source documentation must be
@@ -85,7 +91,7 @@ retained in the raw layer. The current canonical point pipeline is not a
 survey-weighted estimator; expanded estimates should not be mixed with raw
 events until that estimator is explicitly implemented and validated.
 
-## Derived terrain channels
+## Derived terrain and structure channels
 
 All six channels are aligned to the bathymetry raster in this fixed order:
 
@@ -100,6 +106,38 @@ Defaults use radii of two and six cells. Pixel size, radii, sign convention,
 channel names, source datum, and robust summary statistics are saved with each
 artifact. Nodata pixels stay invalid after derivation; finite fill is used only
 internally to avoid derivative explosions at holes.
+
+The deep-learning structure stack adds:
+
+7. `local_relief_m`: local maximum minus minimum depth;
+8. `rugosity_ratio`: local surface-area proxy, equal to one on a flat cell;
+9. `aspect_sin`: north/south grid-axis component of the elevation gradient;
+10. `aspect_cos`: east/west grid-axis component of the elevation gradient.
+
+Orientation is preserved by default during augmentation because alignment with
+shore, current, surf, and other linear structures may be predictive. Optional
+backscatter, substrate/seafloor character, survey uncertainty, survey age,
+kelp-canopy, or surf-break layers must align exactly to the reference grid.
+Every auxiliary value layer receives a paired availability mask before missing
+values are filled.
+
+## Physical resolution contract
+
+ContourCast separates pixel spacing from reliable feature detection:
+
+- fewer than two native cells across: `unresolved`;
+- two to fewer than three cells: `marginal`;
+- three or more cells, subject to published positional accuracy: `resolvable`.
+
+At 2 m/pixel, the conservative structure threshold is therefore about 6 m. A
+narrow pipe may not be directly resolved. A wider raised corridor, scour,
+bedform disruption, acoustic-backscatter response, kelp footprint, or habitat
+edge can still be represented when it spans enough native cells. Upsampling a
+coarse raster never improves this classification.
+
+Each location is represented at multiple physical scales. The initial pilot
+uses 64 m, 256 m, and 1,024 m diameter views, corresponding to immediate
+structure, surrounding habitat, and broad geomorphic context.
 
 ## Spatial alignment and leakage controls
 
@@ -157,5 +195,8 @@ results.
 
 ## Current results
 
-**Unrun on official data.** No row counts, class balance, coverage statistics,
-model metrics, or habitat conclusions are claimed in this card.
+An official USGS 2 m bathymetry crop has passed the ingestion, resolution audit,
+ten-channel derivation, three-scale corpus, and self-supervised checkpoint
+workflow. This is unlabeled representation learning only. No class balance,
+catch metric, habitat conclusion, or Opportunity Score accuracy improvement is
+claimed.

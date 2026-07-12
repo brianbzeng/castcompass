@@ -1,0 +1,44 @@
+{
+  "manifest_version": "1.0",
+  "source_id": "usgs_sf_state_waters_2m",
+  "title": "USGS California State Waters Map Series — Offshore of San Francisco",
+  "steward": "U.S. Geological Survey Pacific Coastal and Marine Science Center",
+  "official_landing_page": "https://pubs.usgs.gov/ds/781/OffshoreSanFrancisco/data_catalog_OffshoreSanFrancisco.html",
+  "related_official_pages": [
+    "https://pubs.usgs.gov/ds/781/OffshoreSanFrancisco/metadata/Bathymetry_OffshoreSanFrancisco_metadata_faq.html",
+    "https://pubs.usgs.gov/ds/781/OffshoreSanFrancisco/metadata/Habitat_OffshoreSanFrancisco_metadata_faq.html"
+  ],
+  "access": {
+    "mode": "direct_official_download",
+    "bathymetry_url": "https://pubs.usgs.gov/ds/781/OffshoreSanFrancisco/data/Bathymetry_OffshoreSanFrancisco.zip",
+    "available_layers": [
+      "2 m bathymetry",
+      "2 m acoustic backscatter",
+      "2 m seafloor character",
+      "habitat polygons",
+      "geology/geomorphology polygons",
+      "ground-truth video observations"
+    ]
+  },
+  "coverage": {
+    "west": -122.62,
+    "east": -122.42,
+    "south": 37.70,
+    "north": 37.86,
+    "region": "Pacific coast and Golden Gate approach offshore of San Francisco"
+  },
+  "resolution": {
+    "bathymetry_pixel_m": 2.0,
+    "backscatter_pixel_m": 2.0,
+    "published_horizontal_accuracy_m": 2.0,
+    "published_vertical_accuracy_m": 0.2
+  },
+  "temporal_coverage": "Bathymetry surveys collected 2004–2008; product published 2014",
+  "citation": "Dartnell, P., Kvitek, R.G., and Bretz, C.K., 2014, Bathymetry—Offshore of San Francisco, California, USGS Data Series 781.",
+  "limitations": [
+    "Not for navigation.",
+    "The source is high resolution but historical; structure may have changed since collection.",
+    "The mapped area does not cover most interior San Francisco Bay shoreline sites.",
+    "A 2 m pixel does not prove that a 2 m feature is reliably identifiable; ContourCast uses a conservative three-cell feature threshold."
+  ]
+}

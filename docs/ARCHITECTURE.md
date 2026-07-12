@@ -49,12 +49,13 @@ flowchart TB
 
     subgraph ML["Versioned geospatial ML workflow"]
       INGEST["Ingest + validate CRS/datum"]
-      TERRAIN["Six terrain channels"]
+      TERRAIN["Ten structure channels + aligned auxiliary masks"]
+      SCALE["64 m / 256 m / 1,024 m physical views"]
       SPLIT["Buffered geographic folds"]
       BASE["Seasonal / linear / boosted baselines"]
-      DEEP["ResNet encoder + SSL + two heads"]
+      DEEP["Multiscale ResNet + SSL + point/area-bag heads"]
       GATE["Promotion gate"]
-      INGEST --> TERRAIN --> SPLIT
+      INGEST --> TERRAIN --> SCALE --> SPLIT
       SPLIT --> BASE --> GATE
       SPLIT --> DEEP --> GATE
     end

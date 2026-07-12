@@ -12,11 +12,17 @@ from .geo import validate_observation_extent, verify_projected_crs
 from .ingest import ingest_bathymetry, ingest_observations, load_grid, load_model_observations
 from .metadata import sha256_file, write_json
 from .sources import summarize_sources
+from .structure import (
+    audit_feature_resolution,
+    derive_structure_channels,
+    save_feature_stack,
+)
 from .terrain import (
     derive_terrain_channels,
     robust_channel_stats,
     save_terrain_stack,
 )
+from .training import build_pretraining_corpus, run_bathymetry_pretraining
 from .workflow import run_baseline_workflow, run_smoke_workflow
 
 
@@ -53,6 +59,46 @@ def build_parser() -> argparse.ArgumentParser:
     terrain.add_argument("--output", required=True, type=_path)
     terrain.add_argument("--local-radius", type=int, default=2)
     terrain.add_argument("--broad-radius", type=int, default=6)
+
+    structure = subcommands.add_parser("derive-structure")
+    structure.add_argument("--bathymetry", required=True, type=_path)
+    structure.add_argument("--output", required=True, type=_path)
+    structure.add_argument("--local-radius", type=int, default=2)
+    structure.add_argument("--broad-radius", type=int, default=6)
+    structure.add_argument("--relief-radius", type=int, default=3)
+    structure.add_argument("--horizontal-accuracy-m", type=float)
+
+    resolution = subcommands.add_parser("audit-resolution")
+    resolution.add_argument("--bathymetry", required=True, type=_path)
+    resolution.add_argument("--horizontal-accuracy-m", type=float)
+    resolution.add_argument("--feature-widths-m", type=float, nargs="+")
+
+    corpus = subcommands.add_parser("build-pretraining-corpus")
+    corpus.add_argument("--feature-stack", required=True, type=_path)
+    corpus.add_argument("--output", required=True, type=_path)
+    corpus.add_argument("--radii-m", type=float, nargs="+", default=[64, 256, 1024])
+    corpus.add_argument("--output-size", type=int, default=33)
+    corpus.add_argument("--stride-m", type=float, default=100)
+    corpus.add_argument("--max-centers", type=int, default=2000)
+    corpus.add_argument("--min-valid-fraction", type=float, default=0.8)
+    corpus.add_argument("--seed", type=int, default=42)
+
+    pretrain = subcommands.add_parser("pretrain-bathymetry")
+    pretrain.add_argument("--corpus", required=True, type=_path)
+    pretrain.add_argument("--output-dir", required=True, type=_path)
+    pretrain.add_argument("--epochs", type=int, default=10)
+    pretrain.add_argument("--batch-size", type=int, default=32)
+    pretrain.add_argument("--learning-rate", type=float, default=3e-4)
+    pretrain.add_argument("--weight-decay", type=float, default=1e-4)
+    pretrain.add_argument("--base-width", type=int, default=32)
+    pretrain.add_argument("--blocks-per-stage", type=int, default=2)
+    pretrain.add_argument("--projection-dim", type=int, default=128)
+    pretrain.add_argument("--temperature", type=float, default=0.2)
+    pretrain.add_argument("--min-negative-distance-m", type=float, default=512)
+    pretrain.add_argument("--validation-fold", type=int, default=0)
+    pretrain.add_argument("--split-regions", type=int, default=5)
+    pretrain.add_argument("--device", default="auto")
+    pretrain.add_argument("--seed", type=int, default=42)
 
     validate = subcommands.add_parser("validate")
     validate.add_argument("--bathymetry", required=True, type=_path)
@@ -123,6 +169,67 @@ def main(argv: Sequence[str] | None = None) -> int:
         }
         write_json(args.output.with_suffix(".provenance.json"), provenance)
         _print(provenance)
+    elif args.command == "derive-structure":
+        grid = load_grid(args.bathymetry)
+        channels, metadata = derive_structure_channels(
+            grid,
+            local_radius=args.local_radius,
+            broad_radius=args.broad_radius,
+            relief_radius=args.relief_radius,
+            horizontal_accuracy_m=args.horizontal_accuracy_m,
+        )
+        save_feature_stack(args.output, channels, grid, metadata["channels"], metadata)
+        provenance = {
+            "status": "completed",
+            "input_sha256": sha256_file(args.bathymetry),
+            "output_sha256": sha256_file(args.output),
+            "derivation": metadata,
+        }
+        write_json(args.output.with_suffix(".provenance.json"), provenance)
+        _print(provenance)
+    elif args.command == "audit-resolution":
+        grid = load_grid(args.bathymetry)
+        widths = args.feature_widths_m or (1, 2, 5, 10, 20, 50, 100)
+        _print(
+            audit_feature_resolution(
+                grid,
+                horizontal_accuracy_m=args.horizontal_accuracy_m,
+                candidate_widths_m=widths,
+            )
+        )
+    elif args.command == "build-pretraining-corpus":
+        _print(
+            build_pretraining_corpus(
+                args.feature_stack,
+                args.output,
+                radii_m=args.radii_m,
+                output_size=args.output_size,
+                stride_m=args.stride_m,
+                max_centers=args.max_centers,
+                min_valid_fraction=args.min_valid_fraction,
+                seed=args.seed,
+            )
+        )
+    elif args.command == "pretrain-bathymetry":
+        _print(
+            run_bathymetry_pretraining(
+                args.corpus,
+                args.output_dir,
+                epochs=args.epochs,
+                batch_size=args.batch_size,
+                learning_rate=args.learning_rate,
+                weight_decay=args.weight_decay,
+                base_width=args.base_width,
+                blocks_per_stage=args.blocks_per_stage,
+                projection_dim=args.projection_dim,
+                temperature=args.temperature,
+                min_negative_distance_m=args.min_negative_distance_m,
+                validation_fold=args.validation_fold,
+                split_regions=args.split_regions,
+                device=args.device,
+                seed=args.seed,
+            )
+        )
     elif args.command == "validate":
         grid = load_grid(args.bathymetry)
         frame = load_model_observations(args.observations, grid.crs)

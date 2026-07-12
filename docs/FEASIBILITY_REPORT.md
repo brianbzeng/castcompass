@@ -10,7 +10,9 @@ Proceed with a narrow California halibut planning product for public shore, beac
 
 ### Long-term habitat ranking
 
-The NOAA San Francisco Bay bathymetry product is detailed enough to derive depth, slope, curvature, roughness, bathymetric position, and channel-edge context. Those signals can be summarized within reachable casting zones rather than arbitrary offshore pixels.
+The NOAA San Francisco Bay bathymetry product is detailed enough to derive depth, slope, curvature, roughness, bathymetric position, and channel-edge context. Higher-resolution USGS coverage materially improves the structure ceiling: official products include 4 m central-Bay bathymetry/backscatter, 2 m offshore San Francisco bathymetry/backscatter/seafloor character, and a newer 1 m central-Bay surface in a bathymetric-change release. Those signals can be summarized within reachable casting zones rather than arbitrary offshore pixels.
+
+Feature specificity remains source-limited. ContourCast conservatively requires a structure to span at least three native cells and meet published positional-accuracy constraints. A narrow pipe may be unresolved even at 2 m, while its raised corridor, scour, backscatter response, attached-kelp footprint, or associated habitat edge may be detectable. The model records this distinction instead of treating an interpolated pixel as a measurement.
 
 CDFW/CRFS spatial data can support regional California-halibut occurrence and catch-rate evidence, including zero-catch/sample context where released. Its spatial aggregation and minimum-sample rules make it better suited to long-term habitat learning than exact spot claims.
 
@@ -24,7 +26,7 @@ NOAA CO-OPS, NWS, NDBC, and CoastWatch provide useful public conditions. These d
 
 ## Main limitations
 
-1. **Label resolution:** public recreational catch records are aggregated and cannot establish which accessible shoreline micro-structure produced an observation.
+1. **Label resolution:** public recreational catch records are aggregated and cannot establish which accessible shoreline micro-structure produced an observation. Area-level training must use multiple-instance bags, never invented centroids; user-consented precise trip reports are required for eventual micro-structure validation.
 2. **Time resolution:** identified public labels do not support a fully learned two-hour catch model.
 3. **Sampling bias:** survey effort, mode, access, angler behavior, and reporting vary in space and time.
 4. **Positive-label ambiguity:** a catch block can contain water that is unreachable from a public casting zone.
@@ -56,15 +58,16 @@ Implemented now:
 - live tide/weather/buoy snapshot inputs with missing-source exclusion;
 - static/offline fallback;
 - API/PostGIS contracts;
-- reproducible terrain, baseline, blocked-validation, deep-model, ablation, and versioning code;
+- reproducible ten-channel structure, multiscale self-supervision, area-bag weak-supervision, baseline, blocked-validation, ablation, and versioning code;
+- an official USGS 2 m pilot that produces a geographically held-out self-supervised checkpoint without claiming catch skill;
 - dataset/model cards with unrun results clearly marked.
 
 Still required before an accuracy claim:
 
-- download and checksum the selected official bathymetry mosaics;
+- assemble the complete BlueTopo/NOAA backbone plus high-resolution USGS bathymetry, backscatter, character, uncertainty, and survey-age mosaics;
 - obtain and preserve reproducible CRFS/RecFIN exports;
 - audit spatial joins and casting-zone intersections;
-- run real-data baselines, deep training, holdouts, confidence intervals, and ablations;
+- fine-tune on legitimate catch labels and run real-data baselines, holdouts, confidence intervals, and ablations;
 - publish measured results and promote one version through the documented gate.
 
 ## Product recommendation

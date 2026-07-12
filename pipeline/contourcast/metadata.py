@@ -28,9 +28,16 @@ def stable_hash(value: Mapping[str, Any], length: int = 12) -> str:
 
 def git_revision(cwd: Path | None = None) -> str:
     try:
-        return subprocess.check_output(
+        revision = subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=cwd, stderr=subprocess.DEVNULL, text=True
         ).strip()
+        dirty = subprocess.check_output(
+            ["git", "status", "--porcelain", "--untracked-files=no"],
+            cwd=cwd,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        return f"{revision}-dirty" if dirty else revision
     except (OSError, subprocess.CalledProcessError):
         return "uncommitted"
 

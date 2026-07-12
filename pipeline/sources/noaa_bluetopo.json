@@ -1,0 +1,35 @@
+{
+  "manifest_version": "1.0",
+  "source_id": "noaa_bluetopo",
+  "title": "NOAA BlueTopo",
+  "steward": "NOAA Office of Coast Survey",
+  "official_landing_page": "https://www.nauticalcharts.noaa.gov/data/bluetopo.html",
+  "related_official_pages": [
+    "https://www.nauticalcharts.noaa.gov/data/bluetopo_specs.html"
+  ],
+  "access": {
+    "mode": "official_tile_download",
+    "available_layers": [
+      "elevation",
+      "vertical uncertainty",
+      "data-quality raster attribute table"
+    ],
+    "instructions": [
+      "Select tiles intersecting the ContourCast study extent from the official BlueTopo access surface.",
+      "Preserve elevation, uncertainty, and quality bands together.",
+      "Record tile version, source survey identifier, resolution, and checksum before mosaicking."
+    ]
+  },
+  "resolution": {
+    "type": "variable by source survey and depth",
+    "quality_contract": "Use the uncertainty band and raster attribute table rather than treating every output pixel as equally measured."
+  },
+  "temporal_coverage": "Continuously maintained compilation; tile provenance identifies contributing surveys",
+  "citation": "NOAA Office of Coast Survey, BlueTopo. Record tile edition and access date.",
+  "limitations": [
+    "Not for navigation.",
+    "Output pixel spacing and contributing source resolution vary spatially.",
+    "Interpolated cells must be distinguishable from measured cells during training.",
+    "The compilation is a coverage backbone; local USGS multibeam/backscatter products can preserve finer structure where available."
+  ]
+}

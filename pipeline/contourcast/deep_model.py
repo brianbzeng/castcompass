@@ -1,4 +1,4 @@
-"""Optional PyTorch six-channel self-supervised and two-head model scaffold.
+"""Optional PyTorch multiscale self-supervised and catch-model architectures.
 
 This module intentionally does not download weights or claim a trained model.
 It defines architecture, augmentations, losses, and epoch-level training hooks so
@@ -57,15 +57,23 @@ if nn is not None:
             return functional.relu(hidden + self.skip(inputs), inplace=True)
 
 
-    class SixChannelResNetEncoder(nn.Module):
-        """Compact ResNet-style encoder for 6-channel bathymetry patches."""
+    class TerrainResNetEncoder(nn.Module):
+        """Compact ResNet-style encoder for a declared geospatial channel stack."""
 
-        def __init__(self, base_width: int = 32, blocks_per_stage: int = 2) -> None:
+        def __init__(
+            self,
+            input_channels: int = 6,
+            base_width: int = 32,
+            blocks_per_stage: int = 2,
+        ) -> None:
             super().__init__()
-            if base_width < 8 or blocks_per_stage < 1:
-                raise ValueError("base_width >= 8 and blocks_per_stage >= 1 are required")
+            if input_channels < 1 or base_width < 8 or blocks_per_stage < 1:
+                raise ValueError(
+                    "input_channels >= 1, base_width >= 8, and blocks_per_stage >= 1 are required"
+                )
+            self.input_channels = input_channels
             self.stem = nn.Sequential(
-                nn.Conv2d(6, base_width, kernel_size=5, padding=2, bias=False),
+                nn.Conv2d(input_channels, base_width, kernel_size=5, padding=2, bias=False),
                 nn.BatchNorm2d(base_width),
                 nn.ReLU(inplace=True),
             )
@@ -92,16 +100,60 @@ if nn is not None:
             self.output_dim = base_width * 4
 
         def forward(self, inputs: Any) -> Any:
-            if inputs.ndim != 4 or inputs.shape[1] != 6:
-                raise ValueError("encoder expects batches shaped (N, 6, H, W)")
+            if inputs.ndim != 4 or inputs.shape[1] != self.input_channels:
+                raise ValueError(
+                    f"encoder expects batches shaped (N, {self.input_channels}, H, W)"
+                )
             hidden = self.stages(self.stem(inputs))
             return self.pool(hidden).flatten(1)
+
+
+    class SixChannelResNetEncoder(TerrainResNetEncoder):
+        """Backward-compatible six-channel baseline encoder."""
+
+        def __init__(self, base_width: int = 32, blocks_per_stage: int = 2) -> None:
+            super().__init__(6, base_width, blocks_per_stage)
+
+
+    class MultiScaleTerrainEncoder(nn.Module):
+        """Shared-weight terrain encoder with learned attention across physical scales."""
+
+        def __init__(self, encoder: TerrainResNetEncoder, scales: int = 3) -> None:
+            super().__init__()
+            if scales < 1:
+                raise ValueError("scales must be positive")
+            self.encoder = encoder
+            self.scales = scales
+            self.scale_embeddings = nn.Parameter(torch.zeros(scales, encoder.output_dim))
+            self.attention = nn.Sequential(
+                nn.Linear(encoder.output_dim, max(8, encoder.output_dim // 2)),
+                nn.Tanh(),
+                nn.Linear(max(8, encoder.output_dim // 2), 1),
+            )
+            self.output_dim = encoder.output_dim
+
+        @property
+        def input_channels(self) -> int:
+            return self.encoder.input_channels
+
+        def forward(self, inputs: Any) -> Any:
+            if inputs.ndim != 5:
+                raise ValueError("multiscale encoder expects (N, scales, channels, H, W)")
+            batch, scales, channels, height, width = inputs.shape
+            if scales != self.scales or channels != self.input_channels:
+                raise ValueError(
+                    f"expected {self.scales} scales and {self.input_channels} channels"
+                )
+            encoded = self.encoder(inputs.reshape(batch * scales, channels, height, width))
+            encoded = encoded.reshape(batch, scales, -1) + self.scale_embeddings[None, :, :]
+            weights = torch.softmax(self.attention(encoded).squeeze(-1), dim=1)
+            return torch.sum(encoded * weights[:, :, None], dim=1)
 
 
     class TerrainContrastiveModel(nn.Module):
         """SimCLR-style projection head for unlabeled bathymetry patches."""
 
-        def __init__(self, encoder: SixChannelResNetEncoder, projection_dim: int = 128) -> None:
+        def __init__(self, encoder: Any, projection_dim: int = 128) -> None:
             super().__init__()
             self.encoder = encoder
             self.projector = nn.Sequential(
@@ -117,7 +169,7 @@ if nn is not None:
     class CatchMultiTaskModel(nn.Module):
         """Fine-tuning model with occurrence and positive-catch CPUE heads."""
 
-        def __init__(self, encoder: SixChannelResNetEncoder, dropout: float = 0.2) -> None:
+        def __init__(self, encoder: Any, dropout: float = 0.2) -> None:
             super().__init__()
             self.encoder = encoder
             self.dropout = nn.Dropout(dropout)
@@ -132,6 +184,49 @@ if nn is not None:
                 "embedding": embedding,
             }
 
+
+    class AreaBagCatchModel(nn.Module):
+        """Multiple-instance model for legitimately coarse fishing-area labels.
+
+        A CRFS/RecFIN block is represented by several terrain locations. The
+        label supervises the bag, not any invented centroid or individual patch.
+        Patch attention is inspectable but is not itself a ground-truthed hotspot.
+        """
+
+        def __init__(self, encoder: Any, dropout: float = 0.2) -> None:
+            super().__init__()
+            self.encoder = encoder
+            self.attention = nn.Sequential(
+                nn.Linear(encoder.output_dim, max(8, encoder.output_dim // 2)),
+                nn.Tanh(),
+                nn.Linear(max(8, encoder.output_dim // 2), 1),
+            )
+            self.dropout = nn.Dropout(dropout)
+            self.occurrence_head = nn.Linear(encoder.output_dim, 1)
+            self.log_cpue_head = nn.Linear(encoder.output_dim, 1)
+
+        def forward(self, inputs: Any, patch_mask: Any | None = None) -> Dict[str, Any]:
+            if inputs.ndim not in {5, 6}:
+                raise ValueError(
+                    "area bags must be (N,patches,C,H,W) or (N,patches,scales,C,H,W)"
+                )
+            batch, patches_per_bag = inputs.shape[:2]
+            flattened = inputs.reshape(batch * patches_per_bag, *inputs.shape[2:])
+            embeddings = self.encoder(flattened).reshape(batch, patches_per_bag, -1)
+            logits = self.attention(embeddings).squeeze(-1)
+            if patch_mask is not None:
+                if patch_mask.shape != logits.shape:
+                    raise ValueError("patch_mask must be shaped (N, patches_per_bag)")
+                logits = logits.masked_fill(~patch_mask.bool(), -1e9)
+            weights = torch.softmax(logits, dim=1)
+            pooled = self.dropout(torch.sum(embeddings * weights[:, :, None], dim=1))
+            return {
+                "occurrence_logit": self.occurrence_head(pooled).squeeze(1),
+                "log_cpue": self.log_cpue_head(pooled).squeeze(1),
+                "embedding": pooled,
+                "patch_attention": weights,
+            }
+
 else:
 
     class ResidualBlock:  # type: ignore[no-redef]
@@ -139,6 +234,14 @@ else:
             require_torch()
 
     class SixChannelResNetEncoder:  # type: ignore[no-redef]
+        def __init__(self, *_: Any, **__: Any) -> None:
+            require_torch()
+
+    class TerrainResNetEncoder:  # type: ignore[no-redef]
+        def __init__(self, *_: Any, **__: Any) -> None:
+            require_torch()
+
+    class MultiScaleTerrainEncoder:  # type: ignore[no-redef]
         def __init__(self, *_: Any, **__: Any) -> None:
             require_torch()
 
@@ -150,20 +253,55 @@ else:
         def __init__(self, *_: Any, **__: Any) -> None:
             require_torch()
 
+    class AreaBagCatchModel:  # type: ignore[no-redef]
+        def __init__(self, *_: Any, **__: Any) -> None:
+            require_torch()
 
-def augment_terrain_batch(inputs: Any, noise_std: float = 0.02, channel_drop: float = 0.1) -> Any:
-    """Semantics-preserving flips, scale jitter, noise, and channel dropout."""
+
+def augment_terrain_batch(
+    inputs: Any,
+    noise_std: float = 0.01,
+    channel_drop: float = 0.05,
+    max_shift: int = 2,
+    allow_reflection: bool = False,
+) -> Any:
+    """Orientation-preserving noise, translation, and channel dropout.
+
+    Reflections are disabled by default because shoreline-relative orientation,
+    bedform direction, and linear-feature alignment can be ecologically useful.
+    Inputs are expected to be robust-normalized before augmentation.
+    """
 
     require_torch()
     augmented = inputs.clone()
-    if bool(torch.rand(()) < 0.5):
+    if allow_reflection and bool(torch.rand(()) < 0.5):
         augmented = torch.flip(augmented, dims=(-1,))
-    if bool(torch.rand(()) < 0.5):
+    if allow_reflection and bool(torch.rand(()) < 0.5):
         augmented = torch.flip(augmented, dims=(-2,))
-    scale = 1.0 + 0.05 * torch.randn((len(inputs), 1, 1, 1), device=inputs.device)
-    augmented = augmented * scale + noise_std * torch.randn_like(augmented)
+    if max_shift > 0:
+        row_shift = int(torch.randint(-max_shift, max_shift + 1, ()).item())
+        col_shift = int(torch.randint(-max_shift, max_shift + 1, ()).item())
+        height, width = augmented.shape[-2:]
+        original_shape = augmented.shape
+        flattened = augmented.reshape(-1, 1, height, width)
+        padded = functional.pad(
+            flattened, (max_shift, max_shift, max_shift, max_shift), mode="replicate"
+        )
+        row_start = max_shift + row_shift
+        col_start = max_shift + col_shift
+        augmented = padded[
+            ..., row_start : row_start + height, col_start : col_start + width
+        ].reshape(original_shape)
+    augmented = augmented + noise_std * torch.randn_like(augmented)
     if channel_drop > 0:
-        keep = torch.rand((len(inputs), inputs.shape[1], 1, 1), device=inputs.device) > channel_drop
+        if inputs.ndim == 4:
+            keep_shape = (len(inputs), inputs.shape[1], 1, 1)
+        elif inputs.ndim == 5:
+            # Keep/drop a semantic channel consistently across physical scales.
+            keep_shape = (len(inputs), 1, inputs.shape[2], 1, 1)
+        else:
+            raise ValueError("terrain batches must be (N,C,H,W) or (N,S,C,H,W)")
+        keep = torch.rand(keep_shape, device=inputs.device) > channel_drop
         augmented = augmented * keep
     return augmented
 
@@ -181,6 +319,47 @@ def nt_xent_loss(first: Any, second: Any, temperature: float = 0.2) -> Any:
     batch_size = len(first)
     targets = (torch.arange(2 * batch_size, device=logits.device) + batch_size) % (2 * batch_size)
     return functional.cross_entropy(logits, targets)
+
+
+def spatial_nt_xent_loss(
+    first: Any,
+    second: Any,
+    coordinates: Any,
+    *,
+    temperature: float = 0.2,
+    min_negative_distance_m: float = 0.0,
+) -> Any:
+    """NT-Xent that does not treat nearby overlapping terrain as negatives."""
+
+    require_torch()
+    if min_negative_distance_m <= 0:
+        return nt_xent_loss(first, second, temperature)
+    if first.shape != second.shape or first.ndim != 2:
+        raise ValueError("contrastive embeddings must be two equal (N, D) tensors")
+    if coordinates.shape != (len(first), 2):
+        raise ValueError("coordinates must be shaped (N, 2)")
+    if len(first) < 2:
+        raise ValueError("contrastive loss requires at least two examples")
+    representations = functional.normalize(torch.cat([first, second], dim=0), dim=1)
+    logits = representations @ representations.T / temperature
+    batch_size = len(first)
+    targets = (torch.arange(2 * batch_size, device=logits.device) + batch_size) % (
+        2 * batch_size
+    )
+    doubled_coordinates = torch.cat([coordinates, coordinates], dim=0).float()
+    distances = torch.cdist(doubled_coordinates, doubled_coordinates)
+    row_indices = torch.arange(2 * batch_size, device=logits.device)
+    excluded = distances < float(min_negative_distance_m)
+    excluded[row_indices, targets] = False
+    excluded[row_indices, row_indices] = True
+    logits = logits.masked_fill(excluded, -1e9)
+    valid_negatives = torch.sum(~excluded, dim=1) - 1  # remove the positive target
+    valid_rows = valid_negatives >= 1
+    if not bool(torch.any(valid_rows)):
+        raise ValueError(
+            "spatial contrastive batch has no sufficiently distant negative pairs"
+        )
+    return functional.cross_entropy(logits[valid_rows], targets[valid_rows])
 
 
 def multitask_loss(
@@ -240,6 +419,7 @@ def train_ssl_epoch(
     *,
     device: str = "cpu",
     temperature: float = 0.2,
+    min_negative_distance_m: float = 0.0,
 ) -> float:
     """One explicit self-supervised epoch; checkpointing belongs to the caller."""
 
@@ -248,10 +428,25 @@ def train_ssl_epoch(
     losses = []
     for batch in loader:
         patches = batch[0] if isinstance(batch, (tuple, list)) else batch
+        coordinates = (
+            batch[1].to(device)
+            if isinstance(batch, (tuple, list)) and len(batch) > 1
+            else None
+        )
         patches = patches.to(device)
         first = model(augment_terrain_batch(patches))
         second = model(augment_terrain_batch(patches))
-        loss = nt_xent_loss(first, second, temperature)
+        loss = (
+            spatial_nt_xent_loss(
+                first,
+                second,
+                coordinates,
+                temperature=temperature,
+                min_negative_distance_m=min_negative_distance_m,
+            )
+            if coordinates is not None
+            else nt_xent_loss(first, second, temperature)
+        )
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
@@ -309,18 +504,35 @@ def fine_tune_epoch(
     }
 
 
-def architecture_smoke_test(batch_size: int = 4, patch_size: int = 17) -> Mapping[str, Any]:
+def architecture_smoke_test(
+    batch_size: int = 4,
+    patch_size: int = 17,
+    *,
+    input_channels: int = 6,
+    scales: int = 1,
+) -> Mapping[str, Any]:
     """Run a shape/loss check only. This is not training or model evaluation."""
 
     require_torch()
-    encoder = SixChannelResNetEncoder(base_width=16, blocks_per_stage=1)
+    base_encoder = TerrainResNetEncoder(
+        input_channels=input_channels, base_width=16, blocks_per_stage=1
+    )
+    encoder = MultiScaleTerrainEncoder(base_encoder, scales=scales) if scales > 1 else base_encoder
     ssl_model = TerrainContrastiveModel(encoder, projection_dim=32)
-    inputs = torch.randn(batch_size, 6, patch_size, patch_size)
+    shape = (
+        (batch_size, scales, input_channels, patch_size, patch_size)
+        if scales > 1
+        else (batch_size, input_channels, patch_size, patch_size)
+    )
+    inputs = torch.randn(*shape)
     first = ssl_model(augment_terrain_batch(inputs))
     second = ssl_model(augment_terrain_batch(inputs))
     ssl_loss = nt_xent_loss(first, second)
     downstream = CatchMultiTaskModel(encoder)
     outputs = downstream(inputs)
+    bag_model = AreaBagCatchModel(encoder)
+    bag_inputs = torch.stack([inputs, inputs], dim=1)
+    bag_outputs = bag_model(bag_inputs)
     labels = torch.tensor([0, 1] * ((batch_size + 1) // 2))[:batch_size]
     cpue = torch.linspace(0.0, 2.0, batch_size)
     loss, _ = multitask_loss(outputs, labels, cpue)
@@ -330,5 +542,10 @@ def architecture_smoke_test(batch_size: int = 4, patch_size: int = 17) -> Mappin
         "embedding_shape": list(first.shape),
         "occurrence_shape": list(outputs["occurrence_logit"].shape),
         "cpue_shape": list(outputs["log_cpue"].shape),
-        "finite_losses": bool(torch.isfinite(ssl_loss) and torch.isfinite(loss)),
+        "area_bag_attention_shape": list(bag_outputs["patch_attention"].shape),
+        "finite_losses": bool(
+            torch.isfinite(ssl_loss)
+            and torch.isfinite(loss)
+            and torch.all(torch.isfinite(bag_outputs["occurrence_logit"]))
+        ),
     }

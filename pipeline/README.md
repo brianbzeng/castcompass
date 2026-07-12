@@ -1,9 +1,10 @@
 # ContourCast geospatial ML pipeline
 
-This directory contains a reproducible, leakage-aware scaffold for modeling
-recreational-fishing occurrence and positive-catch CPUE from coastal bathymetry.
-It does **not** include downloaded government data, trained weights, or claimed
-real-world performance.
+This directory contains a reproducible, leakage-aware foundation for learning
+seafloor representations and, once suitable labels exist, modeling
+recreational-fishing occurrence and positive-catch CPUE. Downloaded government
+rasters and model checkpoints are intentionally ignored by Git. No catch-skill
+claim is made from self-supervised bathymetry training.
 
 ## Lightweight smoke test
 
@@ -48,6 +49,31 @@ python3 -m pipeline.contourcast.cli derive-terrain \
   --bathymetry data/processed/bathymetry.npz \
   --output data/processed/terrain.npz
 ```
+
+For deep representation learning, derive the ten-channel structure contract.
+It retains the six baseline channels and adds local relief, rugosity, and two
+orientation channels. The resolution audit records which physical feature
+widths are actually supportable by the native grid.
+
+```bash
+python3 -m pipeline.contourcast.cli derive-structure \
+  --bathymetry data/processed/bathymetry.npz \
+  --output data/processed/structure.npz \
+  --local-radius 4 \
+  --broad-radius 24 \
+  --relief-radius 8 \
+  --horizontal-accuracy-m 2
+
+python3 -m pipeline.contourcast.cli audit-resolution \
+  --bathymetry data/processed/bathymetry.npz \
+  --horizontal-accuracy-m 2 \
+  --feature-widths-m 1 2 5 10 20 50 100
+```
+
+Aligned acoustic backscatter, seafloor-character, uncertainty, survey-age, or
+optical kelp/surf layers can be appended with an explicit availability mask.
+Missing coverage is therefore observable to the model rather than silently
+median-filled.
 
 Export CRFS sample data or estimates from the official RecFIN warehouse. Keep
 the raw file and query parameters. A column map is a JSON object from canonical
@@ -107,10 +133,60 @@ it does not train or evaluate a model:
 python3 -m pipeline.contourcast.cli deep-smoke
 ```
 
+Build three physical views around every training center and pretrain a shared
+encoder with learned scale attention. Resampling makes tensor sizes consistent
+but never upgrades source resolution.
+
+```bash
+python3 -m pipeline.contourcast.cli build-pretraining-corpus \
+  --feature-stack data/processed/structure.npz \
+  --output data/processed/pretraining-corpus.npz \
+  --radii-m 32 128 512 \
+  --output-size 33 \
+  --stride-m 50 \
+  --max-centers 2000
+
+python3 -m pipeline.contourcast.cli pretrain-bathymetry \
+  --corpus data/processed/pretraining-corpus.npz \
+  --output-dir artifacts/bathymetry-ssl-v1 \
+  --epochs 25 \
+  --batch-size 32
+```
+
+`pretrain-bathymetry` holds out a complete geographic region, fits robust
+normalization on training geography only, trains orientation-preserving
+SimCLR views, excludes nearby overlapping terrain from the negative-pair set,
+and saves the best checkpoint plus hashes, configuration, and loss history.
+NT-Xent is an optimization diagnostic, not catch accuracy.
+
+## Reproducible USGS 2 m pilot
+
+The first official-data pilot uses the USGS Offshore of San Francisco 2 m
+multibeam bathymetry product. It verifies the public-data download, checksum,
+crop, ten-channel feature, three-scale corpus, geographic holdout, training,
+and checkpoint path:
+
+```bash
+python3 -m venv --system-site-packages .venv-geo-deep
+.venv-geo-deep/bin/pip install -r pipeline/requirements-geo-deep.txt
+PYTHON_BIN=.venv-geo-deep/bin/python \
+  pipeline/scripts/run_usgs_sf_2m_ssl_pilot.sh
+```
+
+The pilot crop is 4.096 km square and uses 512 locations with 64 m, 256 m,
+and 1,024 m diameter views. Full-area training should stream tiled GeoTIFF/COG
+windows instead of materializing every derived channel in one NPZ.
+
 ## Outputs
 
 - Canonical bathymetry: compressed NPZ plus provenance JSON.
 - Terrain stack: six-channel NPZ plus derivation statistics/provenance JSON.
+- Structure stack: ten or more declared channels, resolution audit, and optional
+  auxiliary-layer availability masks.
+- Pretraining corpus: multiscale `(location, scale, channel, row, column)` NPZ
+  with physical footprints and source-resolution warnings.
+- Encoder checkpoint: weights, fold-local normalization, channel/scale contract,
+  source hash, and a representation-only claim boundary.
 - Observations: canonical CSV plus provenance JSON.
 - Evaluation: per-fold and aggregate JSON for each baseline/ablation.
 - Run metadata: input hashes, full configuration, runtime, Git revision,

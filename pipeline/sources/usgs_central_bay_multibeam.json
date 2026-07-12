@@ -1,0 +1,31 @@
+{
+  "manifest_version": "1.0",
+  "source_id": "usgs_central_bay_multibeam",
+  "title": "USGS Central San Francisco Bay Multibeam Bathymetry and Backscatter",
+  "steward": "U.S. Geological Survey",
+  "official_landing_page": "https://pubs.usgs.gov/dds/dds-55/pacmaps/sf_data.htm",
+  "related_official_pages": [
+    "https://pubs.usgs.gov/publication/ds55",
+    "https://pubs.usgs.gov/dds/dds-55/pacmaps/sf_index.htm"
+  ],
+  "access": {
+    "mode": "direct_official_download",
+    "available_layers": [
+      "4 m bathymetry",
+      "4 m acoustic backscatter",
+      "shaded relief"
+    ]
+  },
+  "resolution": {
+    "bathymetry_pixel_m": 4.0,
+    "backscatter_pixel_m": 4.0
+  },
+  "temporal_coverage": "Three surveys completed before the January 1999 data release",
+  "citation": "Dartnell, P., and Gardiner, J.V., 1999, Sea-floor images and data from multibeam surveys in San Francisco Bay, USGS Data Series 55.",
+  "limitations": [
+    "Not for navigation.",
+    "Historical survey useful for geomorphic pretraining and change comparison, not current depth claims.",
+    "Coverage is limited to west-central San Francisco Bay.",
+    "Backscatter values are sensor- and processing-dependent and require per-survey normalization."
+  ]
+}
