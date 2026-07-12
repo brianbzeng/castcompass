@@ -12,7 +12,7 @@ const [authSource, workerSource, appSource, tripSource, migration] = await Promi
 
 test("uses hardened server-side sessions for beta accounts", () => {
   assert.match(authSource, /PBKDF2/);
-  assert.match(authSource, /210_000/);
+  assert.match(authSource, /100_000/);
   assert.match(authSource, /HttpOnly; SameSite=Lax/);
   assert.match(authSource, /auth_sessions/);
   assert.match(workerSource, /getAuthenticatedUser/);

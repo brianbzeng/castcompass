@@ -2,7 +2,8 @@ import type { CuratedSite, D1DatabaseLike } from "./trips";
 
 const SESSION_COOKIE = "cc_session";
 const SESSION_SECONDS = 30 * 24 * 60 * 60;
-const PASSWORD_ITERATIONS = 210_000;
+// Cloudflare Workers currently caps Web Crypto PBKDF2 at 100,000 rounds.
+const PASSWORD_ITERATIONS = 100_000;
 
 export interface AuthApiEnv {
   DB?: D1DatabaseLike;
