@@ -16,6 +16,7 @@ const ACTIVE_TRIP_KEY = "contourcast.active-trip.v1";
 const REPORTER_KEY = "contourcast.reporter-key.v1";
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const PHOTO_UPLOADS_ENABLED = process.env.NEXT_PUBLIC_PHOTO_UPLOADS !== "false";
 
 type Panel = "start" | "complete" | "past";
 type SubmitState = "idle" | "submitting" | "success" | "error";
@@ -807,14 +808,16 @@ function TripCompletionFields({
         <textarea maxLength={1000} rows={4} value={fields.notes} onChange={(event) => setFields((current) => ({ ...current, notes: event.target.value }))} placeholder="Conditions, technique, approximate size, or anything that affected the trip…" />
         <small>{fields.notes.length}/1000</small>
       </label>
-      <label className="photo-field">
-        <span>Verification photo <em>optional</em></span>
-        <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={onPhoto} />
-        <strong>{photo ? photo.name : "JPEG, PNG, or WebP · 5 MB max"}</strong>
-      </label>
+      {PHOTO_UPLOADS_ENABLED ? (
+        <label className="photo-field">
+          <span>Verification photo <em>optional</em></span>
+          <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={onPhoto} />
+          <strong>{photo ? photo.name : "JPEG, PNG, or WebP · 5 MB max"}</strong>
+        </label>
+      ) : null}
       <label className="consent-field">
         <input type="checkbox" checked={fields.consent} onChange={(event) => setFields((current) => ({ ...current, consent: event.target.checked }))} required />
-        <span>I confirm this reflects the whole trip, own anything I upload, and consent to private use of the report and photo for ContourCast model training and validation.</span>
+        <span>I confirm this reflects the whole trip, own anything I submit, and consent to private use of the report{PHOTO_UPLOADS_ENABLED ? " and photo" : ""} for ContourCast model training and validation.</span>
       </label>
     </>
   );

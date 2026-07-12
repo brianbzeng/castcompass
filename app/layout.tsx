@@ -16,7 +16,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://contourcast.com"),
+  metadataBase: new URL("https://contourcast.brianbzeng.com"),
   title: {
     default: "ContourCast",
     template: "%s · ContourCast",

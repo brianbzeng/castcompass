@@ -132,6 +132,9 @@ python3 -m unittest discover -s pipeline/tests -v
 
 Set the production PWA's `NEXT_PUBLIC_API_URL` to the Render service URL and the API's `ALLOWED_ORIGINS` to the final PWA origin. Never commit `DATABASE_URL` or service tokens.
 
+For the production Worker, D1 trip storage, custom domain, release command, and
+Cloudflare Git build settings, see [Cloudflare deployment](docs/CLOUDFLARE_DEPLOYMENT.md).
+
 ## Safety and interpretation
 
 - ContourCast is a planning aid, not a guarantee of catch.

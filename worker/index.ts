@@ -10,7 +10,6 @@ interface AssetFetcher {
 
 interface Env extends TripApiEnv {
   ASSETS: AssetFetcher;
-  IMAGES: NonNullable<TripApiEnv["IMAGES"]>;
 }
 
 interface ExecutionContext {
@@ -32,11 +31,13 @@ const worker = {
     if (tripResponse) return tripResponse;
 
     if (url.pathname === "/_vinext/image") {
+      const images = env.IMAGES;
+      if (!images) return new Response("Image optimization is unavailable.", { status: 404 });
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(request, {
         fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),
         transformImage: async (body, { width, format, quality }) => {
-          const result = await env.IMAGES.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
+          const result = await images.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
           return result.response();
         },
       }, allowedWidths);
