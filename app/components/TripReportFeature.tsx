@@ -47,6 +47,8 @@ interface TripReportFeatureProps {
   sites: FishingSite[];
   snapshot: OpportunitySnapshot;
   request: TripReportRequest | null;
+  canSubmit: boolean;
+  onRequireLogin(): void;
 }
 
 interface FormFields {
@@ -216,7 +218,7 @@ function elapsedLabel(startedAt: string) {
   return `${hours}h ${remainder}m underway`;
 }
 
-export function TripReportFeature({ sites, snapshot, request }: TripReportFeatureProps) {
+export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequireLogin }: TripReportFeatureProps) {
   const dialogRef = useRef<HTMLElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const lastRequestKeyRef = useRef<number | null>(null);
@@ -245,6 +247,10 @@ export function TripReportFeature({ sites, snapshot, request }: TripReportFeatur
   }, []);
 
   const openPanel = useCallback((nextPanel: Panel, siteId?: string, forecastWindow?: OpportunityWindow) => {
+    if (!canSubmit) {
+      onRequireLogin();
+      return;
+    }
     const activeElement = document.activeElement;
     openerRef.current = activeElement instanceof HTMLElement ? activeElement : null;
     resetFeedback();
@@ -275,7 +281,7 @@ export function TripReportFeature({ sites, snapshot, request }: TripReportFeatur
       window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
     }
     setPanel(nextPanel);
-  }, [activeTrip, resetFeedback, sites]);
+  }, [activeTrip, canSubmit, onRequireLogin, resetFeedback, sites]);
 
   const closePanel = useCallback(() => {
     setPanel(null);

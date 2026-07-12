@@ -1,6 +1,8 @@
 "use client";
 
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
+import { AccountModal, useAccount } from "./AccountFeature";
 import { TripReportFeature } from "./TripReportFeature";
 import {
   ArrowIcon,
@@ -553,7 +555,93 @@ interface StructureGuide {
   label: string;
   lookFor: string;
   fishIt: string;
+  image?: StructureImage;
 }
+
+interface StructureImage {
+  src: string;
+  alt: string;
+  credit: string;
+  sourceUrl: string;
+  license: string;
+}
+
+const STRUCTURE_IMAGES: Record<string, StructureImage> = {
+  riprap: {
+    src: "/structure-guides/riprap.jpg",
+    alt: "Large riprap rocks meeting the shoreline and shallow water",
+    credit: "Greekswax / Wikimedia Commons",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Enrochement_Sopot.jpg",
+    license: "CC0",
+  },
+  "eelgrass-edge": {
+    src: "/structure-guides/eelgrass.jpg",
+    alt: "An underwater eelgrass meadow growing across the seafloor",
+    credit: "Olivier Dugornay, Ifremer / Wikimedia Commons",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Pr%C3%A9l%C3%A8vement_d%27herbiers_de_zost%C3%A8res_dans_le_golfe_du_Morbihan_(Ifremer_00560-67191_-_42945).jpg",
+    license: "CC BY 4.0",
+  },
+  "pier-pilings": {
+    src: "/structure-guides/pilings.jpg",
+    alt: "Divers inspecting pier pilings below the waterline",
+    credit: "U.S. Navy / Wikimedia Commons",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Hotel_Pier_site_visit_130306-N-ZZ999-002.jpg",
+    license: "Public domain",
+  },
+  "sand-bar": {
+    src: "/structure-guides/sandbar.jpg",
+    alt: "Aerial view showing pale sandbars and deeper channels",
+    credit: "U.S. Geological Survey / Wikimedia Commons",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Aerial_shot_of_sandbars_near_Bay_St.Louis,_MS_(5593961735).jpg",
+    license: "CC BY 2.0",
+  },
+  jetty: {
+    src: "/structure-guides/jetty.jpg",
+    alt: "A stone jetty extending across shallow coastal water",
+    credit: "Hirho / Wikimedia Commons",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Seaside_Momochi_Seaside_Park_breakwater_jetty_area_around_Momochi-hama_4-ch%C5%8Dme_Sawara-ku_Fukuoka_20230106.jpg",
+    license: "CC BY-SA 4.0",
+  },
+  "tidal-channel": {
+    src: "/structure-guides/tidal-channel.jpg",
+    alt: "Aerial view of winding tidal channels through a wetland",
+    credit: "U.S. Fish and Wildlife Service / Wikimedia Commons",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Aerial_view_of_Muddy_Creek_wetland_restoration_project._(26212443183).png",
+    license: "Public domain",
+  },
+  "estuary-mouth": {
+    src: "/structure-guides/estuary.jpg",
+    alt: "Aerial view of a river mouth opening into the ocean",
+    credit: "U.S. Army Corps of Engineers / Wikimedia Commons",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Klamath_River_mouth_aerial_view.jpg",
+    license: "Public domain",
+  },
+};
+
+const STRUCTURE_IMAGE_ALIASES: Record<string, keyof typeof STRUCTURE_IMAGES> = {
+  "channel-approach": "tidal-channel",
+  "channel-edge": "tidal-channel",
+  "channel-shoulder": "tidal-channel",
+  "current-seam": "tidal-channel",
+  "dredged-channel": "tidal-channel",
+  "dredged-edge": "tidal-channel",
+  "tidal-drain": "tidal-channel",
+  pilings: "pier-pilings",
+  "rip-channel": "sand-bar",
+  "sand-flat": "sand-bar",
+  "mud-sand-flat": "sand-bar",
+  "sand-mud-flat": "sand-bar",
+  "sand-trough": "sand-bar",
+  trough: "sand-bar",
+  "open-coast": "sand-bar",
+  "jetty-edge": "jetty",
+  "rock-sand-edge": "riprap",
+  "reef-edge": "riprap",
+  "creek-mouth": "estuary-mouth",
+  "lagoon-mouth": "estuary-mouth",
+  "harbor-mouth": "estuary-mouth",
+  "marina-mouth": "estuary-mouth",
+};
 
 const STRUCTURE_GUIDES: Record<string, StructureGuide> = {
   "channel-approach": {
@@ -736,7 +824,14 @@ const STRUCTURE_GUIDES: Record<string, StructureGuide> = {
 function structureGuidesForSite(site: FishingSite) {
   const seen = new Set<string>();
   return site.structureTags
-    .map((tag) => STRUCTURE_GUIDES[tag.toLowerCase().replaceAll(" ", "-")])
+    .map((tag): StructureGuide | undefined => {
+      const key = tag.toLowerCase().replaceAll(" ", "-");
+      const guide = STRUCTURE_GUIDES[key];
+      if (!guide) return undefined;
+      const imageKey = STRUCTURE_IMAGE_ALIASES[key] ?? key;
+      const image = STRUCTURE_IMAGES[imageKey];
+      return image ? { ...guide, image } : guide;
+    })
     .filter((guide): guide is StructureGuide => Boolean(guide))
     .filter((guide) => {
       if (seen.has(guide.label)) return false;
@@ -910,6 +1005,7 @@ function SourceStatus({ source }: { source: SourceFreshness }) {
 }
 
 export function OpportunityApp() {
+  const account = useAccount();
   const detailDialogRef = useRef<HTMLElement>(null);
   const detailTriggerRef = useRef<HTMLElement | null>(null);
   const detailTriggerSiteIdRef = useRef<string | null>(null);
@@ -919,6 +1015,7 @@ export function OpportunityApp() {
   const [communityPulses, setCommunityPulses] = useState<CommunityPulse[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [selectedDetailWindowId, setSelectedDetailWindowId] = useState<string | null>(null);
+  const [detailExpanded, setDetailExpanded] = useState(false);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("today");
   const [customStart, setCustomStart] = useState(() => dateInputValue(new Date()));
   const [customEnd, setCustomEnd] = useState(defaultCustomEnd);
@@ -1088,7 +1185,7 @@ export function OpportunityApp() {
   }, [snapshot.windows, clockMs]);
 
   const regions = useMemo(
-    () => ["All water", ...Array.from(new Set(sites.map((site) => site.region))).sort()],
+    () => ["All water", "Saved locations", ...Array.from(new Set(sites.map((site) => site.region))).sort()],
     [sites],
   );
 
@@ -1111,7 +1208,10 @@ export function OpportunityApp() {
   const rankedSites = useMemo(() => {
     return sites
       .filter((site) => site.accessStatus !== "closed")
-      .filter((site) => region === "All water" || site.region === region)
+      .filter((site) => (
+        region === "All water" ||
+        (region === "Saved locations" ? account.savedSiteIds.has(site.id) : site.region === region)
+      ))
       .map((site) => ({
         ...site,
         distanceMiles: userPosition
@@ -1130,7 +1230,7 @@ export function OpportunityApp() {
         }
         return (windowsBySite.get(b.id)?.score ?? 0) - (windowsBySite.get(a.id)?.score ?? 0);
       });
-  }, [activeRadiusMiles, sites, region, userPosition, windowsBySite]);
+  }, [account.savedSiteIds, activeRadiusMiles, sites, region, userPosition, windowsBySite]);
 
   const bestSite = rankedSites[0] ?? null;
   const bestWindow = bestSite ? windowsBySite.get(bestSite.id) ?? null : null;
@@ -1192,6 +1292,7 @@ export function OpportunityApp() {
     const activeElement = document.activeElement;
     detailTriggerRef.current = activeElement instanceof HTMLElement ? activeElement : null;
     detailTriggerSiteIdRef.current = siteId;
+    setDetailExpanded(false);
     setSelectedDetailWindowId(windowsBySite.get(siteId)?.id ?? null);
     setSelectedSiteId(siteId);
   }, [windowsBySite]);
@@ -1199,12 +1300,17 @@ export function OpportunityApp() {
   const closeSiteDetail = useCallback(() => {
     setSelectedSiteId(null);
     setSelectedDetailWindowId(null);
+    setDetailExpanded(false);
   }, []);
 
   const openTripReport = useCallback((mode: "start" | "past", siteId?: string, window?: OpportunityWindow) => {
+    if (!account.user) {
+      account.openAccount("Sign in before submitting a trip report. Complete trips and skunks are tied to an account so the training data can be checked without making it public.");
+      return;
+    }
     tripReportRequestKey.current += 1;
     setTripReportRequest({ key: tripReportRequestKey.current, mode, siteId, window });
-  }, []);
+  }, [account]);
 
   const scrollToSection = useCallback((sectionId: "forecast" | "sources") => {
     setShowMethod(false);
@@ -1243,6 +1349,9 @@ export function OpportunityApp() {
           <button type="button" onClick={() => scrollToSection("sources")}>Data</button>
         </nav>
         <div className="topbar-actions">
+          <button className="account-button" type="button" onClick={() => account.openAccount()}>
+            {account.loading ? "Account" : account.user ? account.user.email.split("@")[0] : "Sign in"}
+          </button>
           <button className="log-trip-button" type="button" onClick={() => openTripReport("past")}>Log trip</button>
           <button
             className={`data-pill ${dataState}`}
@@ -1380,7 +1489,14 @@ export function OpportunityApp() {
         <div className="filters">
           <label>
             <span>Area</span>
-            <select value={region} onChange={(event) => setRegion(event.target.value)}>
+            <select value={region} onChange={(event) => {
+              const nextRegion = event.target.value;
+              if (nextRegion === "Saved locations" && !account.user) {
+                account.openAccount("Sign in to see saved fishing locations across devices.");
+                return;
+              }
+              setRegion(nextRegion);
+            }}>
               {regions.map((option) => <option key={option}>{option}</option>)}
             </select>
           </label>
@@ -1528,7 +1644,13 @@ export function OpportunityApp() {
         <button type="button" onClick={() => setShowMethod(true)}>How It Works <ArrowIcon /></button>
       </section>
 
-      <TripReportFeature sites={sites} snapshot={snapshot} request={tripReportRequest} />
+      <TripReportFeature
+        sites={sites}
+        snapshot={snapshot}
+        request={tripReportRequest}
+        canSubmit={Boolean(account.user)}
+        onRequireLogin={() => account.openAccount("Sign in before submitting a trip report. Complete trips and skunks are tied to an account so the training data can be checked without making it public.")}
+      />
 
       <section className="source-section" id="sources">
         <div className="source-heading">
@@ -1587,13 +1709,22 @@ export function OpportunityApp() {
         }}>
           <aside
             ref={detailDialogRef}
-            className="detail-sheet"
+            className={`detail-sheet ${detailExpanded ? "expanded" : ""}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="detail-title"
             tabIndex={-1}
           >
             <div className="sheet-handle" />
+            <button
+              className="sheet-expand"
+              type="button"
+              onClick={() => setDetailExpanded((expanded) => !expanded)}
+              aria-label={detailExpanded ? "Return to compact report" : "Expand to full-screen report"}
+              title={detailExpanded ? "Compact report" : "Full-screen report"}
+            >
+              <ChevronIcon />
+            </button>
             <button className="sheet-close" type="button" onClick={closeSiteDetail} aria-label="Close details"><CloseIcon /></button>
             <div className="sheet-topline">
               <span>{selectedSite.region} · {selectedSite.type}</span>
@@ -1639,6 +1770,15 @@ export function OpportunityApp() {
               Fish this window <ArrowIcon />
             </button>
 
+            <button
+              className={`save-site-button ${account.savedSiteIds.has(selectedSite.id) ? "saved" : ""}`}
+              type="button"
+              onClick={() => void account.toggleSavedSite(selectedSite.id)}
+            >
+              <span>{account.savedSiteIds.has(selectedSite.id) ? "★" : "☆"}</span>
+              {account.savedSiteIds.has(selectedSite.id) ? "Saved location" : "Save location"}
+            </button>
+
             <OpportunityDayChart windows={detailDayWindows} selectedWindow={selectedWindow} />
 
             <div className="place-media-block">
@@ -1678,6 +1818,17 @@ export function OpportunityApp() {
                       <strong>{guide.label}</strong>
                       <p>{guide.lookFor}</p>
                       <small><b>How to fish it:</b> {guide.fishIt}</small>
+                      {guide.image ? (
+                        <details className="structure-image-details">
+                          <summary>See an example</summary>
+                          <figure>
+                            <Image src={guide.image.src} alt={guide.image.alt} width={1000} height={650} loading="lazy" />
+                            <figcaption>
+                              Reference example—not this exact spot. <a href={guide.image.sourceUrl} target="_blank" rel="noreferrer">{guide.image.credit} · {guide.image.license} ↗</a>
+                            </figcaption>
+                          </figure>
+                        </details>
+                      ) : null}
                     </article>
                   ))}
                 </div>
@@ -1831,6 +1982,8 @@ export function OpportunityApp() {
           </section>
         </div>
       ) : null}
+
+      <AccountModal account={account} />
 
       {showCompare ? (
         <div className="modal-layer" role="presentation" onClick={(event) => {

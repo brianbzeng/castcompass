@@ -1,5 +1,50 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { check, index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+
+export const users = sqliteTable(
+  "users",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull(),
+    passwordSalt: text("password_salt").notNull(),
+    passwordHash: text("password_hash").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [uniqueIndex("users_email_unique").on(table.email)],
+);
+
+export const authSessions = sqliteTable(
+  "auth_sessions",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: text("expires_at").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("auth_sessions_user_idx").on(table.userId, table.expiresAt)],
+);
+
+export const savedSites = sqliteTable(
+  "saved_sites",
+  {
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    siteId: text("site_id").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.siteId] })],
+);
+
+export const authAttempts = sqliteTable(
+  "auth_attempts",
+  {
+    id: text("id").primaryKey(),
+    emailHash: text("email_hash").notNull(),
+    attemptedAt: text("attempted_at").notNull(),
+    successful: integer("successful", { mode: "boolean" }).notNull().default(false),
+  },
+  (table) => [index("auth_attempts_email_time_idx").on(table.emailHash, table.attemptedAt)],
+);
 
 export const trips = sqliteTable(
   "trips",

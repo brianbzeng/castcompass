@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #f0f7ff;
+  --ink: #bff3d1;
   --ink-soft: #cbdceb;
   --paper: #081a33;
   --paper-bright: #0c2341;
@@ -149,6 +149,21 @@ svg {
   align-items: center;
   justify-self: end;
   gap: 0.65rem;
+}
+
+.account-button {
+  min-height: 34px;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 100px;
+  color: var(--ink);
+  background: rgba(14, 48, 85, 0.66);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
 }
 
 .data-pill,
@@ -1475,6 +1490,38 @@ footer > div {
   animation: slide-in 230ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.detail-sheet.expanded {
+  width: 100vw;
+  padding-inline: max(4vw, 1.5rem);
+}
+
+.detail-sheet.expanded > :not(.sheet-close):not(.sheet-expand):not(.sheet-handle) {
+  width: min(100%, 1180px);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.detail-sheet.expanded h2 {
+  max-width: 900px;
+}
+
+.detail-sheet.expanded .structure-guide-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.detail-sheet.expanded .conditions-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.detail-sheet.expanded .conditions-grid > div {
+  border-top: 0;
+  border-right: 1px solid var(--line);
+}
+
+.detail-sheet.expanded .conditions-grid > div:last-child {
+  border-right: 0;
+}
+
 .detail-sheet:focus {
   outline: none;
 }
@@ -1495,6 +1542,40 @@ footer > div {
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
+}
+
+.sheet-expand {
+  position: fixed;
+  top: 50%;
+  right: min(480px, 94vw);
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 70px;
+  border: 1px solid var(--line-strong);
+  border-radius: 24px 0 0 24px;
+  color: var(--ink);
+  background: rgba(4, 24, 50, 0.96);
+  box-shadow: -10px 0 28px rgba(1, 8, 19, 0.34);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.sheet-expand svg {
+  width: 20px;
+  transform: rotate(180deg);
+  transition: transform 180ms ease;
+}
+
+.detail-sheet.expanded .sheet-expand {
+  right: auto;
+  left: 1rem;
+  border-radius: 0 24px 24px 0;
+}
+
+.detail-sheet.expanded .sheet-expand svg {
+  transform: rotate(0deg);
 }
 
 .desktop-nav button:focus-visible,
@@ -1856,6 +1937,9 @@ footer > div {
 }
 
 .structure-guide-grid article {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
   padding: 0.85rem;
   border: 1px solid var(--line);
   background: rgba(58, 126, 184, 0.1);
@@ -1869,15 +1953,54 @@ footer > div {
 .structure-guide-grid p,
 .structure-guide-grid small {
   display: block;
-  margin: 0.35rem 0 0;
+  margin: 0;
   color: var(--ink-soft);
   font-size: 0.59rem;
   line-height: 1.55;
 }
 
 .structure-guide-grid small {
-  padding-top: 0.42rem;
+  padding-top: 0.65rem;
   border-top: 1px solid var(--line);
+}
+
+.structure-image-details {
+  margin-top: auto;
+  padding-top: 0.2rem;
+}
+
+.structure-image-details summary {
+  width: fit-content;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.structure-image-details figure {
+  margin: 0.75rem 0 0;
+}
+
+.structure-image-details img {
+  width: 100%;
+  height: auto;
+  max-height: 330px;
+  border: 1px solid var(--line-strong);
+  object-fit: cover;
+}
+
+.structure-image-details figcaption {
+  margin-top: 0.45rem;
+  color: var(--ink-soft);
+  font-size: 0.58rem;
+  line-height: 1.5;
+}
+
+.structure-image-details figcaption a {
+  color: var(--seafoam);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .structure-guide-grid small b {
@@ -2610,6 +2733,143 @@ footer > div {
   width: 17px;
 }
 
+.save-site-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 42px;
+  margin-top: 0.55rem;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  background: rgba(26, 77, 124, 0.26);
+  font-size: 0.72rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.save-site-button.saved {
+  color: var(--ocean-deep);
+  background: var(--ink);
+}
+
+.save-site-button span {
+  font-size: 1rem;
+}
+
+.account-modal-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(1, 8, 19, 0.78);
+  backdrop-filter: blur(9px);
+}
+
+.account-modal {
+  position: relative;
+  width: min(100%, 520px);
+  max-height: calc(100dvh - 2rem);
+  padding: 2.4rem;
+  overflow-y: auto;
+  border: 1px solid var(--line-strong);
+  background:
+    linear-gradient(rgba(7, 31, 61, 0.94), rgba(4, 19, 40, 0.97)),
+    url("/topography-contours-v2.webp") center / 650px 650px repeat;
+  box-shadow: 0 28px 90px rgba(0, 5, 15, 0.56);
+}
+
+.account-modal h2 {
+  margin: 1rem 0 0.8rem;
+  color: var(--ink);
+  font-size: clamp(2.4rem, 7vw, 4rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+}
+
+.account-modal > p,
+.account-modal form > small {
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  line-height: 1.6;
+}
+
+.account-email strong {
+  color: var(--ink);
+}
+
+.account-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 1.25rem 0;
+  border: 1px solid var(--line-strong);
+}
+
+.account-tabs button {
+  min-height: 42px;
+  color: var(--ink-soft);
+  background: transparent;
+  font-size: 0.72rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.account-tabs button.active {
+  color: var(--ocean-deep);
+  background: var(--ink);
+}
+
+.account-modal form,
+.account-modal form label {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.account-modal form label {
+  gap: 0.35rem;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+}
+
+.account-modal input {
+  min-height: 46px;
+  padding: 0 0.8rem;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  background: rgba(2, 17, 37, 0.82);
+  outline: none;
+}
+
+.account-modal input:focus {
+  border-color: var(--seafoam);
+}
+
+.account-primary {
+  min-height: 46px;
+  margin-top: 0.35rem;
+  color: var(--ocean-deep);
+  background: var(--ink);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.account-primary:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.account-error {
+  margin: 0;
+  color: #ff9c8d;
+  font-size: 0.7rem;
+}
+
 .validation-section {
   position: relative;
   display: grid;
@@ -3307,6 +3567,12 @@ footer > div {
     gap: 0.35rem;
   }
 
+  .account-button {
+    min-height: 34px;
+    padding-inline: 0.55rem;
+    font-size: 0.53rem;
+  }
+
   .log-trip-button {
     min-height: 34px;
     padding-inline: 0.65rem;
@@ -3647,6 +3913,31 @@ footer > div {
     animation-name: sheet-up;
   }
 
+  .sheet-expand {
+    display: none;
+  }
+
+  .detail-sheet.expanded {
+    width: 100%;
+    padding-inline: 1rem;
+  }
+
+  .detail-sheet.expanded .structure-guide-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-sheet.expanded .conditions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .detail-sheet.expanded .conditions-grid > div:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .detail-sheet.expanded .conditions-grid > div:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+
   .sheet-handle {
     display: block;
     width: 42px;
@@ -3707,6 +3998,10 @@ footer > div {
 
   .place-media-links {
     grid-template-columns: 1fr;
+  }
+
+  .account-modal {
+    padding: 2.5rem 1rem 1.25rem;
   }
 
   .community-pulse-heading {

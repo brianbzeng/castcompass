@@ -15,7 +15,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://contourcast.brianbzeng.com"),
+  metadataBase: new URL("https://castcompass.brianbzeng.com"),
   title: {
     default: "CastCompass",
     template: "%s · CastCompass",

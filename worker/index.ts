@@ -3,6 +3,7 @@ import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } fr
 import handler from "vinext/server/app-router-entry";
 import sites from "../public/data/sites.json";
 import { handleTripRequest, type TripApiEnv } from "./trips";
+import { getAuthenticatedUser, handleAccountRequest, unauthorizedResponse } from "./auth";
 
 interface AssetFetcher {
   fetch(request: Request): Promise<Response>;
@@ -26,6 +27,15 @@ interface ExecutionContext {
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    const accountResponse = await handleAccountRequest(request, env, sites);
+    if (accountResponse) return accountResponse;
+
+    const protectedTripMutation = url.pathname.startsWith("/api/trips/") &&
+      url.pathname !== "/api/trips/summary" && request.method !== "GET";
+    if (protectedTripMutation && !(await getAuthenticatedUser(request, env))) {
+      return unauthorizedResponse();
+    }
 
     const tripResponse = await handleTripRequest(request, env, sites);
     if (tripResponse) return tripResponse;
