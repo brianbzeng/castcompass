@@ -158,7 +158,7 @@ channel order, source version, or coverage contract fails.
 | --- | --- | --- |
 | Synthetic smoke workflow | Implemented | Plumbing test only; numeric output intentionally not reported here |
 | Official-data classical baselines | Unrun | No result |
-| Self-supervised pretraining | Pilot completed on official USGS 2 m bathymetry | Optimization/provenance validation only; not catch accuracy |
+| Self-supervised pretraining | [Pilot completed on official USGS 2 m bathymetry](experiments/2026-07-11-usgs-sf-2m-ssl-pilot.md) | Best geographically held-out NT-Xent 2.6161 at epoch 1; optimization/provenance validation only, not catch accuracy |
 | Two-head fine-tuning | Unrun | No checkpoint |
 | Geographic generalization | Unrun | No result |
 | Calibration / ablations | Unrun on official data | No result |
