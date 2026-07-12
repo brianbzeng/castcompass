@@ -18,7 +18,7 @@ The checked-in demo includes:
 - 1,656 two-hour windows over a 72-hour horizon when one catalog location is closed.
 - Live public NOAA CO-OPS tide predictions, NWS hourly forecasts, NDBC observations, and Open-Meteo Marine modeled SST at snapshot generation time.
 - Visible freshness states and exclusion of missing/stale inputs.
-- A MapLibre map using ArcGIS World Ocean base and reference layers, clustered map-native site points, a ranked access list, score explanations, official CDFW links, responsive detail sheets, geolocation sorting, PWA installation, and offline access to the latest loaded forecast.
+- A MapLibre map using ArcGIS World Ocean base and reference layers, clustered map-native site points, a ranked access list, preset/custom distance-radius filtering, score explanations, official CDFW links, responsive detail sheets, geolocation sorting, PWA installation, and offline access to the latest loaded forecast.
 - A first-party validation beta with start/end trip logging, complete catch and no-catch outcomes, anonymous effort tracking, pending-review submissions, aggregate ledger totals, and optional metadata-stripped verification photos.
 - FastAPI endpoints, PostgreSQL/PostGIS schema, Docker/Render configuration, and file-snapshot fallback.
 - A reproducible geospatial/ML pipeline with terrain derivation, blocked validation, baselines, ablations, a six-channel ResNet-style encoder, SimCLR-style pretraining, and two-task fine-tuning scaffolding.
@@ -137,6 +137,7 @@ Set the production PWA's `NEXT_PUBLIC_API_URL` to the Render service URL and the
 - ContourCast is a planning aid, not a guarantee of catch.
 - Bathymetry is explanatory context, not navigational data.
 - Regulation links are informational; always check official CDFW rules and posted access closures.
+- Current CDFW guidance lists a 22-inch total-length minimum for retained California halibut; the app repeats this as a reminder while linking back to the live regulation page.
 - Only public access locations are ranked. Exact user catch locations are not collected in this version.
 - Trip reports remain pending review and do not alter the Opportunity Score automatically. Public ledger values are aggregate submission totals, not verified catch claims.
 

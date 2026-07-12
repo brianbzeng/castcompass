@@ -45,5 +45,17 @@ test("trip entry points are present in the top bar, forecast detail, and validat
   assert.match(app, /Fish this window/);
   assert.match(app, /<TripReportFeature sites=\{sites\}/);
   assert.match(feature, /id="validation"/);
-  assert.match(feature, /The blank trips/);
+  assert.match(feature, /The skunks/);
+  assert.match(feature, /22 inches total length/);
+  assert.match(feature, /model training and validation/);
+});
+
+test("forecast controls offer practical preset and custom location radii", async () => {
+  const app = await readFile(appPath, "utf8");
+
+  assert.match(app, /Within 5 mi/);
+  assert.match(app, /Within 15 mi/);
+  assert.match(app, /Within 30 mi/);
+  assert.match(app, /Custom radius in miles/);
+  assert.match(app, /site\.distanceMiles <= activeRadiusMiles/);
 });

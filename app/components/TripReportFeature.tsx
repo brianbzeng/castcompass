@@ -549,14 +549,22 @@ export function TripReportFeature({ sites, snapshot, request }: TripReportFeatur
       <section className="validation-section" id="validation">
         <div className="validation-copy">
           <span className="eyebrow"><span /> Community validation beta</span>
-          <h2>The blank trips<br />count, too.</h2>
+          <h2>The skunks<br />count, too.</h2>
           <p>
-            A catch post alone cannot measure forecast quality. ContourCast needs completed trips with
-            catches <strong>and no catches</strong> to compare recommended windows fairly.
+            Any complete trip helps build the dataset for future model training and evaluation. Location,
+            time, effort, method, catches, and <strong>skunks are all useful</strong>—and genuinely appreciated.
           </p>
           <div className="validation-actions">
             <button type="button" onClick={() => openPanel("start", sites[0]?.id)}>Start a trip <ArrowIcon /></button>
             <button type="button" onClick={openShareableReport}>Log a past trip</button>
+          </div>
+          <div className="stewardship-reminder">
+            <strong>Respect the water.</strong>
+            <p>
+              Pack out line and trash, avoid disturbing wildlife and habitat, and follow current regulations.
+              California halibut must be at least <strong>22 inches total length</strong> to keep.
+              {" "}<a href="https://wildlife.ca.gov/Fishing/Ocean/Regulations/Fishing-Map/San-Francisco" target="_blank" rel="noreferrer">Check CDFW rules ↗</a>
+            </p>
           </div>
           <small>
             Beta · reports are reviewed before model use. Public results never expose exact coordinates,
@@ -654,7 +662,7 @@ export function TripReportFeature({ sites, snapshot, request }: TripReportFeatur
                 </div>
                 <label className="consent-field">
                   <input type="checkbox" checked={fields.consent} onChange={(event) => setFields((current) => ({ ...current, consent: event.target.checked }))} required />
-                  <span>I consent to anonymized use of this trip and its eventual result in aggregate validation.</span>
+                  <span>I own anything I submit and consent to private use of this trip, its result, and any later photo for ContourCast model training and validation.</span>
                 </label>
                 <button className="trip-submit" type="submit" disabled={submitState === "submitting" || Boolean(activeTrip)}>
                   {activeTrip ? "Finish the active trip first" : submitState === "submitting" ? "Starting…" : "Start trip"}
@@ -789,6 +797,10 @@ function TripCompletionFields({
             <input type="number" min="0" max="25" inputMode="numeric" value={fields.shortReleasedCount} onChange={(event) => updateCount("shortReleasedCount", event.target.value)} required />
           </label>
         </div>
+        <small className="regulation-reminder">
+          Only count a kept fish if it was legal. California halibut must be at least 22 inches total length;
+          always confirm the <a href="https://wildlife.ca.gov/Fishing/Ocean/Regulations/Fishing-Map/San-Francisco" target="_blank" rel="noreferrer">current CDFW regulations ↗</a>.
+        </small>
       </fieldset>
       <label className="trip-field wide">
         <span>Notes <em>optional</em></span>
@@ -802,7 +814,7 @@ function TripCompletionFields({
       </label>
       <label className="consent-field">
         <input type="checkbox" checked={fields.consent} onChange={(event) => setFields((current) => ({ ...current, consent: event.target.checked }))} required />
-        <span>I confirm this accurately reflects the whole trip and consent to its anonymized use in aggregate validation.</span>
+        <span>I confirm this reflects the whole trip, own anything I upload, and consent to private use of the report and photo for ContourCast model training and validation.</span>
       </label>
     </>
   );

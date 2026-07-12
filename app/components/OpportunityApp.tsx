@@ -443,6 +443,8 @@ export function OpportunityApp() {
   const [clockMs, setClockMs] = useState(() => Date.now());
   const [view, setView] = useState<"map" | "list">("map");
   const [region, setRegion] = useState("All water");
+  const [radiusFilter, setRadiusFilter] = useState<"all" | "5" | "15" | "30" | "custom">("all");
+  const [customRadiusMiles, setCustomRadiusMiles] = useState("20");
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [locationMessage, setLocationMessage] = useState("");
   const [showMethod, setShowMethod] = useState(false);
@@ -573,6 +575,17 @@ export function OpportunityApp() {
     [sites],
   );
 
+  const activeRadiusMiles = radiusFilter === "all"
+    ? null
+    : radiusFilter === "custom"
+      ? Math.min(50, Math.max(1, Number(customRadiusMiles) || 20))
+      : Number(radiusFilter);
+  const locationStatusMessage = userPosition
+    ? activeRadiusMiles
+      ? `Showing access within ${activeRadiusMiles} miles`
+      : "Sorted with nearby access first"
+    : locationMessage;
+
   const rankedSites = useMemo(() => {
     return sites
       .filter((site) => site.accessStatus !== "closed")
@@ -583,6 +596,10 @@ export function OpportunityApp() {
           ? distanceMiles(userPosition, [site.longitude, site.latitude])
           : undefined,
       }))
+      .filter((site) => (
+        !userPosition || activeRadiusMiles === null ||
+        site.distanceMiles === undefined || site.distanceMiles <= activeRadiusMiles
+      ))
       .filter((site) => windowsBySite.has(site.id))
       .sort((a, b) => {
         if (userPosition && a.distanceMiles !== undefined && b.distanceMiles !== undefined) {
@@ -591,7 +608,7 @@ export function OpportunityApp() {
         }
         return (windowsBySite.get(b.id)?.score ?? 0) - (windowsBySite.get(a.id)?.score ?? 0);
       });
-  }, [sites, region, userPosition, windowsBySite]);
+  }, [activeRadiusMiles, sites, region, userPosition, windowsBySite]);
 
   const bestSite = rankedSites[0] ?? null;
   const bestWindow = bestSite ? windowsBySite.get(bestSite.id) ?? null : null;
@@ -615,12 +632,14 @@ export function OpportunityApp() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setUserPosition([position.coords.longitude, position.coords.latitude]);
-        setLocationMessage("Sorted with nearby access first");
+        setLocationMessage(activeRadiusMiles
+          ? `Showing access within ${activeRadiusMiles} miles`
+          : "Sorted with nearby access first");
       },
       () => setLocationMessage("Location permission was not granted."),
       { enableHighAccuracy: false, timeout: 8000 },
     );
-  }, []);
+  }, [activeRadiusMiles]);
 
   const triggerInstall = useCallback(() => {
     if (!installPrompt) return;
@@ -788,6 +807,40 @@ export function OpportunityApp() {
               {regions.map((option) => <option key={option}>{option}</option>)}
             </select>
           </label>
+          <label className="radius-filter">
+            <span>Radius</span>
+            <select
+              aria-label="Distance from my location"
+              value={radiusFilter}
+              onChange={(event) => {
+                const nextRadius = event.target.value as typeof radiusFilter;
+                setRadiusFilter(nextRadius);
+                if (nextRadius !== "all" && !userPosition) requestLocation();
+              }}
+            >
+              <option value="all">Any distance</option>
+              <option value="5">Within 5 mi</option>
+              <option value="15">Within 15 mi</option>
+              <option value="30">Within 30 mi</option>
+              <option value="custom">Custom</option>
+            </select>
+          </label>
+          {radiusFilter === "custom" ? (
+            <label className="custom-radius-filter">
+              <span>Miles</span>
+              <input
+                aria-label="Custom radius in miles"
+                type="number"
+                min="1"
+                max="50"
+                step="1"
+                inputMode="numeric"
+                value={customRadiusMiles}
+                onChange={(event) => setCustomRadiusMiles(event.target.value)}
+                onBlur={() => setCustomRadiusMiles(String(activeRadiusMiles ?? 20))}
+              />
+            </label>
+          ) : null}
           <button type="button" className="location-button" onClick={requestLocation}>
             <LocateIcon /> Near me
           </button>
@@ -796,7 +849,7 @@ export function OpportunityApp() {
             <button type="button" className={view === "list" ? "active" : ""} onClick={() => setView("list")} aria-label="List view"><ListIcon /></button>
           </div>
         </div>
-        {locationMessage ? <p className="location-message">{locationMessage}</p> : null}
+        {locationStatusMessage ? <p className="location-message">{locationStatusMessage}</p> : null}
         {closedSites.length > 0 ? (
           <p className="closure-notice">
             {closedSites.length} temporarily closed access point{closedSites.length === 1 ? " is" : "s are"} excluded from ranking.

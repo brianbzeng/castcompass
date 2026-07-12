@@ -530,6 +530,7 @@ footer {
 .filters {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.65rem;
 }
 
@@ -552,15 +553,27 @@ footer {
   text-transform: uppercase;
 }
 
-.filters select {
+.filters select,
+.filters input {
   max-width: 130px;
   padding: 0.35rem;
   border: 0;
   outline: 0;
+  color: var(--ink);
   background: transparent;
   font-size: 0.7rem;
   font-weight: 700;
   color-scheme: dark;
+}
+
+.filters input {
+  width: 3.8rem;
+}
+
+.filters input:focus-visible,
+.filters select:focus-visible {
+  outline: 2px solid var(--seafoam);
+  outline-offset: 1px;
 }
 
 .location-button,
@@ -2014,6 +2027,37 @@ footer > div {
   width: 16px;
 }
 
+.stewardship-reminder {
+  max-width: 620px;
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border-left: 2px solid var(--seafoam);
+  background: rgba(4, 20, 41, 0.58);
+}
+
+.stewardship-reminder > strong {
+  color: var(--seafoam);
+  font-size: 0.66rem;
+}
+
+.stewardship-reminder p {
+  margin: 0.3rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.59rem;
+  line-height: 1.6;
+}
+
+.stewardship-reminder p strong {
+  color: var(--ink);
+}
+
+.stewardship-reminder a,
+.regulation-reminder a {
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--seafoam);
+  font-weight: 700;
+}
+
 .validation-ledger {
   align-self: center;
   border: 1px solid var(--line-strong);
@@ -2374,6 +2418,14 @@ footer > div {
   margin-top: 0.8rem;
 }
 
+.catch-fieldset .regulation-reminder {
+  display: block;
+  margin-top: 0.9rem;
+  color: var(--ink-soft);
+  font-size: 0.55rem;
+  line-height: 1.55;
+}
+
 .count-field input {
   font-family: var(--font-mono);
   font-size: 1rem;
@@ -2536,12 +2588,17 @@ footer > div {
   }
 
   .filters label {
-    flex: 1;
+    flex: 1 1 150px;
   }
 
-  .filters select {
+  .filters select,
+  .filters input {
     max-width: none;
     width: 100%;
+  }
+
+  .filters .custom-radius-filter {
+    flex-basis: 105px;
   }
 
   .workspace {
@@ -2723,7 +2780,8 @@ footer > div {
     display: none;
   }
 
-  .filters select {
+  .filters select,
+  .filters input {
     font-size: 0.65rem;
   }
 
