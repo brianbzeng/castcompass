@@ -47,7 +47,7 @@ test("trip entry points are present in the top bar, forecast detail, and validat
   assert.match(feature, /id="validation"/);
   assert.match(feature, /The skunks/);
   assert.match(feature, /22 inches total length/);
-  assert.match(feature, /model training and validation/);
+  assert.match(feature, /whether it’s a skunk or not are useful and genuinely appreciated/);
 });
 
 test("forecast controls offer practical preset and custom location radii", async () => {

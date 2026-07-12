@@ -9,7 +9,7 @@ const registrationSource = await readFile(
 );
 
 test("service worker publishes a new cache and removes prior ContourCast releases", () => {
-  assert.match(workerSource, /CACHE_NAME = "contourcast-v5"/);
+  assert.match(workerSource, /CACHE_NAME = "contourcast-v6"/);
   assert.match(workerSource, /key\.startsWith\(CACHE_PREFIX\) && key !== CACHE_NAME/);
   assert.match(workerSource, /caches\.delete\(key\)/);
 });

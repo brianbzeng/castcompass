@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "contourcast-";
-const CACHE_NAME = "contourcast-v5";
+const CACHE_NAME = "contourcast-v6";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",

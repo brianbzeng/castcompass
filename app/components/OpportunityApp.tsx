@@ -354,29 +354,74 @@ function defaultCustomEnd() {
   return shiftDateInput(dateInputValue(new Date()), 2);
 }
 
+function pacificClockMinutes(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: PACIFIC_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? 0);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value ?? 0);
+  return hour * 60 + minute;
+}
+
+function timeInputMinutes(value: string) {
+  if (!value) return null;
+  const [hour, minute] = value.split(":").map(Number);
+  return hour * 60 + minute;
+}
+
+function overlapsAvailableHours(window: OpportunityWindow, availableFrom: string, availableUntil: string) {
+  const from = timeInputMinutes(availableFrom);
+  const until = timeInputMinutes(availableUntil);
+  if (from === null && until === null) return true;
+
+  const windowStart = new Date(window.start);
+  const windowEnd = new Date(window.end);
+  const startMinute = pacificClockMinutes(windowStart);
+  let endMinute = pacificClockMinutes(windowEnd);
+  if (dateInputValue(windowStart) !== dateInputValue(windowEnd) || endMinute <= startMinute) endMinute += 1440;
+
+  if (from !== null && until === null) return endMinute > from;
+  if (from === null && until !== null) return startMinute < until;
+  if (from === null || until === null) return true;
+
+  if (until > from) return endMinute > from && startMinute < until;
+
+  // An end time before the start time means the angler is available overnight.
+  const overlapsEvening = endMinute > from && startMinute < until + 1440;
+  const overlapsEarlyMorning = endMinute > from - 1440 && startMinute < until;
+  return overlapsEvening || overlapsEarlyMorning;
+}
+
 function filterWindow(
   window: OpportunityWindow,
   filter: TimeFilter,
   nowMs: number,
   customStart: string,
   customEnd: string,
+  availableFrom: string,
+  availableUntil: string,
 ) {
   const start = new Date(window.start);
   const end = new Date(window.end);
   if (end.getTime() <= nowMs) return false;
 
   const now = new Date(nowMs);
+  let matchesDate = false;
   if (filter === "today") {
-    return dateInputValue(start) === dateInputValue(now) || (start.getTime() <= nowMs && end.getTime() > nowMs);
-  }
-  if (filter === "tomorrow") {
-    return dateInputValue(start) === shiftDateInput(dateInputValue(now), 1);
+    matchesDate = dateInputValue(start) === dateInputValue(now) || (start.getTime() <= nowMs && end.getTime() > nowMs);
+  } else if (filter === "tomorrow") {
+    matchesDate = dateInputValue(start) === shiftDateInput(dateInputValue(now), 1);
+  } else {
+    const rangeStart = dateFromInput(customStart);
+    const rangeEndExclusive = dateFromInput(customEnd);
+    rangeEndExclusive.setDate(rangeEndExclusive.getDate() + 1);
+    matchesDate = end > rangeStart && start < rangeEndExclusive;
   }
 
-  const rangeStart = dateFromInput(customStart);
-  const rangeEndExclusive = dateFromInput(customEnd);
-  rangeEndExclusive.setDate(rangeEndExclusive.getDate() + 1);
-  return end > rangeStart && start < rangeEndExclusive;
+  return matchesDate && overlapsAvailableHours(window, availableFrom, availableUntil);
 }
 
 function latestPerSite(
@@ -385,15 +430,227 @@ function latestPerSite(
   nowMs: number,
   customStart: string,
   customEnd: string,
+  availableFrom: string,
+  availableUntil: string,
 ) {
   const result = new Map<string, OpportunityWindow>();
   windows
-    .filter((window) => filterWindow(window, filter, nowMs, customStart, customEnd))
+    .filter((window) => filterWindow(
+      window,
+      filter,
+      nowMs,
+      customStart,
+      customEnd,
+      availableFrom,
+      availableUntil,
+    ))
     .forEach((window) => {
       const existing = result.get(window.siteId);
       if (!existing || window.score > existing.score) result.set(window.siteId, window);
     });
   return result;
+}
+
+interface StructureGuide {
+  label: string;
+  lookFor: string;
+  fishIt: string;
+}
+
+const STRUCTURE_GUIDES: Record<string, StructureGuide> = {
+  "channel-approach": {
+    label: "Channel approach",
+    lookFor: "Water that steadily deepens toward the main channel, often with a color or current change.",
+    fishIt: "Fan casts across the change and work the lure from the shallow side into deeper water.",
+  },
+  "channel-edge": {
+    label: "Channel edge",
+    lookFor: "A drop from a flat into deeper moving water; foam, debris, or a color line can trace it.",
+    fishIt: "Cast across the edge so the lure spends time moving up or down the drop.",
+  },
+  "channel-shoulder": {
+    label: "Channel shoulder",
+    lookFor: "The gentler ledge just before the bottom falls into the main channel.",
+    fishIt: "Keep the lure close to bottom and cover both the top and face of the ledge.",
+  },
+  "current-seam": {
+    label: "Current seam",
+    lookFor: "A visible line where fast and slow water meet, sometimes marked by foam or drifting grass.",
+    fishIt: "Work both sides of the seam, especially the slower side where fish can wait for bait.",
+  },
+  "dredged-channel": {
+    label: "Dredged channel",
+    lookFor: "A man-made deep lane beside a harbor, marina, or shipping route.",
+    fishIt: "Target the lip rather than only the deepest middle; halibut often sit where the bottom changes.",
+  },
+  "dredged-edge": {
+    label: "Dredged edge",
+    lookFor: "The sharp boundary between a maintained channel and the surrounding shallow flat.",
+    fishIt: "Cast diagonally along the edge and slow down when the lure reaches the depth change.",
+  },
+  "eelgrass-edge": {
+    label: "Eelgrass edge",
+    lookFor: "The border between grass and open sand, plus sandy pockets inside the grass.",
+    fishIt: "Keep the lure on the clean sand beside the grass to stay near cover without fouling every cast.",
+  },
+  "gravel-slope": {
+    label: "Gravel slope",
+    lookFor: "A firmer, steeper patch where gravel or shell meets softer sand.",
+    fishIt: "Work the bottom slowly across the change and note where the lure begins to tick harder ground.",
+  },
+  "pier-pilings": {
+    label: "Pier pilings",
+    lookFor: "Current shadows, bait, and scoured pockets around pilings—especially on the down-current side.",
+    fishIt: "Cast beside the pilings and let the presentation sweep past them while staying ready for snags.",
+  },
+  pilings: {
+    label: "Pilings",
+    lookFor: "Current shadows, bait, and small scoured holes around the posts.",
+    fishIt: "Fish close enough to use the cover, but keep the lure moving to avoid wrapping a post.",
+  },
+  "rip-channel": {
+    label: "Rip channel",
+    lookFor: "A gap in breaking waves or a darker lane where water and foam pull away from shore.",
+    fishIt: "Cast across the rip and work its edges; avoid wading into the outgoing flow.",
+  },
+  "rock-sand-edge": {
+    label: "Rock-to-sand edge",
+    lookFor: "A visible color or texture change where reef, riprap, or scattered rock gives way to sand.",
+    fishIt: "Favor the sand side of the boundary, where halibut can ambush bait without costing every lure.",
+  },
+  "reef-edge": {
+    label: "Reef edge",
+    lookFor: "The outside edge of rock or reef next to a clean sand lane.",
+    fishIt: "Run the lure parallel to the edge or pull it onto the sand before it settles into the rocks.",
+  },
+  "sand-bar": {
+    label: "Sand bar",
+    lookFor: "A shallow bar marked by breaking water, with calmer or darker water on either side.",
+    fishIt: "Cover the deeper inside trough and any cut where water crosses the bar.",
+  },
+  "sand-flat": {
+    label: "Sand flat",
+    lookFor: "Broad clean sand with small dips, darker patches, bait dimples, or subtle current lines.",
+    fishIt: "Fan cast to cover water; repeat casts where depth or bottom feel changes even slightly.",
+  },
+  "mud-sand-flat": {
+    label: "Mud-to-sand flat",
+    lookFor: "A soft-bottom flat with firmer sandy lanes or patches that may concentrate bait.",
+    fishIt: "Use a slow retrieve close to bottom and pay attention to changes in drag or lure feel.",
+  },
+  "sand-mud-flat": {
+    label: "Sand-to-mud flat",
+    lookFor: "Clean sand fading into softer mud, often visible as a water-color or bottom-feel change.",
+    fishIt: "Work along the transition rather than straight across one uniform bottom type.",
+  },
+  "sand-trough": {
+    label: "Sand trough",
+    lookFor: "A long darker lane between the beach and an outer bar, often running parallel to shore.",
+    fishIt: "Make some casts down the trough, not only straight out, and work any cuts that connect it offshore.",
+  },
+  trough: {
+    label: "Trough",
+    lookFor: "A deeper lane beside a beach, bar, jetty, or shoreline shelf.",
+    fishIt: "Cast along the lane so the lure stays in the deeper water for more of the retrieve.",
+  },
+  "shelf-break": {
+    label: "Shelf break",
+    lookFor: "A broad shallow area that gives way to deeper water, sometimes marked by current or color.",
+    fishIt: "Cover the lip and the first part of the slope instead of casting past it every time.",
+  },
+  "slope-break": {
+    label: "Depth break",
+    lookFor: "A noticeable bottom drop that interrupts an otherwise even flat.",
+    fishIt: "Slow the retrieve as the lure climbs or falls across the break; that change is the target.",
+  },
+  "tidal-channel": {
+    label: "Tidal channel",
+    lookFor: "A deeper winding lane that drains a flat as the tide moves.",
+    fishIt: "Focus on bends, mouths, and the slower edge of the flow rather than the fastest center.",
+  },
+  "tidal-drain": {
+    label: "Tidal drain",
+    lookFor: "A small cut where water leaves a marsh, flat, or harbor and carries bait with it.",
+    fishIt: "Fish the mouth and down-current seam while water is moving, without blocking wildlife or access.",
+  },
+  riprap: {
+    label: "Riprap edge",
+    lookFor: "The base of shoreline rocks where hard cover meets sand and current is deflected.",
+    fishIt: "Work parallel to the rocks or just off their base to stay near structure while limiting snags.",
+  },
+  jetty: {
+    label: "Jetty edge",
+    lookFor: "The sand beside the rocks, the current shadow, and the deeper water near the jetty tip.",
+    fishIt: "Cast along the rock-to-sand line and give extra attention to the down-current side.",
+  },
+  "jetty-edge": {
+    label: "Jetty edge",
+    lookFor: "The boundary where jetty rock ends and a clean sand lane begins.",
+    fishIt: "Keep the lure over sand but close to the rocks, especially around current breaks.",
+  },
+  "creek-mouth": {
+    label: "Creek mouth",
+    lookFor: "A cut, color change, or bait movement where creek water meets the bay or ocean.",
+    fishIt: "Work the edges of the outflow when water is moving and avoid sensitive habitat.",
+  },
+  "estuary-mouth": {
+    label: "Estuary mouth",
+    lookFor: "A channel, sand edge, and current seam where protected water opens to the coast.",
+    fishIt: "Target the slower edge of moving water and any nearby sandy pocket.",
+  },
+  "harbor-mouth": {
+    label: "Harbor mouth",
+    lookFor: "The channel edge and current break where protected harbor water meets open water.",
+    fishIt: "Cover the inside corners and sand beside the channel while staying clear of vessel traffic.",
+  },
+  "lagoon-mouth": {
+    label: "Lagoon mouth",
+    lookFor: "A sandy cut and outflow seam where lagoon water reaches the ocean.",
+    fishIt: "Work the edges when the mouth is open and respect seasonal closures and protected areas.",
+  },
+  "marina-mouth": {
+    label: "Marina mouth",
+    lookFor: "A dredged entrance, piling line, or current seam that gathers bait near deeper water.",
+    fishIt: "Fish the edges and current shadows while keeping well clear of boats and restricted docks.",
+  },
+  cove: {
+    label: "Cove edge",
+    lookFor: "Protected water next to a point, beach, or deeper outside edge where bait can collect.",
+    fishIt: "Start with the mouth and points, then cover the calmer sand inside.",
+  },
+  "protected-cove": {
+    label: "Protected cove",
+    lookFor: "Calmer water, a sandy pocket, and small current lines near the cove entrance.",
+    fishIt: "Fish the mouth first, then fan cast the pocket if bait is present.",
+  },
+  "protected-bay": {
+    label: "Protected bay",
+    lookFor: "Calmer flats broken up by channels, points, grass, or marina edges.",
+    fishIt: "Use the visible changes to narrow the water instead of casting the entire flat at random.",
+  },
+  "open-coast": {
+    label: "Open beach",
+    lookFor: "Troughs, rip cuts, points, and gaps in the breakers rather than one featureless stretch.",
+    fishIt: "Walk and fan cast until you find a depth change or bait, then slow down and work that section.",
+  },
+};
+
+function structureGuidesForSite(site: FishingSite) {
+  const seen = new Set<string>();
+  return site.structureTags
+    .map((tag) => STRUCTURE_GUIDES[tag.toLowerCase().replaceAll(" ", "-")])
+    .filter((guide): guide is StructureGuide => Boolean(guide))
+    .filter((guide) => {
+      if (seen.has(guide.label)) return false;
+      seen.add(guide.label);
+      return true;
+    })
+    .slice(0, 3);
+}
+
+function structureLabel(tag: string) {
+  return STRUCTURE_GUIDES[tag.toLowerCase().replaceAll(" ", "-")]?.label
+    ?? tag.replaceAll("-", " ");
 }
 
 function MetricBar({ label, value, note }: { label: string; value: number; note: string }) {
@@ -440,6 +697,8 @@ export function OpportunityApp() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("today");
   const [customStart, setCustomStart] = useState(() => dateInputValue(new Date()));
   const [customEnd, setCustomEnd] = useState(defaultCustomEnd);
+  const [availableFrom, setAvailableFrom] = useState("");
+  const [availableUntil, setAvailableUntil] = useState("");
   const [clockMs, setClockMs] = useState(() => Date.now());
   const [view, setView] = useState<"map" | "list">("map");
   const [region, setRegion] = useState("All water");
@@ -553,8 +812,16 @@ export function OpportunityApp() {
   }, [selectedSiteId]);
 
   const windowsBySite = useMemo(
-    () => latestPerSite(snapshot.windows, timeFilter, clockMs, customStart, customEnd),
-    [snapshot.windows, timeFilter, clockMs, customStart, customEnd],
+    () => latestPerSite(
+      snapshot.windows,
+      timeFilter,
+      clockMs,
+      customStart,
+      customEnd,
+      availableFrom,
+      availableUntil,
+    ),
+    [snapshot.windows, timeFilter, clockMs, customStart, customEnd, availableFrom, availableUntil],
   );
 
   const maxForecastDate = useMemo(() => {
@@ -617,11 +884,15 @@ export function OpportunityApp() {
   const selectedCommunity = selectedSiteId
     ? communityPulses.find((pulse) => pulse.siteId === selectedSiteId) ?? null
     : null;
-  const strongestWindowLabel = timeFilter === "today"
-    ? "Strongest remaining today"
-    : timeFilter === "tomorrow"
-      ? "Strongest tomorrow"
-      : "Strongest in your range";
+  const selectedStructureGuides = selectedSite ? structureGuidesForSite(selectedSite) : [];
+  const hasHourFilter = Boolean(availableFrom || availableUntil);
+  const strongestWindowLabel = hasHourFilter
+    ? "Best match for your hours"
+    : timeFilter === "today"
+      ? "Best option left today"
+      : timeFilter === "tomorrow"
+        ? "Best option tomorrow"
+        : "Best option in your range";
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -697,7 +968,7 @@ export function OpportunityApp() {
         </a>
         <nav className="desktop-nav" aria-label="Primary navigation">
           <button type="button" onClick={() => scrollToSection("forecast")}>Forecast</button>
-          <button type="button" onClick={() => setShowMethod(true)}>How it works</button>
+          <button type="button" onClick={() => setShowMethod(true)}>How It Works</button>
           <button type="button" onClick={() => scrollToSection("sources")}>Data</button>
         </nav>
         <div className="topbar-actions">
@@ -729,8 +1000,8 @@ export function OpportunityApp() {
           <div>
             <h1>Find the water<br />worth fishing.</h1>
             <p>
-              Ranked two-hour windows for public shore and pier access—built from seafloor structure,
-              seasonality, and current conditions.
+              Pick the hours you have. We compare public shore and pier spots using bottom structure,
+              time of year, tides, wind, and water conditions.
             </p>
           </div>
           {bestSite && bestWindow ? (
@@ -747,7 +1018,7 @@ export function OpportunityApp() {
               <ArrowIcon className="next-arrow" />
             </button>
           ) : (
-            <div className="empty-window">No ranked windows match this filter.</div>
+            <div className="empty-window">No fishing times match your current choices.</div>
           )}
         </div>
       </section>
@@ -800,6 +1071,39 @@ export function OpportunityApp() {
             </label>
           </div>
         ) : null}
+        <div className="availability-filter" aria-label="Hours available to fish">
+          <div className="availability-copy">
+            <strong>When can you fish?</strong>
+            <span>The best time to fish is when you have time. We’ll find your best options inside it.</span>
+          </div>
+          <label>
+            <span>From</span>
+            <input
+              type="time"
+              step="1800"
+              value={availableFrom}
+              onChange={(event) => setAvailableFrom(event.target.value)}
+              aria-label="Available from"
+            />
+          </label>
+          <span aria-hidden="true">to</span>
+          <label>
+            <span>Until</span>
+            <input
+              type="time"
+              step="1800"
+              value={availableUntil}
+              onChange={(event) => setAvailableUntil(event.target.value)}
+              aria-label="Available until"
+            />
+          </label>
+          {hasHourFilter ? (
+            <button type="button" onClick={() => {
+              setAvailableFrom("");
+              setAvailableUntil("");
+            }}>Any time</button>
+          ) : null}
+        </div>
         <div className="filters">
           <label>
             <span>Area</span>
@@ -869,7 +1173,7 @@ export function OpportunityApp() {
             onSelectSite={openSiteDetail}
             userPosition={userPosition}
           />
-          <div className="map-overlay-label"><LayersIcon /> {rankedSites.length} zones · tap grouped circles to expand</div>
+          <div className="map-overlay-label"><LayersIcon /> {rankedSites.length} spots · tap a group to spread it out</div>
           <div className="map-legend">
             <span><i className="cluster" />Grouped</span>
             <span><i className="excellent" />80+</span>
@@ -882,8 +1186,8 @@ export function OpportunityApp() {
         <div className="ranking-panel">
           <div className="panel-heading">
             <div>
-              <span>Ranked access</span>
-              <h2>{rankedSites.length} locations</h2>
+              <span>Fishing spots</span>
+              <h2>{rankedSites.length} options</h2>
             </div>
             <div className="panel-actions">
               <small>Updated {formatAge(snapshot.generatedAt)}</small>
@@ -907,7 +1211,7 @@ export function OpportunityApp() {
                     <div><strong>{site.name}</strong><em>{site.type}</em></div>
                     <p><ClockIcon /> {formatWindow(window.start, window.end, true)}</p>
                     <div className="tag-row">
-                      {site.structureTags.slice(0, 2).map((tag) => <span key={tag}>{tag}</span>)}
+                      {site.structureTags.slice(0, 2).map((tag) => <span key={tag}>{structureLabel(tag)}</span>)}
                       {site.distanceMiles !== undefined ? <span>{site.distanceMiles.toFixed(1)} mi</span> : null}
                     </div>
                   </div>
@@ -917,8 +1221,8 @@ export function OpportunityApp() {
             })}
             {rankedSites.length === 0 ? (
               <div className="no-results">
-                <strong>No windows in this slice</strong>
-                <p>Try another area or forecast period.</p>
+                <strong>No fishing times match</strong>
+                <p>Try widening your hours, date range, area, or distance.</p>
               </div>
             ) : null}
           </div>
@@ -934,16 +1238,16 @@ export function OpportunityApp() {
             It is <strong>not</strong> an 80% chance of catching a fish.
           </p>
         </div>
-        <button type="button" onClick={() => setShowMethod(true)}>See methodology <ArrowIcon /></button>
+        <button type="button" onClick={() => setShowMethod(true)}>How It Works <ArrowIcon /></button>
       </section>
 
       <TripReportFeature sites={sites} snapshot={snapshot} request={tripReportRequest} />
 
       <section className="source-section" id="sources">
         <div className="source-heading">
-          <span>Forecast inputs</span>
-          <h2>Nothing hidden behind the score.</h2>
-          <p>Every source carries an observed time and freshness limit. Expired live inputs are excluded instead of silently filled.</p>
+          <span>Forecast check</span>
+          <h2>See what is current.</h2>
+          <p>Old weather and tide readings are not treated as live. If something is too old to trust, it is left out.</p>
         </div>
         <div className="source-grid">
           {snapshot.sources.map((source) => <SourceStatus key={source.name} source={source} />)}
@@ -994,7 +1298,7 @@ export function OpportunityApp() {
 
             <div className="place-media-block">
               <h3>See the access</h3>
-              <p>Open current Google Maps imagery and routing outside ContourCast.</p>
+              <p>Check photos, the shoreline, and directions before you leave.</p>
               <div className="place-media-links">
                 <a href={googleMapsSearchUrl(selectedSite)} target="_blank" rel="noreferrer">Photos &amp; reviews ↗</a>
                 <a href={googleStreetViewUrl(selectedSite)} target="_blank" rel="noreferrer">Street View 360° ↗</a>
@@ -1009,15 +1313,32 @@ export function OpportunityApp() {
                 <strong>{Math.round(selectedWindow.score)}</strong>
                 <span>Opportunity<br />Score</span>
               </div>
-              <p>Better than <strong>{Math.round(selectedWindow.score)}%</strong> of the site/window combinations currently evaluated.</p>
+              <p>Ranks ahead of <strong>{Math.round(selectedWindow.score)}%</strong> of the spots and times currently available.</p>
             </div>
 
             <div className="component-block">
-              <h3>Why it ranks here</h3>
-              <MetricBar label="Habitat" value={selectedWindow.habitatScore} note="Long-term seafloor structure" />
-              <MetricBar label="Seasonality" value={selectedWindow.seasonalityScore} note="Public monthly catch and effort" />
-              <MetricBar label="Conditions" value={selectedWindow.dynamicScore} note="Bounded live modifier" />
+              <h3>Why this time stands out</h3>
+              <MetricBar label="Bottom" value={selectedWindow.habitatScore} note="How fishy the nearby structure looks" />
+              <MetricBar label="Time of year" value={selectedWindow.seasonalityScore} note="How this month usually fishes" />
+              <MetricBar label="Today’s conditions" value={selectedWindow.dynamicScore} note="Tide, wind, swell, and daylight" />
             </div>
+
+            {selectedStructureGuides.length > 0 ? (
+              <div className="structure-guide-block">
+                <h3>Structure to look for</h3>
+                <p>Use these clues to narrow down the water once you arrive.</p>
+                <div className="structure-guide-grid">
+                  {selectedStructureGuides.map((guide) => (
+                    <article key={guide.label}>
+                      <strong>{guide.label}</strong>
+                      <p>{guide.lookFor}</p>
+                      <small><b>How to fish it:</b> {guide.fishIt}</small>
+                    </article>
+                  ))}
+                </div>
+                {selectedSite.depthProfile ? <p className="structure-depth-note">At this spot: {selectedSite.depthProfile}</p> : null}
+              </div>
+            ) : null}
 
             <div className="factor-block">
               {selectedWindow.explanationFactors.map((factor) => <span key={factor}>{factor}</span>)}
@@ -1028,7 +1349,7 @@ export function OpportunityApp() {
               <div><WindIcon /><span>Wind</span><strong>{isFiniteNumber(selectedWindow.conditions.windMph) ? `${Math.round(selectedWindow.conditions.windMph)} mph` : "Unavailable"}</strong></div>
               <div>
                 <TemperatureIcon />
-                <span>Modeled SST</span>
+                <span>Water temp</span>
                 <strong>
                   {isFiniteNumber(selectedWindow.conditions.waterTempF)
                     ? `${Math.round(selectedWindow.conditions.waterTempF)}°F`
@@ -1038,13 +1359,13 @@ export function OpportunityApp() {
             </div>
             {isFiniteNumber(selectedWindow.conditions.ndbcObservedWaterTempF) ? (
               <p className="condition-source-note">
-                Latest regional NDBC observation: {Math.round(selectedWindow.conditions.ndbcObservedWaterTempF)}°F
-                {selectedWindow.conditions.ndbcObservedAt ? ` · ${formatAge(selectedWindow.conditions.ndbcObservedAt)}` : ""}. Shown for comparison, not scoring.
+                Latest nearby buoy reading: {Math.round(selectedWindow.conditions.ndbcObservedWaterTempF)}°F
+                {selectedWindow.conditions.ndbcObservedAt ? ` · ${formatAge(selectedWindow.conditions.ndbcObservedAt)}` : ""}. For reference only.
               </p>
             ) : null}
 
             <div className="detail-freshness">
-              <h3>Input status</h3>
+              <h3>Latest conditions</h3>
               {(selectedWindow.sources ?? snapshot.sources).slice(0, 6).map((source) => {
                 const tone = source.status.startsWith("fresh")
                   ? "fresh"
@@ -1062,7 +1383,6 @@ export function OpportunityApp() {
             <div className="access-block">
               <h3>Access notes</h3>
               <p>{selectedSite.access}</p>
-              {selectedSite.depthProfile ? <small>{selectedSite.depthProfile}</small> : null}
               {selectedSite.accessSourceUrl ? (
                 <a href={selectedSite.accessSourceUrl} target="_blank" rel="noreferrer">Check official access status ↗</a>
               ) : null}
@@ -1070,8 +1390,8 @@ export function OpportunityApp() {
 
             <div className="community-pulse-block">
               <div className="community-pulse-heading">
-                <h3>Community pulse — historical discussion</h3>
-                <span>Not a live bite report</span>
+                <h3>What anglers have said</h3>
+                <span>Past discussion, not a live bite report</span>
               </div>
               {selectedCommunity ? (
                 <>
@@ -1093,17 +1413,17 @@ export function OpportunityApp() {
                   </div>
                 </>
               ) : (
-                <p>No curated discussion summary is available for this access point yet.</p>
+                <p>We have not added an angler discussion summary for this spot yet.</p>
               )}
               <small>
-                Editorial summaries stay separate from the Opportunity Score. Use the trip logger to add a complete catch or no-catch result to the validation dataset.
+                These summaries do not change the score. Logging a complete catch or skunk helps us check and improve the rankings.
               </small>
             </div>
 
             <a className="regulations-link" href={selectedSite.regulationUrl} target="_blank" rel="noreferrer">
               Check current CDFW regulations <ArrowIcon />
             </a>
-            <p className="model-stamp">Model {selectedWindow.modelVersion ?? snapshot.modelVersion} · generated {formatAge(snapshot.generatedAt)}</p>
+            <p className="model-stamp">Forecast {selectedWindow.modelVersion ?? snapshot.modelVersion} · updated {formatAge(snapshot.generatedAt)}</p>
             <p className="legal-note">Rules and access can change. Confirm official regulations and posted site closures before fishing.</p>
           </aside>
         </div>
@@ -1134,7 +1454,7 @@ export function OpportunityApp() {
             <div className="method-callout">
               <InfoIcon />
               <p>
-                The research pipeline sends six-channel bathymetry patches into a self-supervised ResNet/SimCLR encoder, then fine-tunes presence and <code>log1p(CPUA)</code> heads. It is promoted only after geographically blocked validation shows a reliable ranking gain over simpler baselines.
+                The research pipeline sends a ten-channel, three-scale bathymetry stack into a shared-weight ResNet/SimCLR encoder. Full-survey self-supervised pretraining is complete on 4,096 official USGS 2 m locations. A frozen probe beat depth-only features on an unseen region, but did not beat the strongest classical structure baseline, so it was not promoted to the live score.
               </p>
             </div>
             <a
@@ -1157,8 +1477,8 @@ export function OpportunityApp() {
           <section className="compare-modal" role="dialog" aria-modal="true" aria-labelledby="compare-title">
             <button className="sheet-close" type="button" onClick={() => setShowCompare(false)} aria-label="Close comparison"><CloseIcon /></button>
             <span className="eyebrow"><span /> Side by side</span>
-            <h2 id="compare-title">Top windows,<br />same scale.</h2>
-            <p>These are the three strongest locations in the current area and time filter. Components use the same 0–100 scale.</p>
+            <h2 id="compare-title">Compare your<br />best options.</h2>
+            <p>These are the three best matches for your current area, date, and available hours.</p>
             <div className="compare-grid">
               {rankedSites.slice(0, 3).map((site, index) => {
                 const window = windowsBySite.get(site.id)!;
@@ -1170,9 +1490,9 @@ export function OpportunityApp() {
                     </div>
                     <h3>{site.name}</h3>
                     <p><ClockIcon /> {formatWindow(window.start, window.end)}</p>
-                    <MetricBar label="Habitat" value={window.habitatScore} note="Structure" />
-                    <MetricBar label="Season" value={window.seasonalityScore} note="Catch / effort" />
-                    <MetricBar label="Conditions" value={window.dynamicScore} note="Fresh inputs" />
+                    <MetricBar label="Bottom" value={window.habitatScore} note="Structure" />
+                    <MetricBar label="Time of year" value={window.seasonalityScore} note="Season" />
+                    <MetricBar label="Conditions" value={window.dynamicScore} note="Tide, wind, and swell" />
                     <button type="button" onClick={() => {
                       setShowCompare(false);
                       openSiteDetail(site.id);

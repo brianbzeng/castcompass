@@ -32,7 +32,7 @@ test("server-renders the ContourCast product shell", async () => {
   assert.match(html, /<title>ContourCast — California halibut opportunity planner(?: · ContourCast)?<\/title>/i);
   assert.match(html, /Find the water/);
   assert.match(html, /California halibut/);
-  assert.match(html, /Ranked two-hour windows/);
+  assert.match(html, /Pick the hours you have/);
   assert.match(html, /It is <strong>not<\/strong> an 80% chance/i);
   assert.match(html, /CDFW Bay regulations/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|SkeletonPreview/i);
@@ -62,15 +62,43 @@ test("keeps the score framed as a relative ranking", async () => {
   );
   assert.match(app, /percentile within that current comparison set/);
   assert.match(app, /It is <strong>not<\/strong> an 80% chance/);
-  assert.match(app, /Expired live inputs are excluded/);
+  assert.match(app, /Old weather and tide readings are not treated as live/);
   assert.match(app, /research pipeline, not the live score/i);
-  assert.match(app, /self-supervised ResNet\/SimCLR encoder/i);
-  assert.match(app, /Community pulse — historical discussion/);
-  assert.match(app, /Not a live bite report/);
+  assert.match(app, /ten-channel, three-scale bathymetry stack/i);
+  assert.match(app, /Full-survey self-supervised pretraining is complete/i);
+  assert.match(app, /What anglers have said/);
+  assert.match(app, /not a live bite report/i);
   assert.match(app, /\["today", "Today"\]/);
   assert.match(app, /\["custom", "Custom"\]/);
   assert.doesNotMatch(app, /Best next|\["weekend", "Weekend"\]/);
   assert.match(app, /America\/Los_Angeles/);
+});
+
+test("filters forecasts to the hours an angler can actually fish", async () => {
+  const app = await readFile(
+    new URL("../app/components/OpportunityApp.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(app, /When can you fish\?/);
+  assert.match(app, /The best time to fish is when you have time/);
+  assert.match(app, /type="time"/);
+  assert.match(app, /overlapsAvailableHours/);
+  assert.match(app, /Best match for your hours/);
+});
+
+test("turns site structure tags into angler-facing water-reading cues", async () => {
+  const app = await readFile(
+    new URL("../app/components/OpportunityApp.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(app, /Structure to look for/);
+  assert.match(app, /How to fish it:/);
+  assert.match(app, /Channel edge/);
+  assert.match(app, /Rip channel/);
+  assert.match(app, /Rock-to-sand edge/);
+  assert.match(app, /Eelgrass edge/);
 });
 
 test("uses a marine basemap with map-native clustered points and deterministic Bay controls", async () => {

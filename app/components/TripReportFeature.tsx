@@ -548,11 +548,11 @@ export function TripReportFeature({ sites, snapshot, request }: TripReportFeatur
 
       <section className="validation-section" id="validation">
         <div className="validation-copy">
-          <span className="eyebrow"><span /> Community validation beta</span>
+          <span className="eyebrow"><span /> Community trip log beta</span>
           <h2>The skunks<br />count, too.</h2>
           <p>
             Any complete trip helps build the dataset for future model training and evaluation. Location,
-            time, effort, method, catches, and <strong>skunks are all useful</strong>—and genuinely appreciated.
+            time, effort, method, catches, whether it’s a skunk or not are useful and genuinely appreciated.
           </p>
           <div className="validation-actions">
             <button type="button" onClick={() => openPanel("start", sites[0]?.id)}>Start a trip <ArrowIcon /></button>
@@ -571,10 +571,10 @@ export function TripReportFeature({ sites, snapshot, request }: TripReportFeatur
             notes, photos, or identity.
           </small>
         </div>
-        <div className="validation-ledger" aria-label="Community validation summary">
+        <div className="validation-ledger" aria-label="Community trip summary">
           <div className="ledger-heading">
-            <span>Validation ledger</span>
-            <em>Aggregate only</em>
+            <span>Community trip log</span>
+            <em>Totals only</em>
           </div>
           {summary ? (
             <div className="ledger-grid">
@@ -585,8 +585,8 @@ export function TripReportFeature({ sites, snapshot, request }: TripReportFeatur
             </div>
           ) : (
             <div className="ledger-empty">
-              <strong>{summaryUnavailable ? "Ledger coming online" : "Loading ledger…"}</strong>
-              <p>Privacy-safe submission totals appear here; reports do not affect the score before review.</p>
+              <strong>{summaryUnavailable ? "Trip totals coming online" : "Loading trip totals…"}</strong>
+              <p>Community totals appear here. A trip never changes the score before it is reviewed.</p>
             </div>
           )}
           <p className="ledger-method">

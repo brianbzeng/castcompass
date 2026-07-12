@@ -527,6 +527,87 @@ footer {
   outline-offset: 1px;
 }
 
+.availability-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0.36rem 0.45rem 0.36rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: rgba(13, 44, 79, 0.78);
+}
+
+.availability-copy {
+  display: grid;
+  gap: 0.12rem;
+  width: min(250px, 24vw);
+  padding-right: 0.35rem;
+}
+
+.availability-copy strong {
+  font-size: 0.66rem;
+}
+
+.availability-copy span {
+  color: var(--ink-soft);
+  font-size: 0.5rem;
+  line-height: 1.35;
+}
+
+.availability-filter > span {
+  color: var(--quiet);
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  text-transform: uppercase;
+}
+
+.availability-filter label {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.availability-filter label span {
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.availability-filter input {
+  width: 5.7rem;
+  padding: 0.35rem 0.4rem;
+  border: 0;
+  border-radius: 2px;
+  outline: 0;
+  color: var(--ink);
+  color-scheme: dark;
+  background: rgba(4, 19, 38, 0.72);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 600;
+}
+
+.availability-filter input:focus-visible,
+.availability-filter button:focus-visible {
+  outline: 2px solid var(--seafoam);
+  outline-offset: 1px;
+}
+
+.availability-filter button {
+  align-self: end;
+  min-height: 28px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  color: var(--seafoam);
+  background: rgba(4, 19, 38, 0.72);
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .filters {
   display: flex;
   align-items: center;
@@ -590,7 +671,8 @@ footer {
 .location-button:hover,
 .view-toggle button:hover,
 .filters label:hover,
-.custom-date-range:hover {
+.custom-date-range:hover,
+.availability-filter:hover {
   border-color: var(--line-strong);
   background: rgba(20, 59, 101, 0.88);
 }
@@ -1373,6 +1455,7 @@ footer > div {
 }
 
 .component-block,
+.structure-guide-block,
 .access-block,
 .place-media-block,
 .community-pulse-block {
@@ -1423,12 +1506,63 @@ footer > div {
 }
 
 .component-block h3,
+.structure-guide-block h3,
 .access-block h3,
 .place-media-block h3,
 .community-pulse-block h3 {
   margin: 0 0 0.9rem;
   font-size: 0.78rem;
   letter-spacing: -0.01em;
+}
+
+.structure-guide-block > p {
+  margin: -0.25rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.64rem;
+  line-height: 1.55;
+}
+
+.structure-guide-grid {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+}
+
+.structure-guide-grid article {
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  background: rgba(58, 126, 184, 0.1);
+}
+
+.structure-guide-grid strong {
+  color: var(--seafoam);
+  font-size: 0.7rem;
+}
+
+.structure-guide-grid p,
+.structure-guide-grid small {
+  display: block;
+  margin: 0.35rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.59rem;
+  line-height: 1.55;
+}
+
+.structure-guide-grid small {
+  padding-top: 0.42rem;
+  border-top: 1px solid var(--line);
+}
+
+.structure-guide-grid small b {
+  color: var(--ink);
+}
+
+.structure-guide-block .structure-depth-note {
+  margin-top: 0.7rem;
+  padding-left: 0.7rem;
+  border-left: 2px solid var(--seafoam);
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
 }
 
 .metric-row {
@@ -2583,6 +2717,14 @@ footer > div {
     justify-content: flex-start;
   }
 
+  .availability-filter {
+    width: 100%;
+  }
+
+  .availability-copy {
+    width: min(320px, 36vw);
+  }
+
   .filters {
     width: 100%;
   }
@@ -2768,6 +2910,37 @@ footer > div {
   .custom-date-range input {
     width: 100%;
     min-width: 0;
+  }
+
+  .availability-filter {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto auto;
+    gap: 0.4rem;
+    padding: 0.65rem;
+  }
+
+  .availability-copy {
+    grid-column: 1 / -1;
+    width: 100%;
+    padding: 0 0 0.25rem;
+  }
+
+  .availability-copy span {
+    font-size: 0.54rem;
+  }
+
+  .availability-filter label {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+  }
+
+  .availability-filter input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .availability-filter button {
+    align-self: center;
   }
 
   .filters label,
