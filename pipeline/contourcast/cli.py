@@ -9,6 +9,7 @@ from typing import Any, Sequence
 
 from .deep_model import architecture_smoke_test
 from .geo import validate_observation_extent, verify_projected_crs
+from .habitat_probe import run_frozen_seafloor_probe
 from .ingest import ingest_bathymetry, ingest_observations, load_grid, load_model_observations
 from .metadata import sha256_file, write_json
 from .sources import summarize_sources
@@ -121,6 +122,19 @@ def build_parser() -> argparse.ArgumentParser:
     pretrain.add_argument("--split-regions", type=int, default=5)
     pretrain.add_argument("--device", default="auto")
     pretrain.add_argument("--seed", type=int, default=42)
+
+    probe = subcommands.add_parser("probe-seafloor-character")
+    probe.add_argument("--corpus", required=True, type=_path)
+    probe.add_argument("--checkpoint", required=True, type=_path)
+    probe.add_argument("--labels", required=True, type=_path)
+    probe.add_argument("--output-dir", required=True, type=_path)
+    probe.add_argument("--label-sha256")
+    probe.add_argument("--validation-fold", type=int, default=0)
+    probe.add_argument("--split-regions", type=int, default=5)
+    probe.add_argument("--batch-size", type=int, default=64)
+    probe.add_argument("--device", default="cpu")
+    probe.add_argument("--bootstrap-samples", type=int, default=1000)
+    probe.add_argument("--seed", type=int, default=42)
 
     validate = subcommands.add_parser("validate")
     validate.add_argument("--bathymetry", required=True, type=_path)
@@ -270,6 +284,22 @@ def main(argv: Sequence[str] | None = None) -> int:
                 validation_fold=args.validation_fold,
                 split_regions=args.split_regions,
                 device=args.device,
+                seed=args.seed,
+            )
+        )
+    elif args.command == "probe-seafloor-character":
+        _print(
+            run_frozen_seafloor_probe(
+                args.corpus,
+                args.checkpoint,
+                args.labels,
+                args.output_dir,
+                label_raster_sha256=args.label_sha256,
+                validation_fold=args.validation_fold,
+                split_regions=args.split_regions,
+                batch_size=args.batch_size,
+                device=args.device,
+                bootstrap_samples=args.bootstrap_samples,
                 seed=args.seed,
             )
         )
