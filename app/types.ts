@@ -62,6 +62,8 @@ export interface Conditions {
   tideChangeFeet?: number;
   tideLevelsFeet?: [number, number, number, number];
   currentKnots?: number;
+  currentDirectionDegrees?: number;
+  currentDirection?: string;
   windMph?: number;
   windDirection?: string;
   swellFeet?: number;
@@ -78,6 +80,10 @@ export interface Conditions {
   pressureObservedAt?: string;
   moonPhase?: string;
   moonIlluminationPct?: number;
+  fishingPressure?: "light" | "moderate" | "high" | string;
+  fishingPressurePct?: number;
+  accessAdjustmentPoints?: number;
+  fishingPressureBasis?: string;
   summary?: string;
 }
 

@@ -67,10 +67,12 @@ class MemoryTripStore {
     return row;
   }
 
-  async getSummary() {
+  async getSummary(now) {
     const rows = [...this.trips.values()].filter(
       (trip) => trip.status === "completed" && trip.consent === 1 && trip.moderation_status !== "rejected",
     );
+    const cutoff = now.getTime() - 24 * 60 * 60 * 1000;
+    const recentRows = rows.filter((trip) => new Date(trip.completed_at).getTime() >= cutoff);
     const halibutTrips = rows.filter((trip) => trip.halibut_encounters > 0).length;
     const totalHalibut = rows.reduce((sum, trip) => sum + trip.halibut_encounters, 0);
     return {
@@ -82,6 +84,12 @@ class MemoryTripStore {
       halibutEncounters: totalHalibut,
       sitesCovered: new Set(rows.map((trip) => trip.site_id)).size,
       lastUpdated: rows.map((trip) => trip.updated_at).sort().at(-1) ?? null,
+      past24Hours: {
+        completedTrips: recentRows.length,
+        anglerHours: recentRows.reduce((sum, trip) => sum + trip.angler_hours, 0),
+        halibutEncounters: recentRows.reduce((sum, trip) => sum + trip.halibut_encounters, 0),
+        sitesCovered: new Set(recentRows.map((trip) => trip.site_id)).size,
+      },
     };
   }
 }
@@ -297,7 +305,7 @@ test("past reports re-encode photos and the summary exposes validation totals", 
     new Request(`${ORIGIN}/api/trips/summary`),
     env,
     SITES,
-    { store },
+    { store, now: () => new Date("2026-07-11T19:00:00.000Z") },
   );
   assert.deepEqual(await summaryResponse.json(), {
     completedTrips: 1,
@@ -308,6 +316,12 @@ test("past reports re-encode photos and the summary exposes validation totals", 
     halibutEncounters: 0,
     sitesCovered: 1,
     lastUpdated: "2026-07-11T18:00:00.000Z",
+    past24Hours: {
+      completedTrips: 1,
+      anglerHours: 3,
+      halibutEncounters: 0,
+      sitesCovered: 1,
+    },
   });
 });
 

@@ -397,6 +397,10 @@ def normalize_opportunity(
         conditions = CurrentConditions(
             tide_stage=_first(conditions_raw, "tide_stage", "tideStage"),
             current_knots=_first(conditions_raw, "current_knots", "currentKnots"),
+            current_direction_degrees=_first(
+                conditions_raw, "current_direction_degrees", "currentDirectionDegrees"
+            ),
+            current_direction=_first(conditions_raw, "current_direction", "currentDirection"),
             wind_mph=_first(conditions_raw, "wind_mph", "windMph"),
             swell_feet=_first(conditions_raw, "swell_feet", "swellFeet"),
             swell_period_seconds=_first(conditions_raw, "swell_period_seconds", "swellPeriodSeconds"),
@@ -417,6 +421,14 @@ def normalize_opportunity(
             pressure_trend_hpa_3h=_first(conditions_raw, "pressure_trend_hpa_3h", "pressureTrendHpa3h"),
             moon_phase=_first(conditions_raw, "moon_phase", "moonPhase"),
             moon_illumination_pct=_first(conditions_raw, "moon_illumination_pct", "moonIlluminationPct"),
+            fishing_pressure=_first(conditions_raw, "fishing_pressure", "fishingPressure"),
+            fishing_pressure_pct=_first(conditions_raw, "fishing_pressure_pct", "fishingPressurePct"),
+            access_adjustment_points=_first(
+                conditions_raw, "access_adjustment_points", "accessAdjustmentPoints"
+            ),
+            fishing_pressure_basis=_first(
+                conditions_raw, "fishing_pressure_basis", "fishingPressureBasis"
+            ),
         )
     opportunity_id = str(
         _first(raw, "id", default=f"{site.id}-{start_time.strftime('%Y%m%dT%H%M%SZ')}")

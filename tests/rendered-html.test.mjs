@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { access, readFile, stat } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
+import { gzipSync } from "node:zlib";
 
 async function render(path = "/") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -63,7 +64,7 @@ test("keeps the score framed as a relative ranking", async () => {
     new URL("../app/components/OpportunityApp.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(app, /percentile within that current comparison set/);
+  assert.match(app, /ranks within the current comparison set/);
   assert.match(app, /It is <strong>not<\/strong> an 80% chance/);
   assert.match(app, /Old weather and tide readings are not treated as live/);
   assert.match(app, /research pipeline, not the live score/i);
@@ -162,16 +163,17 @@ test("keeps maps and source navigation immediately reachable", async () => {
 });
 
 test("defers the interactive map and keeps the offline snapshot lightweight", async () => {
-  const [app, css, snapshotStats] = await Promise.all([
+  const [app, css, snapshot] = await Promise.all([
     readFile(new URL("../app/components/OpportunityApp.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-    stat(new URL("../public/data/opportunities.json", import.meta.url)),
+    readFile(new URL("../public/data/opportunities.json", import.meta.url)),
   ]);
 
   assert.match(app, /lazy\(\(\) => import\("\.\/ContourMap"\)/);
   assert.match(app, /new IntersectionObserver/);
   assert.match(app, /Open interactive map/);
-  assert.ok(snapshotStats.size < 1_200_000, `forecast snapshot is ${snapshotStats.size} bytes`);
+  const transferSize = gzipSync(snapshot).byteLength;
+  assert.ok(transferSize < 150_000, `compressed forecast snapshot is ${transferSize} bytes`);
   assert.match(css, /url\("\/topography-contours-v2\.webp"\)/);
   assert.match(css, /content-visibility:\s*auto/);
 });

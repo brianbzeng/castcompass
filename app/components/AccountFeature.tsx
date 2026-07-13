@@ -163,7 +163,15 @@ export function useAccount(): AccountController {
 
 type AccountMode = "login" | "signup" | "verify" | "recover" | "reset";
 
-export function AccountModal({ account, sites }: { account: AccountController; sites: FishingSite[] }) {
+export function AccountModal({
+  account,
+  sites,
+  onOpenSite,
+}: {
+  account: AccountController;
+  sites: FishingSite[];
+  onOpenSite?(siteId: string): void;
+}) {
   const [mode, setMode] = useState<AccountMode>("login");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -344,7 +352,20 @@ export function AccountModal({ account, sites }: { account: AccountController; s
                 <div className="profile-list">
                   {profile.savedSites.map((saved) => {
                     const site = sites.find((candidate) => candidate.id === saved.site_id);
-                    return <div className="profile-row" key={saved.site_id}><strong>{site?.name ?? saved.site_id}</strong><span>{site?.region ?? "Bay Area"}</span></div>;
+                    return (
+                      <button
+                        className="profile-row profile-site-link"
+                        type="button"
+                        key={saved.site_id}
+                        onClick={() => {
+                          account.closeAccount();
+                          onOpenSite?.(saved.site_id);
+                        }}
+                      >
+                        <span><strong>{site?.name ?? saved.site_id}</strong><small>{site?.region ?? "Bay Area"}</small></span>
+                        <b aria-hidden="true">View forecast →</b>
+                      </button>
+                    );
                   })}
                 </div>
               ) : <p>No saved locations yet. Open a forecast and tap “Save location.”</p>}

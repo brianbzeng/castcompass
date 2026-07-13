@@ -32,7 +32,10 @@ html {
 
 body {
   margin: 0;
-  background: var(--ocean-deep);
+  background:
+    linear-gradient(rgba(3, 17, 38, 0.32), rgba(4, 19, 40, 0.68)),
+    url("/topography-contours-v2.webp") center top / 940px 940px repeat,
+    #06172e;
   color: var(--ink);
   font-family: var(--font-sans);
   min-width: 320px;
@@ -77,11 +80,7 @@ svg {
 .app-shell {
   min-height: 100vh;
   overflow: clip;
-  background:
-    linear-gradient(rgba(3, 17, 38, 0.32), rgba(4, 19, 40, 0.68)),
-    url("/topography-contours-v2.webp") center top / 940px 940px repeat,
-    #06172e;
-  background-attachment: fixed;
+  background: transparent;
 }
 
 .topbar {
@@ -174,6 +173,10 @@ svg {
   letter-spacing: 0.03em;
   text-transform: uppercase;
   cursor: pointer;
+}
+
+.account-label-compact {
+  display: none;
 }
 
 .data-pill,
@@ -4556,6 +4559,296 @@ footer {
 
 @keyframes sheet-up {
   from { transform: translateY(100%); }
+}
+
+/* The page owns one repeating contour canvas. Content sections can tint it,
+   but none of them restart the image at a new origin. */
+.forecast-intro,
+.score-note,
+.validation-section,
+.source-section,
+footer {
+  background: transparent !important;
+}
+
+.control-deck {
+  background: rgba(4, 20, 41, 0.68);
+}
+
+.predictor-list {
+  display: grid;
+  margin-top: 2rem;
+  border-top: 1px solid var(--line-strong);
+}
+
+.predictor-list details {
+  border-bottom: 1px solid var(--line-strong);
+  background: rgba(5, 25, 49, 0.58);
+}
+
+.predictor-list summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  min-height: 58px;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.predictor-list summary::-webkit-details-marker {
+  display: none;
+}
+
+.predictor-list summary::before {
+  content: "+";
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  color: var(--lime);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+}
+
+.predictor-list details[open] summary::before {
+  content: "−";
+}
+
+.predictor-list summary span {
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.predictor-list summary b {
+  grid-column: 2;
+  grid-row: 1;
+  margin-right: 1.8rem;
+  color: var(--seafoam);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+}
+
+.predictor-list details > p {
+  max-width: 860px;
+  margin: 0;
+  padding: 0 1rem 1rem;
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  line-height: 1.65;
+}
+
+.profile-site-link {
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.profile-site-link > span {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.profile-site-link small {
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+}
+
+.profile-site-link b {
+  color: var(--seafoam);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 650;
+}
+
+.profile-site-link:hover,
+.profile-site-link:focus-visible {
+  color: var(--lime);
+  background: rgba(27, 100, 162, 0.15);
+  outline: 0;
+}
+
+.recent-delta {
+  align-self: end;
+  color: #67d6a5;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.fishing-pressure-condition {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.25rem 0.7rem;
+  border-top: 1px solid var(--line) !important;
+  border-right: 0 !important;
+  background: rgba(27, 100, 162, 0.08);
+}
+
+.fishing-pressure-condition svg {
+  grid-row: 1 / span 2;
+  margin: 0;
+}
+
+.fishing-pressure-condition strong {
+  grid-column: 3;
+  grid-row: 1;
+  text-align: right;
+  text-transform: capitalize;
+}
+
+.fishing-pressure-condition small {
+  grid-column: 2 / -1;
+  color: var(--ink-soft);
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    background: transparent;
+  }
+
+  .topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.5rem;
+    padding-inline: 0.75rem;
+  }
+
+  .brand {
+    min-width: 0;
+  }
+
+  .brand > span:nth-child(2) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .topbar-actions {
+    display: flex;
+    min-width: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .availability-filter {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.7rem;
+  }
+
+  .availability-filter > span {
+    display: none;
+  }
+
+  .availability-filter label {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 0.3rem;
+    min-width: 0;
+  }
+
+  .availability-filter input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .availability-filter button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .map-overlay-label {
+    max-width: calc(100% - 4.9rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .map-center-button {
+    width: 42px;
+    padding: 0;
+    font-size: 0;
+  }
+
+  .map-center-button svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .predictor-list summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .predictor-list summary b {
+    grid-column: 1;
+    grid-row: 2;
+    margin: 0;
+  }
+
+  .fishing-pressure-condition {
+    grid-template-columns: 20px 1fr;
+  }
+
+  .fishing-pressure-condition strong,
+  .fishing-pressure-condition small {
+    grid-column: 2;
+    grid-row: auto;
+    text-align: left;
+  }
+}
+
+@media (max-width: 520px) {
+  .brand > span:nth-child(2) {
+    display: none;
+  }
+
+  .install-button {
+    display: none;
+  }
+
+  .account-label {
+    display: none;
+  }
+
+  .account-label-compact {
+    display: inline;
+  }
+
+  .account-button,
+  .log-trip-button {
+    padding-inline: 0.56rem;
+    font-size: 0.56rem;
+  }
+
+  .data-pill {
+    flex: 0 0 34px;
+  }
+
+  .map-legend {
+    display: none;
+  }
+
+  .profile-site-link b {
+    font-size: 0;
+  }
+
+  .profile-site-link b::after {
+    content: "→";
+    font-size: 0.9rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

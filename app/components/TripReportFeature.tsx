@@ -42,6 +42,12 @@ interface SummaryView {
   anglerHours: number;
   halibutEncounters: number;
   sitesCovered: number;
+  past24Hours: {
+    completedTrips: number;
+    anglerHours: number;
+    halibutEncounters: number;
+    sitesCovered: number;
+  };
 }
 
 interface TripReportFeatureProps {
@@ -158,12 +164,26 @@ function readCount(source: unknown, keys: string[]) {
 function normalizeSummary(payload: unknown): SummaryView {
   const root = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
   const source = root.summary && typeof root.summary === "object" ? root.summary : root;
+  const recent = source && typeof source === "object" && (source as Record<string, unknown>).past24Hours && typeof (source as Record<string, unknown>).past24Hours === "object"
+    ? (source as Record<string, unknown>).past24Hours
+    : {};
   return {
     completedTrips: readCount(source, ["completedTrips", "completed_trips", "totalTrips", "total_trips"]),
     anglerHours: readCount(source, ["anglerHours", "angler_hours"]),
     halibutEncounters: readCount(source, ["halibutEncounters", "halibut_encounters", "totalHalibut", "total_halibut"]),
     sitesCovered: readCount(source, ["sitesCovered", "sites_covered"]),
+    past24Hours: {
+      completedTrips: readCount(recent, ["completedTrips", "completed_trips"]),
+      anglerHours: readCount(recent, ["anglerHours", "angler_hours"]),
+      halibutEncounters: readCount(recent, ["halibutEncounters", "halibut_encounters"]),
+      sitesCovered: readCount(recent, ["sitesCovered", "sites_covered"]),
+    },
   };
+}
+
+function RecentDelta({ value, decimals = 0 }: { value: number; decimals?: number }) {
+  if (!(value > 0)) return null;
+  return <small className="recent-delta" aria-label={`${value.toFixed(decimals)} added in the past 24 hours`}>↗ +{value.toFixed(decimals)} · 24h</small>;
 }
 
 function anonymousReporterKey() {
@@ -613,10 +633,10 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
           </div>
           {summary ? (
             <div className="ledger-grid">
-              <div><strong>{summary.completedTrips}</strong><span>Completed trips</span></div>
-              <div><strong>{summary.anglerHours.toFixed(summary.anglerHours % 1 === 0 ? 0 : 1)}</strong><span>Angler-hours</span></div>
-              <div><strong>{summary.halibutEncounters}</strong><span>Halibut encounters</span></div>
-              <div><strong>{summary.sitesCovered}</strong><span>Sites covered</span></div>
+              <div><strong>{summary.completedTrips}</strong><span>Completed trips</span><RecentDelta value={summary.past24Hours.completedTrips} /></div>
+              <div><strong>{summary.anglerHours.toFixed(summary.anglerHours % 1 === 0 ? 0 : 1)}</strong><span>Angler-hours</span><RecentDelta value={summary.past24Hours.anglerHours} decimals={summary.past24Hours.anglerHours % 1 === 0 ? 0 : 1} /></div>
+              <div><strong>{summary.halibutEncounters}</strong><span>Halibut encounters</span><RecentDelta value={summary.past24Hours.halibutEncounters} /></div>
+              <div><strong>{summary.sitesCovered}</strong><span>Sites covered</span><RecentDelta value={summary.past24Hours.sitesCovered} /></div>
             </div>
           ) : (
             <div className="ledger-empty">

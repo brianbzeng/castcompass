@@ -57,6 +57,8 @@ class ExternalLink(APIModel):
 class CurrentConditions(APIModel):
     tide_stage: str | None = None
     current_knots: float | None = None
+    current_direction_degrees: float | None = Field(default=None, ge=0, lt=360)
+    current_direction: str | None = None
     wind_mph: float | None = Field(default=None, ge=0)
     swell_feet: float | None = Field(default=None, ge=0)
     swell_period_seconds: float | None = Field(default=None, ge=0)
@@ -71,6 +73,10 @@ class CurrentConditions(APIModel):
     pressure_trend_hpa_3h: float | None = None
     moon_phase: str | None = None
     moon_illumination_pct: float | None = Field(default=None, ge=0, le=100)
+    fishing_pressure: str | None = None
+    fishing_pressure_pct: float | None = Field(default=None, ge=0, le=100)
+    access_adjustment_points: float | None = None
+    fishing_pressure_basis: str | None = None
 
 
 class SiteSummary(APIModel):

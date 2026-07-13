@@ -160,6 +160,12 @@ interface TripSummary {
   halibutEncounters: number;
   sitesCovered: number;
   lastUpdated: string | null;
+  past24Hours: {
+    completedTrips: number;
+    anglerHours: number;
+    halibutEncounters: number;
+    sitesCovered: number;
+  };
 }
 
 export interface TripStore {
@@ -168,7 +174,7 @@ export interface TripStore {
   insertTrip(record: NewTripRecord): Promise<TripRow>;
   getTrip(id: string): Promise<TripRow | null>;
   completeTrip(id: string, tokenHash: string, completion: CompletionRecord): Promise<TripRow | null>;
-  getSummary(): Promise<TripSummary>;
+  getSummary(now: Date): Promise<TripSummary>;
 }
 
 export interface TripHandlerOptions {
@@ -406,7 +412,8 @@ export function createTripStore(db: D1DatabaseLike): TripStore {
       return getTrip(id);
     },
 
-    async getSummary() {
+    async getSummary(now) {
+      const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
       const row = await db
         .prepare(`SELECT
           COUNT(*) AS completed_trips,
@@ -415,9 +422,14 @@ export function createTripStore(db: D1DatabaseLike): TripStore {
           COALESCE(SUM(angler_hours), 0) AS angler_hours,
           COALESCE(SUM(halibut_encounters), 0) AS halibut_encounters,
           COUNT(DISTINCT site_id) AS sites_covered,
-          MAX(updated_at) AS last_updated
+          MAX(updated_at) AS last_updated,
+          COALESCE(SUM(CASE WHEN completed_at >= ? THEN 1 ELSE 0 END), 0) AS recent_completed_trips,
+          COALESCE(SUM(CASE WHEN completed_at >= ? THEN angler_hours ELSE 0 END), 0) AS recent_angler_hours,
+          COALESCE(SUM(CASE WHEN completed_at >= ? THEN halibut_encounters ELSE 0 END), 0) AS recent_halibut_encounters,
+          COUNT(DISTINCT CASE WHEN completed_at >= ? THEN site_id END) AS recent_sites_covered
         FROM trips
         WHERE status = 'completed' AND consent = 1 AND moderation_status != 'rejected'`)
+        .bind(cutoff, cutoff, cutoff, cutoff)
         .first<{
           completed_trips: number;
           no_catch_trips: number;
@@ -426,6 +438,10 @@ export function createTripStore(db: D1DatabaseLike): TripStore {
           halibut_encounters: number;
           sites_covered: number;
           last_updated: string | null;
+          recent_completed_trips: number;
+          recent_angler_hours: number;
+          recent_halibut_encounters: number;
+          recent_sites_covered: number;
         }>();
 
       return {
@@ -437,6 +453,12 @@ export function createTripStore(db: D1DatabaseLike): TripStore {
         halibutEncounters: Number(row?.halibut_encounters ?? 0),
         sitesCovered: Number(row?.sites_covered ?? 0),
         lastUpdated: row?.last_updated ?? null,
+        past24Hours: {
+          completedTrips: Number(row?.recent_completed_trips ?? 0),
+          anglerHours: round(Number(row?.recent_angler_hours ?? 0), 2),
+          halibutEncounters: Number(row?.recent_halibut_encounters ?? 0),
+          sitesCovered: Number(row?.recent_sites_covered ?? 0),
+        },
       };
     },
   };
@@ -461,7 +483,7 @@ export async function handleTripRequest(
 
     if (url.pathname === "/api/trips/summary") {
       if (request.method !== "GET") return methodNotAllowed("GET");
-      return jsonResponse(await store.getSummary());
+      return jsonResponse(await store.getSummary(now));
     }
 
     if (request.method !== "POST") return methodNotAllowed("POST");

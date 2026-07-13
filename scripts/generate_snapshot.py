@@ -81,6 +81,37 @@ OPEN_COAST_REGIONS = {
     "Half Moon Bay",
 }
 
+# Access pressure is a deliberately small, transparent planning modifier. Google
+# Maps does not expose Popular Times through the Places API, and its terms do not
+# permit scraping those charts into another dataset. These tiers are therefore a
+# CastCompass editorial estimate of how constrained the fishable space usually
+# feels, not a live headcount. Unknown sites default to the middle tier.
+HIGH_PRESSURE_SITES = {
+    "fort-baker-pier",
+    "torpedo-wharf",
+    "crissy-field-east-beach",
+    "pier-7",
+    "pier-14",
+    "emeryville-marina-pier",
+    "oyster-point-fishing-pier",
+    "pacifica-municipal-pier",
+    "pillar-point-west-jetty",
+    "pillar-point-east-jetty",
+}
+
+LOW_PRESSURE_SITES = {
+    "point-reyes-south-beach",
+    "herons-head-park-pier",
+    "ferry-point-pier",
+    "point-isabel-shoreline",
+    "middle-harbor-shoreline",
+    "oyster-bay-shoreline",
+    "san-leandro-marina-shore",
+    "dumbarton-pier",
+    "seal-point-park",
+    "poplar-beach",
+}
+
 
 def isoformat(value: datetime) -> str:
     return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -334,7 +365,7 @@ def fetch_buoy_observation(station: str) -> dict[str, Any]:
 
 
 def fetch_marine_sst(anchors: list[str], start: datetime, end: datetime) -> dict[str, dict[str, Any]]:
-    """Fetch hourly SST, wave height, and period in one Open-Meteo request.
+    """Fetch hourly SST, waves, and modeled current in one Open-Meteo request.
 
     The public endpoint is appropriate for this non-commercial prototype only.
     A paid customer endpoint and API key are required before subscriptions,
@@ -347,7 +378,7 @@ def fetch_marine_sst(anchors: list[str], start: datetime, end: datetime) -> dict
     params = {
         "latitude": ",".join(f"{WEATHER_ANCHORS[anchor][0]:.4f}" for anchor in ordered_anchors),
         "longitude": ",".join(f"{WEATHER_ANCHORS[anchor][1]:.4f}" for anchor in ordered_anchors),
-        "hourly": "sea_surface_temperature,wave_height,wave_period",
+        "hourly": "sea_surface_temperature,wave_height,wave_period,ocean_current_velocity,ocean_current_direction",
         "timezone": "GMT",
         "cell_selection": "sea",
         "start_hour": start.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M"),
@@ -355,7 +386,14 @@ def fetch_marine_sst(anchors: list[str], start: datetime, end: datetime) -> dict
     }
     url = "https://marine-api.open-meteo.com/v1/marine?" + urllib.parse.urlencode(params)
     results = {
-        anchor: {"status": "unavailable-excluded", "url": url, "values": [], "waveValues": [], "error": None}
+        anchor: {
+            "status": "unavailable-excluded",
+            "url": url,
+            "values": [],
+            "waveValues": [],
+            "currentValues": [],
+            "error": None,
+        }
         for anchor in ordered_anchors
     }
     try:
@@ -369,6 +407,8 @@ def fetch_marine_sst(anchors: list[str], start: datetime, end: datetime) -> dict
             temperatures = hourly.get("sea_surface_temperature", [])
             wave_heights = hourly.get("wave_height", [])
             wave_periods = hourly.get("wave_period", [])
+            current_velocities = hourly.get("ocean_current_velocity", [])
+            current_directions = hourly.get("ocean_current_direction", [])
             values: list[tuple[datetime, float]] = []
             for raw_time, raw_temperature in zip(times, temperatures):
                 if raw_temperature is None:
@@ -392,16 +432,31 @@ def fetch_marine_sst(anchors: list[str], start: datetime, end: datetime) -> dict
                 if not math.isfinite(height_m) or not math.isfinite(period_seconds) or height_m < 0 or period_seconds <= 0:
                     continue
                 wave_values.append((parse_iso(raw_time), round(height_m * 3.28084, 1), round(period_seconds, 1)))
-            if values or wave_values:
+            current_values: list[tuple[datetime, float, float]] = []
+            for raw_time, raw_velocity, raw_direction in zip(times, current_velocities, current_directions):
+                if raw_velocity is None or raw_direction is None:
+                    continue
+                try:
+                    velocity_kmh = float(raw_velocity)
+                    direction_degrees = float(raw_direction)
+                except (TypeError, ValueError):
+                    continue
+                if not math.isfinite(velocity_kmh) or not math.isfinite(direction_degrees) or velocity_kmh < 0:
+                    continue
+                current_values.append(
+                    (parse_iso(raw_time), round(velocity_kmh / 1.852, 2), round(direction_degrees % 360, 1))
+                )
+            if values or wave_values or current_values:
                 results[anchor] = {
                     "status": "fresh",
                     "url": url,
                     "values": values,
                     "waveValues": wave_values,
+                    "currentValues": current_values,
                     "error": None,
                 }
             else:
-                results[anchor]["error"] = "no valid marine temperature or wave values returned"
+                results[anchor]["error"] = "no valid marine temperature, wave, or current values returned"
         return results
     except (OSError, ValueError, KeyError, TypeError, urllib.error.URLError) as exc:
         for result in results.values():
@@ -479,6 +534,26 @@ def marine_wave_for_window(
     if abs((stamp - midpoint).total_seconds()) > 90 * 60:
         return None, None
     return height_feet, period_seconds
+
+
+def marine_current_for_window(
+    values: list[tuple[datetime, float, float]], midpoint: datetime
+) -> tuple[float | None, float | None]:
+    if not values:
+        return None, None
+    stamp, speed_knots, direction_degrees = min(
+        values, key=lambda item: abs((item[0] - midpoint).total_seconds())
+    )
+    if abs((stamp - midpoint).total_seconds()) > 90 * 60:
+        return None, None
+    return speed_knots, direction_degrees
+
+
+def compass_direction(degrees: float | None) -> str | None:
+    if degrees is None:
+        return None
+    labels = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+    return labels[int((degrees + 22.5) // 45) % 8]
 
 
 def daylight_fallback(midpoint: datetime) -> bool:
@@ -611,6 +686,65 @@ def water_temp_subscore(water_temp_f: float | None) -> float:
     return 45
 
 
+def current_subscore(current_knots: float | None) -> float:
+    if current_knots is None:
+        return 50
+    # A little moving water can organize bait and feeding lanes. Very fast
+    # current makes presentation and safe shore fishing harder. The signal is
+    # bounded because the model grid is coarse close to shore.
+    if current_knots < 0.15:
+        return 46
+    if current_knots < 0.35:
+        return 68
+    if current_knots <= 1.25:
+        return 82
+    if current_knots <= 1.75:
+        return 62
+    if current_knots <= 2.25:
+        return 38
+    return 20
+
+
+def access_pressure_for_window(site: dict[str, Any], midpoint: datetime) -> tuple[str, int, float]:
+    """Return expected access pressure, display percent, and score-point adjustment.
+
+    This is a schedule-based fishability proxy rather than observed attendance.
+    Its small range prevents access convenience from overpowering habitat.
+    """
+
+    site_id = str(site["id"])
+    tier = 3 if site_id in HIGH_PRESSURE_SITES else 1 if site_id in LOW_PRESSURE_SITES else 2
+    local = midpoint.astimezone(PACIFIC)
+    hour = local.hour + (local.minute / 60)
+    if hour < 5:
+        hourly_load = 0.12
+    elif hour < 8:
+        hourly_load = 0.28
+    elif hour < 11:
+        hourly_load = 0.65
+    elif hour < 16:
+        hourly_load = 1.0
+    elif hour < 19:
+        hourly_load = 0.82
+    elif hour < 22:
+        hourly_load = 0.42
+    else:
+        hourly_load = 0.18
+    if local.weekday() >= 5:
+        hourly_load *= 1.15
+
+    pressure = tier * hourly_load
+    pressure_pct = round(min(100, pressure / 3.45 * 100))
+    if tier == 3:
+        adjustment = -7.5 if pressure >= 2.7 else -5.0 if pressure >= 2.0 else -2.0 if pressure >= 0.8 else -0.5
+    elif tier == 2:
+        adjustment = -3.0 if pressure >= 1.8 else -1.5 if pressure >= 1.15 else 0.0
+    else:
+        adjustment = 1.5 if pressure < 0.75 else 0.5
+    label = "high" if pressure_pct >= 70 else "moderate" if pressure_pct >= 38 else "light"
+    return label, pressure_pct, adjustment
+
+
 def moon_subscore(lunar_age_days: float) -> float:
     # This stays deliberately low-weight. Tide predictions already contain
     # much of the lunar signal, so a second large lunar boost would double-count it.
@@ -629,15 +763,17 @@ def dynamic_score(
     pressure_trend_hpa_3h: float | None,
     water_temp_f: float | None,
     lunar_age_days: float,
+    current_knots: float | None,
 ) -> int:
     weighted = [
-        (tide_subscore(tide_change), 0.34),
-        (wind_subscore(wind_mph), 0.24),
-        (72 if daylight else 48, 0.07),
-        (cloud_subscore(cloud_cover_pct), 0.05),
-        (pressure_subscore(pressure_trend_hpa_3h), 0.07),
+        (tide_subscore(tide_change), 0.27),
+        (current_subscore(current_knots), 0.16),
+        (wind_subscore(wind_mph), 0.20),
+        (72 if daylight else 48, 0.06),
+        (cloud_subscore(cloud_cover_pct), 0.04),
+        (pressure_subscore(pressure_trend_hpa_3h), 0.05),
         (water_temp_subscore(water_temp_f), 0.08),
-        (moon_subscore(lunar_age_days), 0.05),
+        (moon_subscore(lunar_age_days), 0.04),
     ]
     if open_coast:
         weighted = [(value, weight * 0.78) for value, weight in weighted]
@@ -673,6 +809,8 @@ def factor_text(
     pressure_trend_hpa_3h: float | None,
     moon_phase: str,
     moon_illumination_pct: float,
+    current_knots: float | None,
+    current_direction: str | None,
 ) -> list[str]:
     tags = ", ".join(site["structureTags"][:2]).replace("-", " ")
     factors = [f"Look for {tags}.", f"Time of year: {seasonality}/100."]
@@ -689,6 +827,9 @@ def factor_text(
         condition_bits.append(f"{water_temp_f:.1f}°F water")
     if condition_bits:
         factors.append("Conditions: " + ", ".join(condition_bits) + ".")
+    if current_knots is not None:
+        direction = f" toward {current_direction}" if current_direction else ""
+        factors.append(f"Modeled current: {current_knots:.2f} kt{direction}.")
     if site["region"] in OPEN_COAST_REGIONS:
         if swell_feet is None:
             factors.append("Fresh swell reading unavailable.")
@@ -780,6 +921,10 @@ def main() -> None:
             forecast_swell_feet, forecast_period_seconds = marine_wave_for_window(
                 marine_sst_result.get("waveValues", []), midpoint
             )
+            current_knots, current_direction_degrees = marine_current_for_window(
+                marine_sst_result.get("currentValues", []), midpoint
+            )
+            current_direction = compass_direction(current_direction_degrees)
             swell_feet = forecast_swell_feet if open_coast else None
             swell_period_seconds = forecast_period_seconds if open_coast else None
             # A fresh buoy pair takes precedence for the immediate window; the
@@ -803,13 +948,18 @@ def main() -> None:
                 pressure_trend_hpa_3h,
                 water_temp_f,
                 lunar_age_days,
+                current_knots,
             )
-            raw_score = (0.52 * habitat) + (0.18 * seasonality) + (0.30 * dynamic)
+            access_pressure, access_pressure_pct, access_adjustment = access_pressure_for_window(site, midpoint)
+            raw_score = (0.52 * habitat) + (0.18 * seasonality) + (0.30 * dynamic) + access_adjustment
             available_primary = int(tide_change is not None) + int(wind_mph is not None)
             confidence = "medium" if available_primary == 2 else "low"
             conditions = {
                 "tideStage": tide_stage,
                 "tideLevelsFeet": tide_levels_feet,
+                "currentKnots": current_knots,
+                "currentDirectionDegrees": current_direction_degrees,
+                "currentDirection": current_direction,
                 "windMph": wind_mph,
                 "swellFeet": swell_feet,
                 "swellPeriodSeconds": swell_period_seconds,
@@ -821,6 +971,9 @@ def main() -> None:
                 "pressureTrendHpa3h": pressure_trend_hpa_3h,
                 "moonPhase": moon_phase,
                 "moonIlluminationPct": moon_illumination_pct,
+                "fishingPressure": access_pressure,
+                "fishingPressurePct": access_pressure_pct,
+                "accessAdjustmentPoints": access_adjustment,
             }
             conditions = {key: value for key, value in conditions.items() if value is not None}
             windows.append(
@@ -850,6 +1003,8 @@ def main() -> None:
                         pressure_trend_hpa_3h,
                         moon_phase,
                         moon_illumination_pct,
+                        current_knots,
+                        current_direction,
                     ),
                     "conditions": conditions,
                     "_rawScore": round(raw_score, 6),
@@ -897,9 +1052,9 @@ def main() -> None:
             "freshnessLimitHours": 6,
         },
         {
-            "name": "Open-Meteo marine temperature + wave forecast (Météo-France)",
+            "name": "Open-Meteo marine temperature, wave + current forecast (Météo-France)",
             "observedAt": retrieved_at,
-            "status": marine_sst_status + "; sea-surface temperature plus wave height, period, and power are bounded score inputs",
+            "status": marine_sst_status + "; sea-surface temperature, wave height, period, power, and modeled current speed are bounded score inputs",
             "url": "https://open-meteo.com/en/docs/marine-weather-api",
             "freshnessLimitHours": 30,
             "attribution": "Weather data by Open-Meteo.com; marine model data by Météo-France.",
@@ -926,10 +1081,16 @@ def main() -> None:
             "url": "https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ngdc.mgg.dem%3Asan_francisco_bay_P090_2018",
         },
         {
-            "name": "NOAA currents and CoastWatch satellite inputs",
+            "name": "CastCompass expected access-pressure schedule",
             "observedAt": retrieved_at,
-            "status": "not integrated; excluded from scoring",
-            "url": "https://coastwatch.noaa.gov/erddap/index.html",
+            "status": "small score modifier; curated space-and-popularity tiers by time of day, not Google Popular Times or live headcount",
+            "url": "https://developers.google.com/maps/documentation/places/web-service/place-details",
+        },
+        {
+            "name": "NOAA CoastWatch chlorophyll and water-color inputs",
+            "observedAt": retrieved_at,
+            "status": "available for research; excluded until coastal resolution, cloud gaps, and local trip-log lift are validated",
+            "url": "https://coastwatch.noaa.gov/erddap/griddap/noaacwNPPN20VIIRSDINEOFDaily.html",
         },
     ]
 
@@ -938,7 +1099,7 @@ def main() -> None:
         "generatedAt": retrieved_at,
         "validFrom": isoformat(start),
         "validThrough": isoformat(end),
-        "modelVersion": "castcompass-hybrid-demo-0.4.0",
+        "modelVersion": "castcompass-hybrid-demo-0.5.0",
         "status": "demo-public-data-snapshot",
         "species": "california-halibut",
         "scoreDefinition": f"A score of 80 means this site/window ranks above 80% of the {len(ordered):,} options in this snapshot; it is not an 80% catch probability.",
@@ -961,7 +1122,7 @@ def main() -> None:
         "tides": {station: result["error"] for station, result in tide_results.items() if result["error"]},
         "weather": {anchor: result["error"] for anchor, result in weather_results.items() if result["error"]},
         "buoys": {station: result["error"] for station, result in buoy_results.items() if result["error"]},
-        "marineSst": {anchor: result["error"] for anchor, result in marine_sst_results.items() if result["error"]},
+        "marineForecast": {anchor: result["error"] for anchor, result in marine_sst_results.items() if result["error"]},
     }
     print(
         json.dumps(
