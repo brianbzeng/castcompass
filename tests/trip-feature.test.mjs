@@ -4,6 +4,7 @@ import test from "node:test";
 
 const featurePath = new URL("../app/components/TripReportFeature.tsx", import.meta.url);
 const appPath = new URL("../app/components/OpportunityApp.tsx", import.meta.url);
+const gearFieldsPath = new URL("../app/components/GearCatalogFields.tsx", import.meta.url);
 
 test("trip validation UI uses the first-party API contract", async () => {
   const source = await readFile(featurePath, "utf8");
@@ -61,4 +62,19 @@ test("forecast controls offer practical preset and custom location radii", async
   assert.match(app, /Within 30 mi/);
   assert.match(app, /Custom radius in miles/);
   assert.match(app, /site\.distanceMiles <= activeRadiusMiles/);
+});
+
+test("trip reports use searchable catalog gear, saved presets, and clear note publishing consent", async () => {
+  const [feature, gearFields] = await Promise.all([
+    readFile(featurePath, "utf8"),
+    readFile(gearFieldsPath, "utf8"),
+  ]);
+
+  assert.match(feature, /Saved gear preset/);
+  assert.match(feature, /<GearCatalogFields/);
+  assert.match(gearFields, /Other \/ not listed/);
+  assert.match(gearFields, /role="combobox"/);
+  assert.match(gearFields, /Bait or unlisted lure/);
+  assert.match(feature, /short anonymous summary may be posted to this location’s discussion/);
+  assert.match(feature, /Raw notes, identity, photos, and exact coordinates stay private/);
 });

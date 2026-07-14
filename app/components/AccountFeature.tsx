@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { CloseIcon } from "./icons";
+import { GearCatalogFields } from "./GearCatalogFields";
 import { SiteCombobox } from "./SiteCombobox";
 import type { FishingSite } from "../types";
 
@@ -497,10 +498,7 @@ export function AccountModal({
               </div> : <p>No gear presets yet.</p>}
               <form className="profile-gear-form" onSubmit={saveGearProfile}>
                 <input aria-label="Preset name" placeholder="Preset name" maxLength={60} value={gearDraft.name} onChange={(event) => setGearDraft((current) => ({ ...current, name: event.target.value }))} required />
-                <input aria-label="Rod" placeholder="Rod" maxLength={160} value={gearDraft.rod} onChange={(event) => setGearDraft((current) => ({ ...current, rod: event.target.value }))} />
-                <input aria-label="Reel" placeholder="Reel" maxLength={160} value={gearDraft.reel} onChange={(event) => setGearDraft((current) => ({ ...current, reel: event.target.value }))} />
-                <input aria-label="Bait or lure" placeholder="Bait or lure" maxLength={200} value={gearDraft.baitLure} onChange={(event) => setGearDraft((current) => ({ ...current, baitLure: event.target.value }))} />
-                <input aria-label="Rig" placeholder="Rig tied" maxLength={200} value={gearDraft.rig} onChange={(event) => setGearDraft((current) => ({ ...current, rig: event.target.value }))} />
+                <GearCatalogFields values={gearDraft} onChange={(gear) => setGearDraft((current) => ({ ...current, ...gear }))} className="profile-gear-catalog" />
                 <button type="submit" disabled={profileActionBusy}>{profileActionBusy ? "Saving…" : "Save gear preset"}</button>
               </form>
             </section>
@@ -560,12 +558,10 @@ export function AccountModal({
                 <fieldset className="profile-trip-editor-section">
                   <legend>Gear used</legend>
                   <p>Add what you remember. Partial setups are still useful.</p>
-                  <div className="profile-trip-editor-grid">
-                    <label>Rod<input maxLength={160} value={editFields.rod} onChange={(event) => setEditFields((current) => current ? { ...current, rod: event.target.value } : current)} placeholder="Length, power, model…" /></label>
-                    <label>Reel<input maxLength={160} value={editFields.reel} onChange={(event) => setEditFields((current) => current ? { ...current, reel: event.target.value } : current)} placeholder="Size, model, line…" /></label>
-                    <label>Bait or lure<input maxLength={200} value={editFields.baitLure} onChange={(event) => setEditFields((current) => current ? { ...current, baitLure: event.target.value } : current)} placeholder="Jerkbait, fluke, shrimp…" /></label>
-                    <label>Rig tied<input maxLength={200} value={editFields.rig} onChange={(event) => setEditFields((current) => current ? { ...current, rig: event.target.value } : current)} placeholder="Dropshot, Carolina rig…" /></label>
-                  </div>
+                  <GearCatalogFields
+                    values={{ rod: editFields.rod, reel: editFields.reel, baitLure: editFields.baitLure, rig: editFields.rig }}
+                    onChange={(gear) => setEditFields((current) => current ? { ...current, ...gear } : current)}
+                  />
                 </fieldset>
                 <fieldset className="profile-trip-editor-section">
                   <legend>What the water was actually like</legend>
@@ -583,6 +579,7 @@ export function AccountModal({
                   <label>Fishability notes<textarea rows={3} maxLength={500} value={editFields.fishabilityNotes} onChange={(event) => setEditFields((current) => current ? { ...current, fishabilityNotes: event.target.value } : current)} placeholder="Steep beach, thigh-high wash, weeds, snags…" /></label>
                 </fieldset>
                 <label>Notes<textarea rows={4} maxLength={1000} value={editFields.notes} onChange={(event) => setEditFields((current) => current ? { ...current, notes: event.target.value } : current)} /></label>
+                <small>MiMo re-reviews changed notes. A safe anonymous summary may update the location discussion; raw notes and identity stay private.</small>
                 <small>Your edits are saved in this browser as you type.</small>
                 {profileActionError ? <p className="account-error" role="alert">{profileActionError}</p> : null}
                 <button className="account-primary" type="submit" disabled={profileActionBusy}>{profileActionBusy ? "Saving…" : "Save trip changes"}</button>

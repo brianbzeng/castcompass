@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { FishingSite, OpportunitySnapshot, OpportunityWindow, TripReportRequest } from "../types";
 import { ArrowIcon, ClockIcon, CloseIcon } from "./icons";
+import { GearCatalogFields } from "./GearCatalogFields";
 import { SiteCombobox } from "./SiteCombobox";
 
 const ACTIVE_TRIP_KEY = "contourcast.active-trip.v1";
@@ -949,7 +950,7 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
               </form>
             ) : null}
 
-            <p className="trip-beta-note">Beta · submitted reports remain pending review. Public output is aggregate only and cannot reveal a contributor or exact fishing position.</p>
+            <p className="trip-beta-note">Beta · reports stay pending until reviewed. Totals are aggregate; a useful note may appear only as a MiMo-sanitized anonymous location summary.</p>
             <p className="trip-draft-note">Draft saved on this device as you type.</p>
           </section>
         </div>
@@ -992,12 +993,10 @@ function TripGearFields({
           </select>
         </label>
       ) : null}
-      <div className="trip-field-grid">
-        <label className="trip-field"><span>Rod <em>optional</em></span><input maxLength={160} value={fields.rod} onChange={(event) => setFields((current) => ({ ...current, rod: event.target.value }))} placeholder="Length, power, model…" /></label>
-        <label className="trip-field"><span>Reel <em>optional</em></span><input maxLength={160} value={fields.reel} onChange={(event) => setFields((current) => ({ ...current, reel: event.target.value }))} placeholder="Size, model, line…" /></label>
-        <label className="trip-field"><span>Bait or lure <em>optional</em></span><input maxLength={200} value={fields.baitLure} onChange={(event) => setFields((current) => ({ ...current, baitLure: event.target.value }))} placeholder="Jerkbait, fluke, shrimp…" /></label>
-        <label className="trip-field"><span>Rig tied <em>optional</em></span><input maxLength={200} value={fields.rig} onChange={(event) => setFields((current) => ({ ...current, rig: event.target.value }))} placeholder="Dropshot, Carolina rig…" /></label>
-      </div>
+      <GearCatalogFields
+        values={{ rod: fields.rod, reel: fields.reel, baitLure: fields.baitLure, rig: fields.rig }}
+        onChange={(gear) => setFields((current) => ({ ...current, ...gear, gearProfileId: "" }))}
+      />
       {includeObservations ? <>
         <div className="trip-subsection-heading"><strong>Could you fish it effectively?</strong><span>Observed conditions help separate fish presence from practical fishability.</span></div>
         <div className="trip-field-grid">
@@ -1063,6 +1062,7 @@ function TripCompletionFields({
         <span>Notes <em>optional</em></span>
         <textarea maxLength={1000} rows={4} value={fields.notes} onChange={(event) => setFields((current) => ({ ...current, notes: event.target.value }))} placeholder="Conditions, technique, approximate size, or anything that affected the trip…" />
         <small>{fields.notes.length}/1000</small>
+        <small className="discussion-publish-notice">MiMo reviews notes for privacy and relevance. A short anonymous summary may be posted to this location’s discussion. Raw notes, identity, photos, and exact coordinates stay private.</small>
       </label>
       {PHOTO_UPLOADS_ENABLED ? (
         <label className="photo-field">
@@ -1073,7 +1073,7 @@ function TripCompletionFields({
       ) : null}
       <label className="consent-field">
         <input type="checkbox" checked={fields.consent} onChange={(event) => setFields((current) => ({ ...current, consent: event.target.checked }))} required />
-        <span>I confirm this reflects the whole trip, own anything I submit, and consent to private use of the report{PHOTO_UPLOADS_ENABLED ? " and photo" : ""} for CastCompass model training and validation.</span>
+        <span>I confirm this reflects the whole trip, own anything I submit, and consent to model training plus an anonymous MiMo-reviewed discussion summary. Raw notes{PHOTO_UPLOADS_ENABLED ? ", photos" : ""}, identity, and exact coordinates stay private.</span>
       </label>
     </>
   );

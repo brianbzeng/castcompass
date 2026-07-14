@@ -26,6 +26,7 @@ import {
 import type {
   CommunityPulse,
   FishingSite,
+  LocationDiscussionPost,
   OpportunitySnapshot,
   OpportunityWindow,
   SourceFreshness,
@@ -1055,6 +1056,7 @@ export function OpportunityApp() {
   const [sites, setSites] = useState<FishingSite[]>(FALLBACK_SITES);
   const [snapshot, setSnapshot] = useState<OpportunitySnapshot>(fallbackSnapshot);
   const [communityPulses, setCommunityPulses] = useState<CommunityPulse[]>([]);
+  const [discussionFeed, setDiscussionFeed] = useState<{ siteId: string; posts: LocationDiscussionPost[] } | null>(null);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [selectedDetailWindowId, setSelectedDetailWindowId] = useState<string | null>(null);
   const [detailExpanded, setDetailExpanded] = useState(false);
@@ -1078,6 +1080,7 @@ export function OpportunityApp() {
   const [showRespectNotice, setShowRespectNotice] = useState(false);
   const [rememberRespectNotice, setRememberRespectNotice] = useState(false);
   const tripReportRequestKey = useRef(0);
+  const discussionPosts = discussionFeed?.siteId === selectedSiteId ? discussionFeed.posts : [];
 
   useEffect(() => {
     let active = true;
@@ -1096,6 +1099,19 @@ export function OpportunityApp() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedSiteId) return;
+    const siteId = selectedSiteId;
+    const controller = new AbortController();
+    fetch(`/api/discussions/${encodeURIComponent(siteId)}`, { signal: controller.signal })
+      .then(async (response) => response.ok ? response.json() as Promise<{ posts?: LocationDiscussionPost[] }> : { posts: [] })
+      .then((payload) => setDiscussionFeed({ siteId, posts: payload.posts ?? [] }))
+      .catch((error) => {
+        if ((error as Error).name !== "AbortError") setDiscussionFeed({ siteId, posts: [] });
+      });
+    return () => controller.abort();
+  }, [selectedSiteId]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClockMs(Date.now()), 60_000);
@@ -2007,8 +2023,23 @@ export function OpportunityApp() {
               ) : (
                 <p>We have not added an angler discussion summary for this spot yet.</p>
               )}
+              {discussionPosts.length ? (
+                <div className="location-discussion-feed">
+                  <h4>Recent CastCompass trip notes</h4>
+                  {discussionPosts.map((post) => (
+                    <article key={post.id}>
+                      <p>{post.summary}</p>
+                      {post.gearSummary ? <small><b>Setup:</b> {post.gearSummary}</small> : null}
+                      {post.techniqueTags.length ? <div>{post.techniqueTags.map((tag) => <span key={tag}>{tag}</span>)}</div> : null}
+                      <time dateTime={post.observedAt}>{new Date(post.observedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</time>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="location-discussion-empty">No reviewed CastCompass trip notes have been posted for this location yet.</p>
+              )}
               <small>
-                These summaries do not change the score. Logging a complete catch or skunk helps us check and improve the rankings.
+                Static summaries do not change the score. Trip notes are anonymized by MiMo before posting; raw notes, identity, photos, and exact coordinates remain private.
               </small>
             </div>
 

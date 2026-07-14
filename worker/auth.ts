@@ -1,4 +1,4 @@
-import type { CuratedSite, D1DatabaseLike } from "./trips";
+import type { CuratedSite, D1DatabaseLike, TripRow } from "./trips";
 
 const SESSION_COOKIE = "cc_session";
 const SESSION_SECONDS = 30 * 24 * 60 * 60;
@@ -15,6 +15,10 @@ export interface AuthApiEnv {
 export interface AuthUser {
   id: string;
   email: string;
+}
+
+interface AccountRequestOptions {
+  onTripUpdated?(trip: TripRow): void;
 }
 
 const initializedDatabases = new WeakMap<object, Promise<void>>();
@@ -131,6 +135,7 @@ export async function handleAccountRequest(
   request: Request,
   env: AuthApiEnv,
   curatedSites: readonly CuratedSite[],
+  options: AccountRequestOptions = {},
 ): Promise<Response | null> {
   const url = new URL(request.url);
   if (
@@ -508,6 +513,10 @@ export async function handleAccountRequest(
             user.id,
           )
           .run();
+        const updatedTrip = await db.prepare("SELECT * FROM trips WHERE id = ? AND user_id = ? LIMIT 1")
+          .bind(tripId, user.id)
+          .first<TripRow>();
+        if (updatedTrip) options.onTripUpdated?.(updatedTrip);
         return jsonResponse({ updated: true, tripId });
       }
 

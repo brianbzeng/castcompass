@@ -47,6 +47,16 @@ export interface CommunityPulse {
   sources: CommunityPulseSource[];
 }
 
+export interface LocationDiscussionPost {
+  id: string;
+  siteId: string;
+  summary: string;
+  gearSummary?: string | null;
+  techniqueTags: string[];
+  observedAt: string;
+  postedAt: string;
+}
+
 export interface SourceFreshness {
   name: string;
   observedAt: string;

@@ -1,4 +1,5 @@
 import type { CuratedSite, D1DatabaseLike, TripRow } from "./trips";
+import { publishTripDiscussion, type PublicDiscussionDraft } from "./discussions";
 
 interface ReviewEnv {
   DB?: D1DatabaseLike;
@@ -54,11 +55,15 @@ export async function reviewTripWithMimo(env: ReviewEnv, trip: TripRow, sites: r
       body: JSON.stringify({
         model,
         temperature: 0.1,
-        max_completion_tokens: 450,
+        max_completion_tokens: 950,
         messages: [
           {
             role: "developer",
-            content: "You review recreational fishing trip reports for data quality. Never decide whether a person is truthful and never approve or reject a report. Identify only completeness, internal consistency, impossible numeric/time combinations, and details a human reviewer should check. Return JSON only with keys quality_score (0-100), flags (string array), summary (one sentence), and needs_human_review (boolean).",
+            content: `You review California halibut trip reports for data quality and normalize angler gear. Never decide whether a person is truthful and never approve or reject a report. Identify only completeness, internal consistency, impossible numeric/time combinations, and details a human reviewer should check. Do not rank brands or claim one product catches more fish without sufficient aggregate evidence. Normalize recognizable rod, reel, and lure brands/series/models; preserve uncertainty and do not invent a missing model.
+
+If notes contain useful spot context, write a short anonymous discussion summary. Remove names, handles, contact details, exact sub-location clues, and anything unsafe, abusive, or unrelated. The summary may mention the general curated site, time of day, catch or skunk, technique, normalized gear, crowding, clarity, shorebreak, and fishability. Set publish false when notes are empty, cannot be safely anonymized, are off-topic, or need human review.
+
+Return JSON only with keys: quality_score (0-100), flags (string array), summary (one sentence), needs_human_review (boolean), gear_analysis ({rod, reel, lure, setup_tags, compatibility_flags, technique_match_summary}; rod/reel/lure each have brand, series, model, confidence), and discussion ({publish, summary, gear_summary, technique_tags}).`,
           },
           { role: "user", content: JSON.stringify(safeTrip) },
         ],
@@ -71,22 +76,74 @@ export async function reviewTripWithMimo(env: ReviewEnv, trip: TripRow, sites: r
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("MiMo review was not JSON");
     const review = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+    const needsHumanReview = Boolean(review.needs_human_review);
+    const gearAnalysis = normalizeGearAnalysis(review.gear_analysis);
+    const discussion = normalizeDiscussion(review.discussion, needsHumanReview);
     const stored = JSON.stringify({
       qualityScore: clampNumber(review.quality_score, 0, 100),
       flags: Array.isArray(review.flags) ? review.flags.filter((value) => typeof value === "string").slice(0, 8) : [],
       summary: typeof review.summary === "string" ? review.summary.slice(0, 300) : "Review completed.",
-      needsHumanReview: Boolean(review.needs_human_review),
+      needsHumanReview,
+      gearAnalysis,
+      discussion,
     });
     await env.DB.prepare(`UPDATE trips SET ai_review_status = 'reviewed', ai_review_json = ?,
       ai_review_model = ?, ai_reviewed_at = ? WHERE id = ?`)
       .bind(stored, model, new Date().toISOString(), trip.id)
       .run();
+    await publishTripDiscussion(env, trip, discussion, model);
   } catch (error) {
     console.error("Advisory MiMo trip review failed", error);
     await env.DB.prepare("UPDATE trips SET ai_review_status = 'retry', ai_review_model = ? WHERE id = ?")
       .bind(model, trip.id)
       .run();
   }
+}
+
+function normalizeGearAnalysis(value: unknown) {
+  const source = isRecord(value) ? value : {};
+  return {
+    rod: normalizeGearItem(source.rod),
+    reel: normalizeGearItem(source.reel),
+    lure: normalizeGearItem(source.lure),
+    setupTags: stringArray(source.setup_tags, 8, 60),
+    compatibilityFlags: stringArray(source.compatibility_flags, 8, 120),
+    techniqueMatchSummary: textValue(source.technique_match_summary, 300),
+  };
+}
+
+function normalizeGearItem(value: unknown) {
+  const source = isRecord(value) ? value : {};
+  return {
+    brand: textValue(source.brand, 80),
+    series: textValue(source.series, 100),
+    model: textValue(source.model, 120),
+    confidence: textValue(source.confidence, 30) ?? "low",
+  };
+}
+
+function normalizeDiscussion(value: unknown, needsHumanReview: boolean): PublicDiscussionDraft {
+  const source = isRecord(value) ? value : {};
+  return {
+    publish: !needsHumanReview && Boolean(source.publish),
+    summary: textValue(source.summary, 420) ?? "",
+    gearSummary: textValue(source.gear_summary, 220),
+    techniqueTags: stringArray(source.technique_tags, 6, 42),
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function textValue(value: unknown, maximum: number) {
+  return typeof value === "string" && value.trim() ? value.trim().slice(0, maximum) : null;
+}
+
+function stringArray(value: unknown, count: number, maximum: number) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string").map((item) => item.slice(0, maximum)).slice(0, count)
+    : [];
 }
 
 function clampNumber(value: unknown, minimum: number, maximum: number) {

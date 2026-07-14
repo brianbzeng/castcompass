@@ -19,7 +19,7 @@ The checked-in demo includes:
 - Live public NOAA CO-OPS tide predictions, NWS hourly forecasts, NDBC observations, and Open-Meteo Marine modeled SST at snapshot generation time.
 - Visible freshness states and exclusion of missing/stale inputs.
 - A MapLibre map using ArcGIS World Ocean base and reference layers, clustered map-native site points, a ranked access list, preset/custom distance-radius filtering, score explanations, official CDFW links, responsive detail sheets, geolocation sorting, PWA installation, and offline access to the latest loaded forecast.
-- A first-party validation beta with start/end trip logging, complete catch and no-catch outcomes, anonymous effort tracking, pending-review submissions, aggregate ledger totals, and optional metadata-stripped verification photos.
+- A first-party validation beta with start/end trip logging, complete catch and no-catch outcomes, searchable gear catalogs and reusable presets, pending-review submissions, aggregate ledger totals, optional metadata-stripped verification photos, and MiMo-sanitized anonymous location notes.
 - FastAPI endpoints, PostgreSQL/PostGIS schema, Docker/Render configuration, and file-snapshot fallback.
 - A reproducible geospatial/ML pipeline with terrain derivation, blocked validation, baselines, ablations, a six-channel ResNet-style encoder, SimCLR-style pretraining, and two-task fine-tuning scaffolding.
 
@@ -133,6 +133,8 @@ Production account, saved-location, and trip data lives in the Cloudflare D1 dat
 - `auth_sessions` — hashed, expiring session tokens
 - `saved_sites` — account-owned saved fishing locations
 - `trips` — active and completed trip logs, forecast context, moderation state, and advisory AI-review results
+- `gear_profiles` — account-owned reusable rod, reel, lure/bait, and rig presets
+- `site_discussion_posts` — bounded anonymous summaries produced from useful reviewed notes; raw notes and account identity are not exposed by the public endpoint
 - `email_challenges` — short-lived signup and password-reset codes
 
 Use narrow projections when inspecting production records. For example:
@@ -144,7 +146,7 @@ npx wrangler d1 execute contourcast-trips --remote --config wrangler.jsonc \
 
 Email verification and password recovery use Resend. Verify a sending subdomain, then add `RESEND_API_KEY` as a Worker secret and set `AUTH_EMAIL_FROM` to a sender on that verified domain. New-account creation intentionally remains unavailable until the sender is connected; existing accounts can still sign in.
 
-Optional MiMo review is advisory only. Add `MIMO_API_KEY` as a Worker secret to check a completed report for missing or internally inconsistent fields. The review never approves, rejects, or labels an angler as truthful or untruthful, and receives no account email or session data.
+Optional MiMo review is advisory only. Add `MIMO_API_KEY` as a Worker secret to check a completed report for missing or internally inconsistent fields, normalize recognizable gear, and prepare a short anonymous location summary when a note is relevant and safe to publish. The review never approves, rejects, labels an angler as truthful or untruthful, or ranks one brand as more effective without sufficient aggregate evidence. It receives no account email or session data. Public discussion responses never include raw notes, account identity, photos, or exact coordinates.
 
 The public forecast snapshot refreshes every three hours through `.github/workflows/refresh-snapshot.yml`. That cadence is appropriate for wind, swell, buoy, tide, and temperature inputs. Bathymetry is static survey data and should be refreshed only when a source survey or derived terrain model changes, not every day.
 
@@ -165,7 +167,7 @@ Cloudflare Git build settings, see [Cloudflare deployment](docs/CLOUDFLARE_DEPLO
 - Regulation links are informational; always check official CDFW rules and posted access closures.
 - Current CDFW guidance lists a 22-inch total-length minimum for retained California halibut; the app repeats this as a reminder while linking back to the live regulation page.
 - Only public access locations are ranked. Exact user catch locations are not collected in this version.
-- Trip reports remain pending review and do not alter the Opportunity Score automatically. Public ledger values are aggregate submission totals, not verified catch claims.
+- Trip reports remain pending review and do not alter the Opportunity Score automatically. Public ledger values are aggregate submission totals, not verified catch claims; location discussions contain only bounded MiMo-sanitized summaries from useful notes.
 
 ## Official source entry points
 

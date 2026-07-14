@@ -2,13 +2,14 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const [authSource, workerSource, appSource, tripSource, accountSource, siteComboboxSource, migration] = await Promise.all([
+const [authSource, workerSource, appSource, tripSource, accountSource, siteComboboxSource, gearFieldsSource, migration] = await Promise.all([
   readFile(new URL("../worker/auth.ts", import.meta.url), "utf8"),
   readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
   readFile(new URL("../app/components/OpportunityApp.tsx", import.meta.url), "utf8"),
   readFile(new URL("../app/components/TripReportFeature.tsx", import.meta.url), "utf8"),
   readFile(new URL("../app/components/AccountFeature.tsx", import.meta.url), "utf8"),
   readFile(new URL("../app/components/SiteCombobox.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../app/components/GearCatalogFields.tsx", import.meta.url), "utf8"),
   readFile(new URL("../drizzle/0001_accounts_and_saved_sites.sql", import.meta.url), "utf8"),
 ]);
 
@@ -19,6 +20,14 @@ test("uses hardened server-side sessions for beta accounts", () => {
   assert.match(authSource, /auth_sessions/);
   assert.match(workerSource, /getAuthenticatedUser/);
   assert.match(workerSource, /protectedTripMutation/);
+});
+
+test("gear presets and pending-trip edits share the searchable product catalog", () => {
+  assert.match(accountSource, /Gear presets/);
+  assert.match(accountSource, /Save gear preset/);
+  assert.match(accountSource, /<GearCatalogFields/);
+  assert.match(gearFieldsSource, /Search company/);
+  assert.match(gearFieldsSource, /SearchChoice/);
 });
 
 test("persists saved locations and gates trip entry points", () => {

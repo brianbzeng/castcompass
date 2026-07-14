@@ -5,6 +5,7 @@ import sites from "../public/data/sites.json";
 import { handleTripRequest, type TripApiEnv } from "./trips";
 import { getAuthenticatedUser, handleAccountRequest, unauthorizedResponse } from "./auth";
 import { reviewTripWithMimo } from "./trip-review";
+import { handleDiscussionRequest } from "./discussions";
 
 interface AssetFetcher {
   fetch(request: Request): Promise<Response>;
@@ -31,7 +32,12 @@ const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
-    const accountResponse = await handleAccountRequest(request, env, sites);
+    const discussionResponse = await handleDiscussionRequest(request, env, sites);
+    if (discussionResponse) return discussionResponse;
+
+    const accountResponse = await handleAccountRequest(request, env, sites, {
+      onTripUpdated: (trip) => ctx.waitUntil(reviewTripWithMimo(env, trip, sites)),
+    });
     if (accountResponse) return accountResponse;
 
     const protectedTripMutation = url.pathname.startsWith("/api/trips/") &&

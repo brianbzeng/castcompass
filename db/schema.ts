@@ -155,3 +155,23 @@ export const trips = sqliteTable(
     index("trips_user_completed_idx").on(table.userId, table.completedAt),
   ],
 );
+
+export const siteDiscussionPosts = sqliteTable(
+  "site_discussion_posts",
+  {
+    id: text("id").primaryKey(),
+    tripId: text("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
+    siteId: text("site_id").notNull(),
+    summary: text("summary").notNull(),
+    gearSummary: text("gear_summary"),
+    techniqueTagsJson: text("technique_tags_json"),
+    observedAt: text("observed_at").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    reviewModel: text("review_model"),
+  },
+  (table) => [
+    uniqueIndex("site_discussion_posts_trip_unique").on(table.tripId),
+    index("site_discussion_posts_site_time_idx").on(table.siteId, table.observedAt),
+  ],
+);
