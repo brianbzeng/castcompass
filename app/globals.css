@@ -2917,6 +2917,65 @@ footer > div {
   margin-top: 1.4rem;
 }
 
+.profile-page-shell {
+  min-height: 100dvh;
+  padding: clamp(1rem, 4vw, 3.5rem);
+  background:
+    linear-gradient(rgba(1, 10, 24, 0.66), rgba(1, 8, 19, 0.9)),
+    url("/topography-contours-v2.webp") center / 760px 760px repeat,
+    var(--ocean-deep);
+}
+
+.profile-page-loading {
+  width: min(1120px, 100%);
+  margin: 18dvh auto 0;
+  color: var(--ink);
+  font-size: 1rem;
+  text-align: center;
+}
+
+.account-profile-page {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 1.25rem;
+  width: min(1120px, 100%);
+  max-height: none;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.account-profile-page > .eyebrow,
+.account-profile-page > h2,
+.account-profile-page > .account-email,
+.account-profile-page > .profile-summary,
+.account-profile-page > .profile-review-note,
+.account-profile-page > .account-signout,
+.account-profile-page > .account-error {
+  grid-column: 1 / -1;
+}
+
+.account-profile-page > h2 {
+  margin-bottom: -0.3rem;
+}
+
+.account-profile-page > .profile-section {
+  margin-top: 0;
+}
+
+.account-profile-page > .profile-section:last-of-type {
+  grid-column: 1 / -1;
+}
+
+.account-profile-page .profile-summary {
+  margin: 0;
+}
+
+.account-profile-page .account-signout {
+  width: min(320px, 100%);
+  justify-self: end;
+}
+
 .profile-summary {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3145,6 +3204,10 @@ footer > div {
 .profile-trip-editor-section > p {
   margin: 0 0 1rem;
   color: var(--muted);
+}
+
+.profile-preset-picker {
+  margin: 0 0 1rem !important;
 }
 
 .profile-trip-editor-heading {
@@ -4981,6 +5044,31 @@ footer {
 }
 
 @media (max-width: 720px) {
+  .profile-page-shell {
+    padding: 0;
+  }
+
+  .account-profile-page {
+    grid-template-columns: 1fr;
+    min-height: 100dvh;
+    border: 0;
+  }
+
+  .account-profile-page > .eyebrow,
+  .account-profile-page > h2,
+  .account-profile-page > .account-email,
+  .account-profile-page > .profile-summary,
+  .account-profile-page > .profile-section,
+  .account-profile-page > .profile-section:last-of-type,
+  .account-profile-page > .account-signout,
+  .account-profile-page > .account-error {
+    grid-column: 1;
+  }
+
+  .account-profile-page .account-signout {
+    width: 100%;
+  }
+
   .profile-trip-editor-grid {
     grid-template-columns: 1fr;
   }

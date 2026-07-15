@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { CloseIcon } from "./icons";
 import { GearCatalogFields } from "./GearCatalogFields";
 import { SiteCombobox } from "./SiteCombobox";
@@ -45,9 +46,14 @@ interface ProfileTrip {
   reel: string | null;
   bait_lure: string | null;
   rig: string | null;
+  gear_profile_id: string | null;
   other_catch_count: number | null;
   other_species: string | null;
   observations_json: string | null;
+  ai_review_status: string | null;
+  ai_review_json: string | null;
+  ai_review_model: string | null;
+  ai_reviewed_at: string | null;
 }
 
 interface ProfileData {
@@ -69,6 +75,7 @@ const EMPTY_GEAR = { name: "", rod: "", reel: "", baitLure: "", rig: "" };
 
 interface ProfileTripEditFields {
   siteId: string;
+  gearProfileId: string;
   startedAt: string;
   endedAt: string;
   anglerCount: number;
@@ -108,6 +115,7 @@ function editFieldsForTrip(trip: ProfileTrip): ProfileTripEditFields {
   }
   return {
     siteId: trip.site_id,
+    gearProfileId: trip.gear_profile_id ?? "",
     startedAt: localDateTimeValue(trip.started_at),
     endedAt: localDateTimeValue(trip.ended_at),
     anglerCount: Number(trip.angler_count ?? 1),
@@ -129,6 +137,23 @@ function editFieldsForTrip(trip: ProfileTrip): ProfileTripEditFields {
     fishabilityNotes: String(observations.fishabilityNotes ?? ""),
     notes: trip.notes ?? "",
   };
+}
+
+function tripReviewLabel(trip: ProfileTrip) {
+  if (trip.ai_review_status === "reviewed") {
+    try {
+      const review = trip.ai_review_json ? JSON.parse(trip.ai_review_json) as { discussion?: { publish?: boolean } } : null;
+      return review?.discussion?.publish
+        ? "Privacy review complete · summary posted"
+        : "Privacy review complete · no public summary needed";
+    } catch {
+      return "Privacy review complete";
+    }
+  }
+  if (trip.ai_review_status === "processing") return "Checking note privacy and relevance…";
+  if (trip.ai_review_status === "queued") return "Note review queued";
+  if (trip.ai_review_status === "retry") return "Note review will retry automatically";
+  return "Note review pending";
 }
 
 export function useAccount(): AccountController {
@@ -220,10 +245,12 @@ export function AccountModal({
   account,
   sites,
   onOpenSite,
+  standalone = false,
 }: {
   account: AccountController;
   sites: FishingSite[];
   onOpenSite?(siteId: string): void;
+  standalone?: boolean;
 }) {
   const [mode, setMode] = useState<AccountMode>("login");
   const [busy, setBusy] = useState(false);
@@ -238,6 +265,7 @@ export function AccountModal({
   const [profileActionBusy, setProfileActionBusy] = useState(false);
   const [profileActionError, setProfileActionError] = useState("");
   const [gearDraft, setGearDraft] = useState(EMPTY_GEAR);
+  const reviewRetryRequestedRef = useRef(false);
 
   const loadProfile = useCallback(async () => {
     setProfileLoading(true);
@@ -253,7 +281,7 @@ export function AccountModal({
   }, []);
 
   useEffect(() => {
-    if (!account.modalOpen || !account.user) {
+    if ((!account.modalOpen && !standalone) || !account.user) {
       return;
     }
     const timer = window.setTimeout(() => {
@@ -262,7 +290,21 @@ export function AccountModal({
     return () => {
       window.clearTimeout(timer);
     };
-  }, [account.modalOpen, account.user, loadProfile]);
+  }, [account.modalOpen, account.user, loadProfile, standalone]);
+
+  useEffect(() => {
+    if (!account.user || reviewRetryRequestedRef.current || !profile?.trips.some((trip) => !trip.ai_review_status || trip.ai_review_status === "retry")) return;
+    reviewRetryRequestedRef.current = true;
+    fetch("/api/profile/reviews/retry", { method: "POST" })
+      .then(() => window.setTimeout(() => void loadProfile(), 2500))
+      .catch(() => { reviewRetryRequestedRef.current = false; });
+  }, [account.user, loadProfile, profile]);
+
+  useEffect(() => {
+    if (!profile?.trips.some((trip) => trip.ai_review_status === "queued" || trip.ai_review_status === "processing")) return;
+    const timer = window.setInterval(() => void loadProfile(), 3000);
+    return () => window.clearInterval(timer);
+  }, [loadProfile, profile]);
 
   useEffect(() => {
     if (!editingTrip || !editFields) return;
@@ -280,7 +322,10 @@ export function AccountModal({
     return () => window.clearInterval(timer);
   }, [resendCooldown]);
 
-  if (!account.modalOpen) return null;
+  if (!account.modalOpen && !standalone) return null;
+  if (standalone && account.loading) {
+    return <main className="profile-page-shell"><p className="profile-page-loading">Loading your fishing profile…</p></main>;
+  }
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -450,11 +495,15 @@ export function AccountModal({
   };
 
   return (
-    <div className="account-modal-layer" role="presentation" onClick={(event) => {
-      if (event.target === event.currentTarget) account.closeAccount();
+    <div className={standalone ? "profile-page-shell" : "account-modal-layer"} role="presentation" onClick={(event) => {
+      if (!standalone && event.target === event.currentTarget) account.closeAccount();
     }}>
-      <section className="account-modal" role="dialog" aria-modal="true" aria-labelledby="account-title">
-        <button className="sheet-close" type="button" onClick={account.closeAccount} aria-label="Close account"><CloseIcon /></button>
+      <section className={`account-modal${standalone ? " account-profile-page" : ""}`} role={standalone ? "main" : "dialog"} aria-modal={standalone ? undefined : "true"} aria-labelledby="account-title">
+        {standalone ? (
+          <Link className="sheet-close" href="/" aria-label="Back to forecast"><CloseIcon /></Link>
+        ) : (
+          <button className="sheet-close" type="button" onClick={account.closeAccount} aria-label="Close account"><CloseIcon /></button>
+        )}
         {account.user ? (
           <>
             <span className="eyebrow"><span /> Your account</span>
@@ -476,6 +525,10 @@ export function AccountModal({
                         type="button"
                         key={saved.site_id}
                         onClick={() => {
+                          if (standalone) {
+                            window.location.assign(`/?site=${encodeURIComponent(saved.site_id)}`);
+                            return;
+                          }
                           account.closeAccount();
                           onOpenSite?.(saved.site_id);
                         }}
@@ -513,7 +566,7 @@ export function AccountModal({
                       <article className="profile-trip" key={trip.id}>
                         <div><strong>{site?.name ?? trip.site_id}</strong><span>{new Date(trip.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></div>
                         <p>{encounters > 0 ? `${encounters} halibut encounter${encounters === 1 ? "" : "s"}` : "Skunk logged"} · {Number(trip.angler_hours ?? 0).toFixed(1)} angler-hours</p>
-                        <small>{trip.moderation_status === "pending" ? "Awaiting dataset review" : trip.moderation_status}</small>
+                        <small>{tripReviewLabel(trip)}</small>
                         {trip.moderation_status === "pending" ? (
                           <div className="profile-trip-actions">
                             <button type="button" onClick={() => beginTripEdit(trip)}>Edit</button>
@@ -525,7 +578,7 @@ export function AccountModal({
                   })}
                 </div>
               ) : <p>No completed trip logs are attached to this account yet.</p>}
-              <small className="profile-review-note">Pending reports can be edited or removed. Those controls close once dataset review is complete.</small>
+              <small className="profile-review-note">Trip data is saved immediately. Notes are automatically checked for privacy and usefulness; a safe summary usually appears on the location board within about a minute. Pending reports remain editable during the beta.</small>
               {profileActionError && !editingTrip ? <p className="account-error" role="alert">{profileActionError}</p> : null}
             </section>
             {editingTrip && editFields ? (
@@ -558,9 +611,33 @@ export function AccountModal({
                 <fieldset className="profile-trip-editor-section">
                   <legend>Gear used</legend>
                   <p>Add what you remember. Partial setups are still useful.</p>
+                  {profile?.gearProfiles.length ? (
+                    <label className="profile-preset-picker">Use saved preset
+                      <select
+                        value={editFields.gearProfileId}
+                        onChange={(event) => {
+                          const gearProfileId = event.target.value;
+                          const preset = profile.gearProfiles.find((candidate) => candidate.id === gearProfileId);
+                          setEditFields((current) => current ? {
+                            ...current,
+                            gearProfileId,
+                            ...(preset ? {
+                              rod: preset.rod ?? "",
+                              reel: preset.reel ?? "",
+                              baitLure: preset.bait_lure ?? "",
+                              rig: preset.rig ?? "",
+                            } : {}),
+                          } : current);
+                        }}
+                      >
+                        <option value="">No preset</option>
+                        {profile.gearProfiles.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}</option>)}
+                      </select>
+                    </label>
+                  ) : null}
                   <GearCatalogFields
                     values={{ rod: editFields.rod, reel: editFields.reel, baitLure: editFields.baitLure, rig: editFields.rig }}
-                    onChange={(gear) => setEditFields((current) => current ? { ...current, ...gear } : current)}
+                    onChange={(gear) => setEditFields((current) => current ? { ...current, gearProfileId: "", ...gear } : current)}
                   />
                 </fieldset>
                 <fieldset className="profile-trip-editor-section">
@@ -579,7 +656,7 @@ export function AccountModal({
                   <label>Fishability notes<textarea rows={3} maxLength={500} value={editFields.fishabilityNotes} onChange={(event) => setEditFields((current) => current ? { ...current, fishabilityNotes: event.target.value } : current)} placeholder="Steep beach, thigh-high wash, weeds, snags…" /></label>
                 </fieldset>
                 <label>Notes<textarea rows={4} maxLength={1000} value={editFields.notes} onChange={(event) => setEditFields((current) => current ? { ...current, notes: event.target.value } : current)} /></label>
-                <small>MiMo re-reviews changed notes. A safe anonymous summary may update the location discussion; raw notes and identity stay private.</small>
+                <small>Changed notes are checked again for privacy and relevance. A safe anonymous summary may update the location discussion; raw notes and identity stay private.</small>
                 <small>Your edits are saved in this browser as you type.</small>
                 {profileActionError ? <p className="account-error" role="alert">{profileActionError}</p> : null}
                 <button className="account-primary" type="submit" disabled={profileActionBusy}>{profileActionBusy ? "Saving…" : "Save trip changes"}</button>

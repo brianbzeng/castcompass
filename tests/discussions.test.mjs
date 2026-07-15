@@ -17,6 +17,9 @@ test("MiMo normalizes gear and prepares a bounded anonymous discussion draft", (
   assert.match(review, /normalizeGearAnalysis/);
   assert.match(review, /normalizeDiscussion/);
   assert.match(review, /publishTripDiscussion/);
+  assert.match(review, /reviewTripBacklog/);
+  assert.match(worker, /scheduled/);
+  assert.match(worker, /reviewTripBacklog/);
 });
 
 test("public location discussions expose summaries without raw notes or identity", () => {

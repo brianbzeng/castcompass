@@ -950,7 +950,7 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
               </form>
             ) : null}
 
-            <p className="trip-beta-note">Beta · reports stay pending until reviewed. Totals are aggregate; a useful note may appear only as a MiMo-sanitized anonymous location summary.</p>
+            <p className="trip-beta-note">Beta · trip data is saved immediately. A useful note may appear only after privacy and relevance checks produce a safe anonymous location summary.</p>
             <p className="trip-draft-note">Draft saved on this device as you type.</p>
           </section>
         </div>
@@ -1062,7 +1062,7 @@ function TripCompletionFields({
         <span>Notes <em>optional</em></span>
         <textarea maxLength={1000} rows={4} value={fields.notes} onChange={(event) => setFields((current) => ({ ...current, notes: event.target.value }))} placeholder="Conditions, technique, approximate size, or anything that affected the trip…" />
         <small>{fields.notes.length}/1000</small>
-        <small className="discussion-publish-notice">MiMo reviews notes for privacy and relevance. A short anonymous summary may be posted to this location’s discussion. Raw notes, identity, photos, and exact coordinates stay private.</small>
+        <small className="discussion-publish-notice">Notes are checked for privacy and relevance. A short anonymous summary may be posted to this location’s discussion, usually within about a minute. Raw notes, identity, photos, and exact coordinates stay private.</small>
       </label>
       {PHOTO_UPLOADS_ENABLED ? (
         <label className="photo-field">
@@ -1073,7 +1073,7 @@ function TripCompletionFields({
       ) : null}
       <label className="consent-field">
         <input type="checkbox" checked={fields.consent} onChange={(event) => setFields((current) => ({ ...current, consent: event.target.checked }))} required />
-        <span>I confirm this reflects the whole trip, own anything I submit, and consent to model training plus an anonymous MiMo-reviewed discussion summary. Raw notes{PHOTO_UPLOADS_ENABLED ? ", photos" : ""}, identity, and exact coordinates stay private.</span>
+        <span>I confirm this reflects the whole trip, own anything I submit, and consent to model training plus a privacy-reviewed anonymous discussion summary. Raw notes{PHOTO_UPLOADS_ENABLED ? ", photos" : ""}, identity, and exact coordinates stay private.</span>
       </label>
     </>
   );

@@ -4,7 +4,7 @@ import handler from "vinext/server/app-router-entry";
 import sites from "../public/data/sites.json";
 import { handleTripRequest, type TripApiEnv } from "./trips";
 import { getAuthenticatedUser, handleAccountRequest, unauthorizedResponse } from "./auth";
-import { reviewTripWithMimo } from "./trip-review";
+import { reviewTripBacklog, reviewTripWithMimo } from "./trip-review";
 import { handleDiscussionRequest } from "./discussions";
 
 interface AssetFetcher {
@@ -37,6 +37,9 @@ const worker = {
 
     const accountResponse = await handleAccountRequest(request, env, sites, {
       onTripUpdated: (trip) => ctx.waitUntil(reviewTripWithMimo(env, trip, sites)),
+      onTripsReviewRequested: (trips) => {
+        for (const trip of trips) ctx.waitUntil(reviewTripWithMimo(env, trip, sites));
+      },
     });
     if (accountResponse) return accountResponse;
 
@@ -67,6 +70,10 @@ const worker = {
     }
 
     return handler.fetch(request, env, ctx);
+  },
+
+  async scheduled(_controller: unknown, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(reviewTripBacklog(env, sites));
   },
 };
 

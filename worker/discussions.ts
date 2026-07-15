@@ -77,7 +77,7 @@ export async function handleDiscussionRequest(
       observedAt: row.observed_at,
       postedAt: row.created_at,
     })),
-  }, 200, { "Cache-Control": "public, max-age=60, s-maxage=300" });
+  }, 200, { "Cache-Control": "public, max-age=10, s-maxage=20" });
 }
 
 export async function publishTripDiscussion(

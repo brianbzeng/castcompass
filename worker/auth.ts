@@ -19,6 +19,7 @@ export interface AuthUser {
 
 interface AccountRequestOptions {
   onTripUpdated?(trip: TripRow): void;
+  onTripsReviewRequested?(trips: TripRow[]): void;
 }
 
 const initializedDatabases = new WeakMap<object, Promise<void>>();
@@ -143,6 +144,7 @@ export async function handleAccountRequest(
     !url.pathname.startsWith("/api/saved-sites") &&
     !url.pathname.startsWith("/api/gear-profiles") &&
     url.pathname !== "/api/profile" &&
+    !url.pathname.startsWith("/api/profile/reviews/") &&
     !url.pathname.startsWith("/api/profile/trips/")
   ) return null;
   if (!env.DB) return errorResponse(503, "storage_unavailable", "Account storage is temporarily unavailable.");
@@ -358,6 +360,26 @@ export async function handleAccountRequest(
     const user = await getAuthenticatedUser(request, env);
     if (!user) return unauthorizedResponse();
 
+    if (url.pathname === "/api/profile/reviews/retry") {
+      if (request.method !== "POST") return methodNotAllowed("POST");
+      assertSameOrigin(request);
+      const rows = await db.prepare(`SELECT * FROM trips
+        WHERE user_id = ? AND status = 'completed'
+          AND (ai_review_status IS NULL OR ai_review_status = 'retry')
+        ORDER BY COALESCE(completed_at, ended_at, started_at) DESC
+        LIMIT 10`)
+        .bind(user.id)
+        .all<TripRow>();
+      const trips = rows.results ?? [];
+      if (trips.length) {
+        await db.batch(trips.map((trip) => db.prepare(
+          "UPDATE trips SET ai_review_status = 'queued' WHERE id = ? AND (ai_review_status IS NULL OR ai_review_status = 'retry')",
+        ).bind(trip.id)));
+        options.onTripsReviewRequested?.(trips);
+      }
+      return jsonResponse({ queued: trips.length }, 202);
+    }
+
     if (url.pathname === "/api/profile") {
       if (request.method !== "GET") return methodNotAllowed("GET");
       const [savedRows, tripRows, gearRows] = await Promise.all([
@@ -368,7 +390,7 @@ export async function handleAccountRequest(
           angler_count, angler_hours, keeper_count, short_released_count, halibut_encounters,
           no_catch, other_catch_count, other_species, observations_json, notes, moderation_status,
           opportunity_score, fishability_score, model_version, gear_profile_id, rod, reel,
-          bait_lure, rig, completed_at
+          bait_lure, rig, ai_review_status, ai_review_json, ai_review_model, ai_reviewed_at, completed_at
           FROM trips
           WHERE user_id = ? AND status = 'completed'
           ORDER BY COALESCE(completed_at, ended_at, started_at) DESC
@@ -473,6 +495,17 @@ export async function handleAccountRequest(
           throw new AuthError(422, "invalid_counts", "Combined halibut encounters cannot exceed 40.");
         }
         const fishingMethod = parseProfileTripText(body.fishingMethod, "fishing method", 80, true);
+        let gearProfileId: string | null = null;
+        if (typeof body.gearProfileId === "string" && body.gearProfileId.trim()) {
+          if (!/^gear_[a-f0-9-]{36}$/.test(body.gearProfileId)) {
+            throw new AuthError(422, "invalid_gear_profile", "Choose one of your saved gear presets.");
+          }
+          const gearProfile = await db.prepare("SELECT id FROM gear_profiles WHERE id = ? AND user_id = ? LIMIT 1")
+            .bind(body.gearProfileId, user.id)
+            .first();
+          if (!gearProfile) throw new AuthError(422, "invalid_gear_profile", "Choose one of your saved gear presets.");
+          gearProfileId = body.gearProfileId;
+        }
         const rod = parseProfileTripText(body.rod, "rod", 160, false);
         const reel = parseProfileTripText(body.reel, "reel", 160, false);
         const baitLure = parseProfileTripText(body.baitLure, "bait or lure", 200, false);
@@ -484,7 +517,7 @@ export async function handleAccountRequest(
         const timestamp = new Date().toISOString();
         await db.prepare(`UPDATE trips SET site_id = ?, started_at = ?, ended_at = ?, fishing_method = ?,
           angler_count = ?, angler_hours = ?, keeper_count = ?, short_released_count = ?,
-          halibut_encounters = ?, no_catch = ?, rod = ?, reel = ?, bait_lure = ?, rig = ?,
+          halibut_encounters = ?, no_catch = ?, gear_profile_id = ?, rod = ?, reel = ?, bait_lure = ?, rig = ?,
           other_catch_count = ?, other_species = ?, observations_json = ?, notes = ?, updated_at = ?, completed_at = ?,
           ai_review_status = 'retry', ai_review_json = NULL, ai_reviewed_at = NULL
           WHERE id = ? AND user_id = ? AND moderation_status = 'pending'`)
@@ -499,6 +532,7 @@ export async function handleAccountRequest(
             shortReleasedCount,
             keeperCount + shortReleasedCount,
             Number(keeperCount + shortReleasedCount === 0),
+            gearProfileId,
             rod,
             reel,
             baitLure,

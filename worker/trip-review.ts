@@ -49,16 +49,17 @@ export async function reviewTripWithMimo(env: ReviewEnv, trip: TripRow, sites: r
     const response = await fetch("https://api.xiaomimimo.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${env.MIMO_API_KEY}`,
+        "api-key": env.MIMO_API_KEY,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model,
-        temperature: 0.1,
         max_completion_tokens: 950,
+        response_format: { type: "json_object" },
+        thinking: { type: "disabled" },
         messages: [
           {
-            role: "developer",
+            role: "system",
             content: `You review California halibut trip reports for data quality and normalize angler gear. Never decide whether a person is truthful and never approve or reject a report. Identify only completeness, internal consistency, impossible numeric/time combinations, and details a human reviewer should check. Do not rank brands or claim one product catches more fish without sufficient aggregate evidence. Normalize recognizable rod, reel, and lure brands/series/models; preserve uncertainty and do not invent a missing model.
 
 If notes contain useful spot context, write a short anonymous discussion summary. Remove names, handles, contact details, exact sub-location clues, and anything unsafe, abusive, or unrelated. The summary may mention the general curated site, time of day, catch or skunk, technique, normalized gear, crowding, clarity, shorebreak, and fishability. Set publish false when notes are empty, cannot be safely anonymized, are off-topic, or need human review.
@@ -69,12 +70,15 @@ Return JSON only with keys: quality_score (0-100), flags (string array), summary
         ],
       }),
     });
-    if (!response.ok) throw new Error(`MiMo returned ${response.status}`);
+    if (!response.ok) {
+      const detail = (await response.text()).slice(0, 500);
+      throw new Error(`Trip review returned ${response.status}: ${detail}`);
+    }
     const payload = await response.json() as MimoResponse;
     const content = payload.choices?.[0]?.message?.content?.trim();
-    if (!content) throw new Error("MiMo returned no review content");
+    if (!content) throw new Error("Trip review returned no content");
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("MiMo review was not JSON");
+    if (!jsonMatch) throw new Error("Trip review was not JSON");
     const review = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
     const needsHumanReview = Boolean(review.needs_human_review);
     const gearAnalysis = normalizeGearAnalysis(review.gear_analysis);
@@ -93,11 +97,24 @@ Return JSON only with keys: quality_score (0-100), flags (string array), summary
       .run();
     await publishTripDiscussion(env, trip, discussion, model);
   } catch (error) {
-    console.error("Advisory MiMo trip review failed", error);
+    console.error("Automated trip review failed", error);
     await env.DB.prepare("UPDATE trips SET ai_review_status = 'retry', ai_review_model = ? WHERE id = ?")
       .bind(model, trip.id)
       .run();
   }
+}
+
+export async function reviewTripBacklog(env: ReviewEnv, sites: readonly CuratedSite[], limit = 10) {
+  if (!env.DB || !env.MIMO_API_KEY) return 0;
+  const rows = await env.DB.prepare(`SELECT * FROM trips
+    WHERE status = 'completed' AND (ai_review_status IS NULL OR ai_review_status = 'retry')
+    ORDER BY COALESCE(completed_at, ended_at, started_at) ASC
+    LIMIT ?`)
+    .bind(limit)
+    .all<TripRow>();
+  const trips = rows.results ?? [];
+  for (const trip of trips) await reviewTripWithMimo(env, trip, sites);
+  return trips.length;
 }
 
 function normalizeGearAnalysis(value: unknown) {

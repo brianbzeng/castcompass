@@ -1080,6 +1080,7 @@ export function OpportunityApp() {
   const [showRespectNotice, setShowRespectNotice] = useState(false);
   const [rememberRespectNotice, setRememberRespectNotice] = useState(false);
   const tripReportRequestKey = useRef(0);
+  const initialSiteHandledRef = useRef(false);
   const discussionPosts = discussionFeed?.siteId === selectedSiteId ? discussionFeed.posts : [];
 
   useEffect(() => {
@@ -1104,13 +1105,18 @@ export function OpportunityApp() {
     if (!selectedSiteId) return;
     const siteId = selectedSiteId;
     const controller = new AbortController();
-    fetch(`/api/discussions/${encodeURIComponent(siteId)}`, { signal: controller.signal })
+    const loadDiscussion = () => fetch(`/api/discussions/${encodeURIComponent(siteId)}`, { signal: controller.signal, cache: "no-store" })
       .then(async (response) => response.ok ? response.json() as Promise<{ posts?: LocationDiscussionPost[] }> : { posts: [] })
       .then((payload) => setDiscussionFeed({ siteId, posts: payload.posts ?? [] }))
       .catch((error) => {
         if ((error as Error).name !== "AbortError") setDiscussionFeed({ siteId, posts: [] });
       });
-    return () => controller.abort();
+    void loadDiscussion();
+    const timer = window.setInterval(() => void loadDiscussion(), 15_000);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+    };
   }, [selectedSiteId]);
 
   useEffect(() => {
@@ -1355,6 +1361,21 @@ export function OpportunityApp() {
     setSelectedSiteId(siteId);
   }, [windowsBySite]);
 
+  useEffect(() => {
+    if (initialSiteHandledRef.current || !sites.length) return;
+    const siteId = new URLSearchParams(window.location.search).get("site");
+    if (!siteId || !sites.some((site) => site.id === siteId)) {
+      initialSiteHandledRef.current = true;
+      return;
+    }
+    initialSiteHandledRef.current = true;
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.delete("site");
+    window.history.replaceState(null, "", `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+    const frame = window.requestAnimationFrame(() => openSiteDetail(siteId));
+    return () => window.cancelAnimationFrame(frame);
+  }, [openSiteDetail, sites]);
+
   const closeSiteDetail = useCallback(() => {
     setSelectedSiteId(null);
     setSelectedDetailWindowId(null);
@@ -1407,7 +1428,10 @@ export function OpportunityApp() {
           <button type="button" onClick={() => scrollToSection("sources")}>Data</button>
         </nav>
         <div className="topbar-actions">
-          <button className="account-button" type="button" onClick={() => account.openAccount()}>
+          <button className="account-button" type="button" onClick={() => {
+            if (account.user) window.location.assign("/profile");
+            else account.openAccount();
+          }}>
             <span className="account-label">{account.loading ? "Account" : account.user ? account.user.email.split("@")[0] : "Sign in"}</span>
             <span className="account-label-compact">{account.user ? "Profile" : "Sign in"}</span>
           </button>
@@ -2036,10 +2060,10 @@ export function OpportunityApp() {
                   ))}
                 </div>
               ) : (
-                <p className="location-discussion-empty">No reviewed CastCompass trip notes have been posted for this location yet.</p>
+                <p className="location-discussion-empty">No privacy-reviewed CastCompass trip notes have been posted for this location yet. Useful notes usually appear within about a minute after submission.</p>
               )}
               <small>
-                Static summaries do not change the score. Trip notes are anonymized by MiMo before posting; raw notes, identity, photos, and exact coordinates remain private.
+                Static summaries do not change the score. Notes are checked for privacy and relevance before an anonymous summary is posted; raw notes, identity, photos, and exact coordinates remain private.
               </small>
             </div>
 
