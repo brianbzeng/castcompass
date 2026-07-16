@@ -20,12 +20,12 @@ review can write the public table.
    ```sh
    npm ci
    npm run build:cloudflare
-   npm run deploy:cloudflare:worker-only
+   npx wrangler deploy --config wrangler.jsonc
    npx wrangler deployments list --config wrangler.jsonc
    ```
 
-   Run the live verifier against every hostname, including the `workers.dev` URL printed by
-   Wrangler:
+   From the full release worktree, run the live verifier against every hostname, including
+   the `workers.dev` URL printed by Wrangler:
 
    ```sh
    npm run verify:discussion-safety -- \
