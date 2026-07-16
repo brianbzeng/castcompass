@@ -2,6 +2,7 @@
 
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { AccountModal, useAccount } from "./AccountFeature";
 import { TripReportFeature } from "./TripReportFeature";
 import {
@@ -1079,6 +1080,7 @@ export function OpportunityApp() {
   const [mapEnabled, setMapEnabled] = useState(false);
   const [showRespectNotice, setShowRespectNotice] = useState(false);
   const [rememberRespectNotice, setRememberRespectNotice] = useState(false);
+  const [showLocationDisclosure, setShowLocationDisclosure] = useState(false);
   const tripReportRequestKey = useRef(0);
   const initialSiteHandledRef = useRef(false);
   const discussionPosts = discussionFeed?.siteId === selectedSiteId ? discussionFeed.posts : [];
@@ -1330,7 +1332,8 @@ export function OpportunityApp() {
         ? "Best option tomorrow"
         : "Best option in your range";
 
-  const requestLocation = useCallback(() => {
+  const useBrowserLocation = useCallback(() => {
+    setShowLocationDisclosure(false);
     if (!navigator.geolocation) {
       setLocationMessage("Location is not available in this browser.");
       return;
@@ -1347,6 +1350,14 @@ export function OpportunityApp() {
       { enableHighAccuracy: false, timeout: 8000 },
     );
   }, [activeRadiusMiles]);
+
+  const requestLocation = useCallback(() => {
+    if (userPosition) {
+      setLocationMessage(activeRadiusMiles ? `Showing access within ${activeRadiusMiles} miles` : "Sorted with nearby access first");
+      return;
+    }
+    setShowLocationDisclosure(true);
+  }, [activeRadiusMiles, userPosition]);
 
   const continueFromRespectNotice = useCallback(() => {
     if (rememberRespectNotice) {
@@ -1735,7 +1746,7 @@ export function OpportunityApp() {
         sites={sites}
         snapshot={snapshot}
         request={tripReportRequest}
-        canSubmit={Boolean(account.user)}
+        canSubmit={Boolean(account.user?.legalAccepted)}
         onRequireLogin={() => account.openAccount("Sign in before submitting a trip report. Complete trips and skunks are tied to an account so the training data can be checked without making it public.")}
       />
 
@@ -1759,6 +1770,11 @@ export function OpportunityApp() {
             <a href="mailto:bzeng0000@gmail.com">Email ↗</a>
             <a href="https://github.com/brianbzeng" target="_blank" rel="noreferrer">GitHub ↗</a>
             <a href="https://www.linkedin.com/in/brianbzeng" target="_blank" rel="noreferrer">LinkedIn ↗</a>
+          </div>
+          <div className="footer-legal" aria-label="Legal and privacy">
+            <Link href="/terms">Terms</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/ai-disclosure">AI disclosure</Link>
           </div>
         </div>
         <div>
@@ -1787,6 +1803,22 @@ export function OpportunityApp() {
               Do not show this reminder again on this device
             </label>
             <button type="button" onClick={continueFromRespectNotice}>Continue to CastingCompass <ArrowIcon /></button>
+          </section>
+        </div>
+      ) : null}
+
+      {showLocationDisclosure ? (
+        <div className="respect-modal-layer" role="presentation">
+          <section className="respect-modal location-disclosure-modal" role="dialog" aria-modal="true" aria-labelledby="location-disclosure-title">
+            <span className="eyebrow"><span /> Optional location</span>
+            <h2 id="location-disclosure-title">Find nearby fishing access.</h2>
+            <p>CastingCompass uses your current location once to sort nearby public spots and apply your selected distance radius. The location stays in this browser tab, is not saved to your account, and is not added to trip reports.</p>
+            <p>You can keep using the forecast without sharing your location.</p>
+            <div className="location-disclosure-actions">
+              <button type="button" className="account-secondary" onClick={() => setShowLocationDisclosure(false)}>Not now</button>
+              <button type="button" onClick={useBrowserLocation}>Continue to browser prompt <ArrowIcon /></button>
+            </div>
+            <Link href="/privacy">Read the Privacy Policy</Link>
           </section>
         </div>
       ) : null}

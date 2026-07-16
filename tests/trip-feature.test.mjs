@@ -46,7 +46,7 @@ test("trip entry points are present in the top bar, forecast detail, and validat
   assert.match(app, /Fish this window/);
   assert.match(app, /<TripReportFeature/);
   assert.match(app, /sites=\{sites\}/);
-  assert.match(app, /canSubmit=\{Boolean\(account\.user\)\}/);
+  assert.match(app, /canSubmit=\{Boolean\(account\.user\?\.legalAccepted\)\}/);
   assert.match(feature, /id="validation"/);
   assert.match(feature, /The skunks/);
   assert.match(app, /22 inches total length/);

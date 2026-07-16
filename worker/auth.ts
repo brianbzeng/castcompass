@@ -2,6 +2,8 @@ import type { CuratedSite, D1DatabaseLike, TripRow } from "./trips";
 
 const SESSION_COOKIE = "cc_session";
 const SESSION_SECONDS = 30 * 24 * 60 * 60;
+export const LEGAL_VERSION = "2026-07-15";
+const MINIMUM_ACCOUNT_AGE = 13;
 // Cloudflare Workers currently caps Web Crypto PBKDF2 at 100,000 rounds.
 const PASSWORD_ITERATIONS = 100_000;
 
@@ -15,6 +17,7 @@ export interface AuthApiEnv {
 export interface AuthUser {
   id: string;
   email: string;
+  legalAccepted: boolean;
 }
 
 interface AccountRequestOptions {
@@ -36,6 +39,11 @@ const CREATE_USERS_SQL = `CREATE TABLE IF NOT EXISTS users (
   email TEXT NOT NULL UNIQUE,
   password_salt TEXT NOT NULL,
   password_hash TEXT NOT NULL,
+  age_eligibility_confirmed_at TEXT,
+  terms_accepted_at TEXT,
+  terms_version TEXT,
+  privacy_accepted_at TEXT,
+  privacy_version TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 )`;
@@ -71,6 +79,9 @@ const CREATE_EMAIL_CHALLENGES_SQL = `CREATE TABLE IF NOT EXISTS email_challenges
   code_hash TEXT NOT NULL,
   password_salt TEXT,
   password_hash TEXT,
+  age_eligibility_confirmed_at TEXT,
+  terms_version TEXT,
+  privacy_version TEXT,
   expires_at TEXT NOT NULL,
   attempts INTEGER NOT NULL DEFAULT 0,
   resend_count INTEGER NOT NULL DEFAULT 0,
@@ -122,14 +133,18 @@ export async function getAuthenticatedUser(request: Request, env: AuthApiEnv): P
   if (!token || !/^[A-Za-z0-9_-]{40,160}$/.test(token)) return null;
   const tokenHash = await sha256(token);
   const now = new Date().toISOString();
-  return env.DB
-    .prepare(`SELECT users.id, users.email
+  const row = await env.DB
+    .prepare(`SELECT users.id, users.email,
+        CASE WHEN users.age_eligibility_confirmed_at IS NOT NULL
+          AND users.terms_version = ? AND users.privacy_version = ?
+          THEN 1 ELSE 0 END AS legal_accepted
       FROM auth_sessions
       JOIN users ON users.id = auth_sessions.user_id
       WHERE auth_sessions.token_hash = ? AND auth_sessions.expires_at > ?
       LIMIT 1`)
-    .bind(tokenHash, now)
-    .first<AuthUser>();
+    .bind(LEGAL_VERSION, LEGAL_VERSION, tokenHash, now)
+    .first<{ id: string; email: string; legal_accepted: number }>();
+  return row ? { id: row.id, email: row.email, legalAccepted: Boolean(row.legal_accepted) } : null;
 }
 
 export async function handleAccountRequest(
@@ -143,7 +158,7 @@ export async function handleAccountRequest(
     !url.pathname.startsWith("/api/auth") &&
     !url.pathname.startsWith("/api/saved-sites") &&
     !url.pathname.startsWith("/api/gear-profiles") &&
-    url.pathname !== "/api/profile" &&
+    !url.pathname.startsWith("/api/profile") &&
     !url.pathname.startsWith("/api/profile/reviews/") &&
     !url.pathname.startsWith("/api/profile/trips/")
   ) return null;
@@ -169,6 +184,8 @@ export async function handleAccountRequest(
       const body = await readJson(request);
       const email = parseEmail(body.email);
       const password = parsePassword(body.password);
+      const ageEligibilityConfirmedAt = parseAgeEligibility(body.birthDate);
+      assertLegalAcceptance(body);
       const existing = await db.prepare("SELECT id FROM users WHERE email = ? LIMIT 1").bind(email).first();
       if (existing) return errorResponse(409, "email_in_use", "An account already uses this email.");
       await assertEmailChallengeAllowed(db, email);
@@ -177,14 +194,18 @@ export async function handleAccountRequest(
       const salt = randomSecret(18);
       const timestamp = new Date();
       await db.prepare(`INSERT INTO email_challenges
-        (id, kind, email, user_id, code_hash, password_salt, password_hash, expires_at, attempts, created_at)
-        VALUES (?, 'signup', ?, NULL, ?, ?, ?, ?, 0, ?)`)
+        (id, kind, email, user_id, code_hash, password_salt, password_hash,
+          age_eligibility_confirmed_at, terms_version, privacy_version, expires_at, attempts, created_at)
+        VALUES (?, 'signup', ?, NULL, ?, ?, ?, ?, ?, ?, ?, 0, ?)`)
         .bind(
           id,
           email,
           await sha256(`${id}:${code}`),
           salt,
           await hashPassword(password, salt),
+          ageEligibilityConfirmedAt,
+          LEGAL_VERSION,
+          LEGAL_VERSION,
           new Date(timestamp.getTime() + 15 * 60 * 1000).toISOString(),
           timestamp.toISOString(),
         )
@@ -205,15 +226,20 @@ export async function handleAccountRequest(
       const challenge = await verifyEmailChallenge(db, body.challengeId, body.code, "signup");
       const existing = await db.prepare("SELECT id FROM users WHERE email = ? LIMIT 1").bind(challenge.email).first();
       if (existing) return errorResponse(409, "email_in_use", "An account already uses this email.");
-      if (!challenge.password_salt || !challenge.password_hash) {
+      if (!challenge.password_salt || !challenge.password_hash || !challenge.age_eligibility_confirmed_at ||
+        challenge.terms_version !== LEGAL_VERSION || challenge.privacy_version !== LEGAL_VERSION) {
         throw new AuthError(400, "invalid_challenge", "Request a new verification code.");
       }
-      const user: AuthUser = { id: `user_${crypto.randomUUID()}`, email: challenge.email };
+      const user: AuthUser = { id: `user_${crypto.randomUUID()}`, email: challenge.email, legalAccepted: true };
       const timestamp = new Date().toISOString();
       await db.batch([
-        db.prepare(`INSERT INTO users (id, email, password_salt, password_hash, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?)`).bind(
-            user.id, user.email, challenge.password_salt, challenge.password_hash, timestamp, timestamp,
+        db.prepare(`INSERT INTO users (id, email, password_salt, password_hash,
+          age_eligibility_confirmed_at, terms_accepted_at, terms_version,
+          privacy_accepted_at, privacy_version, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+            user.id, user.email, challenge.password_salt, challenge.password_hash,
+            challenge.age_eligibility_confirmed_at, timestamp, LEGAL_VERSION,
+            timestamp, LEGAL_VERSION, timestamp, timestamp,
           ),
         db.prepare("DELETE FROM email_challenges WHERE id = ?").bind(challenge.id),
       ]);
@@ -316,7 +342,7 @@ export async function handleAccountRequest(
         db.prepare("DELETE FROM auth_sessions WHERE user_id = ?").bind(challenge.user_id),
         db.prepare("DELETE FROM email_challenges WHERE id = ?").bind(challenge.id),
       ]);
-      const user = await db.prepare("SELECT id, email FROM users WHERE id = ? LIMIT 1").bind(challenge.user_id).first<AuthUser>();
+      const user = await selectUserForSession(db, challenge.user_id);
       if (!user) throw new AuthError(404, "account_not_found", "The account could not be found.");
       return createSessionResponse(db, request, user);
     }
@@ -338,15 +364,18 @@ export async function handleAccountRequest(
       }
 
       const row = await db
-        .prepare("SELECT id, email, password_salt, password_hash FROM users WHERE email = ? LIMIT 1")
-        .bind(email)
-        .first<AuthUser & { password_salt: string; password_hash: string }>();
+        .prepare(`SELECT id, email, password_salt, password_hash,
+          CASE WHEN age_eligibility_confirmed_at IS NOT NULL AND terms_version = ? AND privacy_version = ?
+            THEN 1 ELSE 0 END AS legal_accepted
+          FROM users WHERE email = ? LIMIT 1`)
+        .bind(LEGAL_VERSION, LEGAL_VERSION, email)
+        .first<{ id: string; email: string; password_salt: string; password_hash: string; legal_accepted: number }>();
       const valid = row ? await verifyPassword(password, row.password_salt, row.password_hash) : false;
       await db.prepare("INSERT INTO auth_attempts (id, email_hash, attempted_at, successful) VALUES (?, ?, ?, ?)")
         .bind(`attempt_${crypto.randomUUID()}`, emailHash, new Date().toISOString(), Number(valid))
         .run();
       if (!row || !valid) return errorResponse(401, "invalid_credentials", "Email or password is incorrect.");
-      return createSessionResponse(db, request, { id: row.id, email: row.email });
+      return createSessionResponse(db, request, { id: row.id, email: row.email, legalAccepted: Boolean(row.legal_accepted) });
     }
 
     if (url.pathname === "/api/auth/logout") {
@@ -359,6 +388,81 @@ export async function handleAccountRequest(
 
     const user = await getAuthenticatedUser(request, env);
     if (!user) return unauthorizedResponse();
+
+    if (url.pathname === "/api/auth/eligibility") {
+      if (request.method !== "POST") return methodNotAllowed("POST");
+      assertSameOrigin(request);
+      const body = await readJson(request);
+      const timestamp = parseAgeEligibility(body.birthDate);
+      assertLegalAcceptance(body);
+      await db.prepare(`UPDATE users SET age_eligibility_confirmed_at = ?, terms_accepted_at = ?, terms_version = ?,
+        privacy_accepted_at = ?, privacy_version = ?, updated_at = ? WHERE id = ?`)
+        .bind(timestamp, timestamp, LEGAL_VERSION, timestamp, LEGAL_VERSION, timestamp, user.id)
+        .run();
+      return jsonResponse({ user: { ...user, legalAccepted: true }, legalVersion: LEGAL_VERSION });
+    }
+
+    if (url.pathname === "/api/profile/export") {
+      if (request.method !== "GET") return methodNotAllowed("GET");
+      const [account, saved, gear, trips] = await Promise.all([
+        db.prepare(`SELECT id, email, age_eligibility_confirmed_at, terms_accepted_at, terms_version,
+          privacy_accepted_at, privacy_version, created_at, updated_at FROM users WHERE id = ? LIMIT 1`)
+          .bind(user.id).first<Record<string, unknown>>(),
+        db.prepare("SELECT site_id, created_at FROM saved_sites WHERE user_id = ? ORDER BY created_at DESC")
+          .bind(user.id).all<Record<string, unknown>>(),
+        db.prepare(`SELECT id, name, rod, reel, bait_lure, rig, created_at, updated_at
+          FROM gear_profiles WHERE user_id = ? ORDER BY updated_at DESC`)
+          .bind(user.id).all<Record<string, unknown>>(),
+        db.prepare(`SELECT id, source, site_id, started_at, ended_at, mode, fishing_method, gear_profile_id,
+          rod, reel, bait_lure, rig, angler_count, angler_hours, keeper_count, short_released_count,
+          halibut_encounters, no_catch, other_catch_count, other_species, observations_json, notes,
+          moderation_status, opportunity_window_id, opportunity_score, habitat_score, seasonality_score,
+          conditions_score, fishability_score, model_version, score_influenced_choice,
+          prediction_metadata_json, photo_content_type, photo_size_bytes, created_at, updated_at,
+          completed_at, ai_review_status, ai_review_json, ai_review_model, ai_reviewed_at
+          FROM trips WHERE user_id = ? ORDER BY created_at DESC`)
+          .bind(user.id).all<Record<string, unknown>>(),
+      ]);
+      return jsonResponse({
+        exportedAt: new Date().toISOString(),
+        account,
+        savedSites: saved.results ?? [],
+        gearProfiles: gear.results ?? [],
+        tripReports: trips.results ?? [],
+      }, 200, undefined, { "Content-Disposition": `attachment; filename="castingcompass-data-${new Date().toISOString().slice(0, 10)}.json"` });
+    }
+
+    if (url.pathname === "/api/profile" && request.method === "DELETE") {
+      assertSameOrigin(request);
+      const body = await readJson(request);
+      if (body.confirmation !== "DELETE") {
+        throw new AuthError(422, "confirmation_required", "Type DELETE to confirm account deletion.");
+      }
+      const password = parsePassword(body.password);
+      const credentials = await db.prepare("SELECT password_salt, password_hash FROM users WHERE id = ? LIMIT 1")
+        .bind(user.id).first<{ password_salt: string; password_hash: string }>();
+      if (!credentials || !await verifyPassword(password, credentials.password_salt, credentials.password_hash)) {
+        throw new AuthError(401, "invalid_credentials", "Your password is incorrect.");
+      }
+      const photos = await db.prepare("SELECT photo_key FROM trips WHERE user_id = ? AND photo_key IS NOT NULL")
+        .bind(user.id).all<{ photo_key: string }>();
+      await db.batch([
+        db.prepare("DELETE FROM site_discussion_posts WHERE trip_id IN (SELECT id FROM trips WHERE user_id = ?)").bind(user.id),
+        db.prepare("DELETE FROM trips WHERE user_id = ?").bind(user.id),
+        db.prepare("DELETE FROM saved_sites WHERE user_id = ?").bind(user.id),
+        db.prepare("DELETE FROM gear_profiles WHERE user_id = ?").bind(user.id),
+        db.prepare("DELETE FROM auth_sessions WHERE user_id = ?").bind(user.id),
+        db.prepare("DELETE FROM email_challenges WHERE email = ? OR user_id = ?").bind(user.email, user.id),
+        db.prepare("DELETE FROM auth_attempts WHERE email_hash = ?").bind(await sha256(user.email)),
+        db.prepare("DELETE FROM users WHERE id = ?").bind(user.id),
+      ]);
+      await Promise.all((photos.results ?? []).map((photo) => env.TRIP_PHOTOS?.delete(photo.photo_key).catch(() => undefined)));
+      return jsonResponse({ deleted: true }, 200, clearSessionCookie(request));
+    }
+
+    if (!user.legalAccepted) {
+      return errorResponse(428, "legal_acceptance_required", "Confirm that you are 13 or older and accept the current Terms and Privacy Policy to continue.");
+    }
 
     if (url.pathname === "/api/profile/reviews/retry") {
       if (request.method !== "POST") return methodNotAllowed("POST");
@@ -665,6 +769,33 @@ export function unauthorizedResponse() {
   return errorResponse(401, "authentication_required", "Sign in to submit a trip report or save a location.");
 }
 
+export function legalAcceptanceRequiredResponse() {
+  return errorResponse(428, "legal_acceptance_required", "Confirm that you are 13 or older and accept the current Terms and Privacy Policy to continue.");
+}
+
+export async function cleanupAuthData(env: AuthApiEnv) {
+  if (!env.DB) return;
+  await initialize(env.DB);
+  const now = new Date();
+  const expiredChallengeCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  const attemptCutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM auth_sessions WHERE expires_at <= ?").bind(now.toISOString()),
+    env.DB.prepare("DELETE FROM email_challenges WHERE expires_at <= ?").bind(expiredChallengeCutoff),
+    env.DB.prepare("DELETE FROM auth_attempts WHERE attempted_at < ?").bind(attemptCutoff),
+  ]);
+}
+
+async function selectUserForSession(db: D1DatabaseLike, userId: string) {
+  const row = await db.prepare(`SELECT id, email,
+    CASE WHEN age_eligibility_confirmed_at IS NOT NULL AND terms_version = ? AND privacy_version = ?
+      THEN 1 ELSE 0 END AS legal_accepted
+    FROM users WHERE id = ? LIMIT 1`)
+    .bind(LEGAL_VERSION, LEGAL_VERSION, userId)
+    .first<{ id: string; email: string; legal_accepted: number }>();
+  return row ? { id: row.id, email: row.email, legalAccepted: Boolean(row.legal_accepted) } : null;
+}
+
 async function createSessionResponse(db: D1DatabaseLike, request: Request, user: AuthUser, status = 200) {
   const token = randomSecret(32);
   const createdAt = new Date();
@@ -701,6 +832,34 @@ function parsePassword(value: unknown) {
   return value;
 }
 
+function assertLegalAcceptance(body: Record<string, unknown>) {
+  if (body.acceptTerms !== true || body.acceptPrivacy !== true) {
+    throw new AuthError(422, "legal_acceptance_required", "Accept the Terms of Service and Privacy Policy to create or continue using an account.");
+  }
+}
+
+function parseAgeEligibility(value: unknown) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new AuthError(422, "invalid_birth_date", "Enter a valid birth date.");
+  }
+  const [year, month, day] = value.split("-").map(Number);
+  const birthDate = new Date(Date.UTC(year, month - 1, day));
+  if (birthDate.getUTCFullYear() !== year || birthDate.getUTCMonth() !== month - 1 || birthDate.getUTCDate() !== day) {
+    throw new AuthError(422, "invalid_birth_date", "Enter a valid birth date.");
+  }
+  const today = new Date();
+  let age = today.getUTCFullYear() - year;
+  if (today.getUTCMonth() < month - 1 || (today.getUTCMonth() === month - 1 && today.getUTCDate() < day)) age -= 1;
+  if (age < MINIMUM_ACCOUNT_AGE) {
+    throw new AuthError(403, "age_restricted", "CastingCompass accounts are available only to people age 13 or older.");
+  }
+  if (age > 120 || birthDate.getTime() > today.getTime()) {
+    throw new AuthError(422, "invalid_birth_date", "Enter a valid birth date.");
+  }
+  // The birth date is deliberately not retained. Only this eligibility timestamp is stored.
+  return today.toISOString();
+}
+
 async function hashPassword(password: string, salt: string) {
   const key = await crypto.subtle.importKey(
     "raw",
@@ -734,6 +893,9 @@ interface EmailChallengeRow {
   code_hash: string;
   password_salt: string | null;
   password_hash: string | null;
+  age_eligibility_confirmed_at: string | null;
+  terms_version: string | null;
+  privacy_version: string | null;
   expires_at: string;
   attempts: number;
   resend_count: number;

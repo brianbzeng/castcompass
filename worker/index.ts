@@ -3,7 +3,7 @@ import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } fr
 import handler from "vinext/server/app-router-entry";
 import sites from "../public/data/sites.json";
 import { handleTripRequest, type TripApiEnv } from "./trips";
-import { getAuthenticatedUser, handleAccountRequest, unauthorizedResponse } from "./auth";
+import { cleanupAuthData, getAuthenticatedUser, handleAccountRequest, legalAcceptanceRequiredResponse, unauthorizedResponse } from "./auth";
 import { reviewTripBacklog, reviewTripWithMimo } from "./trip-review";
 import { handleDiscussionRequest } from "./discussions";
 
@@ -60,6 +60,9 @@ const worker = {
     if (protectedTripMutation && !authenticatedUser) {
       return unauthorizedResponse();
     }
+    if (protectedTripMutation && !authenticatedUser?.legalAccepted) {
+      return legalAcceptanceRequiredResponse();
+    }
 
     const tripResponse = await handleTripRequest(request, env, sites, {
       accountId: authenticatedUser?.id ?? null,
@@ -85,6 +88,7 @@ const worker = {
 
   async scheduled(_controller: unknown, env: Env, ctx: ExecutionContext) {
     ctx.waitUntil(reviewTripBacklog(env, sites));
+    ctx.waitUntil(cleanupAuthData(env));
   },
 };
 

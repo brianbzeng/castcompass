@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import Link from "next/link";
 import type { FishingSite, OpportunitySnapshot, OpportunityWindow, TripReportRequest } from "../types";
 import { ArrowIcon, ClockIcon, CloseIcon } from "./icons";
 import { GearCatalogFields } from "./GearCatalogFields";
@@ -873,7 +874,7 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
                 </div>
                 <label className="consent-field">
                   <input type="checkbox" checked={fields.consent} onChange={(event) => setFields((current) => ({ ...current, consent: event.target.checked }))} required />
-                  <span>I own anything I submit and consent to private use of this trip, its result, and any later photo for CastingCompass model training and validation.</span>
+                  <span>I own anything I submit and consent to the private use described in the <Link href="/terms" target="_blank">Terms</Link> and <Link href="/privacy" target="_blank">Privacy Policy</Link>, including model training and validation.</span>
                 </label>
                 </>}
                 {formStep === 2 ? <button className="trip-back-button" type="button" onClick={() => setFormStep(1)}>← Back to trip details</button> : null}
@@ -1082,7 +1083,7 @@ function TripCompletionFields({
       ) : null}
       <label className="consent-field">
         <input type="checkbox" checked={fields.consent} onChange={(event) => setFields((current) => ({ ...current, consent: event.target.checked }))} required />
-        <span>I confirm this reflects the whole trip, own anything I submit, and consent to model training plus a privacy-reviewed anonymous discussion summary. Raw notes{PHOTO_UPLOADS_ENABLED ? ", photos" : ""}, identity, and exact coordinates stay private.</span>
+        <span>I confirm this reflects the whole trip, own anything I submit, and consent to the uses described in the <Link href="/terms" target="_blank">Terms</Link> and <Link href="/privacy" target="_blank">Privacy Policy</Link>, including model training and a privacy-reviewed anonymous discussion summary. Raw notes{PHOTO_UPLOADS_ENABLED ? ", photos" : ""}, identity, and exact coordinates stay private.</span>
       </label>
     </>
   );

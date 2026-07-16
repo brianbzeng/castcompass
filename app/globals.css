@@ -4086,6 +4086,13 @@ footer > div {
   accent-color: var(--lime);
 }
 
+.consent-field a,
+.account-consent a,
+.account-legal-links a {
+  color: var(--seafoam);
+  border-bottom: 1px solid var(--line-strong);
+}
+
 .trip-submit {
   display: flex;
   align-items: center;
@@ -5409,5 +5416,315 @@ footer {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Account consent, privacy controls, and the optional location pre-prompt. */
+.account-consent {
+  grid-template-columns: 20px minmax(0, 1fr) !important;
+  align-items: start;
+  gap: 0.65rem !important;
+  margin-top: 0.45rem;
+  font-family: var(--font-sans) !important;
+  font-size: 0.7rem !important;
+  line-height: 1.55;
+  text-transform: none !important;
+}
+
+.account-consent input {
+  width: 18px;
+  min-height: 18px;
+  height: 18px;
+  margin: 0.1rem 0 0;
+  padding: 0;
+  accent-color: var(--lime);
+}
+
+.account-legal-links,
+.profile-privacy-links,
+.footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1rem;
+}
+
+.account-legal-links {
+  justify-content: center;
+  margin: 1.25rem 0 0;
+  color: var(--seafoam) !important;
+  font-family: var(--font-mono);
+  font-size: 0.66rem !important;
+}
+
+.profile-privacy-section {
+  padding: 1rem;
+  border: 1px solid var(--line-strong);
+  background: rgba(3, 20, 42, 0.58);
+}
+
+.profile-privacy-section > p {
+  padding: 0;
+  border: 0;
+}
+
+.profile-privacy-links {
+  align-items: center;
+  margin-top: 0.9rem;
+  color: var(--seafoam);
+  font-size: 0.7rem;
+}
+
+.account-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  background: rgba(4, 25, 50, 0.76);
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.account-delete-details {
+  margin-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.account-delete-details summary {
+  padding: 0.9rem 0;
+  color: #ffab9f;
+  font-size: 0.72rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.account-delete-details form {
+  padding-top: 0.2rem;
+}
+
+.account-danger {
+  min-height: 44px;
+  margin-top: 0.5rem;
+  color: #fff2ef;
+  background: #9d2f27;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.footer-legal {
+  flex-direction: row;
+  justify-content: center;
+  color: var(--ink);
+}
+
+.footer-legal a {
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.location-disclosure-modal > p + p {
+  margin-top: 0.55rem;
+}
+
+.location-disclosure-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 0.65fr) minmax(0, 1.35fr);
+  gap: 0.75rem;
+  margin-top: 1.4rem;
+}
+
+.location-disclosure-actions > button {
+  min-height: 50px;
+  margin: 0;
+}
+
+.location-disclosure-actions > button:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem 1rem;
+  color: var(--ocean-deep);
+  background: var(--lime);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.location-disclosure-actions svg {
+  width: 17px;
+}
+
+/* Legal documents share the product canvas but prioritize long-form reading. */
+.legal-page {
+  min-height: 100dvh;
+  padding-bottom: 3rem;
+}
+
+.legal-header,
+.legal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  width: min(980px, calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+.legal-header {
+  min-height: 76px;
+  border-bottom: 1px solid var(--line);
+}
+
+.legal-brand {
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 820;
+  letter-spacing: -0.04em;
+}
+
+.legal-header nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem 1.15rem;
+  color: var(--seafoam);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.legal-header nav a,
+.legal-footer a {
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.legal-document {
+  width: min(820px, calc(100% - 2rem));
+  margin: clamp(2rem, 6vw, 5rem) auto 0;
+  padding: clamp(1.2rem, 4vw, 3rem);
+  border: 1px solid var(--line-strong);
+  background: rgba(4, 22, 45, 0.84);
+  box-shadow: 0 28px 90px rgba(0, 5, 15, 0.28);
+}
+
+.legal-eyebrow,
+.legal-date {
+  color: var(--seafoam);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.legal-document > h1 {
+  max-width: 12ch;
+  margin: 0.8rem 0 1rem;
+  color: var(--ink);
+  font-size: clamp(3.1rem, 9vw, 6.8rem);
+  font-weight: 590;
+  letter-spacing: -0.06em;
+  line-height: 0.92;
+}
+
+.legal-summary {
+  max-width: 68ch;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.legal-date {
+  margin: 1rem 0 0;
+  color: var(--quiet);
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.legal-callout {
+  margin: 2rem 0 0;
+  padding: 1rem 1.1rem;
+  border-left: 3px solid var(--lime);
+  color: var(--ink);
+  background: rgba(12, 48, 84, 0.72);
+  font-size: 0.8rem;
+  line-height: 1.7;
+}
+
+.legal-section {
+  margin-top: 2.6rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--line);
+}
+
+.legal-section h2 {
+  margin: 0 0 0.9rem;
+  color: var(--ink);
+  font-size: 1.2rem;
+  letter-spacing: -0.025em;
+}
+
+.legal-section p,
+.legal-section li {
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  line-height: 1.78;
+}
+
+.legal-section p {
+  margin: 0.7rem 0 0;
+}
+
+.legal-section ul {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.legal-section li + li {
+  margin-top: 0.6rem;
+}
+
+.legal-section strong,
+.legal-section a {
+  color: var(--ink);
+}
+
+.legal-section a {
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.legal-footer {
+  flex-direction: row;
+  padding: 2rem 0 0;
+  color: var(--seafoam);
+  font-size: 0.72rem;
+}
+
+@media (max-width: 640px) {
+  .location-disclosure-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .legal-header {
+    align-items: flex-start;
+    padding: 1rem 0;
+  }
+
+  .legal-header nav {
+    display: grid;
+    justify-items: end;
+  }
+
+  .legal-document {
+    width: calc(100% - 1rem);
+    margin-top: 0.5rem;
+  }
+
+  .legal-document > h1 {
+    font-size: clamp(2.8rem, 15vw, 4.7rem);
+  }
+
+  .legal-footer {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

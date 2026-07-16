@@ -10,6 +10,7 @@ import type { FishingSite } from "../types";
 export interface AccountUser {
   id: string;
   email: string;
+  legalAccepted: boolean;
 }
 
 export interface AccountController {
@@ -169,7 +170,7 @@ export function useAccount(): AccountController {
       const body = await response.json() as { user?: AccountUser | null };
       const nextUser = response.ok ? body.user ?? null : null;
       setUser(nextUser);
-      if (!nextUser) {
+      if (!nextUser || !nextUser.legalAccepted) {
         setSavedSiteIds(new Set());
         return;
       }
@@ -209,6 +210,10 @@ export function useAccount(): AccountController {
   const toggleSavedSite = useCallback(async (siteId: string) => {
     if (!user) {
       openAccount("Sign in to save fishing locations across devices.");
+      return false;
+    }
+    if (!user.legalAccepted) {
+      openAccount("Confirm your age eligibility and accept the current legal documents before saving locations.");
       return false;
     }
     const wasSaved = savedSiteIds.has(siteId);
@@ -281,7 +286,7 @@ export function AccountModal({
   }, []);
 
   useEffect(() => {
-    if ((!account.modalOpen && !standalone) || !account.user) {
+    if ((!account.modalOpen && !standalone) || !account.user?.legalAccepted) {
       return;
     }
     const timer = window.setTimeout(() => {
@@ -293,7 +298,7 @@ export function AccountModal({
   }, [account.modalOpen, account.user, loadProfile, standalone]);
 
   useEffect(() => {
-    if (!account.user || reviewRetryRequestedRef.current || !profile?.trips.some((trip) => !trip.ai_review_status || trip.ai_review_status === "retry")) return;
+    if (!account.user?.legalAccepted || reviewRetryRequestedRef.current || !profile?.trips.some((trip) => !trip.ai_review_status || trip.ai_review_status === "retry")) return;
     reviewRetryRequestedRef.current = true;
     fetch("/api/profile/reviews/retry", { method: "POST" })
       .then(() => window.setTimeout(() => void loadProfile(), 2500))
@@ -347,7 +352,15 @@ export function AccountModal({
         ? { challengeId, code: form.get("code") }
         : mode === "reset"
           ? { challengeId, code: form.get("code"), password: form.get("password") }
-          : { email: form.get("email"), password: form.get("password") };
+          : mode === "signup"
+            ? {
+                email: form.get("email"),
+                password: form.get("password"),
+                birthDate: form.get("birthDate"),
+                acceptTerms: form.get("acceptTerms") === "on",
+                acceptPrivacy: form.get("acceptPrivacy") === "on",
+              }
+            : { email: form.get("email"), password: form.get("password") };
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -388,6 +401,54 @@ export function AccountModal({
       setError(resendError instanceof Error ? resendError.message : "A new code could not be sent.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const submitEligibility = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    const form = new FormData(event.currentTarget);
+    try {
+      const response = await fetch("/api/auth/eligibility", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          birthDate: form.get("birthDate"),
+          acceptTerms: form.get("acceptTerms") === "on",
+          acceptPrivacy: form.get("acceptPrivacy") === "on",
+        }),
+      });
+      const body = await response.json() as { error?: { message?: string } };
+      if (!response.ok) throw new Error(body.error?.message ?? "Eligibility could not be confirmed.");
+      await account.refresh();
+    } catch (eligibilityError) {
+      setError(eligibilityError instanceof Error ? eligibilityError.message : "Eligibility could not be confirmed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteAccount = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!window.confirm("Permanently delete your account, saved locations, trip reports, photos, and public discussion summaries?")) return;
+    setProfileActionBusy(true);
+    setProfileActionError("");
+    const form = new FormData(event.currentTarget);
+    try {
+      const response = await fetch("/api/profile", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: form.get("password"), confirmation: form.get("confirmation") }),
+      });
+      const body = await response.json() as { error?: { message?: string } };
+      if (!response.ok) throw new Error(body.error?.message ?? "The account could not be deleted.");
+      await account.refresh();
+      window.location.assign("/");
+    } catch (deleteError) {
+      setProfileActionError(deleteError instanceof Error ? deleteError.message : "The account could not be deleted.");
+    } finally {
+      setProfileActionBusy(false);
     }
   };
 
@@ -504,7 +565,21 @@ export function AccountModal({
         ) : (
           <button className="sheet-close" type="button" onClick={account.closeAccount} aria-label="Close account"><CloseIcon /></button>
         )}
-        {account.user ? (
+        {account.user && !account.user.legalAccepted ? (
+          <>
+            <span className="eyebrow"><span /> Account update</span>
+            <h2 id="account-title">Confirm your<br />eligibility.</h2>
+            <p>CastingCompass accounts are for people age 13 or older. Your birth date is checked once and is not stored.</p>
+            <form onSubmit={submitEligibility}>
+              <label>Birth date<input name="birthDate" type="date" autoComplete="bday" required /></label>
+              <label className="account-consent"><input name="acceptTerms" type="checkbox" required /><span>I agree to the <Link href="/terms" target="_blank">Terms of Service</Link>.</span></label>
+              <label className="account-consent"><input name="acceptPrivacy" type="checkbox" required /><span>I acknowledge the <Link href="/privacy" target="_blank">Privacy Policy</Link>, including the use of service providers and automated review.</span></label>
+              {error ? <p className="account-error" role="alert">{error}</p> : null}
+              <button className="account-primary" type="submit" disabled={busy}>{busy ? "Saving…" : "Confirm and continue"}</button>
+            </form>
+            <button className="account-text-button" type="button" onClick={() => void account.signOut()}>Sign out</button>
+          </>
+        ) : account.user ? (
           <>
             <span className="eyebrow"><span /> Your account</span>
             <h2 id="account-title">Your fishing<br />profile.</h2>
@@ -663,6 +738,24 @@ export function AccountModal({
               </form>
               </div>
             ) : null}
+            <section className="profile-section profile-privacy-section">
+              <h3>Privacy and account controls</h3>
+              <p>Download a copy of your account data, or permanently delete the account and its linked reports.</p>
+              <div className="profile-privacy-links">
+                <a className="account-secondary" href="/api/profile/export" download>Download my data</a>
+                <Link href="/privacy">Privacy Policy</Link>
+                <Link href="/terms">Terms of Service</Link>
+                <Link href="/ai-disclosure">AI and forecast disclosure</Link>
+              </div>
+              <details className="account-delete-details">
+                <summary>Delete account</summary>
+                <form onSubmit={deleteAccount}>
+                  <label>Password<input name="password" type="password" autoComplete="current-password" minLength={10} maxLength={128} required /></label>
+                  <label>Type DELETE<input name="confirmation" type="text" autoComplete="off" pattern="DELETE" required /></label>
+                  <button type="submit" className="account-danger" disabled={profileActionBusy}>{profileActionBusy ? "Deleting…" : "Permanently delete account"}</button>
+                </form>
+              </details>
+            </section>
             <button className="account-primary account-signout" type="button" onClick={() => void account.signOut()}>Sign out</button>
           </>
         ) : (
@@ -685,6 +778,9 @@ export function AccountModal({
             <form onSubmit={submit}>
               {mode !== "verify" && mode !== "reset" ? <label>Email<input name="email" type="email" autoComplete="email" required maxLength={254} /></label> : null}
               {mode === "login" || mode === "signup" || mode === "reset" ? <label>{mode === "reset" ? "New password" : "Password"}<input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={10} maxLength={128} /></label> : null}
+              {mode === "signup" ? <label>Birth date<input name="birthDate" type="date" autoComplete="bday" required /></label> : null}
+              {mode === "signup" ? <label className="account-consent"><input name="acceptTerms" type="checkbox" required /><span>I am 13 or older and agree to the <Link href="/terms" target="_blank">Terms of Service</Link>.</span></label> : null}
+              {mode === "signup" ? <label className="account-consent"><input name="acceptPrivacy" type="checkbox" required /><span>I acknowledge the <Link href="/privacy" target="_blank">Privacy Policy</Link> and <Link href="/ai-disclosure" target="_blank">AI disclosure</Link>.</span></label> : null}
               {mode === "verify" || mode === "reset" ? <label>Six-digit email code<input name="code" type="text" inputMode="numeric" autoComplete="one-time-code" required minLength={6} maxLength={6} pattern="[0-9]{6}" /></label> : null}
               {mode === "signup" ? <small>Use at least 10 characters. We’ll email a six-digit code before creating the account.</small> : null}
               {mode === "verify" || mode === "reset" ? <small>The code expires after 15 minutes and can be tried six times.</small> : null}
@@ -699,6 +795,7 @@ export function AccountModal({
             ) : null}
             {mode === "login" ? <button className="account-text-button" type="button" onClick={() => { setMode("recover"); setError(""); }}>Forgot password?</button> : null}
             {mode === "recover" || mode === "verify" || mode === "reset" ? <button className="account-text-button" type="button" onClick={() => { setMode("login"); setError(""); setChallengeId(""); }}>Back to sign in</button> : null}
+            <p className="account-legal-links"><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link><Link href="/ai-disclosure">AI disclosure</Link></p>
           </>
         )}
       </section>
