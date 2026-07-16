@@ -28,10 +28,31 @@ interface AccountRequestOptions {
 const initializedDatabases = new WeakMap<object, Promise<void>>();
 
 class AuthError extends Error {
-  constructor(readonly status: number, readonly code: string, message: string) {
+  readonly status: number;
+  readonly code: string;
+
+  constructor(status: number, code: string, message: string) {
     super(message);
     this.name = "AuthError";
+    this.status = status;
+    this.code = code;
   }
+}
+
+function safeErrorContext(error: unknown) {
+  if (error instanceof AuthError) {
+    return { name: error.name, status: error.status, code: error.code };
+  }
+  return { name: error instanceof Error ? error.name : "UnknownError" };
+}
+
+function providerRequestId(response: Response) {
+  const value = response.headers.get("x-request-id") ?? response.headers.get("cf-ray");
+  return safeProviderIdentifier(value);
+}
+
+function safeProviderIdentifier(value: unknown) {
+  return typeof value === "string" && /^[A-Za-z0-9_.:-]{1,128}$/.test(value) ? value : undefined;
 }
 
 const CREATE_USERS_SQL = `CREATE TABLE IF NOT EXISTS users (
@@ -246,7 +267,7 @@ export async function handleAccountRequest(
       // Account creation should succeed even if the optional welcome message is
       // delayed. Verification already proved ownership of the address.
       await sendWelcomeEmail(env, user.email, user.id).catch((error) => {
-        console.error("Welcome email delivery failed", error);
+        console.error("Welcome email delivery failed", safeErrorContext(error));
       });
       return createSessionResponse(db, request, user, 201);
     }
@@ -692,7 +713,7 @@ export async function handleAccountRequest(
     return methodNotAllowed("POST, DELETE");
   } catch (error) {
     if (error instanceof AuthError) return errorResponse(error.status, error.code, error.message);
-    console.error("Account API request failed", error);
+    console.error("Account API request failed", safeErrorContext(error));
     return errorResponse(500, "internal_error", "The account request could not be completed.");
   }
 }
@@ -968,11 +989,15 @@ async function sendVerificationEmail(
     }),
   });
   if (!response.ok) {
-    console.error("Transactional email delivery failed", response.status, await response.text());
+    console.error("Transactional email delivery failed", {
+      status: response.status,
+      requestId: providerRequestId(response),
+    });
+    await response.body?.cancel().catch(() => undefined);
     throw new AuthError(502, "email_delivery_failed", "The verification email could not be sent. Try again shortly.");
   }
   const receipt = await response.json().catch(() => null) as { id?: string } | null;
-  console.log("Transactional email accepted by Resend", { id: receipt?.id, to, subject });
+  console.log("Transactional email accepted by Resend", { id: safeProviderIdentifier(receipt?.id) });
 }
 
 async function sendWelcomeEmail(env: AuthApiEnv, to: string, userId: string) {
@@ -993,9 +1018,16 @@ async function sendWelcomeEmail(env: AuthApiEnv, to: string, userId: string) {
       html: `<div style="font-family:Arial,sans-serif;line-height:1.55;color:#081a33;max-width:620px"><h1>Welcome to CastingCompass.</h1><p>Save a few fishing spots, check practical fishability before you leave, and log the full trip when you get back, even when it is a skunk.</p><h2>Quick guide</h2><ol><li>Choose the hours you can fish.</li><li>Compare the opportunity and fishability details.</li><li>Save the spot and add your gear.</li><li>Log the result, conditions you observed, and any catch.</li></ol><p><strong>This project is still a work in progress.</strong> Complete trip logs are especially helpful right now because they create the real-world backlog needed to test and improve the model.</p><p>Scores are planning guidance, not catch guarantees. Respect access rules, the water, and current California regulations.</p><p><a href="https://castingcompass.com">Open CastingCompass</a></p></div>`,
     }),
   });
-  if (!response.ok) throw new Error(`Welcome email failed with status ${response.status}: ${await response.text()}`);
+  if (!response.ok) {
+    console.error("Welcome email provider request failed", {
+      status: response.status,
+      requestId: providerRequestId(response),
+    });
+    await response.body?.cancel().catch(() => undefined);
+    throw new Error("Welcome email provider request failed");
+  }
   const receipt = await response.json().catch(() => null) as { id?: string } | null;
-  console.log("Welcome email accepted by Resend", { id: receipt?.id, to });
+  console.log("Welcome email accepted by Resend", { id: safeProviderIdentifier(receipt?.id) });
 }
 
 function randomCode() {

@@ -11,12 +11,21 @@ after its acceptance checks pass in the intended environment.
   Done when the production endpoint defaults off, AI can write only a private draft,
   legacy rows are quarantined, human approval is auditable, copy is truthful, and live
   smoke tests pass.
-  - [x] Implement and verify the isolated safety commit plus the additive approval release.
+  - [x] Implement and verify the patched isolated safety-floor commit plus the additive
+    approval release.
   - [ ] Publish the safety commit first, record its deployment as the rollback floor, apply
     the migration, publish the approval release, audit all legacy rows, and run live smoke tests.
-- [ ] Release production hardening from a clean `origin/main` worktree: central security
+- [ ] Release production hardening from a clean worktree at the reviewed immutable commit:
+  Worker and static-asset security
   headers, health/security endpoints, edge abuse controls, sanitized logs, staged migration
   tests, monitoring, alerts, backup verification, and a restore drill.
+  - [x] Implement and locally verify request/body guards, non-cacheable API and security
+    headers, a D1-backed health check and security.txt endpoints, provider-log redaction,
+    secret scanning, immutable CI actions, dependency-update automation, and fail-closed
+    release tooling.
+  - [ ] Deploy the reviewed release, configure and test edge rate limits and Turnstile, deliver
+    test alerts, create an encrypted backup, complete a non-production restore drill, and
+    attach the production evidence required by `docs/PRODUCTION-OPERATIONS.md`.
 - [ ] Make account privacy promises durable: deletion queue/tombstones for photos and public
   copies, truthful completion semantics, and an age-only first step before email/password.
 

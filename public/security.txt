@@ -1,0 +1,5 @@
+Contact: mailto:bzeng0000@gmail.com
+Expires: 2027-07-15T23:59:59.000Z
+Canonical: https://castingcompass.com/.well-known/security.txt
+Policy: https://github.com/brianbzeng/castingcompass/security/policy
+Preferred-Languages: en

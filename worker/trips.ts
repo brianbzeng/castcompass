@@ -759,7 +759,9 @@ export async function handleTripRequest(
     if (error instanceof ApiError) {
       return jsonResponse({ error: { code: error.code, message: error.message } }, error.status);
     }
-    console.error("Trip API request failed", error);
+    console.error("Trip API request failed", {
+      name: error instanceof Error ? error.name : "UnknownError",
+    });
     return jsonResponse(
       { error: { code: "internal_error", message: "The trip could not be saved right now." } },
       500,

@@ -16,15 +16,20 @@ function forbidPattern(source, pattern, label) {
 
 export async function verifySourceSafety(root = DEFAULT_ROOT) {
   const read = (path) => readFile(resolve(root, path), "utf8");
-  const [wrangler, review, discussions, migration, runbook] = await Promise.all([
+  const [wrangler, review, discussions, security, migration, runbook, deployment, postMigrationAudit, packageJson] = await Promise.all([
     read("wrangler.jsonc"),
     read("worker/trip-review.ts"),
     read("worker/discussions.ts"),
+    read("worker/security.ts"),
     read("drizzle/0009_human_discussion_approval.sql"),
     read("docs/DISCUSSION-MODERATION.md"),
+    read("docs/CLOUDFLARE_DEPLOYMENT.md"),
+    read("scripts/discussion-post-migration-audit.sql"),
+    read("package.json"),
   ]);
   return [
     requirePattern(wrangler, /"PUBLIC_DISCUSSIONS_ENABLED"\s*:\s*"false"/, "public discussions default off"),
+    requirePattern(wrangler, /"version_metadata"[\s\S]*"CF_VERSION_METADATA"/, "Worker version metadata is bound"),
     forbidPattern(review, /publishTripDiscussion|site_discussion_posts/, "AI review must not reference the public table or writer"),
     requirePattern(review, /You cannot publish or approve it/, "AI prompt denies publication authority"),
     requirePattern(discussions, /!publicDiscussionsEnabled\(env\).*posts:\s*\[\]/s, "disabled endpoint returns no posts"),
@@ -33,11 +38,25 @@ export async function verifySourceSafety(root = DEFAULT_ROOT) {
     requirePattern(discussions, /trip\.ai_review_status = 'reviewed'/, "only currently reviewed trips are readable"),
     requirePattern(discussions, /trip\.moderation_status = 'approved'/, "trip requires human approval"),
     requirePattern(discussions, /Cache-Control"\)\) headers\.set\("Cache-Control", "no-store"\)/, "discussion responses are not cached"),
+    requirePattern(security, /workerVersionId/, "health response exposes the active Worker version"),
     requirePattern(migration, /ADD COLUMN `approved_at` text/, "approval timestamp migration exists"),
     requirePattern(migration, /ADD COLUMN `approved_by` text/, "approver migration exists"),
     requirePattern(migration, /ADD COLUMN `source_ai_reviewed_at` text/, "review-version migration exists"),
     requirePattern(runbook, /oldest permitted rollback target/, "safe rollback floor is documented"),
+    requirePattern(runbook, /e2c612246fadfdb231e481c405fa72e502458ed1/, "patched safety-floor commit is pinned"),
     requirePattern(runbook, /moderation_status = 'pending'/, "approval occurs while the trip remains hidden"),
+    requirePattern(runbook, /d1 migrations list[\s\S]*--remote/, "remote pending migrations are inspected before apply"),
+    requirePattern(runbook, /d1 time-travel info/, "pre-migration Time Travel bookmark is recorded"),
+    requirePattern(runbook, /exactly one version[\s\S]*100%/i, "deployed Worker version must receive all traffic"),
+    requirePattern(runbook, /disable Cloudflare Git-connected automatic deployments/i, "automatic deployment is paused before rollout"),
+    requirePattern(runbook, /export RELEASE_COMMIT=FULL_RELEASE_COMMIT[\s\S]*npm ci[\s\S]*verify:release-checkout/, "full release provenance precedes D1 work"),
+    requirePattern(runbook, /real containment smoke test[\s\S]*total public-row count is unchanged/i, "synthetic AI containment is verified"),
+    requirePattern(runbook, /expected-worker-version-id FULL_VERSION_ID/, "live checks bind the full release version"),
+    requirePattern(deployment, /must not run migrations automatically/i, "production deployment guidance separates schema changes"),
+    requirePattern(packageJson, /"release:cloudflare"\s*:\s*"[^"]*verify:release-checkout[^"]*build:cloudflare[^"]*wrangler deploy/, "release rebuilds before deployment"),
+    requirePattern(packageJson, /"migrate:cloudflare:remote"\s*:\s*"[^"]*verify:release-checkout[^"]*migrations apply/, "migration requires release provenance"),
+    requirePattern(postMigrationAudit, /approval_columns_found/, "post-migration approval schema is audited"),
+    requirePattern(postMigrationAudit, /rows_with_any_approval_metadata/, "legacy approval metadata is audited"),
   ];
 }
 
@@ -58,18 +77,56 @@ async function responseJson(response, label) {
   }
 }
 
-export async function verifyLiveSafety({ baseUrls, siteIds, fetchImpl = globalThis.fetch }) {
+export async function verifyLiveSafety({
+  baseUrls,
+  redirectBaseUrls = [],
+  canonicalBaseUrl,
+  expectedWorkerVersionId,
+  siteIds,
+  fetchImpl = globalThis.fetch,
+}) {
   if (!Array.isArray(baseUrls) || baseUrls.length === 0) throw new Error("At least one --base-url is required for live verification.");
+  if (!Array.isArray(redirectBaseUrls)) throw new Error("redirectBaseUrls must be an array.");
+  if (redirectBaseUrls.length > 0 && !canonicalBaseUrl) {
+    throw new Error("--canonical-base-url is required when redirect hosts are verified.");
+  }
+  if (expectedWorkerVersionId !== undefined && !/^[A-Za-z0-9-]{1,128}$/.test(expectedWorkerVersionId)) {
+    throw new Error("--expected-worker-version-id must be a nonempty Worker version ID.");
+  }
   if (!Array.isArray(siteIds) || siteIds.length === 0) throw new Error("At least one curated site is required for live verification.");
   if (typeof fetchImpl !== "function") throw new Error("A fetch implementation is required.");
 
   let requests = 0;
   for (const rawBaseUrl of baseUrls) {
     const baseUrl = normalizeBaseUrl(rawBaseUrl);
+    if (expectedWorkerVersionId) {
+      const healthLabel = `${baseUrl}/api/health`;
+      const health = await fetchImpl(healthLabel, {
+        redirect: "manual",
+        headers: { "Cache-Control": "no-cache" },
+      });
+      requests += 1;
+      if (health.status !== 200) {
+        throw new Error(`${healthLabel}: expected 200, received ${health.status}`);
+      }
+      const healthCacheControl = health.headers.get("Cache-Control") ?? "";
+      if (!/\bno-store\b/i.test(healthCacheControl)) {
+        throw new Error(`${healthLabel}: expected Cache-Control no-store, received ${healthCacheControl || "none"}`);
+      }
+      const healthPayload = await responseJson(health, healthLabel);
+      if (healthPayload.status !== "ok") {
+        throw new Error(`${healthLabel}: expected health status ok, received ${healthPayload.status ?? "none"}`);
+      }
+      if (healthPayload.workerVersionId !== expectedWorkerVersionId) {
+        throw new Error(
+          `${healthLabel}: expected Worker version ${expectedWorkerVersionId}, received ${healthPayload.workerVersionId ?? "none"}`,
+        );
+      }
+    }
     await Promise.all(siteIds.map(async (siteId) => {
       const label = `${baseUrl}/api/discussions/${siteId}`;
       const response = await fetchImpl(label, {
-        redirect: "follow",
+        redirect: "manual",
         headers: { "Cache-Control": "no-cache" },
       });
       requests += 1;
@@ -85,7 +142,7 @@ export async function verifyLiveSafety({ baseUrls, siteIds, fetchImpl = globalTh
     const mutationLabel = `${baseUrl}/api/discussions/${sampleSite}`;
     const mutation = await fetchImpl(mutationLabel, {
       method: "POST",
-      redirect: "follow",
+      redirect: "manual",
       headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
       body: "{}",
     });
@@ -95,16 +152,46 @@ export async function verifyLiveSafety({ baseUrls, siteIds, fetchImpl = globalTh
     }
 
     const invalidLabel = `${baseUrl}/api/discussions/not-a-curated-site`;
-    const invalid = await fetchImpl(invalidLabel, { redirect: "follow", headers: { "Cache-Control": "no-cache" } });
+    const invalid = await fetchImpl(invalidLabel, { redirect: "manual", headers: { "Cache-Control": "no-cache" } });
     requests += 1;
     if (invalid.status !== 404) throw new Error(`${invalidLabel}: expected 404, received ${invalid.status}`);
   }
 
-  return { baseUrls: baseUrls.map(normalizeBaseUrl), siteCount: siteIds.length, requests };
+  const normalizedCanonicalBaseUrl = canonicalBaseUrl ? normalizeBaseUrl(canonicalBaseUrl) : null;
+  for (const rawRedirectBaseUrl of redirectBaseUrls) {
+    const redirectBaseUrl = normalizeBaseUrl(rawRedirectBaseUrl);
+    const probePath = `/api/discussions/${encodeURIComponent(siteIds[0])}?release-check=canonical-redirect`;
+    const label = `${redirectBaseUrl}${probePath}`;
+    const expectedLocation = `${normalizedCanonicalBaseUrl}${probePath}`;
+    const response = await fetchImpl(label, {
+      redirect: "manual",
+      headers: { "Cache-Control": "no-cache" },
+    });
+    requests += 1;
+    if (response.status !== 308) {
+      throw new Error(`${label}: expected an un-followed 308 redirect, received ${response.status}`);
+    }
+    const location = response.headers.get("Location") ?? "";
+    if (location !== expectedLocation) {
+      throw new Error(`${label}: expected Location ${expectedLocation}, received ${location || "none"}`);
+    }
+  }
+
+  return {
+    baseUrls: baseUrls.map(normalizeBaseUrl),
+    redirectBaseUrls: redirectBaseUrls.map(normalizeBaseUrl),
+    canonicalBaseUrl: normalizedCanonicalBaseUrl,
+    expectedWorkerVersionId: expectedWorkerVersionId ?? null,
+    siteCount: siteIds.length,
+    requests,
+  };
 }
 
 function parseArguments(args) {
   const baseUrls = [];
+  const redirectBaseUrls = [];
+  let canonicalBaseUrl;
+  let expectedWorkerVersionId;
   for (let index = 0; index < args.length; index += 1) {
     const value = args[index];
     if (value === "--base-url") {
@@ -112,19 +199,38 @@ function parseArguments(args) {
       if (!next) throw new Error("--base-url requires a URL");
       baseUrls.push(next);
       index += 1;
+    } else if (value === "--redirect-base-url") {
+      const next = args[index + 1];
+      if (!next) throw new Error("--redirect-base-url requires a URL");
+      redirectBaseUrls.push(next);
+      index += 1;
+    } else if (value === "--canonical-base-url") {
+      const next = args[index + 1];
+      if (!next) throw new Error("--canonical-base-url requires a URL");
+      canonicalBaseUrl = next;
+      index += 1;
+    } else if (value === "--expected-worker-version-id") {
+      const next = args[index + 1];
+      if (!next) throw new Error("--expected-worker-version-id requires a version ID");
+      expectedWorkerVersionId = next;
+      index += 1;
     } else if (value === "--help") {
-      return { help: true, baseUrls: [] };
+      return { help: true, baseUrls: [], redirectBaseUrls: [] };
     } else {
       throw new Error(`Unknown argument: ${value}`);
     }
   }
-  return { help: false, baseUrls };
+  return { help: false, baseUrls, redirectBaseUrls, canonicalBaseUrl, expectedWorkerVersionId };
 }
 
 async function main() {
   const options = parseArguments(process.argv.slice(2));
   if (options.help) {
-    process.stdout.write("Usage: npm run verify:discussion-safety -- [--base-url https://host]...\n");
+    process.stdout.write(
+      "Usage: npm run verify:discussion-safety -- [--base-url https://direct-host]... " +
+      "[--expected-worker-version-id VERSION_ID] " +
+      "[--canonical-base-url https://canonical-host --redirect-base-url https://redirect-host]...\n",
+    );
     return;
   }
   const sourceChecks = await verifySourceSafety();
@@ -133,6 +239,9 @@ async function main() {
     const sites = JSON.parse(await readFile(resolve(DEFAULT_ROOT, "public/data/sites.json"), "utf8"));
     result.live = await verifyLiveSafety({
       baseUrls: options.baseUrls,
+      redirectBaseUrls: options.redirectBaseUrls,
+      canonicalBaseUrl: options.canonicalBaseUrl,
+      expectedWorkerVersionId: options.expectedWorkerVersionId,
       siteIds: sites.map((site) => site.id),
     });
   }

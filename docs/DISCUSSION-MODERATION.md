@@ -11,60 +11,173 @@ review can write the public table.
 
 ## Safe rollout and rollback
 
+0. Before any manual release, disable Cloudflare Git-connected automatic deployments and
+   pause the current GitHub `Refresh public forecast snapshot` scheduled workflow. The
+   workflow on the currently deployed default branch can push directly to that branch and
+   trigger an older automatic build during this sequence. Record both disabled states and
+   confirm that no build is running. Do not re-enable the scheduled workflow until the
+   default branch contains the reviewed PR-only refresh workflow. Do not re-enable Cloudflare
+   automatic deployment as part of this runbook; production remains on the guarded release
+   path described in `CLOUDFLARE_DEPLOYMENT.md`.
+
+   Still in the full release worktree, establish its provenance and installed tooling before
+   any D1 preflight or mutation. Keep the same shell session and exported commit for the rest
+   of this runbook:
+
+   ```sh
+   export RELEASE_COMMIT=FULL_RELEASE_COMMIT
+   node scripts/verify-release-checkout.mjs \
+     --root /ABSOLUTE/PATH/TO/FULL_RELEASE_WORKTREE \
+     --expected-commit "$RELEASE_COMMIT"
+   npm ci
+   npm run verify:release-checkout
+   ```
+
+   Stop before touching production if either verification fails. `npm ci` establishes the
+   reviewed lockfile's Wrangler; later commands invoke that local binary and cannot download a
+   different CLI implicitly.
+
 1. First deploy and verify a dedicated safety commit with the public endpoint default-off
-   and the AI-to-public writer removed. Record its commit and Cloudflare deployment ID as
-   the oldest permitted rollback target. For this release, that source commit is `16db94b`.
-   Build it in its clean worktree, then deploy the Worker **without** running the existing
-   `release:cloudflare` or `deploy:cloudflare` scripts, because both apply migrations first:
+   and the AI-to-public writer removed. Record its source commit, Cloudflare deployment ID,
+   Worker version ID, and traffic percentage as the oldest permitted rollback target. For
+   this release, the source commit is
+   `e2c612246fadfdb231e481c405fa72e502458ed1`. It descends from the original containment
+   commit `16db94b` and adds only patched build tools plus a cleared public API build override;
+   `16db94b` is historical context, not a permitted deployment or rollback target. From the
+   full release checkout, prove that
+   the dedicated safety worktree is clean and resolves to that immutable commit before
+   installing, building, or deploying it:
+
+   ```sh
+   node /ABSOLUTE/PATH/TO/FULL_RELEASE_WORKTREE/scripts/verify-release-checkout.mjs \
+     --root /ABSOLUTE/PATH/TO/SAFETY_WORKTREE \
+     --expected-commit e2c612246fadfdb231e481c405fa72e502458ed1
+   ```
+
+   In that verified safety worktree, deploy the Worker **without** running
+   `release:cloudflare` or `deploy:cloudflare`, because both are legacy migration-first
+   commands. Keep Wrangler's structured output in a private evidence directory outside the
+   repository, then inspect the active deployment:
 
    ```sh
    npm ci
-   npm run build:cloudflare
-   npx wrangler deploy --config wrangler.jsonc
-   npx wrangler deployments list --config wrangler.jsonc
+   NEXT_PUBLIC_API_URL= npm run build:cloudflare
+   export WRANGLER_OUTPUT_FILE_DIRECTORY=/ABSOLUTE/PATH/TO/PRIVATE/RELEASE_EVIDENCE
+   ./node_modules/.bin/wrangler deploy --config wrangler.jsonc
+   ./node_modules/.bin/wrangler deployments status --config wrangler.jsonc --json
    ```
 
-   From the full release worktree, run the live verifier against every hostname, including
-   the `workers.dev` URL printed by Wrangler:
+   The status must show exactly one version receiving `100%` of traffic. Copy the deployment
+   ID, that version ID, and the percentage to the release record; a commit ID alone is not a
+   Cloudflare rollback handle. From the full release checkout, run the live verifier against
+   every hostname, including the exact `workers.dev` URL printed by Wrangler. `--base-url`
+   hosts are tested directly. `--redirect-base-url` hosts are not followed: each must return
+   exactly `308` and an absolute `Location` on the canonical host that preserves path and
+   query.
 
    ```sh
    npm run verify:discussion-safety -- \
      --base-url https://castingcompass.com \
-     --base-url https://www.castingcompass.com \
-     --base-url https://castcompass.brianbzeng.com \
-     --base-url https://contourcast.brianbzeng.com \
-     --base-url https://WORKER_SUBDOMAIN.workers.dev
+     --base-url https://WORKER_SUBDOMAIN.workers.dev \
+     --canonical-base-url https://castingcompass.com \
+     --redirect-base-url https://www.castingcompass.com \
+     --redirect-base-url https://castcompass.brianbzeng.com \
+     --redirect-base-url https://contourcast.brianbzeng.com
    ```
 
-2. Apply the additive approval migration while the feature remains off.
+2. Preflight the additive approval migration while the safety Worker is live and the feature
+   remains off. Capture the legacy row count, inspect the complete remote pending-migration
+   set, confirm that D1 reports the production storage backend, and record the current Time
+   Travel bookmark. Return to the full release worktree and reverify it before these commands:
+
+   ```sh
+   cd /ABSOLUTE/PATH/TO/FULL_RELEASE_WORKTREE
+   npm run verify:release-checkout
+   ./node_modules/.bin/wrangler d1 execute contourcast-trips --remote --config wrangler.jsonc \
+     --file scripts/discussion-pre-migration-audit.sql --json
+   ./node_modules/.bin/wrangler d1 migrations list contourcast-trips --remote --config wrangler.jsonc
+   ./node_modules/.bin/wrangler d1 info contourcast-trips --config wrangler.jsonc --json
+   ./node_modules/.bin/wrangler d1 time-travel info contourcast-trips --config wrangler.jsonc --json
+   ```
+
+   Stop if the pending set is empty, omits `0009_human_discussion_approval.sql`, or contains
+   any other migration. Do not let `migrations apply` reconcile an unexpected production
+   ledger implicitly. Review and repair that discrepancy in a separate change. The D1 info
+   result must report the production backend, and the pre-migration bookmark must be copied
+   exactly into the private release record before continuing.
+
+3. Apply the migration, prove no migration remains pending, and run the post-migration audit:
 
    ```sh
    npm run migrate:cloudflare:remote
+   ./node_modules/.bin/wrangler d1 migrations list contourcast-trips --remote --config wrangler.jsonc
+   ./node_modules/.bin/wrangler d1 execute contourcast-trips --remote --config wrangler.jsonc \
+     --file scripts/discussion-post-migration-audit.sql --json
    ```
 
-3. Confirm every legacy row is quarantined after migration:
+   Accept only when there are no pending migrations, `approval_columns_found` and
+   `nullable_text_approval_columns` both equal `3`, `total_discussion_rows` and
+   `fully_quarantined_rows` both equal the recorded pre-migration legacy row count, and
+   `rows_with_any_approval_metadata`, `partially_populated_approval_rows`, and
+   `publicly_eligible_rows` all equal `0`. Preserve the command output with the bookmark and
+   release identifiers.
 
-   ```sql
-   SELECT COUNT(*) AS legacy_unapproved
-   FROM site_discussion_posts
-   WHERE approved_at IS NULL
-      OR approved_by IS NULL
-      OR source_ai_reviewed_at IS NULL;
-   ```
-
-4. Deploy the full human-gated release while the feature remains off. Verify every location
-   endpoint returns an empty `posts` array.
+4. Prove the full human-gated release checkout is clean and at its reviewed immutable commit,
+   then deploy it while the feature remains off. Record the new deployment ID and version ID,
+   and confirm the deployment again has exactly one version receiving `100%` of traffic.
 
    ```sh
-   npm run build:cloudflare
-   npm run deploy:cloudflare:worker-only
-   npm run verify:discussion-safety -- --base-url https://castingcompass.com
+   npm run release:cloudflare
+   ./node_modules/.bin/wrangler deployments status --config wrangler.jsonc --json
    ```
-5. If that release fails, redeploy the recorded safety commit. Do not select an older
-   dashboard deployment, because it can restore automated publication.
+
+   Repeat the all-host verifier command from step 1, adding
+   `--expected-worker-version-id FULL_VERSION_ID` with the exact version from deployment
+   status. Every direct host's health response must identify that version, every direct
+   location endpoint must return an empty `posts` array with `Cache-Control: no-store`, and
+   every redirect alias must still return the exact canonical `308` response.
+
+   Then run a real containment smoke test with photos disabled. Record the total public-row
+   count, submit one unmistakably synthetic completed trip through the production product,
+   wait for its automated review, and verify all of the following: the trip has private
+   `ai_review_json` and `ai_reviewed_at`; no `site_discussion_posts` row exists for its trip
+   ID; the total public-row count is unchanged; and every public endpoint still returns zero
+   posts. Do not record the synthetic account email, session value, or raw note in release
+   evidence. Delete the synthetic account through the product and confirm its active trip and
+   account rows are gone. Also verify that an account on an outdated legal version receives
+   `428 legal_acceptance_required` for a protected mutation and that accepting the current
+   documents restores access.
+
+5. If the full release fails, route `100%` of traffic to the recorded safety Worker version
+   and verify the deployment status and all hosts again:
+
+   ```sh
+   ./node_modules/.bin/wrangler versions deploy SAFETY_VERSION_ID@100% --config wrangler.jsonc -y
+   ./node_modules/.bin/wrangler deployments status --config wrangler.jsonc --json
+   ```
+
+   If the recorded version is unavailable, redeploy source commit
+   `e2c612246fadfdb231e481c405fa72e502458ed1` only from the verified clean safety worktree.
+   Do not deploy its parent because it reintroduces vulnerable build tools and inherited
+   public-API build configuration. Do not select an older dashboard deployment, because it
+   can restore automated publication. The approval migration is additive and the safety Worker
+   does not require a database rollback. A D1 Time Travel restore overwrites current database
+   state; never perform one as part of an ordinary Worker rollback. It requires a separate
+   incident decision, a write freeze, an impact review, and explicit authorization.
 6. Enabling discussions is a separate release after a synthetic approve/read/reject smoke
    test, vendor safeguards, distinct public-summary consent, truthful reporter status and
    correction/removal controls, moderator access controls, and an incident kill-switch drill.
+
+## Private release evidence record
+
+Store the record outside the repository. It must include the UTC timestamp and operator; the
+safety and full source commits; both deployment IDs and Worker version IDs; the observed
+`100%` traffic assignments; the exact direct and redirect host list; live-verifier output;
+the pre-migration legacy row count; the complete pending-migration output before and after;
+the D1 backend version; the pre-migration Time Travel bookmark; migration output; and the
+post-migration audit output. Do not include raw notes, emails, session values, API tokens, or
+other user data. Include the automatic-deployment pause evidence and the aggregate synthetic
+containment result without its note or account identifier.
 
 ## Human review checklist
 

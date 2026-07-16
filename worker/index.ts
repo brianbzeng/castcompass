@@ -6,6 +6,7 @@ import { handleTripRequest, type TripApiEnv } from "./trips";
 import { cleanupAuthData, getAuthenticatedUser, handleAccountRequest, legalAcceptanceRequiredResponse, unauthorizedResponse } from "./auth";
 import { reviewTripBacklog, reviewTripWithMimo } from "./trip-review";
 import { handleDiscussionRequest } from "./discussions";
+import { canonicalRedirect, guardRequestBody, hardenResponse, healthResponse } from "./security";
 
 interface AssetFetcher {
   fetch(request: Request): Promise<Response>;
@@ -31,60 +32,15 @@ interface ExecutionContext {
 
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
+    const redirect = canonicalRedirect(request);
+    if (redirect) return hardenResponse(redirect, request);
 
-    if ([
-      "www.castingcompass.com",
-      "castcompass.brianbzeng.com",
-      "contourcast.brianbzeng.com",
-    ].includes(url.hostname)) {
-      url.protocol = "https:";
-      url.hostname = "castingcompass.com";
-      url.port = "";
-      return Response.redirect(url.toString(), 308);
-    }
+    const guarded = await guardRequestBody(request);
+    if (guarded.response) return hardenResponse(guarded.response, request);
 
-    const discussionResponse = await handleDiscussionRequest(request, env, sites);
-    if (discussionResponse) return discussionResponse;
-
-    const accountResponse = await handleAccountRequest(request, env, sites, {
-      onTripUpdated: (trip) => ctx.waitUntil(reviewTripWithMimo(env, trip, sites)),
-      onTripsReviewRequested: (trips) => {
-        for (const trip of trips) ctx.waitUntil(reviewTripWithMimo(env, trip, sites));
-      },
-    });
-    if (accountResponse) return accountResponse;
-
-    const protectedTripMutation = url.pathname.startsWith("/api/trips/") &&
-      url.pathname !== "/api/trips/summary" && request.method !== "GET";
-    const authenticatedUser = protectedTripMutation ? await getAuthenticatedUser(request, env) : null;
-    if (protectedTripMutation && !authenticatedUser) {
-      return unauthorizedResponse();
-    }
-    if (protectedTripMutation && !authenticatedUser?.legalAccepted) {
-      return legalAcceptanceRequiredResponse();
-    }
-
-    const tripResponse = await handleTripRequest(request, env, sites, {
-      accountId: authenticatedUser?.id ?? null,
-      onTripCompleted: (trip) => ctx.waitUntil(reviewTripWithMimo(env, trip, sites)),
-    });
-    if (tripResponse) return tripResponse;
-
-    if (url.pathname === "/_vinext/image") {
-      const images = env.IMAGES;
-      if (!images) return new Response("Image optimization is unavailable.", { status: 404 });
-      const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
-      return handleImageOptimization(request, {
-        fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),
-        transformImage: async (body, { width, format, quality }) => {
-          const result = await images.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
-          return result.response();
-        },
-      }, allowedWidths);
-    }
-
-    return handler.fetch(request, env, ctx);
+    const routedRequest = guarded.request;
+    const response = await routeRequest(routedRequest, env, ctx);
+    return hardenResponse(response, routedRequest);
   },
 
   async scheduled(_controller: unknown, env: Env, ctx: ExecutionContext) {
@@ -92,5 +48,54 @@ const worker = {
     ctx.waitUntil(cleanupAuthData(env));
   },
 };
+
+async function routeRequest(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const url = new URL(request.url);
+
+  const health = await healthResponse(request, env);
+  if (health) return health;
+
+  const discussionResponse = await handleDiscussionRequest(request, env, sites);
+  if (discussionResponse) return discussionResponse;
+
+  const accountResponse = await handleAccountRequest(request, env, sites, {
+    onTripUpdated: (trip) => ctx.waitUntil(reviewTripWithMimo(env, trip, sites)),
+    onTripsReviewRequested: (trips) => {
+      for (const trip of trips) ctx.waitUntil(reviewTripWithMimo(env, trip, sites));
+    },
+  });
+  if (accountResponse) return accountResponse;
+
+  const protectedTripMutation = url.pathname.startsWith("/api/trips/") &&
+    url.pathname !== "/api/trips/summary" && request.method !== "GET";
+  const authenticatedUser = protectedTripMutation ? await getAuthenticatedUser(request, env) : null;
+  if (protectedTripMutation && !authenticatedUser) {
+    return unauthorizedResponse();
+  }
+  if (protectedTripMutation && !authenticatedUser?.legalAccepted) {
+    return legalAcceptanceRequiredResponse();
+  }
+
+  const tripResponse = await handleTripRequest(request, env, sites, {
+    accountId: authenticatedUser?.id ?? null,
+    onTripCompleted: (trip) => ctx.waitUntil(reviewTripWithMimo(env, trip, sites)),
+  });
+  if (tripResponse) return tripResponse;
+
+  if (url.pathname === "/_vinext/image") {
+    const images = env.IMAGES;
+    if (!images) return new Response("Image optimization is unavailable.", { status: 404 });
+    const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
+    return handleImageOptimization(request, {
+      fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),
+      transformImage: async (body, { width, format, quality }) => {
+        const result = await images.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
+        return result.response();
+      },
+    }, allowedWidths);
+  }
+
+  return handler.fetch(request, env, ctx);
+}
 
 export default worker;

@@ -63,6 +63,7 @@ export interface SourceFreshness {
   status: "fresh" | "aging" | "stale" | "unavailable" | string;
   ageMinutes?: number;
   freshnessLimitMinutes?: number;
+  freshnessLimitHours?: number;
   detail?: string;
   url?: string;
 }

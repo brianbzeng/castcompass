@@ -17,6 +17,18 @@ interface MimoResponse {
   choices?: Array<{ message?: { content?: string } }>;
 }
 
+class ReviewError extends Error {
+  readonly code: string;
+  readonly status?: number;
+
+  constructor(code: string, status?: number) {
+    super(code);
+    this.name = "ReviewError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
 export async function reviewTripWithMimo(env: ReviewEnv, trip: TripRow, sites: readonly CuratedSite[]) {
   if (!env.DB || !env.MIMO_API_KEY || trip.status !== "completed") return;
   const model = env.MIMO_MODEL ?? "mimo-v2.5";
@@ -77,14 +89,15 @@ Return JSON only with keys: quality_score (0-100), flags (string array), summary
       }),
     });
     if (!response.ok) {
-      const detail = (await response.text()).slice(0, 500);
-      throw new Error(`Trip review returned ${response.status}: ${detail}`);
+      const status = response.status;
+      await response.body?.cancel().catch(() => undefined);
+      throw new ReviewError("upstream_status", status);
     }
     const payload = await response.json() as MimoResponse;
     const content = payload.choices?.[0]?.message?.content?.trim();
-    if (!content) throw new Error("Trip review returned no content");
+    if (!content) throw new ReviewError("empty_response");
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("Trip review was not JSON");
+    if (!jsonMatch) throw new ReviewError("invalid_response_shape");
     const review = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
     const needsHumanReview = Boolean(review.needs_human_review);
     const gearAnalysis = normalizeGearAnalysis(review.gear_analysis);
@@ -102,7 +115,11 @@ Return JSON only with keys: quality_score (0-100), flags (string array), summary
       .bind(stored, model, new Date().toISOString(), trip.id)
       .run();
   } catch (error) {
-    console.error("Automated trip review failed", error);
+    console.error("Automated trip review failed", {
+      name: error instanceof Error ? error.name : "UnknownError",
+      code: error instanceof ReviewError ? error.code : "review_failed",
+      status: error instanceof ReviewError ? error.status : undefined,
+    });
     await env.DB.prepare("UPDATE trips SET ai_review_status = 'retry', ai_review_model = ? WHERE id = ?")
       .bind(model, trip.id)
       .run();
