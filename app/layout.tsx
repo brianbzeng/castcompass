@@ -32,9 +32,11 @@ export const metadata: Metadata = {
   },
   formatDetection: { telephone: false },
   icons: {
-    icon: "/castingcompass-icon.png",
+    icon: [
+      { url: "/castingcompass-icon.png", type: "image/png", sizes: "512x512" },
+    ],
     shortcut: "/castingcompass-icon.png",
-    apple: "/icons/icon-192.png",
+    apple: [{ url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" }],
   },
   openGraph: {
     title: "CastingCompass",

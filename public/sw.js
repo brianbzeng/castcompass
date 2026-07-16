@@ -1,5 +1,5 @@
 const CACHE_PREFIXES = ["castingcompass-", "castcompass-", "contourcast-"];
-const CACHE_NAME = "castingcompass-v9";
+const CACHE_NAME = "castingcompass-v10";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
