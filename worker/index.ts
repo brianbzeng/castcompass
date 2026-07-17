@@ -75,6 +75,7 @@ async function routeRequest(request: Request, env: Env, ctx: ExecutionContext): 
   if (discussionResponse) return discussionResponse;
 
   const accountResponse = await handleAccountRequest(request, env, sites, {
+    waitUntil: (promise) => ctx.waitUntil(promise),
     onTripUpdated: (trip) => ctx.waitUntil(reviewTripWithMimo(env, trip.id, sites)),
     onTripsReviewRequested: (trips) => {
       for (const trip of trips) ctx.waitUntil(reviewTripWithMimo(env, trip.id, sites));

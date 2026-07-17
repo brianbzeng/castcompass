@@ -13,7 +13,8 @@ import {
   type TurnstileEnv,
 } from "./turnstile.ts";
 
-const SESSION_COOKIE = "cc_session";
+const SESSION_COOKIE = "__Host-cc_session";
+const LEGACY_SESSION_COOKIE = "cc_session";
 const DELETION_RECEIPT_COOKIE = "cc_deletion_receipt";
 const AGE_INELIGIBLE_COOKIE = "cc_age_ineligible";
 const SESSION_SECONDS = 30 * 24 * 60 * 60;
@@ -30,6 +31,8 @@ const PASSWORD_MAXIMUM_CHARACTERS = 128;
 const PWNED_PASSWORDS_RANGE_URL = "https://api.pwnedpasswords.com/range/";
 const PWNED_PASSWORDS_TIMEOUT_MS = 3_000;
 const PWNED_PASSWORDS_MAX_RESPONSE_BYTES = 64 * 1024;
+const PASSWORD_RECOVERY_MINIMUM_RESPONSE_MS = 250;
+const DUMMY_PASSWORD_SALT = "Y2FzdGluZ2NvbXBhc3MtdGltaW5n";
 
 export interface AuthApiEnv extends TurnstileEnv {
   DB?: D1DatabaseLike;
@@ -56,6 +59,7 @@ export interface AuthUser {
 interface AccountRequestOptions {
   onTripUpdated?(trip: TripRow): void;
   onTripsReviewRequested?(trips: TripRow[]): void;
+  waitUntil?(promise: Promise<unknown>): void;
   now?(): Date;
 }
 
@@ -237,31 +241,45 @@ async function initialize(db: D1DatabaseLike) {
   await pending;
 }
 
-export async function getAuthenticatedUser(request: Request, env: AuthApiEnv): Promise<AuthUser | null> {
+interface AuthenticatedSession {
+  user: AuthUser;
+  cookieName: typeof SESSION_COOKIE | typeof LEGACY_SESSION_COOKIE;
+}
+
+async function getAuthenticatedSession(request: Request, env: AuthApiEnv): Promise<AuthenticatedSession | null> {
   if (!env.DB) return null;
   await initialize(env.DB);
-  const token = parseCookies(request.headers.get("Cookie") ?? "").get(SESSION_COOKIE);
-  if (!token || !/^[A-Za-z0-9_-]{40,160}$/.test(token)) return null;
-  const tokenHash = await sha256(token);
   const now = new Date().toISOString();
-  const row = await env.DB
-    .prepare(`SELECT users.id, users.email,
-        CASE WHEN users.age_eligibility_confirmed_at IS NOT NULL THEN 1 ELSE 0 END AS age_eligible,
-        CASE WHEN users.age_eligibility_confirmed_at IS NOT NULL
-          AND users.terms_version = ? AND users.privacy_version = ?
-          THEN 1 ELSE 0 END AS legal_accepted
-      FROM auth_sessions
-      JOIN users ON users.id = auth_sessions.user_id
-      WHERE auth_sessions.token_hash = ? AND auth_sessions.expires_at > ?
-      LIMIT 1`)
-    .bind(LEGAL_VERSION, LEGAL_VERSION, tokenHash, now)
-    .first<{ id: string; email: string; age_eligible: number; legal_accepted: number }>();
-  return row ? {
-    id: row.id,
-    email: row.email,
-    ageEligible: Boolean(row.age_eligible),
-    legalAccepted: Boolean(row.legal_accepted),
-  } : null;
+  for (const presented of presentedSessionTokens(request)) {
+    const row = await env.DB
+      .prepare(`SELECT users.id, users.email,
+          CASE WHEN users.age_eligibility_confirmed_at IS NOT NULL THEN 1 ELSE 0 END AS age_eligible,
+          CASE WHEN users.age_eligibility_confirmed_at IS NOT NULL
+            AND users.terms_version = ? AND users.privacy_version = ?
+            THEN 1 ELSE 0 END AS legal_accepted
+        FROM auth_sessions
+        JOIN users ON users.id = auth_sessions.user_id
+        WHERE auth_sessions.token_hash = ? AND auth_sessions.expires_at > ?
+        LIMIT 1`)
+      .bind(LEGAL_VERSION, LEGAL_VERSION, await sha256(presented.token), now)
+      .first<{ id: string; email: string; age_eligible: number; legal_accepted: number }>();
+    if (row) {
+      return {
+        cookieName: presented.cookieName,
+        user: {
+          id: row.id,
+          email: row.email,
+          ageEligible: Boolean(row.age_eligible),
+          legalAccepted: Boolean(row.legal_accepted),
+        },
+      };
+    }
+  }
+  return null;
+}
+
+export async function getAuthenticatedUser(request: Request, env: AuthApiEnv): Promise<AuthUser | null> {
+  return (await getAuthenticatedSession(request, env))?.user ?? null;
 }
 
 export async function handleAccountRequest(
@@ -300,8 +318,18 @@ export async function handleAccountRequest(
   try {
     if (url.pathname === "/api/auth/session") {
       if (request.method !== "GET") return methodNotAllowed("GET");
-      const user = await getAuthenticatedUser(request, env);
-      return jsonResponse({ user });
+      const session = await getAuthenticatedSession(request, env);
+      if (!session) {
+        return jsonResponse(
+          { user: null },
+          200,
+          presentedSessionTokens(request).length > 0 ? clearSessionCookies(request) : undefined,
+        );
+      }
+      if (session.cookieName === LEGACY_SESSION_COOKIE && new URL(request.url).protocol === "https:") {
+        return createSessionResponse(db, request, session.user);
+      }
+      return jsonResponse({ user: session.user });
     }
 
     if (url.pathname === "/api/auth/signup") {
@@ -459,10 +487,45 @@ export async function handleAccountRequest(
         .first<EmailChallengeRow>();
       if (!challenge) {
         // Keep password-reset requests from becoming an account-enumeration path.
-        return jsonResponse({ requested: true, challengeId, expiresInMinutes: 15, retryAfterSeconds: 60 });
+        await minimumDelay(PASSWORD_RECOVERY_MINIMUM_RESPONSE_MS);
+        return passwordRecoveryResendResponse(challengeId);
       }
       const createdAt = new Date(challenge.created_at).getTime();
       const retryAfterSeconds = Math.max(0, 60 - Math.floor((Date.now() - createdAt) / 1000));
+      if (challenge.kind === "password_reset") {
+        const responseNotBefore = minimumDelay(PASSWORD_RECOVERY_MINIMUM_RESPONSE_MS);
+        if (retryAfterSeconds > 0 || Number(challenge.resend_count ?? 0) >= 4) {
+          await responseNotBefore;
+          return passwordRecoveryResendResponse(challengeId);
+        }
+        const code = randomCode();
+        const timestamp = new Date();
+        await db.prepare(`UPDATE email_challenges
+          SET code_hash = ?, expires_at = ?, attempts = 0, resend_count = resend_count + 1, created_at = ?
+          WHERE id = ?`)
+          .bind(
+            await sha256(`${challenge.id}:${code}`),
+            new Date(timestamp.getTime() + 15 * 60 * 1000).toISOString(),
+            timestamp.toISOString(),
+            challenge.id,
+          )
+          .run();
+        const delivery = deferPasswordRecoveryEmail(
+          options,
+          db,
+          challenge.id,
+          sendVerificationEmail(
+            env,
+            challenge.email,
+            code,
+            "Reset your CastingCompass password",
+            `${challenge.id}:resend:${Number(challenge.resend_count ?? 0) + 1}`,
+          ),
+        );
+        if (!options.waitUntil) await delivery;
+        await responseNotBefore;
+        return passwordRecoveryResendResponse(challengeId);
+      }
       if (retryAfterSeconds > 0) {
         return errorResponse(
           429,
@@ -509,9 +572,21 @@ export async function handleAccountRequest(
         throw new AuthError(422, "unexpected_fields", "Send only the fields required for this account step.");
       }
       const email = parseEmail(body.email);
+      const responseNotBefore = minimumDelay(PASSWORD_RECOVERY_MINIMUM_RESPONSE_MS);
       const user = await db.prepare("SELECT id FROM users WHERE email = ? LIMIT 1").bind(email).first<{ id: string }>();
-      if (!user) return jsonResponse({ requested: true, challengeId: `challenge_${crypto.randomUUID()}`, expiresInMinutes: 15 });
-      await assertEmailChallengeAllowed(db, email);
+      if (!user) {
+        await responseNotBefore;
+        return passwordRecoveryRequestedResponse();
+      }
+      try {
+        await assertEmailChallengeAllowed(db, email);
+      } catch (error) {
+        if (error instanceof AuthError && error.code === "too_many_codes") {
+          await responseNotBefore;
+          return passwordRecoveryRequestedResponse();
+        }
+        throw error;
+      }
       const id = `challenge_${crypto.randomUUID()}`;
       const code = randomCode();
       const timestamp = new Date();
@@ -520,13 +595,15 @@ export async function handleAccountRequest(
         VALUES (?, 'password_reset', ?, ?, ?, ?, 0, ?)`)
         .bind(id, email, user.id, await sha256(`${id}:${code}`), new Date(timestamp.getTime() + 15 * 60 * 1000).toISOString(), timestamp.toISOString())
         .run();
-      try {
-        await sendVerificationEmail(env, email, code, "Reset your CastingCompass password");
-      } catch (error) {
-        await db.prepare("DELETE FROM email_challenges WHERE id = ?").bind(id).run();
-        throw error;
-      }
-      return jsonResponse({ requested: true, challengeId: id, expiresInMinutes: 15 });
+      const delivery = deferPasswordRecoveryEmail(
+        options,
+        db,
+        id,
+        sendVerificationEmail(env, email, code, "Reset your CastingCompass password"),
+      );
+      if (!options.waitUntil) await delivery;
+      await responseNotBefore;
+      return passwordRecoveryRequestedResponse(id);
     }
 
     if (url.pathname === "/api/auth/password/reset") {
@@ -535,7 +612,14 @@ export async function handleAccountRequest(
       const body = await readJson(request);
       assertOnlyFields(body, ["challengeId", "code", "password", "turnstileToken"]);
       const password = parseNewPassword(body.password);
-      const challenge = await verifyEmailChallenge(db, body.challengeId, body.code, "password_reset");
+      const responseNotBefore = minimumDelay(PASSWORD_RECOVERY_MINIMUM_RESPONSE_MS);
+      let challenge: EmailChallengeRow;
+      try {
+        challenge = await verifyEmailChallenge(db, body.challengeId, body.code, "password_reset");
+      } catch (error) {
+        if (error instanceof AuthError && error.code === "invalid_code") await responseNotBefore;
+        throw error;
+      }
       if (!challenge.user_id) throw new AuthError(400, "invalid_challenge", "Request a new reset code.");
       await assertNewPasswordAllowed(password, challenge.email);
       const salt = randomSecret(18);
@@ -583,7 +667,9 @@ export async function handleAccountRequest(
           age_eligible: number;
           legal_accepted: number;
         }>();
-      const valid = row ? await verifyPassword(password, row.password_salt, row.password_hash) : false;
+      const valid = row
+        ? await verifyPassword(password, row.password_salt, row.password_hash)
+        : (await hashPassword(password, DUMMY_PASSWORD_SALT), false);
       await db.prepare("INSERT INTO auth_attempts (id, email_hash, attempted_at, successful) VALUES (?, ?, ?, ?)")
         .bind(`attempt_${crypto.randomUUID()}`, emailHash, new Date().toISOString(), Number(valid))
         .run();
@@ -599,9 +685,12 @@ export async function handleAccountRequest(
     if (url.pathname === "/api/auth/logout") {
       if (request.method !== "POST") return methodNotAllowed("POST");
       assertSameOrigin(request);
-      const token = parseCookies(request.headers.get("Cookie") ?? "").get(SESSION_COOKIE);
-      if (token) await db.prepare("DELETE FROM auth_sessions WHERE token_hash = ?").bind(await sha256(token)).run();
-      return jsonResponse({ user: null }, 200, clearSessionCookie(request));
+      const tokens = presentedSessionTokens(request);
+      if (tokens.length > 0) {
+        await db.batch(await Promise.all(tokens.map(async ({ token }) =>
+          db.prepare("DELETE FROM auth_sessions WHERE token_hash = ?").bind(await sha256(token)))));
+      }
+      return jsonResponse({ user: null }, 200, clearSessionCookies(request));
     }
 
     const user = await getAuthenticatedUser(request, env);
@@ -800,7 +889,7 @@ export async function handleAccountRequest(
         { deleted: true, deletion: status },
         status.status === "completed" ? 200 : 202,
         [
-          clearSessionCookie(request),
+          ...clearSessionCookies(request),
           clearReporterCookie(),
           clearAgeIneligibleCookie(),
           deletionReceiptCookie(deletion.receipt),
@@ -1801,20 +1890,29 @@ async function createSessionResponse(db: D1DatabaseLike, request: Request, user:
   const token = randomSecret(32);
   const createdAt = new Date();
   const expiresAt = new Date(createdAt.getTime() + SESSION_SECONDS * 1000);
-  await db.prepare("INSERT INTO auth_sessions (token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)")
-    .bind(await sha256(token), user.id, expiresAt.toISOString(), createdAt.toISOString())
-    .run();
+  const priorSessionDeletes = await Promise.all(presentedSessionTokens(request).map(async (presented) =>
+    db.prepare("DELETE FROM auth_sessions WHERE token_hash = ?").bind(await sha256(presented.token))));
+  await db.batch([
+    ...priorSessionDeletes,
+    db.prepare("INSERT INTO auth_sessions (token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)")
+      .bind(await sha256(token), user.id, expiresAt.toISOString(), createdAt.toISOString()),
+  ]);
   return jsonResponse({ user }, status, sessionCookie(request, token));
 }
 
 function sessionCookie(request: Request, token: string) {
-  const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
-  return `${SESSION_COOKIE}=${token}; Path=/; Max-Age=${SESSION_SECONDS}; HttpOnly; SameSite=Lax${secure}`;
+  if (new URL(request.url).protocol === "https:") {
+    return `${SESSION_COOKIE}=${token}; Path=/; Max-Age=${SESSION_SECONDS}; HttpOnly; SameSite=Lax; Secure`;
+  }
+  return `${LEGACY_SESSION_COOKIE}=${token}; Path=/; Max-Age=${SESSION_SECONDS}; HttpOnly; SameSite=Lax`;
 }
 
-function clearSessionCookie(request: Request) {
-  const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
-  return `${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secure}`;
+function clearSessionCookies(request: Request) {
+  const secure = new URL(request.url).protocol === "https:";
+  return [
+    ...(secure ? [`${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure`] : []),
+    `${LEGACY_SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`,
+  ];
 }
 
 function deletionReceiptCookie(receipt: string) {
@@ -2147,14 +2245,28 @@ async function verifyEmailChallenge(
     .first<EmailChallengeRow>();
   if (!row || row.expires_at <= new Date().toISOString()) {
     if (row) await db.prepare("DELETE FROM email_challenges WHERE id = ?").bind(challengeId).run();
+    if (kind === "password_reset") {
+      throw new AuthError(401, "invalid_code", "That code is invalid or expired. Request a new one.");
+    }
     throw new AuthError(410, "code_expired", "That code expired. Request a new one.");
   }
   if (Number(row.attempts) >= 6) {
+    if (kind === "password_reset") {
+      await db.prepare("DELETE FROM email_challenges WHERE id = ?").bind(challengeId).run();
+      throw new AuthError(401, "invalid_code", "That code is invalid or expired. Request a new one.");
+    }
     throw new AuthError(429, "too_many_code_attempts", "Too many code attempts. Request a new code.");
   }
   const valid = (await sha256(`${challengeId}:${code}`)) === row.code_hash;
   if (!valid) {
-    await db.prepare("UPDATE email_challenges SET attempts = attempts + 1 WHERE id = ?").bind(challengeId).run();
+    if (kind === "password_reset" && Number(row.attempts) >= 5) {
+      await db.prepare("DELETE FROM email_challenges WHERE id = ?").bind(challengeId).run();
+    } else {
+      await db.prepare("UPDATE email_challenges SET attempts = attempts + 1 WHERE id = ?").bind(challengeId).run();
+    }
+    if (kind === "password_reset") {
+      throw new AuthError(401, "invalid_code", "That code is invalid or expired. Request a new one.");
+    }
     throw new AuthError(401, "invalid_code", "That verification code is incorrect.");
   }
   return row;
@@ -2267,6 +2379,52 @@ function parseCookies(header: string) {
     cookies.set(part.slice(0, separator).trim(), part.slice(separator + 1).trim());
   }
   return cookies;
+}
+
+function presentedSessionTokens(request: Request) {
+  const cookies = parseCookies(request.headers.get("Cookie") ?? "");
+  const tokens: Array<{
+    cookieName: typeof SESSION_COOKIE | typeof LEGACY_SESSION_COOKIE;
+    token: string;
+  }> = [];
+  const seen = new Set<string>();
+  for (const cookieName of [SESSION_COOKIE, LEGACY_SESSION_COOKIE] as const) {
+    const token = cookies.get(cookieName);
+    if (!token || !/^[A-Za-z0-9_-]{40,160}$/.test(token) || seen.has(token)) continue;
+    seen.add(token);
+    tokens.push({ cookieName, token });
+  }
+  return tokens;
+}
+
+function minimumDelay(milliseconds: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function passwordRecoveryRequestedResponse(challengeId = `challenge_${crypto.randomUUID()}`) {
+  return jsonResponse({ requested: true, challengeId, expiresInMinutes: 15 });
+}
+
+function passwordRecoveryResendResponse(challengeId: string) {
+  return jsonResponse({ requested: true, challengeId, expiresInMinutes: 15, retryAfterSeconds: 60 });
+}
+
+function deferPasswordRecoveryEmail(
+  options: AccountRequestOptions,
+  db: D1DatabaseLike,
+  challengeId: string,
+  delivery: Promise<void>,
+) {
+  const guardedDelivery = delivery.catch(async (error) => {
+    try {
+      await db.prepare("DELETE FROM email_challenges WHERE id = ?").bind(challengeId).run();
+    } catch (cleanupError) {
+      console.error("Password recovery challenge cleanup failed", safeErrorContext(cleanupError));
+    }
+    console.error("Password recovery email delivery deferred", safeErrorContext(error));
+  });
+  options.waitUntil?.(guardedDelivery);
+  return guardedDelivery;
 }
 
 function assertSameOrigin(request: Request) {

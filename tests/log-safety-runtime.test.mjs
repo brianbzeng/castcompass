@@ -216,6 +216,51 @@ test("accepted email logs reject untrusted provider receipt text", async () => {
   }
 });
 
+test("deferred recovery failures stay generic, remove the challenge, and redact provider data", async () => {
+  const { sqlite, d1 } = authDatabase();
+  const recipient = "recovery.private@example.com";
+  const timestamp = new Date().toISOString();
+  sqlite.prepare(`INSERT INTO users
+      (id, email, password_salt, password_hash, age_eligibility_confirmed_at,
+        terms_accepted_at, terms_version, privacy_accepted_at, privacy_version,
+        created_at, updated_at)
+    VALUES ('user_recovery', ?, 'salt', 'hash', ?, ?, 'test', ?, 'test', ?, ?)`)
+    .run(recipient, timestamp, timestamp, timestamp, timestamp, timestamp);
+  const providerBody = `delivery rejected for ${recipient}; bearer super-secret-value`;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(providerBody, {
+    status: 400,
+    headers: { "x-request-id": "req_recovery-safe" },
+  });
+
+  try {
+    const deferred = [];
+    const { value: response, entries } = await withCapturedConsole("error", async () => {
+      const result = await handleAccountRequest(new Request("https://castingcompass.com/api/auth/password/request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: "https://castingcompass.com",
+        },
+        body: JSON.stringify({ email: recipient }),
+      }), { DB: d1, RESEND_API_KEY: "test-key" }, [], {
+        waitUntil: (promise) => deferred.push(promise),
+      });
+      await Promise.all(deferred);
+      return result;
+    });
+    assert.equal(response?.status, 200);
+    assert.equal((await response.json()).requested, true);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE email = ?").get(recipient).count, 0);
+    const logs = serializedLogs(entries);
+    assert.match(logs, /"status":400/);
+    assert.match(logs, /req_recovery-safe/);
+    assert.doesNotMatch(logs, /recovery\.private|example\.com|super-secret-value|bearer/i);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("AI-provider failures do not log upstream response bodies", async () => {
   const sqlite = new DatabaseSync(":memory:");
   sqlite.exec(`CREATE TABLE trips (

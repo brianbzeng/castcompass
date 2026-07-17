@@ -17,7 +17,7 @@ output never grants authority.
 | Actor | Allowed | Explicitly not allowed | Enforcement and evidence |
 | --- | --- | --- | --- |
 | Anonymous visitor | Read public pages/assets, aggregate trip summary, health status, and approved public discussion summaries when the feature is enabled; start account verification and recovery flows | Read private trips, photos, saved sites, gear, exports, drafts, validation ledgers, or operator data; mutate trip/account data | Public route allowlist; all other account routes require `getAuthenticatedUser`; trip mutations are rejected before the trip handler without a session; public discussion queries require complete human-approval fields |
-| Account owner | Read/export their account data and photos; manage their saved sites and gear; create trips; edit or remove only their own pending trips; accept legal updates; delete their account | Supply another account identity, read/mutate another account's objects, alter server-controlled observation identity, edit an approved trip, approve/publish an AI draft, activate validation, or perform operator actions | Random session token is stored only as a SHA-256 hash in D1 and sent in an `HttpOnly`, `SameSite=Lax` cookie; private SQL binds `user.id`; mutations also require same-origin requests; cross-account regression tests require indistinguishable `404` results and no mutation |
+| Account owner | Read/export their account data and photos; manage their saved sites and gear; create trips; edit or remove only their own pending trips; accept legal updates; delete their account | Supply another account identity, read/mutate another account's objects, alter server-controlled observation identity, edit an approved trip, approve/publish an AI draft, activate validation, or perform operator actions | Random session token is stored only as a SHA-256 hash in D1 and sent over HTTPS in a `Secure`, `HttpOnly`, `SameSite=Lax`, host-only cookie; private SQL binds `user.id`; mutations also require same-origin requests; cross-account regression tests require indistinguishable `404` results and no mutation |
 | Human moderator | No public application endpoint currently grants this role | Use a client-side role flag or model recommendation as approval; expose moderator identity publicly | Publication requires a separately recorded `approved_at` and `approved_by` plus matching approved trip state. Until a reviewed moderator service exists, approval remains an operator-controlled database/runbook action and public discussions remain default-off |
 | Support staff | No private-data application role currently exists | Impersonate an account, reset credentials, read trip content, or bypass deletion through the web app | No support route or browser role exists. A future support surface requires purpose limitation, MFA, field-level minimization, time-bounded elevation, reason capture, and immutable audit events before use |
 | Operator / administrator | Use separately authenticated Cloudflare/GitHub/provider consoles and reviewed runbooks for deployments, migrations, secrets, backups, recovery, and approved moderation | Gain application authority from browser state; expose secrets or raw private rows in dashboards/logs; bypass maintenance, migration, privacy, or human-approval gates | Provider IAM is outside the app session. Production mutations follow the integrated-release and production-operations runbooks. There is deliberately no client-side `admin` check or public admin API |
@@ -29,7 +29,7 @@ output never grants authority.
 
 | Resource | Required server predicate | Current mutation rules |
 | --- | --- | --- |
-| Session | `token_hash = sha256(cookie)` and `expires_at > now` | Login/reset creates a new random token; logout/password reset/account deletion revoke stored sessions |
+| Session | `token_hash = sha256(cookie)` and `expires_at > now` | Authentication atomically replaces any session presented by that browser and HTTPS uses `__Host-cc_session`; the prior cookie is accepted only for migration and rotated on session refresh; logout revokes presented sessions, while password reset and account deletion revoke every session for the account |
 | Saved site | `user_id = authenticated_user.id` | Owner may add/remove only their row |
 | Gear profile | `id = requested_id AND user_id = authenticated_user.id` | Owner may create, patch, or delete; an unknown or other-owned ID is `404` |
 | Trip/profile record | `id = requested_id AND user_id = authenticated_user.id` | Owner may patch/delete only while `moderation_status = 'pending'`; server-controlled contract fields cannot be overridden |
@@ -64,10 +64,9 @@ output never grants authority.
 - Production edge rate limits, Turnstile activation, alert delivery, key custody,
   restore/deletion replay, and the guarded migration/deployment sequence remain
   open in `docs/PRODUCT_ROADMAP.md`.
-- Password breach/common-pattern screening is locally implemented for new and reset
-  passwords, but production activation evidence remains open. Session rotation/revocation
-  policy and an approved operator/moderator IAM design also remain open. Their absence must
-  not be hidden by calling the current matrix complete.
+- Password screening and session rotation/revocation are locally implemented, but production
+  activation and live revocation evidence remain open. An approved operator/moderator IAM
+  design also remains open. These gates must not be hidden by calling the current matrix complete.
 - Any future operator dashboard must use a separate server-enforced role model,
   MFA, least privilege, immutable audit history, and field-level privacy controls.
   It cannot reuse a client-side account flag.

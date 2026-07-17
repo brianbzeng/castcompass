@@ -227,6 +227,261 @@ test("existing ten-character passwords remain valid for sign-in", async () => {
   assert.match(response.headers.get("set-cookie") ?? "", /cc_session=.*HttpOnly/);
 });
 
+test("authentication rotates presented sessions into secure host cookies and logout revokes them", async () => {
+  const { sqlite, d1 } = await database();
+  const user = await addUser(sqlite, "41");
+  const oldTokenHash = await sha256(user.token);
+
+  const login = await handleAccountRequest(request("/api/auth/login", {
+    method: "POST",
+    cookie: user.cookie,
+    body: { email: user.email, password: user.password },
+  }), { DB: d1 }, []);
+  assert.equal(login?.status, 200);
+  const setCookies = (login.headers.getSetCookie?.() ?? [login.headers.get("set-cookie") ?? ""]).join("\n");
+  assert.match(setCookies, /__Host-cc_session=[A-Za-z0-9_-]+; Path=\/; Max-Age=2592000; HttpOnly; SameSite=Lax; Secure/);
+  assert.doesNotMatch(setCookies, /Domain=/i);
+  const rotatedCookie = sessionCookieFrom(login);
+  assert.match(rotatedCookie ?? "", /^__Host-cc_session=/);
+  const rotatedToken = rotatedCookie?.split("=")[1] ?? "";
+  assert.notEqual(rotatedToken, user.token);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE token_hash = ?").get(oldTokenHash).count, 0);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE token_hash = ?").get(await sha256(rotatedToken)).count, 1);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE token_hash = ?").get(rotatedToken).count, 0);
+
+  const staleSession = await handleAccountRequest(request("/api/auth/session", { cookie: user.cookie }), { DB: d1 }, []);
+  assert.deepEqual(await staleSession.json(), { user: null });
+  const staleClears = (staleSession.headers.getSetCookie?.() ?? [staleSession.headers.get("set-cookie") ?? ""]).join("\n");
+  assert.match(staleClears, /__Host-cc_session=;.*Max-Age=0/);
+  assert.match(staleClears, /(?:^|\n)cc_session=;.*Max-Age=0/);
+
+  const activeSession = await handleAccountRequest(request("/api/auth/session", { cookie: rotatedCookie }), { DB: d1 }, []);
+  assert.deepEqual((await activeSession.json()).user, {
+    id: user.id,
+    email: user.email,
+    ageEligible: true,
+    legalAccepted: true,
+  });
+
+  const crossOriginLogout = await handleAccountRequest(new Request("https://castingcompass.com/api/auth/logout", {
+    method: "POST",
+    headers: { Cookie: rotatedCookie, Origin: "https://attacker.example" },
+  }), { DB: d1 }, []);
+  assert.equal(crossOriginLogout?.status, 403);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE token_hash = ?").get(await sha256(rotatedToken)).count, 1);
+
+  const logout = await handleAccountRequest(request("/api/auth/logout", {
+    method: "POST",
+    cookie: rotatedCookie,
+  }), { DB: d1 }, []);
+  assert.equal(logout?.status, 200);
+  const logoutCookies = (logout.headers.getSetCookie?.() ?? [logout.headers.get("set-cookie") ?? ""]).join("\n");
+  assert.match(logoutCookies, /__Host-cc_session=;.*Max-Age=0/);
+  assert.match(logoutCookies, /(?:^|\n)cc_session=;.*Max-Age=0/);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?").get(user.id).count, 0);
+});
+
+test("expired and deleted-account sessions fail closed", async () => {
+  const { sqlite, d1 } = await database();
+  const expired = await addUser(sqlite, "45");
+  sqlite.prepare("UPDATE auth_sessions SET expires_at = '2000-01-01T00:00:00.000Z' WHERE user_id = ?").run(expired.id);
+  const expiredResponse = await handleAccountRequest(request("/api/auth/session", {
+    cookie: expired.cookie,
+  }), { DB: d1 }, []);
+  assert.deepEqual(await expiredResponse.json(), { user: null });
+  assert.match((expiredResponse.headers.getSetCookie?.() ?? []).join("\n"), /cc_session=;.*Max-Age=0/);
+  await cleanupAuthData({ DB: d1 });
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?").get(expired.id).count, 0);
+
+  const deleted = await addUser(sqlite, "46");
+  sqlite.prepare("DELETE FROM users WHERE id = ?").run(deleted.id);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?").get(deleted.id).count, 0);
+  const deletedResponse = await handleAccountRequest(request("/api/auth/session", {
+    cookie: deleted.cookie,
+  }), { DB: d1 }, []);
+  assert.deepEqual(await deletedResponse.json(), { user: null });
+});
+
+test("known and unknown invalid logins perform password derivation and return the same response", async () => {
+  const { sqlite, d1 } = await database();
+  const user = await addUser(sqlite, "42");
+  const originalDeriveBits = crypto.subtle.deriveBits;
+  let deriveCalls = 0;
+  crypto.subtle.deriveBits = function (...args) {
+    deriveCalls += 1;
+    return originalDeriveBits.apply(this, args);
+  };
+
+  try {
+    const known = await handleAccountRequest(request("/api/auth/login", {
+      method: "POST",
+      body: { email: user.email, password: "definitely-wrong-password" },
+    }), { DB: d1 }, []);
+    const knownDerivations = deriveCalls;
+    deriveCalls = 0;
+    const unknown = await handleAccountRequest(request("/api/auth/login", {
+      method: "POST",
+      body: { email: "unknown-account@example.com", password: "definitely-wrong-password" },
+    }), { DB: d1 }, []);
+    const unknownDerivations = deriveCalls;
+
+    assert.equal(known?.status, 401);
+    assert.equal(unknown?.status, 401);
+    assert.deepEqual(await known.json(), await unknown.json());
+    assert.equal(knownDerivations, 1);
+    assert.equal(unknownDerivations, 1);
+  } finally {
+    crypto.subtle.deriveBits = originalDeriveBits;
+  }
+});
+
+test("password recovery remains enumeration-resistant through request, resend, and reset", async () => {
+  const { sqlite, d1 } = await database();
+  const user = await addUser(sqlite, "43");
+  const deferred = [];
+  const providerCalls = [];
+  let releaseProvider;
+  const providerGate = new Promise((resolve) => { releaseProvider = resolve; });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init) => {
+    providerCalls.push({ input: String(input), init });
+    return providerGate;
+  };
+
+  try {
+    const known = await handleAccountRequest(request("/api/auth/password/request", {
+      method: "POST",
+      body: { email: user.email },
+    }), { DB: d1, RESEND_API_KEY: "test-key" }, [], { waitUntil: (promise) => deferred.push(promise) });
+    const missing = await handleAccountRequest(request("/api/auth/password/request", {
+      method: "POST",
+      body: { email: "missing-recovery@example.com" },
+    }), { DB: d1, RESEND_API_KEY: "test-key" }, [], { waitUntil: (promise) => deferred.push(promise) });
+    const knownBody = await known.json();
+    const missingBody = await missing.json();
+    assert.equal(known.status, 200);
+    assert.equal(missing.status, 200);
+    assert.deepEqual({ ...knownBody, challengeId: "normalized" }, { ...missingBody, challengeId: "normalized" });
+    assert.match(knownBody.challengeId, /^challenge_[a-f0-9-]{36}$/);
+    assert.match(missingBody.challengeId, /^challenge_[a-f0-9-]{36}$/);
+    assert.equal(providerCalls.length, 1);
+    assert.equal(deferred.length, 1);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE email = ?")
+      .get("missing-recovery@example.com").count, 0);
+
+    const deliveryBody = JSON.parse(providerCalls[0].init.body);
+    const deliveredCode = deliveryBody.text.match(/\b\d{6}\b/)?.[0];
+    assert.match(deliveredCode ?? "", /^\d{6}$/);
+    releaseProvider(Response.json({ id: "recovery-safe" }));
+    await Promise.all(deferred);
+
+    const knownResend = await handleAccountRequest(request("/api/auth/challenge/resend", {
+      method: "POST",
+      body: { challengeId: knownBody.challengeId },
+    }), { DB: d1, RESEND_API_KEY: "test-key" }, []);
+    const missingResend = await handleAccountRequest(request("/api/auth/challenge/resend", {
+      method: "POST",
+      body: { challengeId: missingBody.challengeId },
+    }), { DB: d1, RESEND_API_KEY: "test-key" }, []);
+    assert.equal(knownResend.status, 200);
+    assert.equal(missingResend.status, 200);
+    assert.deepEqual(
+      { ...(await knownResend.json()), challengeId: "normalized" },
+      { ...(await missingResend.json()), challengeId: "normalized" },
+    );
+    assert.equal(providerCalls.length, 1);
+
+    const wrongCode = deliveredCode === "000000" ? "000001" : "000000";
+    const resetBody = { code: wrongCode, password: "a new safe test password" };
+    const knownReset = await handleAccountRequest(request("/api/auth/password/reset", {
+      method: "POST",
+      body: { ...resetBody, challengeId: knownBody.challengeId },
+    }), { DB: d1 }, []);
+    const missingReset = await handleAccountRequest(request("/api/auth/password/reset", {
+      method: "POST",
+      body: { ...resetBody, challengeId: missingBody.challengeId },
+    }), { DB: d1 }, []);
+    assert.equal(knownReset.status, 401);
+    assert.equal(missingReset.status, 401);
+    assert.deepEqual(await knownReset.json(), await missingReset.json());
+
+    for (let index = 0; index < 4; index += 1) {
+      const id = `challenge_${crypto.randomUUID()}`;
+      sqlite.prepare(`INSERT INTO email_challenges
+          (id, kind, email, user_id, code_hash, expires_at, attempts, resend_count, created_at)
+        VALUES (?, 'password_reset', ?, ?, ?, ?, 0, 0, ?)`)
+        .run(
+          id,
+          user.email,
+          user.id,
+          await sha256(`${id}:123456`),
+          new Date(Date.now() + 15 * 60_000).toISOString(),
+          new Date().toISOString(),
+        );
+    }
+    const limitedKnown = await handleAccountRequest(request("/api/auth/password/request", {
+      method: "POST",
+      body: { email: user.email },
+    }), { DB: d1, RESEND_API_KEY: "test-key" }, []);
+    const limitedMissing = await handleAccountRequest(request("/api/auth/password/request", {
+      method: "POST",
+      body: { email: "another-missing@example.com" },
+    }), { DB: d1, RESEND_API_KEY: "test-key" }, []);
+    assert.equal(limitedKnown.status, 200);
+    assert.equal(limitedMissing.status, 200);
+    assert.deepEqual(
+      { ...(await limitedKnown.json()), challengeId: "normalized" },
+      { ...(await limitedMissing.json()), challengeId: "normalized" },
+    );
+    assert.equal(providerCalls.length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("password reset revokes every prior session before issuing a fresh one", async () => {
+  const { sqlite, d1 } = await database();
+  const user = await addUser(sqlite, "44");
+  const secondToken = Buffer.alloc(32, 45).toString("base64url");
+  const now = new Date();
+  sqlite.prepare("INSERT INTO auth_sessions (token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)")
+    .run(await sha256(secondToken), user.id, new Date(now.getTime() + 86_400_000).toISOString(), now.toISOString());
+  const challengeId = `challenge_${crypto.randomUUID()}`;
+  const code = "624810";
+  sqlite.prepare(`INSERT INTO email_challenges
+      (id, kind, email, user_id, code_hash, expires_at, attempts, resend_count, created_at)
+    VALUES (?, 'password_reset', ?, ?, ?, ?, 0, 0, ?)`)
+    .run(
+      challengeId,
+      user.email,
+      user.id,
+      await sha256(`${challengeId}:${code}`),
+      new Date(now.getTime() + 15 * 60_000).toISOString(),
+      now.toISOString(),
+    );
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(`${"0".repeat(35)}:0`);
+  try {
+    const reset = await handleAccountRequest(request("/api/auth/password/reset", {
+      method: "POST",
+      cookie: user.cookie,
+      body: { challengeId, code, password: "a unique replacement passphrase" },
+    }), { DB: d1 }, []);
+    assert.equal(reset?.status, 200);
+    const freshCookie = sessionCookieFrom(reset);
+    assert.match(freshCookie ?? "", /^__Host-cc_session=/);
+    const freshToken = freshCookie?.split("=")[1] ?? "";
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?").get(user.id).count, 1);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE token_hash = ?").get(await sha256(user.token)).count, 0);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE token_hash = ?").get(await sha256(secondToken)).count, 0);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE token_hash = ?").get(await sha256(freshToken)).count, 1);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?").get(challengeId).count, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 function addTrip(sqlite, user, {
   id = `trip_${crypto.randomUUID()}`,
   photoKey = null,
@@ -287,6 +542,15 @@ function receiptFrom(response) {
   const cookies = response.headers.getSetCookie?.() ?? [response.headers.get("set-cookie") ?? ""];
   const joined = cookies.join(",");
   return joined.match(/cc_deletion_receipt=([A-Za-z0-9_-]+)/)?.[1] ?? null;
+}
+
+function sessionCookieFrom(response) {
+  const cookies = response.headers.getSetCookie?.() ?? [response.headers.get("set-cookie") ?? ""];
+  for (const cookie of cookies) {
+    const match = cookie.match(/(?:^|,\s*)((?:__Host-)?cc_session)=([A-Za-z0-9_-]+)/);
+    if (match) return `${match[1]}=${match[2]}`;
+  }
+  return null;
 }
 
 function losAngelesDateParts(date = new Date()) {
@@ -524,9 +788,11 @@ test("legal reacceptance preserves prior age eligibility and legacy accounts fai
   assert.deepEqual(await session.json(), {
     user: { id: user.id, email: user.email, ageEligible: true, legalAccepted: false },
   });
+  const rotatedUserCookie = sessionCookieFrom(session);
+  assert.match(rotatedUserCookie ?? "", /^__Host-cc_session=/);
   const reaccepted = await handleAccountRequest(request("/api/auth/eligibility", {
     method: "POST",
-    cookie: user.cookie,
+    cookie: rotatedUserCookie,
     body: { termsAccepted: true, privacyAccepted: true },
   }), { DB: d1 }, []);
   assert.equal(reaccepted?.status, 200);
@@ -539,19 +805,21 @@ test("legal reacceptance preserves prior age eligibility and legacy accounts fai
   assert.deepEqual(await legacySession.json(), {
     user: { id: legacy.id, email: legacy.email, ageEligible: false, legalAccepted: false },
   });
+  const rotatedLegacyCookie = sessionCookieFrom(legacySession);
+  assert.match(rotatedLegacyCookie ?? "", /^__Host-cc_session=/);
   const legacyReaccept = await handleAccountRequest(request("/api/auth/eligibility", {
     method: "POST",
-    cookie: legacy.cookie,
+    cookie: rotatedLegacyCookie,
     body: { termsAccepted: true, privacyAccepted: true },
   }), { DB: d1 }, []);
   assert.equal(legacyReaccept?.status, 428);
   const legacyDob = await handleAccountRequest(request("/api/auth/eligibility", {
     method: "POST",
-    cookie: legacy.cookie,
+    cookie: rotatedLegacyCookie,
     body: { birthDate: "2000-01-01", termsAccepted: true, privacyAccepted: true },
   }), { DB: d1 }, []);
   assert.equal(legacyDob?.status, 422);
-  const legacyExport = await handleAccountRequest(request("/api/profile/export", { cookie: legacy.cookie }), { DB: d1 }, []);
+  const legacyExport = await handleAccountRequest(request("/api/profile/export", { cookie: rotatedLegacyCookie }), { DB: d1 }, []);
   assert.equal(legacyExport?.status, 200);
 });
 

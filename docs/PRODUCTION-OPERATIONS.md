@@ -33,6 +33,27 @@ The age-proof endpoint also needs a tested edge ceiling before launch: otherwise
 requests can create unbounded short-lived D1 rows without sending email. Exercise the rule
 against normal multi-step signup and measure both blocked requests and proof-table growth.
 
+## Authentication and session smoke tests
+
+Run these checks only with a dedicated synthetic account and keep every token, email address,
+and verification code out of screenshots, logs, and release records:
+
+- confirm successful HTTPS authentication sets only an opaque `__Host-cc_session` value with
+  `Path=/`, `Secure`, `HttpOnly`, `SameSite=Lax`, and no `Domain` attribute;
+- confirm a pre-migration `cc_session` cookie is replaced on session refresh and its server row
+  is no longer accepted, without recording either token;
+- confirm logout rejects a wrong origin, then revokes the correct presented session and clears
+  both current and migration cookie names;
+- create two synthetic sessions, complete a password reset, and confirm both old sessions fail
+  while exactly one newly issued session works;
+- confirm an expired session and a session whose account was deleted both fail closed; and
+- compare absent-account and wrong-password login/recovery probes only through aggregate timing
+  and response-class evidence. Do not retain identifiers or raw latency traces tied to an email.
+
+Repository tests prove the code paths and privacy boundaries, not the deployed cookie behavior,
+Worker background-email lifecycle, provider delivery, D1 state, or edge rate limits. Keep this
+gate open until those live synthetic checks pass on the exact deployed version.
+
 ## Monitoring and alerting
 
 Cloudflare Worker observability is enabled in `wrangler.jsonc`, but that setting alone is not

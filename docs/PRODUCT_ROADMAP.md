@@ -66,6 +66,12 @@ after its acceptance checks pass in the intended environment.
     scoped `SameSite` cookies, rotation, expiry, revocation, fixation resistance, CSRF defenses,
     and enumeration-safe login/recovery behavior. Client-side session or admin checks may guide
     the interface but must never grant access.
+    - [x] Locally implement and verify HTTPS `__Host-` session cookies, hashed 256-bit opaque
+      tokens, migration of the prior cookie, atomic rotation after authentication, stale-cookie
+      clearing, fixed expiry, logout/password-reset/account-deletion revocation, same-origin
+      mutation checks, equal-work invalid login, and generic deferred recovery behavior across
+      request, resend, and invalid-code paths. Live cookie, email-delivery, expiry, and revocation
+      evidence remains required after the guarded production deployment.
   - [ ] Define and approve a deny-by-default access-control matrix for anonymous users, account
     owners, moderators, support, operators, and administrators. Enforce it server-side on every
     route and object lookup, with privilege-escalation, insecure direct-object reference, and

@@ -17,7 +17,10 @@ test("uses hardened server-side sessions for beta accounts", () => {
   assert.match(authSource, /PBKDF2/);
   assert.match(authSource, /100_000/);
   assert.match(authSource, /HttpOnly; SameSite=Lax/);
+  assert.match(authSource, /__Host-cc_session/);
+  assert.match(authSource, /SameSite=Lax; Secure/);
   assert.match(authSource, /auth_sessions/);
+  assert.doesNotMatch(accountSource, /localStorage[^\n]*cc_session|cc_session[^\n]*localStorage/);
   assert.match(workerSource, /getAuthenticatedUser/);
   assert.match(workerSource, /protectedTripMutation/);
 });
