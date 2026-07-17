@@ -35,7 +35,8 @@ test("gear presets and pending-trip edits share the searchable product catalog",
 
 test("persists saved locations and gates trip entry points", () => {
   assert.match(migration, /CREATE TABLE IF NOT EXISTS `saved_sites`/);
-  assert.match(appSource, /Save location/);
+  assert.match(appSource, /<SavedSiteControls account=\{account\} siteId=\{selectedSite\.id\} \/>/);
+  assert.match(accountSource, /Save location/);
   assert.match(appSource, /savedSiteIds/);
   assert.match(tripSource, /canSubmit/);
   assert.match(tripSource, /onRequireLogin/);

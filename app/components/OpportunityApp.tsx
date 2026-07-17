@@ -3,7 +3,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { AccountModal, useAccount } from "./AccountFeature";
+import { AccountModal, SavedSiteControls, useAccount } from "./AccountFeature";
 import { TripReportFeature } from "./TripReportFeature";
 import {
   ArrowIcon,
@@ -1898,14 +1898,7 @@ export function OpportunityApp() {
               Fish this window <ArrowIcon />
             </button>
 
-            <button
-              className={`save-site-button ${account.savedSiteIds.has(selectedSite.id) ? "saved" : ""}`}
-              type="button"
-              onClick={() => void account.toggleSavedSite(selectedSite.id)}
-            >
-              <span>{account.savedSiteIds.has(selectedSite.id) ? "★" : "☆"}</span>
-              {account.savedSiteIds.has(selectedSite.id) ? "Saved location" : "Save location"}
-            </button>
+            <SavedSiteControls account={account} siteId={selectedSite.id} />
 
             <OpportunityDayChart windows={detailDayWindows} selectedWindow={selectedWindow} />
 

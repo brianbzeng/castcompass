@@ -83,6 +83,14 @@ async function prepareSignOut(page: Page) {
   return { modal, controls: modal.locator(".account-signout-controls") };
 }
 
+async function prepareSavedSiteMutation(page: Page) {
+  const siteCard = page.locator(".site-card").filter({ hasText: "Limantour Beach" });
+  await siteCard.click();
+  const detail = page.locator(".detail-sheet");
+  await expect(detail.getByRole("heading", { name: "Limantour Beach" })).toBeVisible();
+  return { detail, controls: detail.locator(".saved-site-controls") };
+}
+
 test.beforeEach(async ({ page }, testInfo) => {
   const testTitle = testInfo.titlePath.join(" ");
   if (testTitle.includes("failed lazy route dependency")) {
@@ -112,6 +120,9 @@ test.beforeEach(async ({ page }, testInfo) => {
     testTitle.includes("malformed sign-out receipt stays unresolved") ||
     testTitle.includes("session check confirms sign-out") ||
     testTitle.includes("session check permits a retry");
+  const savedSiteRecoveryTest = testTitle.includes("saved-location changes pause while offline") ||
+    testTitle.includes("slow saved-location removal stays unconfirmed") ||
+    testTitle.includes("malformed saved-location receipt stays unresolved");
   let profileAttempts = 0;
   await page.route("**/api/auth/session", (route) => route.fulfill({
     status: 200,
@@ -131,10 +142,12 @@ test.beforeEach(async ({ page }, testInfo) => {
                   ? { id: "user_gear_recovery", email: "geartest@example.com", ageEligible: true, legalAccepted: true }
                   : signOutRecoveryTest
                     ? { id: "user_signout_recovery", email: "signouttest@example.com", ageEligible: true, legalAccepted: true }
+                    : savedSiteRecoveryTest
+                      ? { id: "user_saved_site_recovery", email: "savedtest@example.com", ageEligible: true, legalAccepted: true }
         : null,
     }),
   }));
-  if (profileRecoveryTest || tripRecoveryTest || accountDeletionRecoveryTest || tripDeletionRecoveryTest || tripEditRecoveryTest || gearMutationRecoveryTest || signOutRecoveryTest) {
+  if (profileRecoveryTest || tripRecoveryTest || accountDeletionRecoveryTest || tripDeletionRecoveryTest || tripEditRecoveryTest || gearMutationRecoveryTest || signOutRecoveryTest || savedSiteRecoveryTest) {
     await page.route("**/api/saved-sites", (route) => route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -144,6 +157,13 @@ test.beforeEach(async ({ page }, testInfo) => {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ gearProfiles: [] }),
+    }));
+  }
+  if (savedSiteRecoveryTest) {
+    await page.route("**/api/discussions/*", (route) => route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ posts: [] }),
     }));
   }
   if (profileRecoveryTest) {
@@ -772,6 +792,86 @@ test.describe("gear mutation recovery", () => {
     await expect(gear.getByRole("button", { name: "Verify gear removal before retrying" })).toBeDisabled();
     await expect(gear.getByRole("button", { name: "Verify gear status before retrying" })).toBeDisabled();
     expect(removalAttempts).toBe(1);
+  });
+});
+
+test.describe("saved-location mutation recovery", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("saved-location changes pause while offline and never submit automatically", async ({ page, context }) => {
+    let mutationAttempts = 0;
+    await page.route("**/api/saved-sites/*", (route) => {
+      mutationAttempts += 1;
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ saved: false, siteId: "limantour-beach" }),
+      });
+    });
+
+    const { controls } = await prepareSavedSiteMutation(page);
+    await context.setOffline(true);
+    await expect(controls.getByRole("button", { name: "Reconnect to remove saved location" })).toBeDisabled();
+    await expect(controls.getByRole("alert")).toContainText("No saved-location change was submitted");
+
+    await context.setOffline(false);
+    await expect(controls.getByRole("button", { name: "Saved location" })).toBeEnabled();
+    await expect(controls.getByRole("status")).toContainText("No saved-location change was submitted automatically");
+    await page.waitForTimeout(100);
+    expect(mutationAttempts).toBe(0);
+  });
+
+  test("slow saved-location removal stays unconfirmed until the exact receipt arrives", async ({ page }) => {
+    await page.route("**/api/saved-sites/*", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ saved: false, siteId: "limantour-beach" }),
+      });
+    });
+
+    const { controls } = await prepareSavedSiteMutation(page);
+    await controls.getByRole("button", { name: "Saved location" }).click();
+    const status = controls.getByRole("status");
+    await expect(status).toContainText("saved-location change has not been confirmed yet", { timeout: 5_500 });
+    await expect(status.locator("i")).toBeVisible();
+    await expect(controls.getByRole("button", { name: "Removing saved location…" })).toBeDisabled();
+    await expect(controls.getByRole("button", { name: "Save location" })).toBeEnabled({ timeout: 8_000 });
+    await expect(status).toContainText("removed and confirmed by the server");
+  });
+
+  test("malformed saved-location receipt stays unresolved until a read-only check confirms it", async ({ page, context }) => {
+    let mutationAttempts = 0;
+    await page.route("**/api/saved-sites/*", (route) => {
+      mutationAttempts += 1;
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ saved: false }),
+      });
+    });
+
+    const { controls } = await prepareSavedSiteMutation(page);
+    await controls.getByRole("button", { name: "Saved location" }).click();
+    const alert = controls.getByRole("alert");
+    await expect(alert).toContainText("This location may already have changed");
+    await expect(alert).toContainText("check server status first");
+    await expect(controls.getByRole("button", { name: "Saved-location status unresolved" })).toBeDisabled();
+    await expect(controls.getByRole("button", { name: "Check saved-location status" })).toBeEnabled();
+
+    await context.setOffline(true);
+    await expect(controls.getByRole("button", { name: "Reconnect to check saved-location status" })).toBeDisabled();
+    await context.setOffline(false);
+    await page.route("**/api/saved-sites", (route) => route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ siteIds: [] }),
+    }));
+    await controls.getByRole("button", { name: "Check saved-location status" }).click();
+    await expect(controls.getByRole("button", { name: "Save location" })).toBeEnabled();
+    await expect(controls.getByRole("status")).toContainText("no longer saved");
+    expect(mutationAttempts).toBe(1);
   });
 });
 
