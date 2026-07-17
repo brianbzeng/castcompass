@@ -871,6 +871,55 @@ test("per-record authorization denies cross-account reads and mutations", async 
     .get(gearId, owner.id).count, 1);
 });
 
+test("owner mutations reject undeclared gear and profile fields", async () => {
+  const { sqlite, d1 } = await database();
+  const user = await addUser(sqlite, "strict-input");
+  const gear = await handleAccountRequest(request("/api/gear-profiles", {
+    method: "POST",
+    cookie: user.cookie,
+    body: {
+      name: "Strict setup",
+      rod: "Rod",
+      reel: "Reel",
+      baitLure: "Swimbait",
+      rig: "Jighead",
+      userId: "user_attacker_selected",
+    },
+  }), { DB: d1 }, []);
+  assert.equal(gear?.status, 422);
+  assert.equal((await gear?.json()).error.code, "unexpected_fields");
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM gear_profiles WHERE user_id = ?").get(user.id).count, 0);
+
+  const tripId = addTrip(sqlite, user);
+  const trip = sqlite.prepare("SELECT * FROM trips WHERE id = ?").get(tripId);
+  const profile = await handleAccountRequest(request(`/api/profile/trips/${tripId}`, {
+    method: "PATCH",
+    cookie: user.cookie,
+    body: {
+      siteId: trip.site_id,
+      startedAt: trip.started_at,
+      endedAt: trip.ended_at,
+      mode: trip.mode,
+      anglerCount: trip.angler_count,
+      keeperCount: trip.keeper_count,
+      shortReleasedCount: trip.short_released_count,
+      fishingMethod: trip.fishing_method,
+      gearProfileId: "",
+      rod: trip.rod,
+      reel: trip.reel,
+      baitLure: trip.bait_lure,
+      rig: trip.rig,
+      otherCatchCount: trip.other_catch_count,
+      otherSpecies: trip.other_species,
+      notes: trip.notes,
+      adminApproved: true,
+    },
+  }), { DB: d1 }, [{ id: "ocean-beach" }]);
+  assert.equal(profile?.status, 422);
+  assert.equal((await profile?.json()).error.code, "unexpected_fields");
+  assert.equal(sqlite.prepare("SELECT notes FROM trips WHERE id = ?").get(tripId).notes, trip.notes);
+});
+
 test("account deletion transaction removes public/account rows and completes successful object purge", async () => {
   const { sqlite, d1 } = await database();
   const user = await addUser(sqlite);
@@ -1410,21 +1459,24 @@ test("private export preserves immutable validation lineage without accepting ev
     VALIDATION_ACTIVATION_SCORING_SHA256: PRIVACY_TEST_SCORING_SHA,
   };
   const reporterKey = "private-export-device-key-123456789";
-  const startResponse = await handleTripRequest(new Request("https://castingcompass.com/api/trips/start", {
+  const startBody = {
+    siteId: "ocean-beach",
+    startedAt: "2026-08-01T10:30:00.000Z",
+    mode: "beach",
+    fishingMethod: "artificial-lure",
+    anglerCount: 3,
+    consent: true,
+    primaryTargetConfirmed: true,
+    scoreInfluencedChoice: true,
+    reporterKey,
+    opportunityWindowId: windowId,
+    website: "",
+  };
+  const forgedStart = await handleTripRequest(new Request("https://castingcompass.com/api/trips/start", {
     method: "POST",
     headers: { Origin: "https://castingcompass.com", "Content-Type": "application/json" },
     body: JSON.stringify({
-      siteId: "ocean-beach",
-      startedAt: "2026-08-01T10:30:00.000Z",
-      mode: "beach",
-      fishingMethod: "artificial-lure",
-      anglerCount: 3,
-      consent: true,
-      primaryTargetConfirmed: true,
-      scoreInfluencedChoice: true,
-      reporterKey,
-      opportunityWindowId: windowId,
-      website: "",
+      ...startBody,
       sourceRole: "score-visible-first-party",
       cohortRole: "secondary",
       selectionDesign: "prospective-score-visible-self-selected",
@@ -1432,6 +1484,17 @@ test("private export preserves immutable validation lineage without accepting ev
       collectionEvidenceStatus: "secondary_pending_review",
       collectionCohortId: "california-halibut-site-window-observational-secondary-v1",
     }),
+  }), env, sites, {
+    accountId: user.id,
+    now: () => new Date("2026-08-01T10:31:00.000Z"),
+  });
+  assert.equal(forgedStart.status, 422);
+  assert.equal((await forgedStart.json()).error.code, "unexpected_fields");
+
+  const startResponse = await handleTripRequest(new Request("https://castingcompass.com/api/trips/start", {
+    method: "POST",
+    headers: { Origin: "https://castingcompass.com", "Content-Type": "application/json" },
+    body: JSON.stringify(startBody),
   }), env, sites, {
     accountId: user.id,
     now: () => new Date("2026-08-01T10:31:00.000Z"),
@@ -1454,6 +1517,18 @@ test("private export preserves immutable validation lineage without accepting ev
   completion.set("sourceRole", "score-visible-first-party");
   completion.set("cohortRole", "secondary");
   completion.set("selectionDesign", "prospective-score-visible-self-selected");
+  const forgedCompletion = await handleTripRequest(new Request(
+    `https://castingcompass.com/api/trips/${started.trip.id}/complete`,
+    { method: "POST", headers: { Origin: "https://castingcompass.com" }, body: completion },
+  ), env, sites, {
+    accountId: user.id,
+    now: () => new Date("2026-08-01T11:31:00.000Z"),
+  });
+  assert.equal(forgedCompletion.status, 422);
+  assert.equal((await forgedCompletion.json()).error.code, "unexpected_fields");
+  completion.delete("sourceRole");
+  completion.delete("cohortRole");
+  completion.delete("selectionDesign");
   const completionResponse = await handleTripRequest(new Request(
     `https://castingcompass.com/api/trips/${started.trip.id}/complete`,
     { method: "POST", headers: { Origin: "https://castingcompass.com" }, body: completion },
@@ -2419,8 +2494,15 @@ test("AI provider payload omits hostile legacy forecast metadata at the egress b
         flags: [],
         summary: "Complete report.",
         needs_human_review: false,
-        gear_analysis: {},
-        discussion: { publish: false, summary: "", technique_tags: [] },
+        gear_analysis: {
+          rod: { brand: null, series: null, model: null, confidence: "low" },
+          reel: { brand: null, series: null, model: null, confidence: "low" },
+          lure: { brand: null, series: null, model: null, confidence: "low" },
+          setup_tags: [],
+          compatibility_flags: [],
+          technique_match_summary: null,
+        },
+        discussion: { publish: false, summary: "", gear_summary: null, technique_tags: [] },
       }) } }],
     });
   };
@@ -2520,8 +2602,15 @@ test("AI review suppresses dispatch after a committed tombstone and cannot resur
           flags: [],
           summary: "Complete report.",
           needs_human_review: false,
-          gear_analysis: {},
-          discussion: { publish: true, summary: "Candidate", technique_tags: [] },
+          gear_analysis: {
+            rod: { brand: null, series: null, model: null, confidence: "low" },
+            reel: { brand: null, series: null, model: null, confidence: "low" },
+            lure: { brand: null, series: null, model: null, confidence: "low" },
+            setup_tags: [],
+            compatibility_flags: [],
+            technique_match_summary: null,
+          },
+          discussion: { publish: true, summary: "Candidate", gear_summary: null, technique_tags: [] },
         }) } }],
       });
     };

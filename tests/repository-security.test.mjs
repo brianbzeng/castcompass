@@ -162,6 +162,23 @@ test("asset-first responses receive the same baseline browser hardening", () => 
   assert.match(headers, /\/sw\.js[\s\S]*Cache-Control: no-cache, no-store, must-revalidate/);
 });
 
+test("application output uses React encoding and the only raw script context escapes tag openings", () => {
+  const applicationFiles = readdirSync("app", { recursive: true })
+    .filter((name) => typeof name === "string" && /\.(?:ts|tsx)$/.test(name));
+  const rawHtmlFiles = [];
+  for (const name of applicationFiles) {
+    const path = `app/${name}`;
+    const source = readFileSync(path, "utf8");
+    if (source.includes("dangerouslySetInnerHTML")) rawHtmlFiles.push(path);
+    assert.doesNotMatch(source, /\b(?:innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval)\b/);
+  }
+
+  assert.deepEqual(rawHtmlFiles, ["app/page.tsx"]);
+  const home = readFileSync("app/page.tsx", "utf8");
+  assert.match(home, /JSON\.stringify\(websiteStructuredData\)\.replace\(\/<\/g/);
+  assert.match(home, /\\\\u003c/);
+});
+
 test("scheduled snapshot refreshes require review instead of pushing the default branch", () => {
   const workflow = readFileSync(".github/workflows/refresh-snapshot.yml", "utf8");
 

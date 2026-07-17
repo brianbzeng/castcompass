@@ -251,7 +251,14 @@ test("AI review stores a private candidate and cannot write a public post", asyn
       flags: [],
       summary: "Complete report.",
       needs_human_review: false,
-      gear_analysis: {},
+      gear_analysis: {
+        rod: { brand: null, series: null, model: null, confidence: "low" },
+        reel: { brand: null, series: null, model: null, confidence: "low" },
+        lure: { brand: null, series: null, model: null, confidence: "low" },
+        setup_tags: [],
+        compatibility_flags: [],
+        technique_match_summary: null,
+      },
       discussion: {
         publish: true,
         summary: "Candidate text that still requires a person.",

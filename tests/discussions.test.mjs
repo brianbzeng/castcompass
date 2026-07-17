@@ -10,13 +10,15 @@ const [review, discussions, worker, app, migration] = await Promise.all([
   readFile(new URL("../drizzle/0006_moderated_location_discussions.sql", import.meta.url), "utf8"),
 ]);
 
-test("MiMo normalizes gear and prepares a bounded human-gated discussion draft", () => {
+test("MiMo strictly validates gear and prepares a bounded human-gated discussion draft", () => {
   assert.match(review, /Normalize recognizable rod, reel, and lure brands\/series\/models/);
   assert.match(review, /do not rank brands/i);
   assert.match(review, /Remove names, handles, contact details, exact sub-location clues/);
   assert.match(review, /You cannot publish or approve it/);
-  assert.match(review, /normalizeGearAnalysis/);
-  assert.match(review, /normalizeDiscussion/);
+  assert.match(review, /parseStrictReview/);
+  assert.match(review, /strictGearItem/);
+  assert.match(review, /MIMO_MAX_RESPONSE_BYTES/);
+  assert.match(review, /discussion:\s*\{[\s\S]*publish: !source\.needs_human_review && discussion\.publish/);
   assert.doesNotMatch(review, /publishTripDiscussion|site_discussion_posts/);
   assert.match(review, /reviewTripBacklog/);
   assert.match(worker, /scheduled/);
