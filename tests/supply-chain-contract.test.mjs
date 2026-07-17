@@ -34,7 +34,11 @@ test("CI fixes runner versions and enforces dependency review, audits, and SBOM 
   assert.equal((`${ci}\n${refresh}`.match(/python-version:\s*["']3\.12\.13["']/g) ?? []).length, 3);
   assert.match(ci, /actions\/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294/);
   assert.match(ci, /fail-on-severity:\s*high/);
+  assert.match(ci, /github\.base_ref\s*==\s*github\.event\.repository\.default_branch/);
   assert.match(ci, /npm run security:secrets[\s\S]+npm ci[\s\S]+npm run security:dependencies[\s\S]+npm run security:sbom/);
+
+  const generator = await readFile(new URL("scripts/generate-sbom.mjs", root), "utf8");
+  assert.equal((generator.match(/--package-lock-only/g) ?? []).length, 2);
 });
 
 test("the deterministic production SBOM is bound to the lock and direct runtime packages", async () => {
@@ -64,5 +68,6 @@ test("the supply-chain runbook keeps Python hashes and deployment attestations o
   assert.match(policy, /does? \*\*not\*\* yet claim a cross-version enforced npm install-script/i);
   assert.match(policy, /not yet\s+locked with local SHA-256 hashes/i);
   assert.match(policy, /not yet signed deployment provenance/i);
+  assert.match(policy, /stacked successor PRs[\s\S]+do not falsely report a dependency-review pass/i);
   assert.match(policy, /parent roadmap item[\s\S]+remains open/i);
 });

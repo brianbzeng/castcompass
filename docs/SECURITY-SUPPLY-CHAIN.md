@@ -18,8 +18,8 @@ path so security fixes are not frozen out.
 | Transitive npm tree | `package-lock.json` records exact versions, registry locations, and integrity hashes; CI and release use `npm ci` | Registry availability and npm/client behavior remain external; the hosted runner itself is not bit-for-bit pinned |
 | Known npm advisories | Compatible Babel and YAML fixes are forced; the deprecated Drizzle loader's vulnerable esbuild is overridden to tested `0.25.12`; the resulting complete npm tree currently audits clean | Replace the deprecated `@esbuild-kit` loader path when Drizzle removes it; do not leave the override indefinitely without tests |
 | GitHub Actions | Every `uses:` reference is a full immutable commit SHA; runner labels are fixed to `ubuntu-24.04` rather than `ubuntu-latest` | GitHub updates the image behind that label; a release still records the workflow run and source commit |
-| Pull-request dependency changes | The SHA-pinned GitHub dependency-review action rejects newly introduced high/critical runtime or development advisories | The GitHub dependency graph/service must be enabled and its check made required in repository rules |
-| Production npm SBOM | `security/sbom.cdx.json` is a deterministic CycloneDX 1.5 inventory of the installed production tree and embeds the SHA-256 of `package-lock.json` | It is repository evidence, not a signed deployment attestation or proof of the bytes Cloudflare actually ran |
+| Pull-request dependency changes | The SHA-pinned GitHub dependency-review action rejects newly introduced high/critical runtime or development advisories on release PRs targeting the default branch | GitHub builds the graph from the default branch, so stacked PRs cannot supply this evidence; make the release check required in repository rules |
+| Production npm SBOM | `security/sbom.cdx.json` is a deterministic CycloneDX 1.5 inventory of the lock-resolved production graph, including cross-platform optional variants, and embeds the SHA-256 of `package-lock.json` | It is repository evidence, not a signed deployment attestation or proof of the platform-specific bytes Cloudflare actually ran |
 | Secrets | Repository secret scanning and provider-pattern tests run before dependency installation in CI | Provider-side secret scanning, rotation, IAM, and incident drills require account evidence |
 
 The exact Node release is the current patched release selected for the maintained 22.x line,
@@ -39,10 +39,13 @@ The web job deliberately orders its gates as follows:
    committed SBOM and lockfile hash;
 5. lint, typecheck, build, run all runtime/attack tests, and exercise the mobile browser suite.
 
-The pull-request-only dependency-review job separately compares the base and head dependency
-graphs. It blocks a newly introduced high/critical advisory in runtime or development scope.
-Both jobs need to be required in GitHub repository rules before they are production evidence.
-The release runbook repeats all repository security checks from the immutable checkout.
+The dependency-review job separately compares the base and head dependency graphs on pull
+requests targeting the default branch. GitHub builds that graph from the default branch, so
+stacked successor PRs rely on the mandatory complete-tree/production audits and SBOM gate;
+they do not falsely report a dependency-review pass. The release check must block newly
+introduced high/critical advisories in runtime or development scope. Both jobs need to be
+required in GitHub repository rules before they are production evidence. The release runbook
+repeats all repository security checks from the immutable checkout.
 
 ## Deterministic SBOM workflow
 
@@ -53,12 +56,14 @@ npm run security:sbom:write
 npm run security:sbom
 ```
 
-The generator takes npm's complete CycloneDX graph, independently resolves the installed
-production tree with `npm ls --omit=dev`, intersects the two graphs, removes random/time/local-
-path metadata, sorts components and dependency edges, normalizes the root component name, and
-embeds the current `package-lock.json` SHA-256. The intersection avoids relying on npm SBOM's
-version-dependent omit behavior; tests also require every direct runtime package. Review both
-the lock diff and SBOM diff in the same pull request. CI rejects a stale SBOM.
+The generator takes npm's complete lockfile-only CycloneDX graph, independently resolves the
+lockfile-only production tree with `npm ls --package-lock-only --omit=dev`, intersects the two
+graphs, removes random/time/local-path metadata, sorts components and dependency edges,
+normalizes the root component name, and embeds the current `package-lock.json` SHA-256. Using
+the lock rather than the host installation keeps optional native variants deterministic across
+macOS and Linux. The intersection avoids relying on npm SBOM's version-dependent omit behavior;
+tests also require every direct runtime package. Review both the lock diff and SBOM diff in the
+same pull request. CI rejects a stale SBOM.
 
 The SBOM intentionally covers the production npm tree only. Development tools remain visible
 in `package-lock.json`, the complete-tree audit, and dependency review. Python and external

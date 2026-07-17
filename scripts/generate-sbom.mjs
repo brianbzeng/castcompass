@@ -17,8 +17,14 @@ const npmCli = process.env.npm_execpath;
 
 const manifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
 const lockBytes = readFileSync(resolve(root, "package-lock.json"));
-const bom = JSON.parse(runNpm(["sbom", "--sbom-format=cyclonedx"]));
-const productionTree = JSON.parse(runNpm(["ls", "--omit=dev", "--all", "--json"]));
+const bom = JSON.parse(runNpm(["sbom", "--package-lock-only", "--sbom-format=cyclonedx"]));
+const productionTree = JSON.parse(runNpm([
+  "ls",
+  "--package-lock-only",
+  "--omit=dev",
+  "--all",
+  "--json",
+]));
 const productionReferences = new Set();
 collectProductionReferences(productionTree.dependencies ?? {}, productionReferences);
 bom.components = (bom.components ?? []).filter((component) => productionReferences.has(component["bom-ref"]));
