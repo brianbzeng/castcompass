@@ -509,17 +509,22 @@ test("start validates origin and curated site IDs", async () => {
 test("start and complete persist privacy-safe validation fields", async () => {
   const store = new MemoryTripStore();
   const reporterKey = "anonymous-device-key-1234567890";
-  const start = await handleTripRequest(
+  const startBody = {
+    ...validStartBody({ scoreInfluencedChoice: true }),
+    startedAt: "2026-07-11T16:00:00.000Z",
+    reporterKey,
+    method: "bait",
+    gear: "Carolina rig",
+    anglerCount: 2,
+    opportunityWindowId: "oyster-point--20260711T1600Z",
+    opportunityScore: 1,
+    modelVersion: "client-forged-model",
+    referralCode: "bay-area-anglers",
+    website: "",
+  };
+  const forgedAuthority = await handleTripRequest(
     jsonRequest("/api/trips/start", {
-      ...validStartBody({ scoreInfluencedChoice: true }),
-      startedAt: "2026-07-11T16:00:00.000Z",
-      reporterKey,
-      method: "bait",
-      gear: "Carolina rig",
-      anglerCount: 2,
-      opportunityWindowId: "oyster-point--20260711T1600Z",
-      opportunityScore: 1,
-      modelVersion: "client-forged-model",
+      ...startBody,
       forecastImpressionId: "impression_client_forged",
       attestedAt: "2020-01-01T00:00:00.000Z",
       validationProtocolId: "client-forged-protocol",
@@ -532,9 +537,17 @@ test("start and complete persist privacy-safe validation fields", async () => {
       recruitmentEventAt: "2020-01-01T00:00:00.000Z",
       recruitmentEventSha256: "f".repeat(64),
       communityApprovalSha256: "f".repeat(64),
-      referralCode: "bay-area-anglers",
-      website: "",
     }),
+    attestationEnv(),
+    SITES,
+    { store, now: () => new Date("2026-07-11T16:01:00.000Z") },
+  );
+  assert.equal(forgedAuthority.status, 422);
+  assert.equal((await forgedAuthority.json()).error.code, "unexpected_fields");
+  assert.equal(store.trips.size, 0);
+
+  const start = await handleTripRequest(
+    jsonRequest("/api/trips/start", startBody),
     attestationEnv(),
     SITES,
     { store, now: () => new Date("2026-07-11T16:01:00.000Z") },
@@ -1286,5 +1299,55 @@ test("honeypot submissions are rejected without persistence", async () => {
     { store },
   );
   assert.equal(response.status, 422);
+  assert.equal(store.trips.size, 0);
+});
+
+test("trip mutations reject unknown JSON fields and ambiguous multipart duplicates", async () => {
+  const store = new MemoryTripStore();
+  const unknown = await handleTripRequest(
+    jsonRequest("/api/trips/start", {
+      ...validStartBody(),
+      admin: true,
+    }),
+    {},
+    SITES,
+    { store, now: () => new Date("2026-07-11T18:00:00.000Z") },
+  );
+  assert.equal(unknown.status, 422);
+  assert.equal((await unknown.json()).error.code, "unexpected_fields");
+  assert.equal(store.trips.size, 0);
+
+  const coerced = await handleTripRequest(
+    jsonRequest("/api/trips/start", {
+      ...validStartBody(),
+      anglerCount: true,
+    }),
+    {},
+    SITES,
+    { store, now: () => new Date("2026-07-11T18:00:00.000Z") },
+  );
+  assert.equal(coerced.status, 422);
+  assert.equal((await coerced.json()).error.code, "invalid_anglerCount");
+  assert.equal(store.trips.size, 0);
+
+  const duplicate = new FormData();
+  duplicate.set("siteId", "crissy-field");
+  duplicate.append("siteId", "oyster-point");
+  duplicate.set("startedAt", "2026-07-10T15:00:00.000Z");
+  duplicate.set("endedAt", "2026-07-10T18:00:00.000Z");
+  duplicate.set("keeperCount", "0");
+  duplicate.set("shortReleasedCount", "0");
+  duplicate.set("consent", "true");
+  duplicate.set("reporterKey", "duplicate-field-device-key-12345");
+  duplicate.set("website", "");
+  addRequiredCompletionFields(duplicate, { mode: "beach" });
+  const ambiguous = await handleTripRequest(
+    multipartRequest("/api/trips/report", duplicate),
+    {},
+    SITES,
+    { store, now: () => new Date("2026-07-11T18:00:00.000Z") },
+  );
+  assert.equal(ambiguous.status, 422);
+  assert.equal((await ambiguous.json()).error.code, "duplicate_fields");
   assert.equal(store.trips.size, 0);
 });

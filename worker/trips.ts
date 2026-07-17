@@ -40,6 +40,102 @@ const MAX_MULTIPART_BYTES = MAX_PHOTO_BYTES + 1024 * 1024;
 const REPORTER_COOKIE = "cc_reporter";
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const ALLOWED_MODES = new Set(["shore", "beach", "pier", "jetty", "kayak", "boat", "other"]);
+const TRIP_DETAIL_FIELDS = [
+  "gear",
+  "gearProfileId",
+  "rod",
+  "reel",
+  "baitLure",
+  "rig",
+  "otherCatchCount",
+  "otherSpecies",
+  "shorebreak",
+  "wadingDepth",
+  "waterClarity",
+  "crowding",
+  "fishabilityRating",
+  "observedWaveHeightFeet",
+  "fishabilityNotes",
+] as const;
+// Previously shipped clients sent these forecast-derived values. They remain
+// accepted as inert compatibility fields; only a server-verified opportunity
+// attestation can populate forecast attribution.
+const LEGACY_CLIENT_FORECAST_FIELDS = [
+  "opportunityScore",
+  "habitatScore",
+  "seasonalityScore",
+  "conditionsScore",
+  "fishabilityScore",
+  "modelVersion",
+  "predictionMetadata",
+] as const;
+const LIVE_START_FIELDS = [
+  "siteId",
+  "startedAt",
+  "anglerCount",
+  "mode",
+  "fishingMethod",
+  "method",
+  ...TRIP_DETAIL_FIELDS,
+  "scoreInfluencedChoice",
+  "contourCastInfluenced",
+  "primaryTargetConfirmed",
+  "reporterKey",
+  "consent",
+  "website",
+  "referralCode",
+  "opportunityWindowId",
+  ...LEGACY_CLIENT_FORECAST_FIELDS,
+  "studyConsent",
+  "studyConsentVersion",
+  "recruitmentToken",
+] as const;
+const LIVE_COMPLETION_FIELDS = [
+  "token",
+  "endedAt",
+  "reporterKey",
+  "anglerCount",
+  "mode",
+  "fishingMethod",
+  "method",
+  ...TRIP_DETAIL_FIELDS,
+  "scoreInfluencedChoice",
+  "contourCastInfluenced",
+  "keeperCount",
+  "shortReleasedCount",
+  "notes",
+  "consent",
+  "primaryTargetConfirmed",
+  "completeAttempt",
+  "website",
+  "photo",
+  "opportunityWindowId",
+  ...LEGACY_CLIENT_FORECAST_FIELDS,
+] as const;
+const PAST_REPORT_FIELDS = [
+  "siteId",
+  "startedAt",
+  "endedAt",
+  "anglerCount",
+  "mode",
+  "fishingMethod",
+  "method",
+  ...TRIP_DETAIL_FIELDS,
+  "scoreInfluencedChoice",
+  "contourCastInfluenced",
+  "keeperCount",
+  "shortReleasedCount",
+  "notes",
+  "reporterKey",
+  "referralCode",
+  "consent",
+  "primaryTargetConfirmed",
+  "completeAttempt",
+  "website",
+  "photo",
+  "opportunityWindowId",
+  ...LEGACY_CLIENT_FORECAST_FIELDS,
+] as const;
 const VALIDATION_ELIGIBLE_MODES = new Set(["shore", "beach", "pier", "jetty"]);
 const VALIDATION_PROTOCOL_ID = "california-halibut-site-window-v1";
 const VALIDATION_SECONDARY_COHORT_ID =
@@ -2497,10 +2593,11 @@ export async function handleTripRequest(
       assertContentType(request, "application/json");
       assertBodySize(request, 64 * 1024);
       const body = await readJsonObject(request);
+      assertNoObservationContractOverride(body);
+      assertOnlyInputFields(body, LIVE_START_FIELDS);
       assertHoneypot(body.website);
       assertConsent(body.consent);
       assertPrimaryTargetConfirmed(body.primaryTargetConfirmed);
-      assertNoObservationContractOverride(body);
 
       const reporter = await getOrCreateReporter(request, body.reporterKey);
       await store.assertSubmissionAllowed(reporter.hash, now);
@@ -2694,6 +2791,7 @@ export async function handleTripRequest(
       assertContentType(request, "application/json");
       assertBodySize(request, 16 * 1024);
       const body = await readJsonObject(request);
+      assertOnlyInputFields(body, ["token", "reason"]);
       const id = cancellationMatch[1];
       if (!/^trip_[a-f0-9-]{36}$/.test(id)) {
         throw new ApiError(404, "trip_not_found", "The active trip could not be found.");
@@ -2725,11 +2823,12 @@ export async function handleTripRequest(
       assertContentType(request, "multipart/form-data");
       assertBodySize(request, MAX_MULTIPART_BYTES);
       const form = await request.formData();
+      assertNoObservationContractOverride(form);
+      assertOnlyInputFields(form, LIVE_COMPLETION_FIELDS);
       assertHoneypot(form.get("website"));
       assertConsent(form.get("consent"));
       assertCompleteAttempt(form.get("completeAttempt"));
       assertPrimaryTargetConfirmed(form.get("primaryTargetConfirmed"));
-      assertNoObservationContractOverride(form);
       const id = completionMatch[1];
       if (!/^trip_[a-f0-9-]{36}$/.test(id)) {
         throw new ApiError(404, "trip_not_found", "The active trip could not be found.");
@@ -2851,11 +2950,12 @@ export async function handleTripRequest(
       assertContentType(request, "multipart/form-data");
       assertBodySize(request, MAX_MULTIPART_BYTES);
       const form = await request.formData();
+      assertNoObservationContractOverride(form);
+      assertOnlyInputFields(form, PAST_REPORT_FIELDS);
       assertHoneypot(form.get("website"));
       assertConsent(form.get("consent"));
       assertCompleteAttempt(form.get("completeAttempt"));
       assertPrimaryTargetConfirmed(form.get("primaryTargetConfirmed"));
-      assertNoObservationContractOverride(form);
 
       const reporter = await getOrCreateReporter(request, form.get("reporterKey"));
       await store.assertSubmissionAllowed(reporter.hash, now);
@@ -3262,6 +3362,29 @@ function assertNoObservationContractOverride(source: Record<string, unknown> | F
   }
 }
 
+function assertOnlyInputFields(
+  source: Record<string, unknown> | FormData,
+  allowed: readonly string[],
+) {
+  const allowedFields = new Set(allowed);
+  if (source instanceof FormData) {
+    const counts = new Map<string, number>();
+    for (const field of source.keys()) {
+      if (!allowedFields.has(field)) {
+        throw new ApiError(422, "unexpected_fields", "Send only fields supported by this trip endpoint.");
+      }
+      counts.set(field, (counts.get(field) ?? 0) + 1);
+    }
+    if ([...counts.values()].some((count) => count !== 1)) {
+      throw new ApiError(422, "duplicate_fields", "Send each trip field at most once.");
+    }
+    return;
+  }
+  if (Object.keys(source).some((field) => !allowedFields.has(field))) {
+    throw new ApiError(422, "unexpected_fields", "Send only fields supported by this trip endpoint.");
+  }
+}
+
 function assertOtherSpeciesCountConsistency(otherCatchCount: number, otherSpecies: string | null) {
   if (otherCatchCount === 0 && otherSpecies) {
     throw new ApiError(
@@ -3356,6 +3479,9 @@ function optionalText(value: unknown, field: string, maximum: number) {
 
 function parseInteger(value: unknown, field: string, minimum: number, maximum: number, fallback: number) {
   if (value === null || value === undefined || value === "") return fallback;
+  if (typeof value !== "number" && typeof value !== "string") {
+    throw new ApiError(422, `invalid_${field}`, `${field} must be a whole number from ${minimum} to ${maximum}.`);
+  }
   const number = typeof value === "number" ? value : Number(value);
   if (!Number.isInteger(number) || number < minimum || number > maximum) {
     throw new ApiError(422, `invalid_${field}`, `${field} must be a whole number from ${minimum} to ${maximum}.`);
@@ -3365,6 +3491,9 @@ function parseInteger(value: unknown, field: string, minimum: number, maximum: n
 
 function optionalNumber(value: unknown, field: string, minimum: number, maximum: number) {
   if (value === null || value === undefined || value === "") return null;
+  if (typeof value !== "number" && typeof value !== "string") {
+    throw new ApiError(422, `invalid_${field}`, `${field} must be from ${minimum} to ${maximum}.`);
+  }
   const number = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(number) || number < minimum || number > maximum) {
     throw new ApiError(422, `invalid_${field}`, `${field} must be from ${minimum} to ${maximum}.`);

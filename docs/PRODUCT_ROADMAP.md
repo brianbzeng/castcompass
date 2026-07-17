@@ -86,6 +86,15 @@ after its acceptance checks pass in the intended environment.
     instructions and user content remain data, never authority; models receive no ambient
     secrets or unrestricted tools, outputs must match narrow schemas, and no model output can
     publish or mutate privileged state without a separately authorized server action.
+    - [x] Locally enforce and attack-test endpoint field allowlists, duplicate multipart-field
+      rejection, existing body/type/length bounds, parameter-bound D1 writes, default-off
+      image uploads with signature verification and metadata-stripping WebP re-encoding, React
+      output encoding, and the escaped JSON-LD script context. The advisory AI boundary now
+      minimizes stored input, separates untrusted data from system instructions, has no tools
+      or ambient authority, applies a hard deadline and 64 KiB response cap, requires an exact
+      bounded output schema without type coercion or prose wrapping, redacts failure logs, and
+      still cannot create a public post. Production edge evidence and authorized staging
+      penetration testing remain open.
   - [ ] Verify endpoint-specific rate limits and abuse ceilings for login, recovery, signup,
     uploads, exports, deletion, reports, and AI routes. Adopt length-based password rules that
     allow password managers/passphrases, block breached/common passwords using a privacy-safe

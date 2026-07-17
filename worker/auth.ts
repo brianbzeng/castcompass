@@ -967,6 +967,7 @@ export async function handleAccountRequest(
       if (request.method === "POST") {
         assertSameOrigin(request);
         const body = await readJson(request);
+        assertOnlyFields(body, ["name", "rod", "reel", "baitLure", "rig"]);
         const id = `gear_${crypto.randomUUID()}`;
         const timestamp = new Date().toISOString();
         const gear = parseGearProfile(body);
@@ -993,7 +994,9 @@ export async function handleAccountRequest(
         return jsonResponse({ deleted: true, id });
       }
       if (request.method === "PATCH") {
-        const gear = parseGearProfile(await readJson(request));
+        const body = await readJson(request);
+        assertOnlyFields(body, ["name", "rod", "reel", "baitLure", "rig"]);
+        const gear = parseGearProfile(body);
         const timestamp = new Date().toISOString();
         await db.prepare(`UPDATE gear_profiles SET name = ?, rod = ?, reel = ?, bait_lure = ?, rig = ?, updated_at = ?
           WHERE id = ? AND user_id = ?`)
@@ -1089,6 +1092,31 @@ export async function handleAccountRequest(
             "The trip target and observation contract are controlled by CastingCompass.",
           );
         }
+        assertOnlyFields(body, [
+          "siteId",
+          "startedAt",
+          "endedAt",
+          "mode",
+          "anglerCount",
+          "keeperCount",
+          "shortReleasedCount",
+          "fishingMethod",
+          "gearProfileId",
+          "rod",
+          "reel",
+          "baitLure",
+          "rig",
+          "otherCatchCount",
+          "otherSpecies",
+          "shorebreak",
+          "wadingDepth",
+          "waterClarity",
+          "crowding",
+          "fishabilityRating",
+          "observedWaveHeightFeet",
+          "fishabilityNotes",
+          "notes",
+        ]);
         const siteId = parseProfileTripSite(body.siteId, curatedSites);
         const startedAt = parseProfileTripDate(body.startedAt, "start time", requestNow);
         const endedAt = parseProfileTripDate(body.endedAt, "finish time", requestNow);
@@ -1367,6 +1395,9 @@ function parseProfileTripMode(value: unknown) {
 }
 
 function parseProfileTripInteger(value: unknown, label: string, minimum: number, maximum: number) {
+  if (typeof value !== "number" && typeof value !== "string") {
+    throw new AuthError(422, "invalid_number", `${label} must be a whole number from ${minimum} to ${maximum}.`);
+  }
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isInteger(parsed) || parsed < minimum || parsed > maximum) {
     throw new AuthError(422, "invalid_number", `${label} must be a whole number from ${minimum} to ${maximum}.`);
@@ -1409,6 +1440,9 @@ function parseProfileTripObservations(body: Record<string, unknown>) {
 
 function parseOptionalProfileTripNumber(value: unknown, label: string, minimum: number, maximum: number) {
   if (value === null || value === undefined || value === "") return null;
+  if (typeof value !== "number" && typeof value !== "string") {
+    throw new AuthError(422, "invalid_number", `${label} must be between ${minimum} and ${maximum}.`);
+  }
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(parsed) || parsed < minimum || parsed > maximum) {
     throw new AuthError(422, "invalid_number", `${label} must be between ${minimum} and ${maximum}.`);
