@@ -5779,3 +5779,123 @@ footer {
     flex-direction: column;
   }
 }
+
+/* A lightweight recovery path for unknown URLs. */
+.not-found-page {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100dvh;
+}
+
+.not-found-header {
+  display: flex;
+  align-items: center;
+  width: min(1100px, calc(100% - 2rem));
+  min-height: 76px;
+  margin: 0 auto;
+  border-bottom: 1px solid var(--line);
+}
+
+.not-found-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 820;
+  letter-spacing: -0.04em;
+}
+
+.not-found-brand svg {
+  width: 32px;
+  height: 32px;
+  color: var(--seafoam);
+}
+
+.not-found-card {
+  align-self: center;
+  width: min(760px, calc(100% - 2rem));
+  margin: clamp(2rem, 8vw, 6rem) auto;
+  padding: clamp(1.5rem, 5vw, 4rem);
+  border: 1px solid var(--line-strong);
+  background: rgba(4, 22, 45, 0.88);
+  box-shadow: 0 28px 90px rgba(0, 5, 15, 0.32);
+}
+
+.not-found-eyebrow {
+  margin: 0;
+  color: var(--seafoam);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.not-found-card h1 {
+  max-width: 10ch;
+  margin: 0.8rem 0 1rem;
+  color: var(--ink);
+  font-size: clamp(3rem, 9vw, 6.5rem);
+  font-weight: 590;
+  letter-spacing: -0.06em;
+  line-height: 0.92;
+}
+
+.not-found-copy {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  line-height: 1.72;
+}
+
+.not-found-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  min-height: 46px;
+  margin-top: 1.8rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--lime);
+  color: var(--ocean-deep);
+  background: var(--lime);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.not-found-action svg {
+  width: 18px;
+}
+
+.not-found-action:focus-visible,
+.not-found-links a:focus-visible,
+.not-found-brand:focus-visible {
+  outline: 3px solid var(--seafoam);
+  outline-offset: 4px;
+}
+
+.not-found-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.2rem;
+  margin-top: 1.6rem;
+  color: var(--seafoam);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.not-found-links a {
+  border-bottom: 1px solid var(--line-strong);
+}
+
+@media (max-width: 640px) {
+  .not-found-card {
+    width: calc(100% - 1rem);
+    margin: 0.5rem auto 1rem;
+  }
+
+  .not-found-card h1 {
+    font-size: clamp(2.8rem, 15vw, 4.7rem);
+  }
+}

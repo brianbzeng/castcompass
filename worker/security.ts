@@ -17,6 +17,8 @@ const CANONICAL_ALIASES = new Set([
 ]);
 const PRODUCTION_HOSTS = new Set([CANONICAL_HOST, ...CANONICAL_ALIASES]);
 const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+const CRAWLER_CONTROL_PATHS = new Set(["/robots.txt", "/sitemap.xml"]);
+const MAINTENANCE_RETRY_SECONDS = 300;
 
 export type GuardedRequest =
   | { request: Request; response: null }
@@ -85,10 +87,11 @@ export async function healthResponse(request: Request, env: SecurityEnv): Promis
 }
 
 /**
- * During a schema bridge, keep static guidance available but stop every API
- * handler before it can read or write a version-dependent table. Missing is
- * normal for historical Workers; any configured value other than exact
- * "false" fails safe into maintenance.
+ * During a schema bridge or short emergency, stop every API and scheduled
+ * handler before it can read or write a version-dependent table. Browser
+ * navigations receive a self-contained 503 while crawler control files and
+ * static assets remain available. Missing is normal for historical Workers;
+ * any configured value other than exact "false" fails safe into maintenance.
  */
 export function releaseMaintenanceEnabled(env?: SecurityEnv): boolean {
   return env?.RELEASE_MAINTENANCE_MODE !== undefined && env.RELEASE_MAINTENANCE_MODE !== "false";
@@ -96,15 +99,73 @@ export function releaseMaintenanceEnabled(env?: SecurityEnv): boolean {
 
 export function releaseMaintenanceResponse(request: Request, env?: SecurityEnv): Response | null {
   const url = new URL(request.url);
-  if (!releaseMaintenanceEnabled(env) || !url.pathname.startsWith("/api/") || url.pathname === "/api/health") {
+  if (!releaseMaintenanceEnabled(env) || url.pathname === "/api/health") return null;
+
+  const maintenanceHeaders = {
+    "Retry-After": String(MAINTENANCE_RETRY_SECONDS),
+    "X-CastingCompass-Maintenance": "true",
+  };
+  if (url.pathname.startsWith("/api/") || MUTATION_METHODS.has(request.method)) {
+    return jsonError(
+      503,
+      "release_maintenance",
+      "CastingCompass is briefly unavailable while maintenance completes. Please retry shortly.",
+      maintenanceHeaders,
+    );
+  }
+
+  if ((request.method === "GET" || request.method === "HEAD") && CRAWLER_CONTROL_PATHS.has(url.pathname)) {
     return null;
   }
-  return jsonError(
-    503,
-    "release_maintenance",
-    "CastingCompass is briefly read-only while a database release completes. Please retry shortly.",
-    { "Retry-After": "300" },
+  if (!isDocumentNavigation(request)) return null;
+
+  const headers = new Headers(maintenanceHeaders);
+  headers.set("Content-Type", "text/html; charset=utf-8");
+  headers.set("Cache-Control", "no-store");
+  headers.set("CDN-Cache-Control", "no-store");
+  headers.set("Vary", "Accept");
+  headers.set(
+    "Content-Security-Policy",
+    "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
   );
+  return new Response(request.method === "HEAD" ? null : maintenanceDocument(), {
+    status: 503,
+    headers,
+  });
+}
+
+function isDocumentNavigation(request: Request) {
+  if (request.method !== "GET" && request.method !== "HEAD") return false;
+  if (request.headers.get("Sec-Fetch-Dest") === "document") return true;
+  return request.headers.get("Accept")?.toLowerCase().includes("text/html") ?? false;
+}
+
+function maintenanceDocument() {
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brief maintenance · CastingCompass</title>
+  <style>
+    :root{color-scheme:dark;font-family:"Avenir Next",Avenir,"Segoe UI",Helvetica,Arial,sans-serif;background:#041326;color:#bff3d1}
+    *{box-sizing:border-box}body{min-width:320px;min-height:100vh;min-height:100dvh;margin:0;display:grid;place-items:center;padding:1rem;background:radial-gradient(circle at 20% 0%,#104477 0,transparent 42%),#041326}
+    main{width:min(680px,100%);padding:clamp(1.5rem,6vw,4rem);border:1px solid rgba(162,197,229,.27);background:rgba(4,22,45,.94);box-shadow:0 28px 90px rgba(0,5,15,.35)}
+    .brand{margin:0 0 3rem;color:#a8d8f2;font-size:.78rem;font-weight:800;letter-spacing:.02em}.eyebrow{margin:0;color:#a8d8f2;font-family:ui-monospace,monospace;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase}
+    h1{max-width:10ch;margin:.8rem 0 1rem;font-size:clamp(3rem,12vw,6rem);font-weight:590;letter-spacing:-.06em;line-height:.92}p{max-width:56ch;margin:0;color:#acd9bd;font-size:.95rem;line-height:1.72}
+    a{display:inline-block;margin-top:1.8rem;padding:.8rem 1rem;border:1px solid #d8ed94;color:#041326;background:#d8ed94;font-size:.78rem;font-weight:800;text-decoration:none}a:focus-visible{outline:3px solid #a8d8f2;outline-offset:4px}
+  </style>
+</head>
+<body>
+  <main>
+    <p class="brand">CastingCompass</p>
+    <p class="eyebrow">Brief maintenance</p>
+    <h1>Checking the water.</h1>
+    <p>The site is temporarily paused while a release or urgent fix completes. No account or trip changes are being accepted. Please try again in a few minutes.</p>
+    <a href="/">Try again</a>
+  </main>
+</body>
+</html>`;
 }
 
 function safeWorkerVersionId(value: unknown) {
@@ -211,6 +272,37 @@ export function hardenResponse(response: Response, request: Request): Response {
   }
 
   return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+/**
+ * Vinext currently renders the special App Router not-found component and
+ * automatic noindex directive, but retains the root title/description. Keep
+ * the 404 document useful and unambiguous until upstream metadata parity lands.
+ */
+export async function normalizeNotFoundDocument(response: Response): Promise<Response> {
+  if (response.status !== 404 || !/^text\/html\b/i.test(response.headers.get("Content-Type") ?? "")) {
+    return response;
+  }
+
+  const title = "Page not found · CastingCompass";
+  const description = "The requested CastingCompass page could not be found.";
+  let html = await response.text();
+  html = html.replace(/<title\b[^>]*>[\s\S]*?<\/title>/i, `<title>${title}</title>`);
+  html = html.replace(
+    /<meta\b(?=[^>]*\bname=["']description["'])[^>]*>/i,
+    `<meta name="description" content="${description}"/>`,
+  );
+  if (!/<meta\b(?=[^>]*\bname=["']robots["'])[^>]*\bnoindex\b[^>]*>/i.test(html)) {
+    html = html.replace("</head>", '<meta name="robots" content="noindex, nofollow"/></head>');
+  }
+
+  const headers = new Headers(response.headers);
+  headers.delete("Content-Length");
+  return new Response(html, {
     status: response.status,
     statusText: response.statusText,
     headers,

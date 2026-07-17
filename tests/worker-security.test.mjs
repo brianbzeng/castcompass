@@ -9,6 +9,7 @@ import {
   guardRequestBody,
   hardenResponse,
   healthResponse,
+  normalizeNotFoundDocument,
   releaseMaintenanceEnabled,
   releaseMaintenanceResponse,
 } from "../worker/security.ts";
@@ -70,7 +71,7 @@ test("health endpoint reports D1 readiness, Worker version, and supports HEAD", 
   assert.equal(await healthResponse(new Request(`${ORIGIN}/api/other`), { DB: okDatabase() }), null);
 });
 
-test("release maintenance stops APIs before handlers while preserving health and pages", async () => {
+test("release maintenance stops writes and serves a self-contained browser 503", async () => {
   const enabled = { RELEASE_MAINTENANCE_MODE: "true" };
   assert.equal(releaseMaintenanceEnabled(enabled), true);
   assert.equal(releaseMaintenanceEnabled({ RELEASE_MAINTENANCE_MODE: "invalid" }), true);
@@ -85,10 +86,48 @@ test("release maintenance stops APIs before handlers while preserving health and
   );
   assert.equal(response?.status, 503);
   assert.equal(response?.headers.get("Retry-After"), "300");
+  assert.equal(response?.headers.get("X-CastingCompass-Maintenance"), "true");
   assert.equal(response?.headers.get("Cache-Control"), "no-store");
   assert.equal((await response?.json()).error.code, "release_maintenance");
   assert.equal(releaseMaintenanceResponse(new Request(`${ORIGIN}/api/health`), enabled), null);
-  assert.equal(releaseMaintenanceResponse(new Request(`${ORIGIN}/privacy`), enabled), null);
+
+  const page = releaseMaintenanceResponse(new Request(`${ORIGIN}/privacy`, {
+    headers: { Accept: "text/html,application/xhtml+xml" },
+  }), enabled);
+  assert.equal(page?.status, 503);
+  assert.match(page?.headers.get("Content-Type") ?? "", /^text\/html\b/);
+  assert.equal(page?.headers.get("Retry-After"), "300");
+  assert.equal(page?.headers.get("Cache-Control"), "no-store");
+  assert.equal(page?.headers.get("CDN-Cache-Control"), "no-store");
+  assert.equal(page?.headers.get("X-CastingCompass-Maintenance"), "true");
+  const pageHtml = await page?.text() ?? "";
+  assert.match(pageHtml, /Brief maintenance · CastingCompass/);
+  assert.match(pageHtml, /No account or trip changes are being accepted/);
+  assert.doesNotMatch(pageHtml, /<script\b|noindex|https?:\/\//i);
+
+  const head = releaseMaintenanceResponse(new Request(`${ORIGIN}/`, {
+    method: "HEAD",
+    headers: { Accept: "text/html" },
+  }), enabled);
+  assert.equal(head?.status, 503);
+  assert.equal(await head?.text(), "");
+
+  const futureWrite = releaseMaintenanceResponse(new Request(`${ORIGIN}/future-action`, {
+    method: "POST",
+    body: "not-read",
+  }), enabled);
+  assert.equal(futureWrite?.status, 503);
+  assert.equal((await futureWrite?.json()).error.code, "release_maintenance");
+
+  assert.equal(releaseMaintenanceResponse(new Request(`${ORIGIN}/robots.txt`, {
+    headers: { Accept: "text/html" },
+  }), enabled), null);
+  assert.equal(releaseMaintenanceResponse(new Request(`${ORIGIN}/sitemap.xml`, {
+    headers: { Accept: "text/html" },
+  }), enabled), null);
+  assert.equal(releaseMaintenanceResponse(new Request(`${ORIGIN}/icons/icon-192.png`, {
+    headers: { Accept: "image/png" },
+  }), enabled), null);
 
   const health = await healthResponse(new Request(`${ORIGIN}/api/health`), {
     ...enabled,
@@ -215,4 +254,23 @@ test("canonical page redirects have bounded caching while API redirects never ca
   );
   assert.equal(appRedirect.headers.get("Cache-Control"), "no-store");
   assert.equal(appRedirect.headers.get("CDN-Cache-Control"), "no-store");
+});
+
+test("Vinext not-found documents receive one accurate title and safe metadata", async () => {
+  const source = new Response(
+    '<!doctype html><html><head><title>CastingCompass</title><meta name="description" content="homepage"><meta content="noindex" name="robots"></head><body>404</body></html>',
+    { status: 404, headers: { "Content-Type": "text/html; charset=utf-8", "Content-Length": "12" } },
+  );
+  const response = await normalizeNotFoundDocument(source);
+  assert.equal(response.status, 404);
+  assert.equal(response.headers.has("Content-Length"), false);
+  const html = await response.text();
+  assert.deepEqual([...html.matchAll(/<title\b[^>]*>([\s\S]*?)<\/title>/gi)].map((match) => match[1]), [
+    "Page not found · CastingCompass",
+  ]);
+  assert.match(html, /name="description" content="The requested CastingCompass page could not be found\."/);
+  assert.match(html, /<meta content="noindex" name="robots">/);
+
+  const asset = new Response("missing", { status: 404, headers: { "Content-Type": "image/png" } });
+  assert.equal(await normalizeNotFoundDocument(asset), asset);
 });

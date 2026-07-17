@@ -158,6 +158,11 @@ after its acceptance checks pass in the intended environment.
   accessible maintenance page for browsers; non-cacheable `503` API responses with bounded
   `Retry-After`; operator-only health diagnostics; no write paths that bypass maintenance; and
   tested activation, recovery, and stale-service-worker behavior.
+  - [x] Locally implement the self-contained browser `503`, preserve crawler-control files,
+    fail closed for current and future mutation routes, mark responses for the PWA, rotate the
+    offline cache, and extend the immutable-version live verifier across browser/API behavior.
+  - [ ] Activate and recover the exact reviewed release on every production hostname, verify
+    the public minimized health check and private diagnostics, and record stale-client evidence.
 
 ## P1 — Evidence, data contracts, discoverability, and scalable foundations
 
@@ -321,8 +326,8 @@ after its acceptance checks pass in the intended environment.
 
 - [ ] Improve accessibility and interaction quality after core risks are controlled, including
   keyboard/screen-reader review, zoom/reflow, contrast, reduced motion, and a non-map path.
-- [ ] Add a branded, accessible `404` page with a clear return-to-home action, useful navigation,
-  correct `404` status, noindex behavior, and offline/service-worker coverage.
+- [x] Add a branded, accessible `404` page with a clear return-to-home action, useful navigation,
+  correct `404` status, noindex behavior, and service-worker-safe non-caching.
 - [ ] Add honest loading and recovery states after the underlying operations are bounded:
   route-appropriate skeletons, immediate acknowledgement, progressive status for slow work,
   inline retry/cancel where safe, and carefully scoped optimistic updates that roll back on

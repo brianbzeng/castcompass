@@ -11,6 +11,7 @@ import {
   guardRequestBody,
   hardenResponse,
   healthResponse,
+  normalizeNotFoundDocument,
   releaseMaintenanceEnabled,
   releaseMaintenanceResponse,
 } from "./security";
@@ -143,7 +144,7 @@ async function routeRequest(request: Request, env: Env, ctx: ExecutionContext): 
     }, allowedWidths);
   }
 
-  return handler.fetch(request, env, ctx);
+  return normalizeNotFoundDocument(await handler.fetch(request, env, ctx));
 }
 
 export default worker;

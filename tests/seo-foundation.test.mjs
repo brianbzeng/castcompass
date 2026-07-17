@@ -141,3 +141,15 @@ test("homepage JSON-LD is a narrow truthful WebSite declaration", async () => {
   });
   assert.doesNotMatch(JSON.stringify(structuredData), /rating|accuracy|probability|localbusiness|product|dataset/i);
 });
+
+test("unknown routes render a useful noindex page with a real 404 status", async () => {
+  const response = await render("/this-page-does-not-exist");
+  assert.equal(response.status, 404);
+  assert.match(response.headers.get("cache-control") ?? "", /no-store/i);
+  const html = await response.text();
+  assert.equal(elementText(html, "title"), "Page not found · CastingCompass");
+  assert.match(html, /That page isn(?:&#x27;|'|&apos;)t here\./);
+  assert.match(html, /href="\/"[^>]*>[^<]*(?:Return to the forecast|<)/s);
+  assert.deepEqual(canonicalValues(html), []);
+  assert.match(metaValues(html, "name", "robots").join(",").toLowerCase(), /noindex/);
+});

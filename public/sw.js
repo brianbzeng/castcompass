@@ -1,5 +1,5 @@
 const CACHE_PREFIXES = ["castingcompass-", "castcompass-", "contourcast-"];
-const CACHE_NAME = "castingcompass-v12";
+const CACHE_NAME = "castingcompass-v13";
 const PUBLIC_NAVIGATION_PATHS = new Set(["/", "/privacy", "/terms", "/ai-disclosure"]);
 const APP_SHELL = [
   "/",
@@ -67,6 +67,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
+          if (isMaintenanceResponse(response)) return response;
           if (PUBLIC_NAVIGATION_PATHS.has(url.pathname) && cacheableResponse(response)) {
             const clone = response.clone();
             event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(url.pathname, clone)));
@@ -96,4 +97,8 @@ self.addEventListener("fetch", (event) => {
 function cacheableResponse(response) {
   const cacheControl = response.headers.get("Cache-Control")?.toLowerCase() ?? "";
   return response.ok && !cacheControl.includes("no-store") && !cacheControl.includes("private");
+}
+
+function isMaintenanceResponse(response) {
+  return response.status === 503 && response.headers.get("X-CastingCompass-Maintenance") === "true";
 }

@@ -87,6 +87,29 @@ test("map overlays do not collide or clip", async ({ page }) => {
   expect(center!.x + center!.width).toBeLessThanOrEqual(viewportWidth + 1);
 });
 
+test("the 404 recovery page stays truthful and usable on mobile", async ({ page }) => {
+  const response = await page.goto("/not-a-real-castingcompass-route");
+  expect(response?.status()).toBe(404);
+  await expect(page).toHaveTitle("Page not found · CastingCompass");
+  await expect(page.getByRole("heading", { name: "That page isn't here." })).toBeVisible();
+  const returnLink = page.getByRole("link", { name: /return to the forecast/i });
+  await expect(returnLink).toBeVisible();
+  await expect(returnLink).toHaveAttribute("href", "/");
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/i);
+  await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+
+  const geometry = await page.evaluate(() => ({
+    overflow: document.documentElement.scrollWidth - window.innerWidth,
+    card: (() => {
+      const box = document.querySelector<HTMLElement>(".not-found-card")!.getBoundingClientRect();
+      return { left: box.left, right: box.right, viewportWidth: window.innerWidth };
+    })(),
+  }));
+  expect(geometry.overflow).toBeLessThanOrEqual(1);
+  expect(geometry.card.left).toBeGreaterThanOrEqual(-1);
+  expect(geometry.card.right).toBeLessThanOrEqual(geometry.card.viewportWidth + 1);
+});
+
 test.describe("mocked Turnstile browser states", () => {
   // Playwright cannot intercept requests claimed by a service worker. Scope
   // blocking to these provider-mock tests; the ordinary mobile tests above

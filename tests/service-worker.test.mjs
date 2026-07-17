@@ -9,11 +9,18 @@ const registrationSource = await readFile(
 );
 
 test("service worker publishes a new cache and removes prior CastingCompass releases", () => {
-  assert.match(workerSource, /CACHE_NAME = "castingcompass-v12"/);
+  assert.match(workerSource, /CACHE_NAME = "castingcompass-v13"/);
   assert.match(workerSource, /CACHE_PREFIXES\.some/);
   assert.match(workerSource, /caches\.delete\(key\)/);
   assert.doesNotMatch(workerSource, /\/castingcompass-icon\.png/);
   assert.match(workerSource, /\/icons\/icon-192\.png/);
+});
+
+test("maintenance navigations pass through without entering or falling back to the offline cache", () => {
+  assert.match(workerSource, /if \(isMaintenanceResponse\(response\)\) return response/);
+  assert.match(workerSource, /response\.status === 503/);
+  assert.match(workerSource, /X-CastingCompass-Maintenance/);
+  assert.match(workerSource, /response\.ok && !cacheControl\.includes\("no-store"\)/);
 });
 
 test("live trip APIs bypass the offline response cache", () => {
