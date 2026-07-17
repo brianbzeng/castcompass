@@ -5,6 +5,10 @@ It is not evidence that the production D1 migration, R2 binding, backup retentio
 procedure is live. Keep the parent roadmap item open until the production checks below have
 captured aggregate, non-sensitive evidence.
 
+The complete system inventory, cascade map, 30-day-recovery decision boundary, and manual
+access/correction/portability/deletion workflow are maintained in
+[Data lifecycle and privacy-rights operations](DATA-LIFECYCLE-AND-RIGHTS.md).
+
 ## Local contract
 
 - Signup eligibility accepts only a birth date. It stores a short-lived hash and timestamps,

@@ -135,6 +135,12 @@ Primary reference: FTC CAN-SPAM compliance guide: <https://www.ftc.gov/business-
 
 The repository implementation is a local release candidate, not evidence that the production migration, Cloudflare bindings, backup policy, or restore procedure has been completed. Do not describe durable deletion as live until all of the following have been verified against the production account:
 
+The system inventory, deletion cascade map, non-recoverable current deletion decision, and
+EU/UK/California-aware request-handling baseline are documented and machine-checked in
+[Data lifecycle and privacy-rights operations](DATA-LIFECYCLE-AND-RIGHTS.md). This operational
+baseline does not establish GDPR, UK GDPR, or CCPA applicability or compliance; obtain counsel
+and processor review before making those claims.
+
 - Apply the privacy migration through the guarded immutable release workflow and verify the expected age-proof, deletion-job, deletion-task, and tombstone tables.
 - Confirm the age endpoint receives only a birth date, creates no email challenge or account for an ineligible or invalid date, and never stores the entered birth date.
 - Confirm eligibility proofs cannot be used after 10 minutes and are removed after an operational buffer of about 24 hours, the ineligibility marker expires within 24 hours, and neither artifact contains the entered date, age, email, or account details.

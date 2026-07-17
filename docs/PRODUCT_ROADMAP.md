@@ -121,6 +121,11 @@ after its acceptance checks pass in the intended environment.
   Maintain a data inventory and cascade map covering primary rows, public copies, objects,
   queues, logs, analytics, exports, derived artifacts, and backups; make deletion retries and
   restore suppression observable and auditable without retaining raw deleted content.
+  - [x] Document and locally machine-check the complete D1/object/provider/browser/backup
+    inventory, foreign-key and trigger cascade map, atomic active-data deletion order,
+    non-recoverable current behavior, and a privacy-minimized EU/UK/California-aware request
+    workflow. Production-shaped drills, processor execution, dashboard case controls, and
+    privacy/counsel approval remain open.
   - [ ] Decide with privacy/counsel review whether an ordinary account closure may offer a
     clearly disclosed 30-day recovery window. If adopted, revoke access immediately, isolate
     recovery data from active/public use, automatically hard-delete it at day 30, and let a
