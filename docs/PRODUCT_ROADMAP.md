@@ -119,6 +119,8 @@ after its acceptance checks pass in the intended environment.
   - [x] Implement and locally verify the four-page crawl set, self-canonicals, route-specific
     social metadata, `/profile` noindex, robots/sitemap files, narrow `WebSite` JSON-LD, and
     a dashboard/runbook that keeps heuristic ranking claims truthful.
+  - [x] Remove the 1MB header/offline icon fetch and third-party font requests from the staged
+    Vinext build while preserving the existing branded social card and install icons.
   - [ ] Deploy the reviewed crawl foundation after P0 and verify every canonical/redirect host.
   - [ ] Verify the Google domain property through DNS, import or verify Bing, submit the sitemap,
     inspect the four public URLs, confirm `/profile` noindex, and record initial coverage.

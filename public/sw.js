@@ -1,9 +1,8 @@
 const CACHE_PREFIXES = ["castingcompass-", "castcompass-", "contourcast-"];
-const CACHE_NAME = "castingcompass-v10";
+const CACHE_NAME = "castingcompass-v11";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
-  "/castingcompass-icon.png",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/topography-contours-v2.webp",

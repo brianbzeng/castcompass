@@ -32,6 +32,18 @@ catch outcomes are guaranteed.
       business status, products, FAQs, or dataset claims are invented.
 - [x] Automated tests enforce the rendered and static crawl contract.
 
+### Local performance and privacy hygiene
+
+- [x] The 34px header mark uses the existing 192px icon instead of downloading
+      and offline-caching a 1MB legacy source image.
+- [x] The service worker uses a new cache version and no longer precaches that
+      legacy image.
+- [x] The Vinext build uses platform font stacks and makes no browser request to
+      Google Fonts. Locally bundled brand fonts can be reconsidered during the
+      later visual refresh without reopening third-party font requests.
+- [ ] Record real-user Core Web Vitals after the reviewed production release;
+      local transfer checks are not a substitute for CrUX field data.
+
 Google recommends `WebSite` structured data on the homepage for a preferred site
 name and warns that a robots-blocked page can hide its `noindex` directive. See
 [site names](https://developers.google.com/search/docs/appearance/site-names) and
