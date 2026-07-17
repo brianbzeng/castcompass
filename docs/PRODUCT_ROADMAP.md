@@ -114,6 +114,13 @@ after its acceptance checks pass in the intended environment.
     privilege, secret scanning, dependency/runtime/action version locks, reproducible builds,
     an SBOM, vulnerability-response ownership, and restore-tested backups. Pinning must include
     a scheduled reviewed update path so security fixes are not frozen out.
+    - [x] Locally pin direct npm packages, Node/Python CI runtimes, runner labels, and immutable
+      action commits; remediate the known npm advisory tree to zero; add high/production-
+      moderate audit gates, pull-request dependency review, a deterministic CycloneDX
+      production SBOM bound to the package-lock hash, and an owner/deadline/update runbook.
+      Hashed Python transitive locks, install-script enforcement, combined/signed SBOM and build
+      attestations, repository required-check settings, production evidence, key custody, and
+      restore drills remain open.
   - [ ] Exercise the attack surface in an isolated staging environment with authorized load,
     stress, and penetration tests; remediate critical/high findings and retest before production
     promotion. Never aim stress or intrusive security testing at production user data.

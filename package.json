@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=22.13.0"
+    "node": ">=22.23.1 <23"
   },
   "scripts": {
     "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev",
@@ -24,32 +24,35 @@
     "test:mobile": "playwright test tests/mobile-viewport.spec.ts",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit",
-    "security": "npm run security:secrets",
+    "security": "npm run security:secrets && npm run security:dependencies && npm run security:sbom",
+    "security:dependencies": "npm audit --audit-level=high && npm audit --omit=dev --audit-level=moderate",
     "security:secrets": "node scripts/check-secrets.mjs",
+    "security:sbom": "node scripts/generate-sbom.mjs --check",
+    "security:sbom:write": "node scripts/generate-sbom.mjs --write",
     "verify:discussion-safety": "node scripts/verify-discussion-safety.mjs",
     "verify:validation-successor": "node scripts/verify-validation-successor.mjs",
     "data:refresh": "PYTHONPATH=. python3 scripts/generate_snapshot.py && PYTHONPATH=. python3 scripts/generate_opportunity_attestations.py",
     "api:test": "python3 -m pytest services/api/tests -q"
   },
   "dependencies": {
-    "drizzle-orm": "^0.45.2",
-    "maplibre-gl": "^5.24.0",
+    "drizzle-orm": "0.45.2",
+    "maplibre-gl": "5.24.0",
     "next": "16.2.6",
     "react": "19.2.6",
     "react-dom": "19.2.6"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.45.0",
-    "@playwright/test": "^1.61.1",
+    "@playwright/test": "1.61.1",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
-    "ajv": "^8.20.0",
-    "ajv-formats": "^2.1.1",
-    "drizzle-kit": "^0.31.10",
+    "ajv": "8.20.0",
+    "ajv-formats": "2.1.1",
+    "drizzle-kit": "0.31.10",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
     "react-server-dom-webpack": "19.2.6",
@@ -60,6 +63,11 @@
     "wrangler": "4.111.0"
   },
   "overrides": {
+    "@babel/core": "7.29.7",
+    "@esbuild-kit/core-utils": {
+      "esbuild": "0.25.12"
+    },
+    "js-yaml": "4.3.0",
     "postcss": "8.5.14"
   },
   "type": "module"

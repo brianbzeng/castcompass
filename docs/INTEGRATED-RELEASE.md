@@ -56,7 +56,7 @@ npm run verify:release-checkout
 npm test
 npm run lint
 npm run typecheck
-npm run security:secrets
+npm run security
 npm run verify:discussion-safety
 npm run verify:validation-successor
 ```

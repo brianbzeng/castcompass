@@ -207,8 +207,11 @@ prove that the object is either attached to a live trip or durably queued for cl
       an explicit support decision, while export and account deletion remain available.
 - [ ] Canonical, redirect-alias, and `workers.dev` smoke checks passed.
 - [ ] Health and security endpoints return the expected content and hardening headers.
-- [ ] GitHub dependency/Dependabot review has no untriaged high or critical production
-      advisory; development-only findings have an owner and deadline.
+- [ ] The release used the reviewed Node/Python versions; `npm ci`, secret scanning, both audit
+      thresholds, dependency review, and deterministic SBOM verification passed at the exact
+      commit. The recorded SBOM lock hash matches that commit.
+- [ ] GitHub dependency/Dependabot review has no untriaged high or critical advisory; accepted
+      development findings have reachability evidence, an owner, and a deadline.
 - [ ] A named operator exercised the reviewed snapshot PR and guarded publication cadence;
       a deliberately aged fixture displayed `Cached`/`stale` instead of `Live data`/`fresh`.
 - [ ] The six Worker rate-limit bindings have the reviewed production limits; their secret,

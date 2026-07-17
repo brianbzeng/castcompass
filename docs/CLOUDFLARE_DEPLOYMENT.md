@@ -38,6 +38,13 @@ For a Worker-only release, authenticate Wrangler and provide the exact reviewed 
 checkout is at that commit, the worktree is clean, and no ignored `.env*`/`.dev.vars*`
 override exists:
 
+Use the exact Node version in `.node-version`; do not let a local or Cloudflare default select
+a different major or older patch. The immutable release checks include the dependency audits
+and lock-bound CycloneDX SBOM documented in
+[Software supply-chain policy](SECURITY-SUPPLY-CHAIN.md). A successful repository build is not
+proof that Cloudflare used the intended runtime, so record the production build runtime and
+deployment identity separately.
+
 ```bash
 export RELEASE_COMMIT=REVIEWED_COMMIT
 npm ci
