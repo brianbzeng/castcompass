@@ -83,7 +83,9 @@ interface ProfileData {
   gearProfiles: GearProfile[];
 }
 
-type AccountDeletionRequestState = "idle" | "submitting" | "error";
+type AccountDeletionRequestState = "idle" | "submitting" | "ambiguous" | "error";
+
+class AmbiguousAccountDeletionError extends Error {}
 
 function isConnectionFailure(error: unknown) {
   return error instanceof TypeError;
@@ -91,11 +93,12 @@ function isConnectionFailure(error: unknown) {
 
 function AccountDeletionStatus({ state, message }: { state: AccountDeletionRequestState; message: string }) {
   if (state === "idle" && !message) return null;
+  const isAlert = state === "ambiguous" || state === "error";
   return (
     <div
       className={`account-deletion-status ${state}`}
-      role={state === "error" ? "alert" : "status"}
-      aria-live={state === "error" ? undefined : "polite"}
+      role={isAlert ? "alert" : "status"}
+      aria-live={isAlert ? undefined : "polite"}
     >
       <span>{message}</span>
       {state === "submitting" ? <i aria-hidden="true" /> : null}
@@ -444,9 +447,11 @@ export function AccountModal({
     : accountDeletionState === "idle" && networkState === "restored"
       ? "This device reports that its connection is back. No deletion request was submitted automatically."
       : accountDeletionMessage;
-  const accountDeletionDisabled = profileActionBusy || networkState === "offline";
+  const accountDeletionDisabled = profileActionBusy || networkState === "offline" || accountDeletionState === "ambiguous";
   const accountDeletionButtonLabel = accountDeletionState === "submitting"
     ? "Deleting…"
+    : accountDeletionState === "ambiguous"
+      ? "Verify deletion status before retrying"
     : networkState === "offline"
       ? "Reconnect to delete account"
       : profileActionBusy
@@ -743,21 +748,30 @@ export function AccountModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: form.get("password"), confirmation: form.get("confirmation") }),
       });
-      const body = await response.json() as Record<string, unknown> & { error?: { message?: string } };
-      if (!response.ok) throw new Error(body.error?.message ?? "The account could not be deleted.");
+      const body = await response.json().catch(() => null) as (Record<string, unknown> & { error?: { message?: string } }) | null;
+      if (!response.ok) {
+        if (response.status >= 500) {
+          throw new AmbiguousAccountDeletionError("The server could not confirm whether account deletion completed.");
+        }
+        throw new Error(body?.error?.message ?? "The account could not be deleted.");
+      }
+      if (!body) {
+        throw new AmbiguousAccountDeletionError("The deletion response could not be read.");
+      }
       const nextDeletionDetails = deletionDetailsFromResponse(body);
       const responseMatchesStatus = response.status === 200
         ? nextDeletionDetails.status === "completed"
         : response.status === 202 && nextDeletionDetails.status !== "completed";
       if (body.deleted !== true || nextDeletionDetails.scope !== "account" || !responseMatchesStatus) {
-        throw new Error("The deletion response could not be verified. Sign-in access may already be removed; contact support before retrying.");
+        throw new AmbiguousAccountDeletionError("The deletion response could not be verified.");
       }
       setBrowserAccountStorageCleared(clearCastingCompassAccountStorage());
       setDeletionDetails(nextDeletionDetails);
       await account.refresh();
     } catch (deleteError) {
-      setAccountDeletionState("error");
-      setAccountDeletionMessage(isConnectionFailure(deleteError)
+      const ambiguous = isConnectionFailure(deleteError) || deleteError instanceof AmbiguousAccountDeletionError;
+      setAccountDeletionState(ambiguous ? "ambiguous" : "error");
+      setAccountDeletionMessage(ambiguous
         ? "No server confirmation arrived. Account access may already be removed. Do not submit again; reconnect, refresh, and use the deletion-status receipt or contact support."
         : deleteError instanceof Error ? deleteError.message : "The account could not be deleted.");
     } finally {

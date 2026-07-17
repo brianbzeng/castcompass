@@ -48,16 +48,17 @@ async function prepareAccountDeletion(page: Page) {
 }
 
 test.beforeEach(async ({ page }, testInfo) => {
-  if (testInfo.title.includes("failed lazy route dependency")) {
+  const testTitle = testInfo.titlePath.join(" ");
+  if (testTitle.includes("failed lazy route dependency")) {
     await page.route("**/assets/ContourMap-*.js", (route) => route.abort());
   }
-  const profileRecoveryTest = testInfo.title.includes("failed profile load stays unknown");
-  const tripRecoveryTest = testInfo.title.includes("trip submissions pause while offline") ||
-    testInfo.title.includes("slow trip save stays pending") ||
-    testInfo.title.includes("failed trip save remains ambiguous");
-  const accountDeletionRecoveryTest = testInfo.title.includes("account deletion pauses while offline") ||
-    testInfo.title.includes("slow account deletion stays unconfirmed") ||
-    testInfo.title.includes("failed account deletion stays ambiguous");
+  const profileRecoveryTest = testTitle.includes("failed profile load stays unknown");
+  const tripRecoveryTest = testTitle.includes("trip submissions pause while offline") ||
+    testTitle.includes("slow trip save stays pending") ||
+    testTitle.includes("failed trip save remains ambiguous");
+  const accountDeletionRecoveryTest = testTitle.includes("account deletion pauses while offline") ||
+    testTitle.includes("slow account deletion stays unconfirmed") ||
+    testTitle.includes("failed account deletion stays ambiguous");
   let profileAttempts = 0;
   await page.route("**/api/auth/session", (route) => route.fulfill({
     status: 200,
@@ -361,7 +362,7 @@ test.describe("account deletion recovery", () => {
     await expect(alert).toContainText("Account access may already be removed");
     await expect(alert).toContainText("Do not submit again");
     await expect(alert).toContainText("deletion-status receipt");
-    await expect(deletion.getByRole("button", { name: "Permanently delete account" })).toBeEnabled();
+    await expect(deletion.getByRole("button", { name: "Verify deletion status before retrying" })).toBeDisabled();
     expect(deletionAttempts).toBe(1);
   });
 });

@@ -18,10 +18,18 @@ test("account deletion is blocked while the browser reports offline", () => {
 
 test("a dropped deletion response is treated as potentially committed", () => {
   assert.match(accountFeature, /isConnectionFailure\(deleteError\)/);
+  assert.match(accountFeature, /accountDeletionState === "ambiguous"/);
+  assert.match(accountFeature, /Verify deletion status before retrying/);
   assert.match(accountFeature, /Account access may already be removed/);
   assert.match(accountFeature, /Do not submit again/);
   assert.match(accountFeature, /deletion-status receipt/);
   assert.doesNotMatch(accountFeature, /isConnectionFailure\(deleteError\)[\s\S]{0,400}deleteAccount\(/);
+});
+
+test("unreadable success and server-error responses also block destructive resubmission", () => {
+  assert.match(accountFeature, /response\.status >= 500/);
+  assert.match(accountFeature, /if \(!body\)/);
+  assert.match(accountFeature, /AmbiguousAccountDeletionError/);
 });
 
 test("slow account deletion remains visibly unconfirmed", () => {

@@ -3091,6 +3091,7 @@ footer > div {
   line-height: 1.5;
 }
 
+.account-deletion-status.ambiguous,
 .account-deletion-status.error {
   color: #ffb2a6;
 }
