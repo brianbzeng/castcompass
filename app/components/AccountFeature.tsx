@@ -13,9 +13,9 @@ import {
 import type { FishingSite } from "../types";
 import { useClientNetworkState } from "../lib/use-client-network-state";
 
-// Deletion may commit before its response is lost. Never abort or replay it client-side;
-// the durable deletion receipt is the authoritative recovery path.
-const SLOW_DELETION_NOTICE_MS = 4_000;
+// A privileged write may commit before its response is lost. Never abort or replay it
+// client-side; keep the in-flight state explicitly unconfirmed until the server answers.
+const SLOW_MUTATION_NOTICE_MS = 4_000;
 
 export interface AccountUser {
   id: string;
@@ -83,20 +83,20 @@ interface ProfileData {
   gearProfiles: GearProfile[];
 }
 
-type DeletionRequestState = "idle" | "submitting" | "ambiguous" | "error";
+type MutationRequestState = "idle" | "submitting" | "ambiguous" | "error";
 
-class AmbiguousDeletionError extends Error {}
+class AmbiguousMutationError extends Error {}
 
 function isConnectionFailure(error: unknown) {
   return error instanceof TypeError;
 }
 
-function DeletionRequestStatus({ state, message }: { state: DeletionRequestState; message: string }) {
+function MutationRequestStatus({ state, message }: { state: MutationRequestState; message: string }) {
   if (state === "idle" && !message) return null;
   const isAlert = state === "ambiguous" || state === "error";
   return (
     <div
-      className={`deletion-request-status ${state}`}
+      className={`mutation-request-status ${state}`}
       role={isAlert ? "alert" : "status"}
       aria-live={isAlert ? undefined : "polite"}
     >
@@ -429,11 +429,16 @@ export function AccountModal({
   const [profileActionBusy, setProfileActionBusy] = useState(false);
   const [profileActionError, setProfileActionError] = useState("");
   const [profileActionNotice, setProfileActionNotice] = useState("");
-  const [accountDeletionState, setAccountDeletionState] = useState<DeletionRequestState>("idle");
+  const [accountDeletionState, setAccountDeletionState] = useState<MutationRequestState>("idle");
   const [accountDeletionMessage, setAccountDeletionMessage] = useState("");
   const [tripDeletionRequest, setTripDeletionRequest] = useState<{
     tripId: string;
-    state: DeletionRequestState;
+    state: MutationRequestState;
+    message: string;
+  } | null>(null);
+  const [tripEditRequest, setTripEditRequest] = useState<{
+    tripId: string;
+    state: MutationRequestState;
     message: string;
   } | null>(null);
   const [deletionDetails, setDeletionDetails] = useState<DeletionDetails | null>(null);
@@ -463,6 +468,32 @@ export function AccountModal({
         ? "Account action in progress…"
         : "Permanently delete account";
   const tripDeletionAmbiguous = tripDeletionRequest?.state === "ambiguous";
+  const tripEditAmbiguous = tripEditRequest?.state === "ambiguous";
+  const activeTripEditRequest = editingTrip && tripEditRequest?.tripId === editingTrip.id
+    ? tripEditRequest
+    : null;
+  const displayedTripEditState: MutationRequestState = activeTripEditRequest?.state ?? (
+    networkState === "offline" ? "error" : "idle"
+  );
+  const displayedTripEditMessage = activeTripEditRequest?.message ?? (
+    networkState === "offline"
+      ? "This device appears offline. Trip changes cannot be submitted, and your draft remains on this device."
+      : networkState === "restored"
+        ? "This device reports that its connection is back. No trip edit was submitted automatically."
+        : ""
+  );
+  const tripEditSubmitDisabled = profileActionBusy || networkState === "offline" || tripEditAmbiguous || tripDeletionAmbiguous;
+  const tripEditSubmitLabel = activeTripEditRequest?.state === "submitting"
+    ? "Saving…"
+    : activeTripEditRequest?.state === "ambiguous"
+      ? "Verify saved trip before retrying"
+      : networkState === "offline"
+        ? "Reconnect to save changes"
+        : tripDeletionAmbiguous
+          ? "Deletion status unresolved"
+          : profileActionBusy
+            ? "Account action in progress…"
+            : "Save trip changes";
 
   const resetTurnstile = useCallback(() => {
     setTurnstileToken("");
@@ -746,7 +777,7 @@ export function AccountModal({
     setAccountDeletionMessage("Removing account access and active-service records. No deletion is confirmed yet.");
     const slowNotice = window.setTimeout(() => {
       setAccountDeletionMessage("Still waiting for the server. Keep this page open; account removal has not been confirmed yet.");
-    }, SLOW_DELETION_NOTICE_MS);
+    }, SLOW_MUTATION_NOTICE_MS);
     const form = new FormData(event.currentTarget);
     try {
       const response = await fetch("/api/profile", {
@@ -757,25 +788,25 @@ export function AccountModal({
       const body = await response.json().catch(() => null) as (Record<string, unknown> & { error?: { message?: string } }) | null;
       if (!response.ok) {
         if (response.status >= 500) {
-          throw new AmbiguousDeletionError("The server could not confirm whether account deletion completed.");
+          throw new AmbiguousMutationError("The server could not confirm whether account deletion completed.");
         }
         throw new Error(body?.error?.message ?? "The account could not be deleted.");
       }
       if (!body) {
-        throw new AmbiguousDeletionError("The deletion response could not be read.");
+        throw new AmbiguousMutationError("The deletion response could not be read.");
       }
       const nextDeletionDetails = deletionDetailsFromResponse(body);
       const responseMatchesStatus = response.status === 200
         ? nextDeletionDetails.status === "completed"
         : response.status === 202 && nextDeletionDetails.status !== "completed";
       if (body.deleted !== true || nextDeletionDetails.scope !== "account" || !responseMatchesStatus) {
-        throw new AmbiguousDeletionError("The deletion response could not be verified.");
+        throw new AmbiguousMutationError("The deletion response could not be verified.");
       }
       setBrowserAccountStorageCleared(clearCastingCompassAccountStorage());
       setDeletionDetails(nextDeletionDetails);
       await account.refresh();
     } catch (deleteError) {
-      const ambiguous = isConnectionFailure(deleteError) || deleteError instanceof AmbiguousDeletionError;
+      const ambiguous = isConnectionFailure(deleteError) || deleteError instanceof AmbiguousMutationError;
       setAccountDeletionState(ambiguous ? "ambiguous" : "error");
       setAccountDeletionMessage(ambiguous
         ? "No server confirmation arrived. Account access may already be removed. Do not submit again; reconnect, refresh, and use the deletion-status receipt or contact support."
@@ -822,6 +853,7 @@ export function AccountModal({
   };
 
   const beginTripEdit = (trip: ProfileTrip) => {
+    if (tripEditAmbiguous || tripDeletionAmbiguous) return;
     const draftKey = `${PROFILE_TRIP_DRAFT_PREFIX}${trip.id}`;
     let nextFields = editFieldsForTrip(trip);
     try {
@@ -832,6 +864,7 @@ export function AccountModal({
     }
     setProfileActionError("");
     setProfileActionNotice("");
+    setTripEditRequest(null);
     setEditingTrip(trip);
     setEditFields(nextFields);
   };
@@ -840,48 +873,94 @@ export function AccountModal({
     setEditingTrip(null);
     setEditFields(null);
     setProfileActionError("");
+    setTripEditRequest((current) => current?.state === "ambiguous" ? current : null);
   };
 
   const saveTripEdit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!editingTrip || !editFields) return;
-    if (!sites.some((site) => site.id === editFields.siteId)) {
-      setProfileActionError("Choose a fishing location from the matching results.");
+    if (networkState === "offline") {
+      setTripEditRequest({
+        tripId: editingTrip.id,
+        state: "error",
+        message: "This device appears offline. The trip edit was not submitted, and your draft remains on this device.",
+      });
       return;
     }
+    if (tripEditAmbiguous || tripDeletionAmbiguous) return;
+    if (!sites.some((site) => site.id === editFields.siteId)) {
+      setTripEditRequest({
+        tripId: editingTrip.id,
+        state: "error",
+        message: "Choose a fishing location from the matching results.",
+      });
+      return;
+    }
+    const submittedTripId = editingTrip.id;
+    const submittedFields = editFields;
     setProfileActionBusy(true);
     setProfileActionError("");
     setProfileActionNotice("");
+    setTripEditRequest({
+      tripId: submittedTripId,
+      state: "submitting",
+      message: "Saving these trip changes. No update is confirmed yet.",
+    });
+    const slowNotice = window.setTimeout(() => {
+      setTripEditRequest((current) => current?.tripId === submittedTripId && current.state === "submitting"
+        ? { ...current, message: "Still waiting for the server. Keep this page open; the trip update has not been confirmed yet." }
+        : current);
+    }, SLOW_MUTATION_NOTICE_MS);
     try {
-      const response = await fetch(`/api/profile/trips/${encodeURIComponent(editingTrip.id)}`, {
+      const response = await fetch(`/api/profile/trips/${encodeURIComponent(submittedTripId)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...editFields,
-          startedAt: new Date(editFields.startedAt).toISOString(),
-          endedAt: new Date(editFields.endedAt).toISOString(),
+          ...submittedFields,
+          startedAt: new Date(submittedFields.startedAt).toISOString(),
+          endedAt: new Date(submittedFields.endedAt).toISOString(),
         }),
       });
-      const body = await response.json() as {
+      const body = await response.json().catch(() => null) as {
+        updated?: boolean;
+        tripId?: string;
         error?: { message?: string };
         validationEvidenceExcluded?: boolean;
-      };
-      if (!response.ok) throw new Error(body.error?.message ?? "The trip log could not be updated.");
-      if (body.validationEvidenceExcluded !== true) {
-        throw new Error("The trip log changed, but its validation-evidence exclusion could not be verified. Refresh before editing again.");
+      } | null;
+      if (!response.ok) {
+        if (response.status >= 500) {
+          throw new AmbiguousMutationError("The server could not confirm whether the trip update completed.");
+        }
+        throw new Error(body?.error?.message ?? "The trip log could not be updated.");
       }
-      window.localStorage.removeItem(`${PROFILE_TRIP_DRAFT_PREFIX}${editingTrip.id}`);
+      if (!body) {
+        throw new AmbiguousMutationError("The trip-update response could not be read.");
+      }
+      if (body.updated !== true || body.tripId !== submittedTripId || body.validationEvidenceExcluded !== true) {
+        throw new AmbiguousMutationError("The trip-update response could not be verified.");
+      }
+      window.localStorage.removeItem(`${PROFILE_TRIP_DRAFT_PREFIX}${submittedTripId}`);
+      setTripEditRequest(null);
       closeTripEdit();
       await loadProfile({ background: true });
       setProfileActionNotice("Saved. Because this completed report was edited, it remains context-only and cannot enter prospective validation evidence.");
     } catch (editError) {
-      setProfileActionError(editError instanceof Error ? editError.message : "The trip log could not be updated.");
+      const ambiguous = isConnectionFailure(editError) || editError instanceof AmbiguousMutationError;
+      setTripEditRequest({
+        tripId: submittedTripId,
+        state: ambiguous ? "ambiguous" : "error",
+        message: ambiguous
+          ? "No server confirmation arrived. These trip changes may already be saved. Do not submit again; keep this draft, reconnect if needed, refresh the profile, and compare the server copy before editing again."
+          : editError instanceof Error ? editError.message : "The trip log could not be updated.",
+      });
     } finally {
+      window.clearTimeout(slowNotice);
       setProfileActionBusy(false);
     }
   };
 
   const deleteTrip = async (trip: ProfileTrip) => {
+    if (tripEditAmbiguous) return;
     if (networkState === "offline") {
       setTripDeletionRequest({
         tripId: trip.id,
@@ -903,31 +982,31 @@ export function AccountModal({
       setTripDeletionRequest((current) => current?.tripId === trip.id
         ? { ...current, message: "Still waiting for the server. Keep this page open; trip deletion has not been confirmed yet." }
         : current);
-    }, SLOW_DELETION_NOTICE_MS);
+    }, SLOW_MUTATION_NOTICE_MS);
     try {
       const response = await fetch(`/api/profile/trips/${encodeURIComponent(trip.id)}`, { method: "DELETE" });
       const body = await response.json().catch(() => null) as (Record<string, unknown> & { error?: { message?: string } }) | null;
       if (!response.ok) {
         if (response.status >= 500) {
-          throw new AmbiguousDeletionError("The server could not confirm whether trip deletion completed.");
+          throw new AmbiguousMutationError("The server could not confirm whether trip deletion completed.");
         }
         throw new Error(body?.error?.message ?? "The trip log could not be removed.");
       }
       if (!body) {
-        throw new AmbiguousDeletionError("The trip-deletion response could not be read.");
+        throw new AmbiguousMutationError("The trip-deletion response could not be read.");
       }
       const nextDeletionDetails = deletionDetailsFromResponse(body);
       const responseMatchesStatus = response.status === 200
         ? nextDeletionDetails.status === "completed"
         : response.status === 202 && nextDeletionDetails.status !== "completed";
       if (body.deleted !== true || nextDeletionDetails.scope !== "trip" || !responseMatchesStatus) {
-        throw new AmbiguousDeletionError("The trip-deletion response could not be verified.");
+        throw new AmbiguousMutationError("The trip-deletion response could not be verified.");
       }
       window.localStorage.removeItem(`${PROFILE_TRIP_DRAFT_PREFIX}${trip.id}`);
       await loadProfile({ background: true });
       setDeletionDetails(nextDeletionDetails);
     } catch (deleteError) {
-      const ambiguous = isConnectionFailure(deleteError) || deleteError instanceof AmbiguousDeletionError;
+      const ambiguous = isConnectionFailure(deleteError) || deleteError instanceof AmbiguousMutationError;
       setTripDeletionRequest({
         tripId: trip.id,
         state: ambiguous ? "ambiguous" : "error",
@@ -1036,7 +1115,7 @@ export function AccountModal({
                 <label>Password<input name="password" type="password" autoComplete="current-password" minLength={10} maxLength={128} required /></label>
                 <label>Type DELETE<input name="confirmation" type="text" autoComplete="off" pattern="DELETE" required /></label>
                 <button type="submit" className="account-danger" disabled={accountDeletionDisabled}>{accountDeletionButtonLabel}</button>
-                <DeletionRequestStatus state={displayedAccountDeletionState} message={displayedAccountDeletionMessage} />
+                <MutationRequestStatus state={displayedAccountDeletionState} message={displayedAccountDeletionMessage} />
               </form>
             </details>
             {profileActionError ? <p className="account-error" role="alert">{profileActionError}</p> : null}
@@ -1060,7 +1139,7 @@ export function AccountModal({
                 <label>Password<input name="password" type="password" autoComplete="current-password" minLength={10} maxLength={128} required /></label>
                 <label>Type DELETE<input name="confirmation" type="text" autoComplete="off" pattern="DELETE" required /></label>
                 <button type="submit" className="account-danger" disabled={accountDeletionDisabled}>{accountDeletionButtonLabel}</button>
-                <DeletionRequestStatus state={displayedAccountDeletionState} message={displayedAccountDeletionMessage} />
+                <MutationRequestStatus state={displayedAccountDeletionState} message={displayedAccountDeletionMessage} />
               </form>
             </details>
             {profileActionError ? <p className="account-error" role="alert">{profileActionError}</p> : null}
@@ -1135,11 +1214,11 @@ export function AccountModal({
               <h3>Past trip logs</h3>
               {networkState === "offline" ? (
                 <p className="trip-deletion-network-status error" role="alert">
-                  This device appears offline. Trip deletion is paused and nothing will be submitted automatically.
+                  This device appears offline. Trip deletion is paused, and trip-edit submissions remain on this device. Nothing will be submitted automatically.
                 </p>
               ) : networkState === "restored" ? (
                 <p className="trip-deletion-network-status" role="status">
-                  This device reports that its connection is back. No trip deletion was submitted automatically.
+                  This device reports that its connection is back. No trip edit or deletion was submitted automatically.
                 </p>
               ) : null}
               {profileLoading && !profile ? <ProfileSectionLoading label="Loading trip history" /> : profile?.trips.length ? (
@@ -1157,18 +1236,23 @@ export function AccountModal({
                           ? `0 California halibut · ${nonTargetEncounters} unresolved non-target fish`
                           : "No fish encountered";
                     const isTripDeletionTarget = tripDeletionRequest?.tripId === trip.id;
+                    const isTripEditTarget = tripEditRequest?.tripId === trip.id;
                     const tripDeletionButtonLabel = isTripDeletionTarget && tripDeletionRequest.state === "submitting"
                       ? "Removing…"
                       : isTripDeletionTarget && tripDeletionRequest.state === "ambiguous"
                         ? "Deletion status unresolved"
                         : tripDeletionAmbiguous
                           ? "Deletion status unresolved"
-                          : networkState === "offline"
-                            ? "Reconnect to remove"
-                            : profileActionBusy
-                              ? "Account action in progress…"
-                              : "Remove";
-                    const tripDeletionDisabled = profileActionBusy || networkState === "offline" || tripDeletionAmbiguous;
+                          : tripEditAmbiguous
+                            ? "Trip update unresolved"
+                            : networkState === "offline"
+                              ? "Reconnect to remove"
+                              : profileActionBusy
+                                ? "Account action in progress…"
+                                : "Remove";
+                    const tripDeletionDisabled = profileActionBusy || networkState === "offline" || tripDeletionAmbiguous || tripEditAmbiguous;
+                    const tripEditButtonLabel = tripEditAmbiguous ? "Update unresolved" : "Edit";
+                    const tripEditDisabled = profileActionBusy || tripDeletionAmbiguous || tripEditAmbiguous;
                     return (
                       <article className="profile-trip" key={trip.id}>
                         <div><strong>{site?.name ?? trip.site_id}</strong><span>{new Date(trip.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></div>
@@ -1177,7 +1261,14 @@ export function AccountModal({
                         {trip.moderation_status === "pending" ? (
                           <>
                             <div className="profile-trip-actions">
-                              <button type="button" disabled={profileActionBusy || (isTripDeletionTarget && tripDeletionAmbiguous)} onClick={() => beginTripEdit(trip)}>Edit</button>
+                              <button
+                                type="button"
+                                aria-label={isTripEditTarget && tripEditAmbiguous
+                                  ? "Verify saved trip before editing again"
+                                  : undefined}
+                                disabled={tripEditDisabled}
+                                onClick={() => beginTripEdit(trip)}
+                              >{tripEditButtonLabel}</button>
                               <button
                                 type="button"
                                 aria-label={isTripDeletionTarget && tripDeletionRequest.state === "ambiguous"
@@ -1188,7 +1279,10 @@ export function AccountModal({
                               >{tripDeletionButtonLabel}</button>
                             </div>
                             {isTripDeletionTarget ? (
-                              <DeletionRequestStatus state={tripDeletionRequest.state} message={tripDeletionRequest.message} />
+                              <MutationRequestStatus state={tripDeletionRequest.state} message={tripDeletionRequest.message} />
+                            ) : null}
+                            {isTripEditTarget && !editingTrip ? (
+                              <MutationRequestStatus state={tripEditRequest.state} message={tripEditRequest.message} />
                             ) : null}
                           </>
                         ) : null}
@@ -1204,14 +1298,22 @@ export function AccountModal({
             </section>
             {editingTrip && editFields ? (
               <div className="profile-trip-editor-layer" role="presentation" onClick={(event) => {
-                if (event.target === event.currentTarget) closeTripEdit();
+                if (event.target === event.currentTarget && !profileActionBusy) closeTripEdit();
               }}>
-              <form className="profile-trip-editor profile-trip-editor-modal" role="dialog" aria-modal="true" aria-labelledby="profile-trip-editor-title" onSubmit={saveTripEdit}>
+              <form
+                className="profile-trip-editor profile-trip-editor-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="profile-trip-editor-title"
+                aria-busy={activeTripEditRequest?.state === "submitting"}
+                onSubmit={saveTripEdit}
+              >
                 <div className="profile-trip-editor-heading">
                   <div><span>Pending trip</span><h3 id="profile-trip-editor-title">Edit trip log</h3></div>
-                  <button type="button" onClick={closeTripEdit}>Close</button>
+                  <button type="button" disabled={profileActionBusy} onClick={closeTripEdit}>Close</button>
                 </div>
                 <p className="profile-trip-editor-note">Your saved report is loaded below. Any unfinished edits on this device are restored automatically. Saving any edit permanently keeps this report out of prospective validation evidence; the revised report remains usable as descriptive context.</p>
+                <fieldset className="profile-trip-editor-controls" disabled={profileActionBusy || tripEditAmbiguous}>
                 <SiteCombobox
                   sites={sites}
                   value={editFields.siteId}
@@ -1289,7 +1391,9 @@ export function AccountModal({
                 <small>Changed notes are checked again for privacy and relevance. A revised discussion draft still requires human approval before publication.</small>
                 <small>Your edits are saved in this browser as you type.</small>
                 {profileActionError ? <p className="account-error" role="alert">{profileActionError}</p> : null}
-                <button className="account-primary" type="submit" disabled={profileActionBusy}>{profileActionBusy ? "Saving…" : "Save trip changes"}</button>
+                <button className="account-primary" type="submit" disabled={tripEditSubmitDisabled}>{tripEditSubmitLabel}</button>
+                </fieldset>
+                <MutationRequestStatus state={displayedTripEditState} message={displayedTripEditMessage} />
               </form>
               </div>
             ) : null}
@@ -1310,7 +1414,7 @@ export function AccountModal({
                   <label>Password<input name="password" type="password" autoComplete="current-password" minLength={10} maxLength={128} required /></label>
                   <label>Type DELETE<input name="confirmation" type="text" autoComplete="off" pattern="DELETE" required /></label>
                   <button type="submit" className="account-danger" disabled={accountDeletionDisabled}>{accountDeletionButtonLabel}</button>
-                  <DeletionRequestStatus state={displayedAccountDeletionState} message={displayedAccountDeletionMessage} />
+                  <MutationRequestStatus state={displayedAccountDeletionState} message={displayedAccountDeletionMessage} />
                 </form>
               </details>
             </section>

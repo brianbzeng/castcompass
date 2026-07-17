@@ -347,6 +347,10 @@ after its acceptance checks pass in the intended environment.
   - [x] Apply the same fail-safe boundary to pending trip deletion: pause while offline, keep
     slow deletion unconfirmed, and block another destructive submission after any ambiguous
     response until the profile and durable deletion receipt are reconciled.
+  - [x] Keep pending-trip edits fail safe: preserve the local draft, block offline submission,
+    lock the submitted fields while waiting, require a matching authoritative success receipt,
+    and block retry, editing, or deletion after an ambiguous outcome until the server copy is
+    reconciled after refresh. Authoritative client errors remain correctable.
   - [ ] Add operation-specific progress, timeout, retry, cancellation, and reconnection states
     only where the underlying API can report them truthfully; retain authoritative confirmation
     for account, trip, privacy, and other privileged writes.

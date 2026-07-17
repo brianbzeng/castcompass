@@ -3082,7 +3082,7 @@ footer > div {
   line-height: 1.5;
 }
 
-.deletion-request-status {
+.mutation-request-status {
   display: grid;
   gap: 0.45rem;
   margin-top: 0.7rem;
@@ -3091,17 +3091,17 @@ footer > div {
   line-height: 1.5;
 }
 
-.deletion-request-status.ambiguous,
-.deletion-request-status.error,
+.mutation-request-status.ambiguous,
+.mutation-request-status.error,
 .trip-deletion-network-status.error {
   color: #ffb2a6;
 }
 
-.deletion-request-status.submitting {
+.mutation-request-status.submitting {
   color: var(--seafoam);
 }
 
-.deletion-request-status > i {
+.mutation-request-status > i {
   position: relative;
   display: block;
   width: 100%;
@@ -3110,16 +3110,16 @@ footer > div {
   background: rgba(99, 151, 188, 0.2);
 }
 
-.deletion-request-status > i::after {
+.mutation-request-status > i::after {
   position: absolute;
   inset: 0;
   width: 42%;
   background: linear-gradient(90deg, transparent, var(--seafoam), transparent);
   content: "";
-  animation: deletion-request-progress 1.4s ease-in-out infinite;
+  animation: mutation-request-progress 1.4s ease-in-out infinite;
 }
 
-@keyframes deletion-request-progress {
+@keyframes mutation-request-progress {
   from { transform: translateX(-100%); }
   to { transform: translateX(340%); }
 }
@@ -3403,6 +3403,17 @@ footer > div {
   color: var(--ink-soft);
   font-size: 0.68rem;
   line-height: 1.55;
+}
+
+.profile-trip-editor-controls {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.profile-trip-editor-controls:disabled {
+  opacity: 0.78;
 }
 
 .profile-trip-editor-section {

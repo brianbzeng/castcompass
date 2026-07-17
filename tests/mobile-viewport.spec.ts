@@ -29,6 +29,8 @@ const TURNSTILE_MOCK_SCRIPT = `(() => {
 async function preparePastTripForSubmission(page: Page) {
   await page.getByRole("button", { name: "Log a past trip" }).click();
   const modal = page.locator(".trip-modal");
+  await modal.getByRole("combobox", { name: "Fishing location" }).fill("Limantour Beach");
+  await modal.getByRole("option", { name: /Limantour Beach/ }).click();
   await modal.getByLabel("Fishing mode for the whole trip").selectOption("shore");
   await modal.getByLabel("Did the score influence this trip?").selectOption("no");
   await modal.getByRole("button", { name: "Continue to gear + result" }).click();
@@ -56,6 +58,15 @@ async function prepareTripDeletion(page: Page) {
   return { modal, trip };
 }
 
+async function prepareTripEdit(page: Page) {
+  const { modal, trip } = await prepareTripDeletion(page);
+  await trip.getByRole("button", { name: "Edit" }).click();
+  const editor = modal.locator(".profile-trip-editor-modal");
+  await expect(editor.getByRole("heading", { name: "Edit trip log" })).toBeVisible();
+  await editor.getByLabel("Notes", { exact: true }).fill("Draft retained during recovery testing");
+  return { modal, trip, editor };
+}
+
 test.beforeEach(async ({ page }, testInfo) => {
   const testTitle = testInfo.titlePath.join(" ");
   if (testTitle.includes("failed lazy route dependency")) {
@@ -71,6 +82,10 @@ test.beforeEach(async ({ page }, testInfo) => {
   const tripDeletionRecoveryTest = testTitle.includes("trip deletion pauses while offline") ||
     testTitle.includes("slow trip deletion stays unconfirmed") ||
     testTitle.includes("failed trip deletion stays ambiguous");
+  const tripEditRecoveryTest = testTitle.includes("trip edit pauses while offline") ||
+    testTitle.includes("slow trip edit stays unconfirmed") ||
+    testTitle.includes("failed trip edit stays ambiguous") ||
+    testTitle.includes("rejected trip edit remains correctable");
   let profileAttempts = 0;
   await page.route("**/api/auth/session", (route) => route.fulfill({
     status: 200,
@@ -84,10 +99,12 @@ test.beforeEach(async ({ page }, testInfo) => {
             ? { id: "user_account_deletion", email: "deletiontest@example.com", ageEligible: true, legalAccepted: true }
             : tripDeletionRecoveryTest
               ? { id: "user_trip_deletion", email: "tripdeletiontest@example.com", ageEligible: true, legalAccepted: true }
+              : tripEditRecoveryTest
+                ? { id: "user_trip_edit", email: "tripedittest@example.com", ageEligible: true, legalAccepted: true }
         : null,
     }),
   }));
-  if (profileRecoveryTest || tripRecoveryTest || accountDeletionRecoveryTest || tripDeletionRecoveryTest) {
+  if (profileRecoveryTest || tripRecoveryTest || accountDeletionRecoveryTest || tripDeletionRecoveryTest || tripEditRecoveryTest) {
     await page.route("**/api/saved-sites", (route) => route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -144,6 +161,37 @@ test.beforeEach(async ({ page }, testInfo) => {
           target_encounter_count: 0,
           any_fish_encounter_count: 0,
           angler_hours: 2,
+        }],
+      }),
+    }));
+  }
+  if (tripEditRecoveryTest) {
+    await page.route("**/api/profile/reviews/retry", (route) => route.fulfill({
+      status: 202,
+      contentType: "application/json",
+      body: JSON.stringify({ queued: true }),
+    }));
+    await page.route("**/api/profile", (route) => route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        savedSites: [],
+        gearProfiles: [],
+        trips: [{
+          id: "trip_pending_edit",
+          source: "past_report",
+          site_id: "limantour-beach",
+          started_at: "2026-07-16T14:00:00.000Z",
+          ended_at: "2026-07-16T16:00:00.000Z",
+          moderation_status: "pending",
+          contract_status: "valid",
+          outcome_class: "no_fish",
+          target_encounter_count: 0,
+          any_fish_encounter_count: 0,
+          angler_hours: 2,
+          angler_count: 1,
+          ai_review_status: "reviewed",
+          ai_review_json: "{}",
         }],
       }),
     }));
@@ -425,7 +473,7 @@ test.describe("trip deletion recovery", () => {
     await expect(trip.getByRole("button", { name: "Reconnect to remove" })).toBeDisabled();
 
     await context.setOffline(false);
-    await expect(modal.getByRole("status")).toContainText("No trip deletion was submitted automatically");
+    await expect(modal.getByRole("status")).toContainText("No trip edit or deletion was submitted automatically");
     await expect(trip.getByRole("button", { name: "Remove" })).toBeEnabled();
     await page.waitForTimeout(100);
     expect(deletionAttempts).toBe(0);
@@ -463,6 +511,94 @@ test.describe("trip deletion recovery", () => {
     await expect(alert).toContainText("deletion-status receipt");
     await expect(trip.getByRole("button", { name: "Verify deletion status before retrying" })).toBeDisabled();
     expect(deletionAttempts).toBe(1);
+  });
+});
+
+test.describe("trip edit recovery", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("trip edit pauses while offline and never submits automatically", async ({ page, context }) => {
+    let editAttempts = 0;
+    await page.route("**/api/profile/trips/*", (route) => {
+      editAttempts += 1;
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ updated: true, tripId: "trip_pending_edit", validationEvidenceExcluded: true }),
+      });
+    });
+
+    const { editor } = await prepareTripEdit(page);
+    await context.setOffline(true);
+    await expect(editor.getByRole("alert")).toContainText("draft remains on this device");
+    await expect(editor.getByRole("button", { name: "Reconnect to save changes" })).toBeDisabled();
+
+    await context.setOffline(false);
+    await expect(editor.getByRole("status")).toContainText("No trip edit was submitted automatically");
+    await expect(editor.getByRole("button", { name: "Save trip changes" })).toBeEnabled();
+    await page.waitForTimeout(100);
+    expect(editAttempts).toBe(0);
+  });
+
+  test("a slow trip edit stays unconfirmed until the matching receipt arrives", async ({ page }) => {
+    await page.route("**/api/profile/trips/*", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ updated: true, tripId: "trip_pending_edit", validationEvidenceExcluded: true }),
+      });
+    });
+
+    const { modal, editor } = await prepareTripEdit(page);
+    await editor.getByRole("button", { name: "Save trip changes" }).click();
+    const status = editor.getByRole("status");
+    await expect(status).toContainText("trip update has not been confirmed yet", { timeout: 5_500 });
+    await expect(status.locator("i")).toBeVisible();
+    await expect(editor.getByRole("button", { name: "Saving…" })).toBeDisabled();
+    await expect(editor).toBeHidden({ timeout: 8_000 });
+    await expect(modal.getByRole("status")).toContainText("Saved. Because this completed report was edited");
+    expect(await page.evaluate(() => window.localStorage.getItem("castingcompass.profile-trip-draft.v1.trip_pending_edit"))).toBeNull();
+  });
+
+  test("a failed trip edit stays ambiguous, retains its draft, and blocks conflicting writes", async ({ page }) => {
+    let editAttempts = 0;
+    await page.route("**/api/profile/trips/*", (route) => {
+      editAttempts += 1;
+      return route.abort("connectionfailed");
+    });
+
+    const { trip, editor } = await prepareTripEdit(page);
+    await editor.getByRole("button", { name: "Save trip changes" }).click();
+    const alert = editor.getByRole("alert");
+    await expect(alert).toContainText("These trip changes may already be saved");
+    await expect(alert).toContainText("Do not submit again");
+    await expect(editor.getByRole("button", { name: "Verify saved trip before retrying" })).toBeDisabled();
+    expect(await page.evaluate(() => window.localStorage.getItem("castingcompass.profile-trip-draft.v1.trip_pending_edit"))).not.toBeNull();
+
+    await editor.getByRole("button", { name: "Close" }).click();
+    await expect(trip.getByRole("button", { name: "Verify saved trip before editing again" })).toBeDisabled();
+    await expect(trip.getByRole("button", { name: "Trip update unresolved" })).toBeDisabled();
+    expect(editAttempts).toBe(1);
+  });
+
+  test("a rejected trip edit remains correctable without losing its draft", async ({ page }) => {
+    let editAttempts = 0;
+    await page.route("**/api/profile/trips/*", (route) => {
+      editAttempts += 1;
+      return route.fulfill({
+        status: 422,
+        contentType: "application/json",
+        body: JSON.stringify({ error: { message: "Check the trip times and try again." } }),
+      });
+    });
+
+    const { editor } = await prepareTripEdit(page);
+    await editor.getByRole("button", { name: "Save trip changes" }).click();
+    await expect(editor.getByRole("alert")).toContainText("Check the trip times and try again");
+    await expect(editor.getByRole("button", { name: "Save trip changes" })).toBeEnabled();
+    expect(await page.evaluate(() => window.localStorage.getItem("castingcompass.profile-trip-draft.v1.trip_pending_edit"))).not.toBeNull();
+    expect(editAttempts).toBe(1);
   });
 });
 

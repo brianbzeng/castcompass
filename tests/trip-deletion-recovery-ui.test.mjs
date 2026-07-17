@@ -11,7 +11,7 @@ test("trip deletion is blocked offline and never replays after reconnection", ()
   assert.match(accountFeature, /networkState === "offline"/);
   assert.match(accountFeature, /Trip deletion is paused/);
   assert.match(accountFeature, /Reconnect to remove/);
-  assert.match(accountFeature, /No trip deletion was submitted automatically/);
+  assert.match(accountFeature, /No trip edit or deletion was submitted automatically/);
 });
 
 test("ambiguous trip deletion blocks another destructive submission", () => {
@@ -26,12 +26,12 @@ test("unreadable success and server-error responses remain ambiguous", () => {
   assert.match(accountFeature, /response\.status >= 500/);
   assert.match(accountFeature, /The trip-deletion response could not be read/);
   assert.match(accountFeature, /The trip-deletion response could not be verified/);
-  assert.match(accountFeature, /deleteError instanceof AmbiguousDeletionError/);
+  assert.match(accountFeature, /deleteError instanceof AmbiguousMutationError/);
 });
 
 test("slow trip deletion stays visibly unconfirmed", () => {
   assert.match(accountFeature, /trip deletion has not been confirmed yet/);
-  assert.match(accountFeature, /DeletionRequestStatus state=/);
-  assert.match(styles, /\.deletion-request-status\.submitting/);
-  assert.match(styles, /@keyframes deletion-request-progress/);
+  assert.match(accountFeature, /MutationRequestStatus state=/);
+  assert.match(styles, /\.mutation-request-status\.submitting/);
+  assert.match(styles, /@keyframes mutation-request-progress/);
 });
