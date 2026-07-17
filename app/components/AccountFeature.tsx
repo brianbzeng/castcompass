@@ -78,6 +78,23 @@ interface ProfileData {
   gearProfiles: GearProfile[];
 }
 
+function isProfileData(value: unknown): value is ProfileData {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Record<string, unknown>;
+  const isRecord = (entry: unknown): entry is Record<string, unknown> =>
+    Boolean(entry) && typeof entry === "object" && !Array.isArray(entry);
+  return Array.isArray(candidate.savedSites) && candidate.savedSites.every((entry) =>
+    isRecord(entry) && typeof entry.site_id === "string" && typeof entry.created_at === "string") &&
+    Array.isArray(candidate.trips) && candidate.trips.every((entry) =>
+      isRecord(entry) &&
+      typeof entry.id === "string" &&
+      (entry.source === "live" || entry.source === "past_report") &&
+      typeof entry.site_id === "string" &&
+      typeof entry.started_at === "string") &&
+    Array.isArray(candidate.gearProfiles) && candidate.gearProfiles.every((entry) =>
+      isRecord(entry) && typeof entry.id === "string" && typeof entry.name === "string");
+}
+
 interface GearProfile {
   id: string;
   name: string;
@@ -238,6 +255,19 @@ function tripReviewLabel(trip: ProfileTrip) {
   return "Note review pending";
 }
 
+function ProfileSectionLoading({ label }: { label: string }) {
+  return (
+    <div className="profile-section-loading" role="status" aria-label={label}>
+      <span>{label}…</span>
+      <div aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </div>
+    </div>
+  );
+}
+
 export function useAccount(): AccountController {
   const [user, setUser] = useState<AccountUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -365,6 +395,7 @@ export function AccountModal({
   const [resendTurnstileResetKey, setResendTurnstileResetKey] = useState(0);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [profileLoadError, setProfileLoadError] = useState("");
   const [editingTrip, setEditingTrip] = useState<ProfileTrip | null>(null);
   const [editFields, setEditFields] = useState<ProfileTripEditFields | null>(null);
   const [profileActionBusy, setProfileActionBusy] = useState(false);
@@ -403,16 +434,19 @@ export function AccountModal({
   const resendTurnstileCanSubmit = resendTurnstileState === "disabled" ||
     (resendTurnstileState === "verified" && Boolean(resendTurnstileToken));
 
-  const loadProfile = useCallback(async () => {
-    setProfileLoading(true);
+  const loadProfile = useCallback(async ({ background = false }: { background?: boolean } = {}) => {
+    if (!background) setProfileLoading(true);
+    setProfileLoadError("");
     try {
       const response = await fetch("/api/profile", { cache: "no-store" });
       if (!response.ok) throw new Error("Profile could not be loaded.");
-      setProfile(await response.json() as ProfileData);
+      const body = await response.json() as unknown;
+      if (!isProfileData(body)) throw new Error("Profile response was malformed.");
+      setProfile(body);
     } catch {
-      setProfile({ savedSites: [], trips: [], gearProfiles: [] });
+      setProfileLoadError("Profile data could not be loaded.");
     } finally {
-      setProfileLoading(false);
+      if (!background) setProfileLoading(false);
     }
   }, []);
 
@@ -445,13 +479,13 @@ export function AccountModal({
     if (!account.user?.legalAccepted || reviewRetryRequestedRef.current || !profile?.trips.some((trip) => !trip.ai_review_status || trip.ai_review_status === "retry")) return;
     reviewRetryRequestedRef.current = true;
     fetch("/api/profile/reviews/retry", { method: "POST" })
-      .then(() => window.setTimeout(() => void loadProfile(), 2500))
+      .then(() => window.setTimeout(() => void loadProfile({ background: true }), 2500))
       .catch(() => { reviewRetryRequestedRef.current = false; });
   }, [account.user, loadProfile, profile]);
 
   useEffect(() => {
     if (!profile?.trips.some((trip) => trip.ai_review_status === "queued" || trip.ai_review_status === "processing")) return;
-    const timer = window.setInterval(() => void loadProfile(), 3000);
+    const timer = window.setInterval(() => void loadProfile({ background: true }), 3000);
     return () => window.clearInterval(timer);
   }, [loadProfile, profile]);
 
@@ -760,7 +794,7 @@ export function AccountModal({
       }
       window.localStorage.removeItem(`${PROFILE_TRIP_DRAFT_PREFIX}${editingTrip.id}`);
       closeTripEdit();
-      await loadProfile();
+      await loadProfile({ background: true });
       setProfileActionNotice("Saved. Because this completed report was edited, it remains context-only and cannot enter prospective validation evidence.");
     } catch (editError) {
       setProfileActionError(editError instanceof Error ? editError.message : "The trip log could not be updated.");
@@ -785,7 +819,7 @@ export function AccountModal({
         throw new Error("The trip-deletion response could not be verified. The trip may already be removed; contact support before retrying.");
       }
       window.localStorage.removeItem(`${PROFILE_TRIP_DRAFT_PREFIX}${trip.id}`);
-      await loadProfile();
+      await loadProfile({ background: true });
       setDeletionDetails(nextDeletionDetails);
     } catch (deleteError) {
       setProfileActionError(deleteError instanceof Error ? deleteError.message : "The trip log could not be removed.");
@@ -807,7 +841,7 @@ export function AccountModal({
       const body = await response.json() as { error?: { message?: string } };
       if (!response.ok) throw new Error(body.error?.message ?? "The gear preset could not be saved.");
       setGearDraft(EMPTY_GEAR);
-      await loadProfile();
+      await loadProfile({ background: true });
     } catch (gearError) {
       setProfileActionError(gearError instanceof Error ? gearError.message : "The gear preset could not be saved.");
     } finally {
@@ -821,7 +855,7 @@ export function AccountModal({
     try {
       const response = await fetch(`/api/gear-profiles/${encodeURIComponent(id)}`, { method: "DELETE" });
       if (!response.ok) throw new Error("The gear preset could not be removed.");
-      await loadProfile();
+      await loadProfile({ background: true });
     } catch (gearError) {
       setProfileActionError(gearError instanceof Error ? gearError.message : "The gear preset could not be removed.");
     } finally {
@@ -922,13 +956,25 @@ export function AccountModal({
             <span className="eyebrow"><span /> Your account</span>
             <h2 id="account-title">Your fishing<br />profile.</h2>
             <p className="account-email">Signed in as <strong>{account.user.email}</strong></p>
-            <div className="profile-summary" aria-live="polite">
-              <div><strong>{profile?.savedSites.length ?? 0}</strong><span>Saved locations</span></div>
-              <div><strong>{profile?.trips.length ?? 0}</strong><span>Completed trips</span></div>
+            {profileLoadError ? (
+              <div className="profile-load-error" role="alert">
+                <p>{profile
+                  ? "The latest profile refresh failed. The information below is the last successfully loaded copy."
+                  : "Profile data could not be loaded. CastingCompass is not treating the account as empty."}</p>
+                <button type="button" disabled={profileLoading} onClick={() => void loadProfile()}>
+                  {profileLoading ? "Retrying…" : "Retry profile"}
+                </button>
+              </div>
+            ) : profileLoading && profile ? (
+              <p className="profile-load-status" role="status">Refreshing profile data…</p>
+            ) : null}
+            <div className="profile-summary" aria-live="polite" aria-busy={profileLoading && !profile}>
+              <div><strong>{profile ? profile.savedSites.length : "—"}</strong><span>Saved locations</span></div>
+              <div><strong>{profile ? profile.trips.length : "—"}</strong><span>Completed trips</span></div>
             </div>
             <section className="profile-section">
               <h3>Saved locations</h3>
-              {profileLoading ? <p>Loading your saved water…</p> : profile?.savedSites.length ? (
+              {profileLoading && !profile ? <ProfileSectionLoading label="Loading saved locations" /> : profile?.savedSites.length ? (
                 <div className="profile-list">
                   {profile.savedSites.map((saved) => {
                     const site = sites.find((candidate) => candidate.id === saved.site_id);
@@ -952,25 +998,27 @@ export function AccountModal({
                     );
                   })}
                 </div>
-              ) : <p>No saved locations yet. Open a forecast and tap “Save location.”</p>}
+              ) : profile ? <p>No saved locations yet. Open a forecast and tap “Save location.”</p>
+                : <p className="profile-data-unavailable">Saved locations are unavailable. Retry the profile above.</p>}
             </section>
             <section className="profile-section profile-gear-section">
               <h3>Gear presets</h3>
-              {profile?.gearProfiles.length ? <div className="profile-list">
+              {profileLoading && !profile ? <ProfileSectionLoading label="Loading gear presets" /> : profile?.gearProfiles.length ? <div className="profile-list">
                 {profile.gearProfiles.map((gear) => <article className="profile-gear-row" key={gear.id}>
                   <div><strong>{gear.name}</strong><small>{[gear.rod, gear.reel, gear.bait_lure, gear.rig].filter(Boolean).join(" · ") || "Empty preset"}</small></div>
                   <button type="button" disabled={profileActionBusy} onClick={() => void deleteGearProfile(gear.id)}>Remove</button>
                 </article>)}
-              </div> : <p>No gear presets yet.</p>}
-              <form className="profile-gear-form" onSubmit={saveGearProfile}>
+              </div> : profile ? <p>No gear presets yet.</p>
+                : <p className="profile-data-unavailable">Gear presets are unavailable. Retry the profile above.</p>}
+              {profile ? <form className="profile-gear-form" onSubmit={saveGearProfile}>
                 <input aria-label="Preset name" placeholder="Preset name" maxLength={60} value={gearDraft.name} onChange={(event) => setGearDraft((current) => ({ ...current, name: event.target.value }))} required />
                 <GearCatalogFields values={gearDraft} onChange={(gear) => setGearDraft((current) => ({ ...current, ...gear }))} className="profile-gear-catalog" />
                 <button type="submit" disabled={profileActionBusy}>{profileActionBusy ? "Saving…" : "Save gear preset"}</button>
-              </form>
+              </form> : null}
             </section>
             <section className="profile-section">
               <h3>Past trip logs</h3>
-              {profileLoading ? <p>Loading trip history…</p> : profile?.trips.length ? (
+              {profileLoading && !profile ? <ProfileSectionLoading label="Loading trip history" /> : profile?.trips.length ? (
                 <div className="profile-list">
                   {profile.trips.map((trip) => {
                     const site = sites.find((candidate) => candidate.id === trip.site_id);
@@ -999,7 +1047,8 @@ export function AccountModal({
                     );
                   })}
                 </div>
-              ) : <p>No completed trip logs are attached to this account yet.</p>}
+              ) : profile ? <p>No completed trip logs are attached to this account yet.</p>
+                : <p className="profile-data-unavailable">Trip history is unavailable. Retry the profile above.</p>}
               <small className="profile-review-note">Trip data is saved immediately. Automated review may prepare a discussion draft, but nothing is posted without human approval. Pending reports remain editable during the beta. After any edit, the revised report remains useful as descriptive context but cannot re-enter prospective validation evidence.</small>
               {profileActionNotice && !editingTrip ? <p role="status">{profileActionNotice}</p> : null}
               {profileActionError && !editingTrip ? <p className="account-error" role="alert">{profileActionError}</p> : null}

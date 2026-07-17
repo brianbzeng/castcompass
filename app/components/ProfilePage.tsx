@@ -5,5 +5,5 @@ import type { FishingSite } from "../types";
 
 export function ProfilePage({ sites }: { sites: FishingSite[] }) {
   const account = useAccount();
-  return <AccountModal account={account} sites={sites} standalone />;
+  return <AccountModal key={account.user?.id ?? "anonymous"} account={account} sites={sites} standalone />;
 }

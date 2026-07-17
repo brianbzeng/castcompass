@@ -30,11 +30,48 @@ test.beforeEach(async ({ page }, testInfo) => {
   if (testInfo.title.includes("failed lazy route dependency")) {
     await page.route("**/assets/ContourMap-*.js", (route) => route.abort());
   }
+  const profileRecoveryTest = testInfo.title.includes("failed profile load stays unknown");
+  let profileAttempts = 0;
   await page.route("**/api/auth/session", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
-    body: JSON.stringify({ user: null }),
+    body: JSON.stringify({
+      user: profileRecoveryTest
+        ? { id: "user_profile_recovery", email: "profiletest@example.com", ageEligible: true, legalAccepted: true }
+        : null,
+    }),
   }));
+  if (profileRecoveryTest) {
+    await page.route("**/api/saved-sites", (route) => route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ siteIds: ["limantour-beach"] }),
+    }));
+    await page.route("**/api/gear-profiles", (route) => route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ gearProfiles: [] }),
+    }));
+    await page.route("**/api/profile", (route) => {
+      profileAttempts += 1;
+      if (profileAttempts === 1) {
+        return route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({ error: { code: "temporary_failure" } }),
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          savedSites: [{ site_id: "limantour-beach", created_at: "2026-07-17T00:00:00.000Z" }],
+          trips: [],
+          gearProfiles: [],
+        }),
+      });
+    });
+  }
   await page.route("**/api/privacy/deletion-status", (route) => route.fulfill({
     status: 404,
     contentType: "application/json",
@@ -141,6 +178,28 @@ test.describe("route render recovery", () => {
     expect(geometry.overflow).toBeLessThanOrEqual(1);
     expect(geometry.left).toBeGreaterThanOrEqual(-1);
     expect(geometry.right).toBeLessThanOrEqual(geometry.viewportWidth + 1);
+  });
+});
+
+test.describe("profile recovery", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("a failed profile load stays unknown until an explicit retry succeeds", async ({ page }) => {
+    await expect(page.locator(".account-label")).toHaveText("profiletest");
+    await page.locator(".account-button").click();
+
+    const loadError = page.locator(".profile-load-error");
+    await expect(loadError).toBeVisible();
+    await expect(loadError).toContainText("CastingCompass is not treating the account as empty.");
+    expect(await page.locator(".profile-summary strong").allTextContents()).toEqual(["—", "—"]);
+    await expect(page.getByText("No saved locations yet.", { exact: false })).toHaveCount(0);
+    await expect(page.getByText("Saved locations are unavailable. Retry the profile above.")).toBeVisible();
+
+    await page.getByRole("button", { name: "Retry profile" }).click();
+    await expect(loadError).toBeHidden();
+    await expect(page.getByText("Limantour Beach", { exact: true })).toBeVisible();
+    await expect(page.locator(".profile-summary")).toContainText("1Saved locations");
+    await expect(page.locator(".profile-summary")).toContainText("0Completed trips");
   });
 });
 

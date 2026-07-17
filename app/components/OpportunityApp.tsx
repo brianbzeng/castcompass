@@ -2180,7 +2180,12 @@ export function OpportunityApp() {
         </div>
       ) : null}
 
-      <AccountModal account={account} sites={sites} onOpenSite={openSiteDetail} />
+      <AccountModal
+        key={account.user?.id ?? "anonymous"}
+        account={account}
+        sites={sites}
+        onOpenSite={openSiteDetail}
+      />
 
       {showCompare ? (
         <div className="modal-layer" role="presentation" onClick={(event) => {
