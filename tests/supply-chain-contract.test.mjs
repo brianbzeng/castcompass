@@ -18,6 +18,8 @@ test("direct npm packages and build runtimes are exact reviewed versions", async
   assert.equal(manifest.engines.node, ">=22.23.1 <23");
   assert.equal(await readFile(new URL(".node-version", root), "utf8"), "22.23.1\n");
   assert.equal(await readFile(new URL(".python-version", root), "utf8"), "3.12.13\n");
+  assert.equal(await readFile(new URL("services/api/.python-version", root), "utf8"), "3.12.13\n");
+  assert.equal(await readFile(new URL("pipeline/.python-version", root), "utf8"), "3.12.13\n");
 
   assert.equal(lock.packages["node_modules/@babel/core"].version, "7.29.7");
   assert.equal(lock.packages["node_modules/js-yaml"].version, "4.3.0");
@@ -69,6 +71,18 @@ test("Python API and pipeline installs use exact source-bound wheel hashes", asy
 
   const dependabot = await readFile(new URL(".github/dependabot.yml", root), "utf8");
   assert.match(dependabot, /package-ecosystem: docker[\s\S]+directory: \/services\/api/);
+  assert.match(dependabot, /psycopg-family:[\s\S]+psycopg-binary[\s\S]+psycopg-pool/);
+
+  const apiRequirements = await readFile(new URL("services/api/requirements.txt", root), "utf8");
+  assert.match(apiRequirements, /^psycopg\[binary\]==3\.3\.4$/m);
+  assert.match(apiRequirements, /^psycopg-pool==3\.3\.1$/m);
+
+  const validationLock = await readFile(new URL("pipeline/requirements-validation.lock", root));
+  const validationConstraints = await readFile(new URL("pipeline/requirements-validation.txt", root));
+  assert.deepEqual(validationConstraints, validationLock);
+  const pipelineInput = await readFile(new URL("pipeline/requirements-ci.in", root), "utf8");
+  assert.match(pipelineInput, /^-c requirements-validation\.txt$/m);
+  assert.doesNotMatch(pipelineInput, /^-c .*\.lock$/m);
 });
 
 test("the deterministic production SBOM is bound to the lock and direct runtime packages", async () => {
@@ -100,5 +114,8 @@ test("the supply-chain runbook closes exercised Python locks but keeps optional 
   assert.match(policy, /optional Geo\/PyTorch[\s\S]+remains open/i);
   assert.match(policy, /not yet signed deployment provenance/i);
   assert.match(policy, /stacked successor PRs[\s\S]+do not falsely report a dependency-review pass/i);
+  assert.match(policy, /directory-local `services\/api\/\.python-version`[\s\S]+`pipeline\/\.python-version`/i);
+  assert.match(policy, /byte-identical transport mirror[\s\S]+managed parser/i);
+  assert.match(policy, /require successful evaluation on[\s\S]+Python 3\.12\.13/i);
   assert.match(policy, /parent roadmap item[\s\S]+remains\s+open/i);
 });

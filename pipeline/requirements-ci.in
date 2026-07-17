@@ -1,7 +1,7 @@
 # CI exercises the smoke pipeline and its validation-identity contract. Keep the
 # protocol lock as the constraint for overlapping numerical/cryptographic packages.
 -r requirements-smoke.txt
--c requirements-validation.lock
+-c requirements-validation.txt
 
 # Preserve the reviewed pandas behavior instead of taking the newest allowed major.
 pandas==2.2.3

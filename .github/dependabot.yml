@@ -12,6 +12,12 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      psycopg-family:
+        patterns:
+          - psycopg
+          - psycopg-binary
+          - psycopg-pool
 
   - package-ecosystem: pip
     directory: /pipeline

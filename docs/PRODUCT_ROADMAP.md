@@ -142,6 +142,15 @@ after its acceptance checks pass in the intended environment.
       pipeline lint/tests, and the deterministic smoke workflow. The patched files are on the
       default branch; Dependabot alert `#2` had not refreshed after the merge and must close from
       a fresh dependency-graph evaluation rather than being manually hidden as proof.
+    - [x] Locally repair the managed Python graph inputs after GitHub's job evidence showed two
+      ingestion failures: its per-directory API resolver selected Python 3.14 and could not use
+      the old `psycopg-binary` wheel, while its pipeline parser would not follow a `.lock`
+      constraint suffix. Add machine-checked directory-local Python 3.12.13 selectors, preserve
+      the canonical frozen validation lock behind a byte-identical parser-readable `.txt`
+      mirror, group the Psycopg family, upgrade it to the reviewed 3.3 releases, regenerate all
+      source-bound hashed locks, and pass isolated API/pipeline verification. A successful
+      post-merge GitHub graph run and automatic alert `#2` closure remain external evidence;
+      neither is marked complete by this local result.
     - [x] Locally inventory all seven Worker runtime secrets, extend named-secret scanning and
       ignored local Wrangler secret files, define environment/purpose/backup-key separation,
       document D1 managed-encryption and application-controlled AES-256-GCM boundaries, and
