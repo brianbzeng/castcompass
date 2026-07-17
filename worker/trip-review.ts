@@ -7,8 +7,9 @@ import {
   UNRESOLVED_FISH_TAXON_ID,
 } from "../shared/species-contract.ts";
 import type { CuratedSite, D1DatabaseLike, TripRow } from "./trips";
+import { aiProviderRateLimitAllowed, type RateLimitEnv } from "./rate-limit.ts";
 
-interface ReviewEnv {
+interface ReviewEnv extends RateLimitEnv {
   DB?: D1DatabaseLike;
   MIMO_API_KEY?: string;
   MIMO_MODEL?: string;
@@ -85,6 +86,7 @@ export async function reviewTripWithMimo(
     });
     return;
   }
+  if (!await aiProviderRateLimitAllowed(env)) return;
   const tripId = typeof tripOrId === "string" ? tripOrId : tripOrId.id;
   const claimed = await env.DB.prepare(`UPDATE trips SET ai_review_status = 'processing'
     WHERE id = ? AND status = 'completed'

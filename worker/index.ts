@@ -15,12 +15,13 @@ import {
   releaseMaintenanceResponse,
 } from "./security";
 import { handleTurnstileConfigRequest, type TurnstileEnv } from "./turnstile";
+import { enforceRequestRateLimit, type RateLimitEnv } from "./rate-limit";
 
 interface AssetFetcher {
   fetch(request: Request): Promise<Response>;
 }
 
-interface Env extends TripApiEnv, TurnstileEnv {
+interface Env extends TripApiEnv, TurnstileEnv, RateLimitEnv {
   ASSETS: AssetFetcher;
   MIMO_API_KEY?: string;
   MIMO_MODEL?: string;
@@ -46,6 +47,9 @@ const worker = {
 
     const maintenance = releaseMaintenanceResponse(request, env);
     if (maintenance) return hardenResponse(maintenance, request);
+
+    const rateLimit = await enforceRequestRateLimit(request, env);
+    if (rateLimit) return hardenResponse(rateLimit, request);
 
     const guarded = await guardRequestBody(request);
     if (guarded.response) return hardenResponse(guarded.response, request);

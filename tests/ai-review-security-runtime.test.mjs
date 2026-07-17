@@ -270,3 +270,35 @@ test("invalid configured model names never reach the provider or trip state", as
   assert.match(logs, /invalid_model_configuration/);
   assert.doesNotMatch(logs, /bearer-secret-model/);
 });
+
+test("the AI provider ceiling rejects work before claim or dispatch", async () => {
+  const { sqlite, d1, id } = database();
+  let providerCalls = 0;
+  const limiter = {
+    calls: 0,
+    async limit() {
+      this.calls += 1;
+      return { success: false };
+    },
+  };
+  const original = console.warn;
+  console.warn = () => undefined;
+  try {
+    await reviewTripWithMimo(
+      {
+        DB: d1,
+        MIMO_API_KEY: "test-key",
+        RATE_LIMITING_ENABLED: "true",
+        AI_PROVIDER_RATE_LIMITER: limiter,
+      },
+      id,
+      [{ id: "ocean-beach" }],
+      { fetcher: async () => { providerCalls += 1; return providerResponse(strictReview()); } },
+    );
+  } finally {
+    console.warn = original;
+  }
+  assert.equal(limiter.calls, 1);
+  assert.equal(providerCalls, 0);
+  assert.equal(sqlite.prepare("SELECT ai_review_status FROM trips WHERE id = ?").get(id).ai_review_status, null);
+});

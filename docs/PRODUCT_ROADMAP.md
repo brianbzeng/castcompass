@@ -103,7 +103,13 @@ after its acceptance checks pass in the intended environment.
     - [x] Locally implement and verify new-password length rules, account/service-derived
       pattern rejection, padded five-character HIBP range lookup, fail-closed provider handling,
       privacy disclosure/versioning, and compatibility for existing ten-character passwords.
-      Production activation and endpoint-specific edge rate-limit evidence remain open.
+    - [x] Locally implement and attack-test default-off Worker ceilings for public auth and
+      email flows, authenticated writes, reads, exports/deletion/manual AI retry, and aggregate
+      AI-provider dispatch. Request counters receive only a secret-keyed IP pseudonym; they run
+      before body parsing, return generic non-cacheable responses, and fail closed when enabled
+      configuration is missing or unavailable. Existing D1 login/email/trip ceilings remain the
+      durable exact controls. Production secret provisioning, activation, outer WAF rules,
+      threshold tuning, monitoring, and live endpoint evidence remain open.
   - [ ] Verify encryption in transit and at rest, key separation/rotation/recovery, least
     privilege, secret scanning, dependency/runtime/action version locks, reproducible builds,
     an SBOM, vulnerability-response ownership, and restore-tested backups. Pinning must include

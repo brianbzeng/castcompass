@@ -8,9 +8,57 @@ the production environment.
 ## Abuse controls
 
 The Worker enforces request-body limits, per-email authentication ceilings, failed-login
-ceilings, and per-reporter trip ceilings. Those durable limits do not replace an edge rule:
-an attacker can still create high-cardinality identifiers and make the Worker spend CPU and
-D1 operations.
+ceilings, and per-reporter trip ceilings. Those durable D1 controls remain the authoritative
+ceilings for the identities they cover. The repository also declares six Cloudflare Workers
+Rate Limiting bindings, but enforcement remains deliberately off through
+`RATE_LIMITING_ENABLED=false` until the production secret, bindings, outer rules, monitoring,
+and synthetic checks below are ready.
+
+| Binding | Reviewed local ceiling | Covered work |
+| --- | --- | --- |
+| `AUTH_RATE_LIMITER` | 20 per 60 seconds per pseudonymous network address | Signup eligibility/request/verification, resend, password request/reset, and login |
+| `EMAIL_RATE_LIMITER` | 5 per 60 seconds per pseudonymous network address | Signup request/verification, resend, and password request in addition to the auth ceiling |
+| `WRITE_RATE_LIMITER` | 30 per 60 seconds per pseudonymous network address | API mutations outside the explicit auth-flow set, including trip/report/profile/gear/photo paths |
+| `SENSITIVE_RATE_LIMITER` | 6 per 60 seconds per pseudonymous network address | Account/trip deletion, data/photo export, and manual AI retry in addition to read/write ceilings |
+| `READ_RATE_LIMITER` | 120 per 60 seconds per pseudonymous network address | API `GET`/`HEAD` requests except the health check |
+| `AI_PROVIDER_RATE_LIMITER` | 20 per 60 seconds on one application-wide key | Scheduled or request-triggered AI-provider dispatch |
+
+When enabled, the request limiter HMACs the trusted `CF-Connecting-IP` value with the
+separately stored `RATE_LIMIT_KEY_SECRET`. Only the 64-character pseudonym reaches the
+binding; the Worker does not persist or log the raw address. Missing/malformed configuration,
+missing edge identity, or binding errors return a generic non-cacheable `503`; a reached
+ceiling returns a generic non-cacheable `429`. Both carry a bounded `Retry-After`. The health
+route remains available for diagnosis, and the AI ceiling denies work before a trip is
+claimed or provider content is assembled.
+
+Cloudflare documents the Workers binding as local to a Cloudflare location and eventually
+consistent, so it is an abuse brake rather than precise accounting or a global business
+quota. It also is not a replacement for a WAF rule because the request has already reached
+the Worker. Keep the exact D1 ceilings, provider quotas, cost budgets, and outer controls.
+See Cloudflare's [Workers Rate Limiting binding](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)
+and [WAF rate-limiting rules](https://developers.cloudflare.com/waf/rate-limiting-rules/)
+documentation.
+
+Activate these bindings only as a separate reviewed production operation:
+
+1. Deploy the reviewed Worker and bindings with `RATE_LIMITING_ENABLED=false`; confirm the
+   health route, normal API traffic, and existing D1 ceilings still behave normally.
+2. Generate a dedicated high-entropy secret of at least 32 characters and store it only as
+   the Cloudflare Worker secret `RATE_LIMIT_KEY_SECRET`. Record its custodian and rotation
+   procedure, never its value. Do not reuse a session, validation, deletion, or backup key.
+3. Confirm the exact six binding names, unique namespace IDs, and reviewed limits on the
+   deployed version. Exercise 429, invalid-config 503, header redaction, normal signup/login,
+   export/deletion, report, retry, and scheduled AI fixtures in an isolated environment.
+4. Configure outer Cloudflare WAF rate-limiting rules for coarse attack rejection. Begin in
+   observation/log-only mode where the account plan supports it; otherwise use conservative
+   thresholds and a synthetic hostname before routing normal beta traffic.
+5. In a separately reviewed immutable config change, set exactly
+   `RATE_LIMITING_ENABLED=true`. Any other non-empty value is intentionally treated as an
+   invalid enabled configuration. Monitor 429/503 classes, legitimate multi-user NAT traffic,
+   D1 growth, Worker CPU, and provider usage before promotion.
+6. If thresholds harm legitimate use, return the switch to `false` through the guarded
+   release path while retaining the durable D1 ceilings. If the controls are under attack,
+   use maintenance mode or tighten the outer rule rather than exposing identifiers in logs.
 
 Configure Cloudflare rate-limiting rules ahead of the Worker, beginning in log-only mode when
 the plan supports it. Review legitimate beta traffic before selecting final thresholds.
@@ -163,7 +211,11 @@ prove that the object is either attached to a live trip or durably queued for cl
       advisory; development-only findings have an owner and deadline.
 - [ ] A named operator exercised the reviewed snapshot PR and guarded publication cadence;
       a deliberately aged fixture displayed `Cached`/`stale` instead of `Live data`/`fresh`.
-- [ ] Edge rate limits are deployed and tested without blocking normal beta use.
+- [ ] The six Worker rate-limit bindings have the reviewed production limits; their secret,
+      exact-true activation, 429/503 behavior, privacy-safe keys, and emergency-disable path
+      were tested without blocking normal beta use.
+- [ ] Outer Cloudflare rate-limiting rules are deployed and tested without blocking normal
+      beta use; dashboard/plan limitations and final thresholds are recorded.
 - [ ] Turnstile is enforced and tested on the agreed high-abuse forms, or an explicit
       time-bounded risk acceptance identifies the owner and deadline.
 - [ ] Exception, 5xx, CPU, D1, uptime, and volume alerts delivered a test notification.

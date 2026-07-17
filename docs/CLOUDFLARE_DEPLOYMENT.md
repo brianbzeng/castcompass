@@ -94,6 +94,30 @@ from `wrangler.jsonc`. Do not copy the generated `dist/server/wrangler.json` int
 the dashboard; it contains local Sites placeholders rather than the production
 D1 database ID.
 
+## Worker rate-limit binding activation
+
+The six checked-in Workers Rate Limiting bindings are inert while
+`RATE_LIMITING_ENABLED=false`. Keep that default for the first deployment. The bindings cover
+auth, email-producing flows, general writes, sensitive export/deletion/retry operations,
+reads, and application-wide AI-provider dispatch. The policy and reviewed thresholds are in
+[Production operations](PRODUCTION-OPERATIONS.md#abuse-controls).
+
+Before a later reviewed activation, store a dedicated random value of at least 32 characters
+as the Worker secret `RATE_LIMIT_KEY_SECRET`; never add it to `wrangler.jsonc`, a local env
+file, a screenshot, logs, or release evidence. Confirm all six bindings on the exact deployed
+version and exercise the synthetic 429 and fail-closed 503 cases before changing the switch.
+Activation requires a separate immutable config commit containing the exact string
+`RATE_LIMITING_ENABLED=true`. A missing secret, missing binding, malformed switch, missing
+Cloudflare client address, or binding failure intentionally blocks protected API routes while
+health remains available. Emergency disablement is the guarded release of
+`RATE_LIMITING_ENABLED=false`; the D1 email/login/trip ceilings continue to operate.
+
+The Worker binding is per Cloudflare location and eventually consistent, not a precise global
+quota. Configure and verify complementary outer WAF rate limits before promotion, and monitor
+Worker response classes and provider use. Do not claim live protection from the checked-in
+bindings alone; attach the production evidence required by
+[Production operations](PRODUCTION-OPERATIONS.md#production-evidence-checklist).
+
 ## Enabling verification photos later
 
 Photo uploads are blocked by the Worker even if a client submits a multipart `photo` and both
