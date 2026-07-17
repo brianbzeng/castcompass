@@ -351,6 +351,10 @@ after its acceptance checks pass in the intended environment.
     lock the submitted fields while waiting, require a matching authoritative success receipt,
     and block retry, editing, or deletion after an ambiguous outcome until the server copy is
     reconciled after refresh. Authoritative client errors remain correctable.
+  - [x] Keep gear-preset creation and removal fail safe: allow local draft editing while offline
+    but block submission, lock submitted fields, require matching creation/removal receipts, and
+    block conflicting gear writes after an ambiguous outcome until the profile is refreshed and
+    reconciled. Never discard a creation draft without authoritative confirmation.
   - [ ] Add operation-specific progress, timeout, retry, cancellation, and reconnection states
     only where the underlying API can report them truthfully; retain authoritative confirmation
     for account, trip, privacy, and other privileged writes.

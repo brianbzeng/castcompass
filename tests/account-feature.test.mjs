@@ -63,7 +63,9 @@ test("allows owners to edit or remove pending reports only", () => {
   assert.match(authSource, /request\.method === "DELETE"/);
   assert.match(accountSource, /tripEditButtonLabel = tripEditAmbiguous \? "Update unresolved" : "Edit"/);
   assert.match(accountSource, />\{tripEditButtonLabel\}<\/button>/);
-  assert.match(accountSource, />Remove</);
+  assert.match(accountSource, /const tripDeletionButtonLabel =/);
+  assert.match(accountSource, /: "Remove";/);
+  assert.match(accountSource, />\{tripDeletionButtonLabel\}<\/button>/);
   assert.match(accountSource, /castingcompass\.profile-trip-draft\.v1/);
   assert.match(accountSource, /not a structured v2 observation/);
   assert.match(accountSource, /does not silently convert older counts/);

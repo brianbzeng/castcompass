@@ -67,6 +67,15 @@ async function prepareTripEdit(page: Page) {
   return { modal, trip, editor };
 }
 
+async function prepareGearMutation(page: Page) {
+  await page.locator(".account-button").click();
+  const modal = page.locator(".account-modal");
+  await expect(modal.getByRole("heading", { name: "Your fishing profile." })).toBeVisible();
+  const gear = modal.locator(".profile-gear-section");
+  await gear.getByLabel("Preset name").fill("Recovery test preset");
+  return { modal, gear };
+}
+
 test.beforeEach(async ({ page }, testInfo) => {
   const testTitle = testInfo.titlePath.join(" ");
   if (testTitle.includes("failed lazy route dependency")) {
@@ -86,6 +95,11 @@ test.beforeEach(async ({ page }, testInfo) => {
     testTitle.includes("slow trip edit stays unconfirmed") ||
     testTitle.includes("failed trip edit stays ambiguous") ||
     testTitle.includes("rejected trip edit remains correctable");
+  const gearMutationRecoveryTest = testTitle.includes("gear changes pause while offline") ||
+    testTitle.includes("slow gear creation stays unconfirmed") ||
+    testTitle.includes("failed gear creation stays ambiguous") ||
+    testTitle.includes("rejected gear creation remains correctable") ||
+    testTitle.includes("failed gear removal stays ambiguous");
   let profileAttempts = 0;
   await page.route("**/api/auth/session", (route) => route.fulfill({
     status: 200,
@@ -101,10 +115,12 @@ test.beforeEach(async ({ page }, testInfo) => {
               ? { id: "user_trip_deletion", email: "tripdeletiontest@example.com", ageEligible: true, legalAccepted: true }
               : tripEditRecoveryTest
                 ? { id: "user_trip_edit", email: "tripedittest@example.com", ageEligible: true, legalAccepted: true }
+                : gearMutationRecoveryTest
+                  ? { id: "user_gear_recovery", email: "geartest@example.com", ageEligible: true, legalAccepted: true }
         : null,
     }),
   }));
-  if (profileRecoveryTest || tripRecoveryTest || accountDeletionRecoveryTest || tripDeletionRecoveryTest || tripEditRecoveryTest) {
+  if (profileRecoveryTest || tripRecoveryTest || accountDeletionRecoveryTest || tripDeletionRecoveryTest || tripEditRecoveryTest || gearMutationRecoveryTest) {
     await page.route("**/api/saved-sites", (route) => route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -192,6 +208,24 @@ test.beforeEach(async ({ page }, testInfo) => {
           angler_count: 1,
           ai_review_status: "reviewed",
           ai_review_json: "{}",
+        }],
+      }),
+    }));
+  }
+  if (gearMutationRecoveryTest) {
+    await page.route("**/api/profile", (route) => route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        savedSites: [],
+        trips: [],
+        gearProfiles: [{
+          id: "gear_11111111-1111-4111-8111-111111111111",
+          name: "Existing preset",
+          rod: "Medium spinning rod",
+          reel: "3000 spinning reel",
+          bait_lure: "Swimbait",
+          rig: "Jighead",
         }],
       }),
     }));
@@ -469,11 +503,11 @@ test.describe("trip deletion recovery", () => {
 
     const { modal, trip } = await prepareTripDeletion(page);
     await context.setOffline(true);
-    await expect(modal.getByRole("alert")).toContainText("Trip deletion is paused");
+    await expect(modal.locator(".trip-deletion-network-status")).toContainText("Trip deletion is paused");
     await expect(trip.getByRole("button", { name: "Reconnect to remove" })).toBeDisabled();
 
     await context.setOffline(false);
-    await expect(modal.getByRole("status")).toContainText("No trip edit or deletion was submitted automatically");
+    await expect(modal.locator(".trip-deletion-network-status")).toContainText("No trip edit or deletion was submitted automatically");
     await expect(trip.getByRole("button", { name: "Remove" })).toBeEnabled();
     await page.waitForTimeout(100);
     expect(deletionAttempts).toBe(0);
@@ -599,6 +633,119 @@ test.describe("trip edit recovery", () => {
     await expect(editor.getByRole("button", { name: "Save trip changes" })).toBeEnabled();
     expect(await page.evaluate(() => window.localStorage.getItem("castingcompass.profile-trip-draft.v1.trip_pending_edit"))).not.toBeNull();
     expect(editAttempts).toBe(1);
+  });
+});
+
+test.describe("gear mutation recovery", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("gear changes pause while offline and never submit automatically", async ({ page, context }) => {
+    let mutationAttempts = 0;
+    await page.route("**/api/gear-profiles**", (route) => {
+      if (route.request().method() === "GET") {
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ gearProfiles: [] }) });
+      }
+      mutationAttempts += 1;
+      return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ gearProfile: { id: "gear_22222222-2222-4222-8222-222222222222", name: "Recovery test preset", rod: null, reel: null, baitLure: null, rig: null } }) });
+    });
+
+    const { gear } = await prepareGearMutation(page);
+    await context.setOffline(true);
+    await expect(gear.getByRole("alert")).toContainText("Gear changes cannot be submitted");
+    await expect(gear.getByRole("button", { name: "Reconnect to save preset" })).toBeDisabled();
+    await expect(gear.getByRole("button", { name: "Reconnect to remove" })).toBeDisabled();
+
+    await context.setOffline(false);
+    await expect(gear.getByRole("status")).toContainText("No gear change was submitted automatically");
+    await expect(gear.getByRole("button", { name: "Save gear preset" })).toBeEnabled();
+    await expect(gear.getByRole("button", { name: "Remove" })).toBeEnabled();
+    expect(mutationAttempts).toBe(0);
+  });
+
+  test("slow gear creation stays unconfirmed until the matching resource arrives", async ({ page }) => {
+    await page.route("**/api/gear-profiles**", async (route) => {
+      if (route.request().method() === "GET") {
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ gearProfiles: [] }) });
+      }
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
+      return route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({ gearProfile: { id: "gear_22222222-2222-4222-8222-222222222222", name: "Recovery test preset", rod: null, reel: null, baitLure: null, rig: null } }),
+      });
+    });
+
+    const { gear } = await prepareGearMutation(page);
+    await gear.getByRole("button", { name: "Save gear preset" }).click();
+    const status = gear.getByRole("status");
+    await expect(status).toContainText("new gear preset has not been confirmed yet", { timeout: 5_500 });
+    await expect(status.locator("i")).toBeVisible();
+    await expect(gear.getByRole("button", { name: "Saving…" })).toBeDisabled();
+    await expect(gear.getByLabel("Preset name")).toHaveValue("", { timeout: 8_000 });
+  });
+
+  test("failed gear creation stays ambiguous and retains the form", async ({ page }) => {
+    let createAttempts = 0;
+    await page.route("**/api/gear-profiles**", (route) => {
+      if (route.request().method() === "GET") {
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ gearProfiles: [] }) });
+      }
+      createAttempts += 1;
+      return route.abort("connectionfailed");
+    });
+
+    const { gear } = await prepareGearMutation(page);
+    await gear.getByRole("button", { name: "Save gear preset" }).click();
+    const alert = gear.getByRole("alert");
+    await expect(alert).toContainText("This preset may already be saved");
+    await expect(alert).toContainText("Do not submit it again");
+    await expect(gear.getByLabel("Preset name")).toHaveValue("Recovery test preset");
+    await expect(gear.getByRole("button", { name: "Verify gear status before retrying" })).toBeDisabled();
+    await expect(gear.getByRole("button", { name: "Gear change unresolved" })).toBeDisabled();
+    expect(createAttempts).toBe(1);
+  });
+
+  test("rejected gear creation remains correctable without losing the form", async ({ page }) => {
+    let createAttempts = 0;
+    await page.route("**/api/gear-profiles**", (route) => {
+      if (route.request().method() === "GET") {
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ gearProfiles: [] }) });
+      }
+      createAttempts += 1;
+      return route.fulfill({
+        status: 422,
+        contentType: "application/json",
+        body: JSON.stringify({ error: { message: "Give this preset a shorter name." } }),
+      });
+    });
+
+    const { gear } = await prepareGearMutation(page);
+    await gear.getByRole("button", { name: "Save gear preset" }).click();
+    await expect(gear.getByRole("alert")).toContainText("Give this preset a shorter name");
+    await expect(gear.getByLabel("Preset name")).toHaveValue("Recovery test preset");
+    await expect(gear.getByRole("button", { name: "Save gear preset" })).toBeEnabled();
+    expect(createAttempts).toBe(1);
+  });
+
+  test("failed gear removal stays ambiguous and blocks every gear write", async ({ page }) => {
+    let removalAttempts = 0;
+    await page.route("**/api/gear-profiles**", (route) => {
+      if (route.request().method() === "GET") {
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ gearProfiles: [] }) });
+      }
+      removalAttempts += 1;
+      return route.abort("connectionfailed");
+    });
+
+    const { gear } = await prepareGearMutation(page);
+    page.once("dialog", (dialog) => dialog.accept());
+    await gear.getByRole("button", { name: "Remove" }).click();
+    const alert = gear.getByRole("alert");
+    await expect(alert).toContainText("This preset may already be removed");
+    await expect(alert).toContainText("Do not submit again");
+    await expect(gear.getByRole("button", { name: "Verify gear removal before retrying" })).toBeDisabled();
+    await expect(gear.getByRole("button", { name: "Verify gear status before retrying" })).toBeDisabled();
+    expect(removalAttempts).toBe(1);
   });
 });
 

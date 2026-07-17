@@ -441,6 +441,12 @@ export function AccountModal({
     state: MutationRequestState;
     message: string;
   } | null>(null);
+  const [gearMutationRequest, setGearMutationRequest] = useState<{
+    kind: "create" | "delete";
+    gearId?: string;
+    state: MutationRequestState;
+    message: string;
+  } | null>(null);
   const [deletionDetails, setDeletionDetails] = useState<DeletionDetails | null>(null);
   const [browserAccountStorageCleared, setBrowserAccountStorageCleared] = useState<boolean | null>(null);
   const [deletionStatusAction, setDeletionStatusAction] = useState<"checking" | "dismissing" | null>(null);
@@ -469,6 +475,7 @@ export function AccountModal({
         : "Permanently delete account";
   const tripDeletionAmbiguous = tripDeletionRequest?.state === "ambiguous";
   const tripEditAmbiguous = tripEditRequest?.state === "ambiguous";
+  const gearMutationAmbiguous = gearMutationRequest?.state === "ambiguous";
   const activeTripEditRequest = editingTrip && tripEditRequest?.tripId === editingTrip.id
     ? tripEditRequest
     : null;
@@ -494,6 +501,26 @@ export function AccountModal({
           : profileActionBusy
             ? "Account action in progress…"
             : "Save trip changes";
+  const displayedGearMutationState: MutationRequestState = gearMutationRequest?.state ?? (
+    networkState === "offline" ? "error" : "idle"
+  );
+  const displayedGearMutationMessage = gearMutationRequest?.message ?? (
+    networkState === "offline"
+      ? "This device appears offline. Gear changes cannot be submitted. An unfinished preset remains in this form."
+      : networkState === "restored"
+        ? "This device reports that its connection is back. No gear change was submitted automatically."
+        : ""
+  );
+  const gearCreateDisabled = profileActionBusy || networkState === "offline" || gearMutationAmbiguous;
+  const gearCreateLabel = gearMutationRequest?.kind === "create" && gearMutationRequest.state === "submitting"
+    ? "Saving…"
+    : gearMutationAmbiguous
+      ? "Verify gear status before retrying"
+      : networkState === "offline"
+        ? "Reconnect to save preset"
+        : profileActionBusy
+          ? "Account action in progress…"
+          : "Save gear preset";
 
   const resetTurnstile = useCallback(() => {
     setTurnstileToken("");
@@ -1022,35 +1049,143 @@ export function AccountModal({
 
   const saveGearProfile = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (networkState === "offline") {
+      setGearMutationRequest({
+        kind: "create",
+        state: "error",
+        message: "This device appears offline. The gear preset was not submitted, and this form remains unchanged.",
+      });
+      return;
+    }
+    if (gearMutationAmbiguous) return;
+    const submittedDraft = { ...gearDraft };
+    const expectedGearReceipt = {
+      name: submittedDraft.name.trim(),
+      rod: submittedDraft.rod.trim() || null,
+      reel: submittedDraft.reel.trim() || null,
+      baitLure: submittedDraft.baitLure.trim() || null,
+      rig: submittedDraft.rig.trim() || null,
+    };
     setProfileActionBusy(true);
     setProfileActionError("");
+    setGearMutationRequest({
+      kind: "create",
+      state: "submitting",
+      message: "Saving this gear preset. No new preset is confirmed yet.",
+    });
+    const slowNotice = window.setTimeout(() => {
+      setGearMutationRequest((current) => current?.kind === "create" && current.state === "submitting"
+        ? { ...current, message: "Still waiting for the server. Keep this page open; the new gear preset has not been confirmed yet." }
+        : current);
+    }, SLOW_MUTATION_NOTICE_MS);
     try {
       const response = await fetch("/api/gear-profiles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(gearDraft),
+        body: JSON.stringify(submittedDraft),
       });
-      const body = await response.json() as { error?: { message?: string } };
-      if (!response.ok) throw new Error(body.error?.message ?? "The gear preset could not be saved.");
+      const body = await response.json().catch(() => null) as {
+        gearProfile?: {
+          id?: unknown;
+          name?: unknown;
+          rod?: unknown;
+          reel?: unknown;
+          baitLure?: unknown;
+          rig?: unknown;
+        };
+        error?: { message?: string };
+      } | null;
+      if (!response.ok) {
+        if (response.status >= 500) {
+          throw new AmbiguousMutationError("The server could not confirm whether the gear preset was saved.");
+        }
+        throw new Error(body?.error?.message ?? "The gear preset could not be saved.");
+      }
+      if (
+        response.status !== 201 ||
+        typeof body?.gearProfile?.id !== "string" ||
+        !/^gear_[a-f0-9-]{36}$/.test(body.gearProfile.id) ||
+        body.gearProfile.name !== expectedGearReceipt.name ||
+        body.gearProfile.rod !== expectedGearReceipt.rod ||
+        body.gearProfile.reel !== expectedGearReceipt.reel ||
+        body.gearProfile.baitLure !== expectedGearReceipt.baitLure ||
+        body.gearProfile.rig !== expectedGearReceipt.rig
+      ) {
+        throw new AmbiguousMutationError("The gear-preset response could not be verified.");
+      }
       setGearDraft(EMPTY_GEAR);
+      setGearMutationRequest(null);
       await loadProfile({ background: true });
     } catch (gearError) {
-      setProfileActionError(gearError instanceof Error ? gearError.message : "The gear preset could not be saved.");
+      const ambiguous = isConnectionFailure(gearError) || gearError instanceof AmbiguousMutationError;
+      setGearMutationRequest({
+        kind: "create",
+        state: ambiguous ? "ambiguous" : "error",
+        message: ambiguous
+          ? "No server confirmation arrived. This preset may already be saved. Do not submit it again; keep this form, reconnect if needed, refresh the profile, and compare the preset list."
+          : gearError instanceof Error ? gearError.message : "The gear preset could not be saved.",
+      });
     } finally {
+      window.clearTimeout(slowNotice);
       setProfileActionBusy(false);
     }
   };
 
   const deleteGearProfile = async (id: string) => {
+    if (networkState === "offline") {
+      setGearMutationRequest({
+        kind: "delete",
+        gearId: id,
+        state: "error",
+        message: "This device appears offline. Gear-preset removal was not submitted.",
+      });
+      return;
+    }
+    if (gearMutationAmbiguous) return;
+    if (!window.confirm("Remove this gear preset? Existing trip logs keep their recorded setup.")) return;
     setProfileActionBusy(true);
     setProfileActionError("");
+    setGearMutationRequest({
+      kind: "delete",
+      gearId: id,
+      state: "submitting",
+      message: "Removing this gear preset. No removal is confirmed yet.",
+    });
+    const slowNotice = window.setTimeout(() => {
+      setGearMutationRequest((current) => current?.kind === "delete" && current.gearId === id && current.state === "submitting"
+        ? { ...current, message: "Still waiting for the server. Keep this page open; gear-preset removal has not been confirmed yet." }
+        : current);
+    }, SLOW_MUTATION_NOTICE_MS);
     try {
       const response = await fetch(`/api/gear-profiles/${encodeURIComponent(id)}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("The gear preset could not be removed.");
+      const body = await response.json().catch(() => null) as {
+        deleted?: boolean;
+        id?: string;
+        error?: { message?: string };
+      } | null;
+      if (!response.ok) {
+        if (response.status >= 500) {
+          throw new AmbiguousMutationError("The server could not confirm whether the gear preset was removed.");
+        }
+        throw new Error(body?.error?.message ?? "The gear preset could not be removed.");
+      }
+      if (body?.deleted !== true || body.id !== id) {
+        throw new AmbiguousMutationError("The gear-removal response could not be verified.");
+      }
+      setGearMutationRequest(null);
       await loadProfile({ background: true });
     } catch (gearError) {
-      setProfileActionError(gearError instanceof Error ? gearError.message : "The gear preset could not be removed.");
+      const ambiguous = isConnectionFailure(gearError) || gearError instanceof AmbiguousMutationError;
+      setGearMutationRequest({
+        kind: "delete",
+        gearId: id,
+        state: ambiguous ? "ambiguous" : "error",
+        message: ambiguous
+          ? "No server confirmation arrived. This preset may already be removed. Do not submit again; reconnect if needed, refresh the profile, and compare the preset list."
+          : gearError instanceof Error ? gearError.message : "The gear preset could not be removed.",
+      });
     } finally {
+      window.clearTimeout(slowNotice);
       setProfileActionBusy(false);
     }
   };
@@ -1198,17 +1333,41 @@ export function AccountModal({
             <section className="profile-section profile-gear-section">
               <h3>Gear presets</h3>
               {profileLoading && !profile ? <ProfileSectionLoading label="Loading gear presets" /> : profile?.gearProfiles.length ? <div className="profile-list">
-                {profile.gearProfiles.map((gear) => <article className="profile-gear-row" key={gear.id}>
-                  <div><strong>{gear.name}</strong><small>{[gear.rod, gear.reel, gear.bait_lure, gear.rig].filter(Boolean).join(" · ") || "Empty preset"}</small></div>
-                  <button type="button" disabled={profileActionBusy} onClick={() => void deleteGearProfile(gear.id)}>Remove</button>
-                </article>)}
+                {profile.gearProfiles.map((gear) => {
+                  const isRemovalTarget = gearMutationRequest?.kind === "delete" && gearMutationRequest.gearId === gear.id;
+                  const removalLabel = isRemovalTarget && gearMutationRequest.state === "submitting"
+                    ? "Removing…"
+                    : isRemovalTarget && gearMutationRequest.state === "ambiguous"
+                      ? "Removal unresolved"
+                      : gearMutationAmbiguous
+                        ? "Gear change unresolved"
+                        : networkState === "offline"
+                          ? "Reconnect to remove"
+                          : profileActionBusy
+                            ? "Account action in progress…"
+                            : "Remove";
+                  return <article className="profile-gear-row" key={gear.id}>
+                    <div><strong>{gear.name}</strong><small>{[gear.rod, gear.reel, gear.bait_lure, gear.rig].filter(Boolean).join(" · ") || "Empty preset"}</small></div>
+                    <button
+                      type="button"
+                      aria-label={isRemovalTarget && gearMutationRequest.state === "ambiguous"
+                        ? "Verify gear removal before retrying"
+                        : undefined}
+                      disabled={profileActionBusy || networkState === "offline" || gearMutationAmbiguous}
+                      onClick={() => void deleteGearProfile(gear.id)}
+                    >{removalLabel}</button>
+                  </article>;
+                })}
               </div> : profile ? <p>No gear presets yet.</p>
                 : <p className="profile-data-unavailable">Gear presets are unavailable. Retry the profile above.</p>}
               {profile ? <form className="profile-gear-form" onSubmit={saveGearProfile}>
+                <fieldset className="profile-gear-controls" disabled={profileActionBusy || gearMutationAmbiguous}>
                 <input aria-label="Preset name" placeholder="Preset name" maxLength={60} value={gearDraft.name} onChange={(event) => setGearDraft((current) => ({ ...current, name: event.target.value }))} required />
                 <GearCatalogFields values={gearDraft} onChange={(gear) => setGearDraft((current) => ({ ...current, ...gear }))} className="profile-gear-catalog" />
-                <button type="submit" disabled={profileActionBusy}>{profileActionBusy ? "Saving…" : "Save gear preset"}</button>
+                <button type="submit" disabled={gearCreateDisabled}>{gearCreateLabel}</button>
+                </fieldset>
               </form> : null}
+              <MutationRequestStatus state={displayedGearMutationState} message={displayedGearMutationMessage} />
             </section>
             <section className="profile-section">
               <h3>Past trip logs</h3>

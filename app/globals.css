@@ -3276,6 +3276,20 @@ footer > div {
   margin-top: 0.8rem;
 }
 
+.profile-gear-controls {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+}
+
+.profile-gear-controls:disabled {
+  opacity: 0.78;
+}
+
 .profile-gear-form input,
 .profile-gear-form button {
   min-height: 2.9rem;
