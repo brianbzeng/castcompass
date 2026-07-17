@@ -15,25 +15,45 @@ import { spawnSync } from "node:child_process";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const UV_VERSION = "0.10.11";
+const PYTHON_VERSION = "3.12.13";
+const PYTHON_VERSION_FILES = [
+  ".python-version",
+  "services/api/.python-version",
+  "pipeline/.python-version",
+];
+const VALIDATION_LOCK = "pipeline/requirements-validation.lock";
+const VALIDATION_CONSTRAINTS = "pipeline/requirements-validation.txt";
 const LOCKS = [
   {
     name: "FastAPI runtime",
-    inputs: ["services/api/requirements.txt"],
+    inputs: [
+      ".python-version",
+      "services/api/.python-version",
+      "services/api/requirements.txt",
+    ],
     source: "services/api/requirements.txt",
     output: "services/api/requirements-runtime.lock",
   },
   {
     name: "FastAPI test",
-    inputs: ["services/api/requirements-test.in", "services/api/requirements.txt"],
+    inputs: [
+      ".python-version",
+      "services/api/.python-version",
+      "services/api/requirements-test.in",
+      "services/api/requirements.txt",
+    ],
     source: "services/api/requirements-test.in",
     output: "services/api/requirements-test.lock",
   },
   {
     name: "pipeline CI",
     inputs: [
+      ".python-version",
+      "pipeline/.python-version",
       "pipeline/requirements-ci.in",
       "pipeline/requirements-smoke.txt",
-      "pipeline/requirements-validation.lock",
+      VALIDATION_LOCK,
+      VALIDATION_CONSTRAINTS,
     ],
     source: "pipeline/requirements-ci.in",
     output: "pipeline/requirements-ci.lock",
@@ -42,6 +62,23 @@ const LOCKS = [
 
 function sha256(path) {
   return createHash("sha256").update(readFileSync(resolve(ROOT, path))).digest("hex");
+}
+
+function verifyPythonVersionFiles() {
+  const expected = `${PYTHON_VERSION}\n`;
+  for (const path of PYTHON_VERSION_FILES) {
+    if (readFileSync(resolve(ROOT, path), "utf8") !== expected) {
+      throw new Error(`${path} must select exact Python ${PYTHON_VERSION}`);
+    }
+  }
+}
+
+function verifyValidationConstraintMirror() {
+  const canonical = readFileSync(resolve(ROOT, VALIDATION_LOCK));
+  const dependabotMirror = readFileSync(resolve(ROOT, VALIDATION_CONSTRAINTS));
+  if (!canonical.equals(dependabotMirror)) {
+    throw new Error(`${VALIDATION_CONSTRAINTS} must exactly mirror ${VALIDATION_LOCK}`);
+  }
 }
 
 function lockHeader(lock) {
@@ -146,6 +183,8 @@ const mode = process.argv[2] ?? "--check";
 if (mode !== "--check" && mode !== "--write") {
   throw new Error("Usage: generate-python-locks.mjs [--check|--write]");
 }
+verifyPythonVersionFiles();
+verifyValidationConstraintMirror();
 if (mode === "--write") writeLocks();
 
 for (const lock of LOCKS) {

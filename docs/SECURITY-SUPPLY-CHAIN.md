@@ -15,6 +15,7 @@ path so security fixes are not frozen out.
 | Python test runtime | `.python-version` and every GitHub workflow select Python `3.12.13` | Python 3.12 is security-fixes-only; a tested feature-series upgrade is still required before its support ends |
 | API container runtime | The API Dockerfile selects the official `python:3.12.13-slim-bookworm` multi-platform image by immutable index digest | The pinned OS/Python image needs weekly reviewed Docker updates; the container is not the current Cloudflare Worker production path |
 | Exercised Python graphs | FastAPI runtime/test and pipeline CI use exact transitive versions from source-bound locks with committed SHA-256 distribution hashes; CI and the API image require hashes and reject source distributions | The package index, pip implementation, host kernel/libc, and wheel contents remain external; optional Geo/PyTorch platforms need separate locks |
+| Managed Python dependency graph | Directory-local `.python-version` files bind GitHub's API and pipeline jobs to Python `3.12.13`; the pipeline exposes a byte-identical `.txt` constraint mirror that GitHub's parser can follow, and repository checks bind both representations into the generated lock | GitHub still owns the parser and hosted resolver; after each relevant merge, require a successful managed graph run and verify alert closure rather than dismissing stale alerts |
 | Worker runtime contract | `wrangler.jsonc` fixes `compatibility_date` and the reviewed compatibility flags | Cloudflare implements the runtime; a date pin needs deliberate compatibility review and periodic advancement |
 | Direct npm packages | Every direct production and development dependency uses an exact version in `package.json` | A package version can still be malicious or vulnerable; review source/provenance, advisories, licenses, and install scripts |
 | Transitive npm tree | `package-lock.json` records exact versions, registry locations, and integrity hashes; CI and release use `npm ci` | Registry availability and npm/client behavior remain external; the hosted runner itself is not bit-for-bit pinned |
@@ -97,6 +98,16 @@ overlap constraints, fixes the reviewed pandas behavior, and pins the CI-only Ru
 The generated FastAPI runtime/test locks and `pipeline/requirements-ci.lock` contain exact
 transitive versions and SHA-256 hashes for universal CPython 3.12 wheel resolution.
 
+GitHub's managed Python jobs resolve each configured package directory independently. The
+directory-local `services/api/.python-version` and `pipeline/.python-version` files therefore
+mirror the canonical root `.python-version`; the generator rejects any byte or version drift
+between them. The validation protocol remains canonically frozen in
+`pipeline/requirements-validation.lock`, while `pipeline/requirements-validation.txt` is a
+byte-identical transport mirror because the managed parser follows `.in` and `.txt` constraint
+files but not a `.lock` constraint suffix. `pipeline/requirements-ci.in` points to that mirror,
+and the generator both compares the two files byte-for-byte and binds both hashes into the CI
+lock. The mirror does not create a second editable source of truth.
+
 The repository checker binds each generated lock to SHA-256 digests of every source/constraint
 file, rejects non-exact or unhashed requirements, and runs before dependency audits in the main
 security command. To update intentionally, use exactly the generator version enforced by the
@@ -114,7 +125,10 @@ The generator uses `uv 0.10.11` only to resolve and record the reviewed lock upd
 API image install with pip and do not trust or execute uv. Re-running the generator with
 unchanged inputs must be byte-identical. Dependabot monitors the API and pipeline source files,
 and Docker updates monitor the API image, but every generated change still needs the review and
-tests above.
+tests above. A green local install is not proof that GitHub ingested the graph: after merging a
+Python input/lock change, inspect the managed Dependabot job, require successful evaluation on
+Python 3.12.13, and confirm affected alerts close from refreshed graph evidence. Never manually
+dismiss a stale alert merely to make the dashboard appear green.
 
 Primary references:
 
