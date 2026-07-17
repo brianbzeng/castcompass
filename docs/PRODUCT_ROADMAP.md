@@ -344,6 +344,9 @@ after its acceptance checks pass in the intended environment.
   - [x] Fail account deletion safely in the client: block offline submission, keep slow requests
     visibly unconfirmed, and treat a dropped response as potentially committed so the user is
     directed to the durable deletion receipt instead of retrying a destructive write.
+  - [x] Apply the same fail-safe boundary to pending trip deletion: pause while offline, keep
+    slow deletion unconfirmed, and block another destructive submission after any ambiguous
+    response until the profile and durable deletion receipt are reconciled.
   - [ ] Add operation-specific progress, timeout, retry, cancellation, and reconnection states
     only where the underlying API can report them truthfully; retain authoritative confirmation
     for account, trip, privacy, and other privileged writes.

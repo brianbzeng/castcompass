@@ -29,13 +29,13 @@ test("a dropped deletion response is treated as potentially committed", () => {
 test("unreadable success and server-error responses also block destructive resubmission", () => {
   assert.match(accountFeature, /response\.status >= 500/);
   assert.match(accountFeature, /if \(!body\)/);
-  assert.match(accountFeature, /AmbiguousAccountDeletionError/);
+  assert.match(accountFeature, /AmbiguousDeletionError/);
 });
 
 test("slow account deletion remains visibly unconfirmed", () => {
-  assert.match(accountFeature, /SLOW_ACCOUNT_DELETION_NOTICE_MS = 4_000/);
+  assert.match(accountFeature, /SLOW_DELETION_NOTICE_MS = 4_000/);
   assert.match(accountFeature, /account removal has not been confirmed yet/);
   assert.match(accountFeature, /state === "submitting" \? <i aria-hidden="true"/);
-  assert.match(styles, /@keyframes account-deletion-progress/);
+  assert.match(styles, /@keyframes deletion-request-progress/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
 });

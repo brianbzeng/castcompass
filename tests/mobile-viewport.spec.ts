@@ -47,6 +47,15 @@ async function prepareAccountDeletion(page: Page) {
   return { modal, deletion };
 }
 
+async function prepareTripDeletion(page: Page) {
+  await page.locator(".account-button").click();
+  const modal = page.locator(".account-modal");
+  await expect(modal.getByRole("heading", { name: "Your fishing profile." })).toBeVisible();
+  const trip = modal.locator(".profile-trip").filter({ hasText: "Limantour Beach" });
+  await expect(trip).toBeVisible();
+  return { modal, trip };
+}
+
 test.beforeEach(async ({ page }, testInfo) => {
   const testTitle = testInfo.titlePath.join(" ");
   if (testTitle.includes("failed lazy route dependency")) {
@@ -59,6 +68,9 @@ test.beforeEach(async ({ page }, testInfo) => {
   const accountDeletionRecoveryTest = testTitle.includes("account deletion pauses while offline") ||
     testTitle.includes("slow account deletion stays unconfirmed") ||
     testTitle.includes("failed account deletion stays ambiguous");
+  const tripDeletionRecoveryTest = testTitle.includes("trip deletion pauses while offline") ||
+    testTitle.includes("slow trip deletion stays unconfirmed") ||
+    testTitle.includes("failed trip deletion stays ambiguous");
   let profileAttempts = 0;
   await page.route("**/api/auth/session", (route) => route.fulfill({
     status: 200,
@@ -70,10 +82,12 @@ test.beforeEach(async ({ page }, testInfo) => {
           ? { id: "user_trip_recovery", email: "triptest@example.com", ageEligible: true, legalAccepted: true }
           : accountDeletionRecoveryTest
             ? { id: "user_account_deletion", email: "deletiontest@example.com", ageEligible: true, legalAccepted: true }
+            : tripDeletionRecoveryTest
+              ? { id: "user_trip_deletion", email: "tripdeletiontest@example.com", ageEligible: true, legalAccepted: true }
         : null,
     }),
   }));
-  if (profileRecoveryTest || tripRecoveryTest || accountDeletionRecoveryTest) {
+  if (profileRecoveryTest || tripRecoveryTest || accountDeletionRecoveryTest || tripDeletionRecoveryTest) {
     await page.route("**/api/saved-sites", (route) => route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -105,6 +119,34 @@ test.beforeEach(async ({ page }, testInfo) => {
         }),
       });
     });
+  }
+  if (tripDeletionRecoveryTest) {
+    await page.route("**/api/profile/reviews/retry", (route) => route.fulfill({
+      status: 202,
+      contentType: "application/json",
+      body: JSON.stringify({ queued: true }),
+    }));
+    await page.route("**/api/profile", (route) => route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        savedSites: [],
+        gearProfiles: [],
+        trips: [{
+          id: "trip_pending_delete",
+          source: "past_report",
+          site_id: "limantour-beach",
+          started_at: "2026-07-16T14:00:00.000Z",
+          ended_at: "2026-07-16T16:00:00.000Z",
+          moderation_status: "pending",
+          contract_status: "valid",
+          outcome_class: "no_fish",
+          target_encounter_count: 0,
+          any_fish_encounter_count: 0,
+          angler_hours: 2,
+        }],
+      }),
+    }));
   }
   await page.route("**/api/privacy/deletion-status", (route) => route.fulfill({
     status: 404,
@@ -363,6 +405,63 @@ test.describe("account deletion recovery", () => {
     await expect(alert).toContainText("Do not submit again");
     await expect(alert).toContainText("deletion-status receipt");
     await expect(deletion.getByRole("button", { name: "Verify deletion status before retrying" })).toBeDisabled();
+    expect(deletionAttempts).toBe(1);
+  });
+});
+
+test.describe("trip deletion recovery", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("trip deletion pauses while offline and never submits automatically", async ({ page, context }) => {
+    let deletionAttempts = 0;
+    await page.route("**/api/profile/trips/*", (route) => {
+      deletionAttempts += 1;
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ deleted: true, deletion: { status: "completed", scope: "trip", objectsTotal: 0, objectsDeleted: 0 } }) });
+    });
+
+    const { modal, trip } = await prepareTripDeletion(page);
+    await context.setOffline(true);
+    await expect(modal.getByRole("alert")).toContainText("Trip deletion is paused");
+    await expect(trip.getByRole("button", { name: "Reconnect to remove" })).toBeDisabled();
+
+    await context.setOffline(false);
+    await expect(modal.getByRole("status")).toContainText("No trip deletion was submitted automatically");
+    await expect(trip.getByRole("button", { name: "Remove" })).toBeEnabled();
+    await page.waitForTimeout(100);
+    expect(deletionAttempts).toBe(0);
+  });
+
+  test("a slow trip deletion stays unconfirmed until the receipt arrives", async ({ page }) => {
+    await page.route("**/api/profile/trips/*", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ deleted: true, deletion: { status: "completed", scope: "trip", objectsTotal: 0, objectsDeleted: 0 } }) });
+    });
+
+    const { modal, trip } = await prepareTripDeletion(page);
+    page.once("dialog", (dialog) => dialog.accept());
+    await trip.getByRole("button", { name: "Remove" }).click();
+    const status = trip.getByRole("status");
+    await expect(status).toContainText("trip deletion has not been confirmed yet", { timeout: 5_500 });
+    await expect(status.locator("i")).toBeVisible();
+    await expect(trip.getByRole("button", { name: "Removing…" })).toBeDisabled();
+    await expect(modal.getByRole("heading", { name: "Trip log removed." })).toBeVisible({ timeout: 8_000 });
+  });
+
+  test("a failed trip deletion stays ambiguous and blocks resubmission", async ({ page }) => {
+    let deletionAttempts = 0;
+    await page.route("**/api/profile/trips/*", (route) => {
+      deletionAttempts += 1;
+      return route.abort("connectionfailed");
+    });
+
+    const { trip } = await prepareTripDeletion(page);
+    page.once("dialog", (dialog) => dialog.accept());
+    await trip.getByRole("button", { name: "Remove" }).click();
+    const alert = trip.getByRole("alert");
+    await expect(alert).toContainText("This trip may already be removed");
+    await expect(alert).toContainText("Do not submit again");
+    await expect(alert).toContainText("deletion-status receipt");
+    await expect(trip.getByRole("button", { name: "Verify deletion status before retrying" })).toBeDisabled();
     expect(deletionAttempts).toBe(1);
   });
 });
