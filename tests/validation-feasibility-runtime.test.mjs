@@ -4,13 +4,17 @@ import test from "node:test";
 import {
   buildFeasibilityCancellationEvent,
   buildFeasibilityCompletionEvent,
+  buildFeasibilityCorrectionEvent,
+  buildFeasibilityRecruitmentCampaign,
   buildFeasibilityStartEvent,
+  createFeasibilityRecruitmentToken,
   feasibilityPanelForSite,
   feasibilityParticipantGroupId,
   feasibilityPilotEnabled,
   feasibilitySitePanelEntries,
   reconcileFeasibilityEvents,
   resolveFeasibilityContext,
+  resolveFeasibilityRecruitment,
   verifyFeasibilityEventHash,
 } from "../worker/validation-feasibility.ts";
 
@@ -62,6 +66,7 @@ const ENV = {
   VALIDATION_FEASIBILITY_ACTIVATION_MANIFEST_SHA256: ACTIVATION.activation_manifest_sha256,
   VALIDATION_FEASIBILITY_COMMITMENT_SHA256: ACTIVATION.activation_commitment_sha256,
   VALIDATION_PARTICIPANT_HMAC_SECRET: "feasibility-test-secret-with-at-least-32-bytes",
+  VALIDATION_RECRUITMENT_HMAC_SECRET: "feasibility-recruitment-secret-at-least-32-bytes",
   CF_VERSION_METADATA: { id: ACTIVATION.worker_version_id },
 };
 
@@ -102,6 +107,20 @@ async function activeContext(accountId = "user-feasibility") {
     timestamp: "2026-07-21T10:15:00.000Z",
     studyConsent: true,
     studyConsentVersion: ACTIVATION.study_consent_version,
+  });
+}
+
+async function activeRecruitment(context, overrides = {}) {
+  return resolveFeasibilityRecruitment({
+    env: ENV,
+    activation: ACTIVATION,
+    accountId: "user-feasibility",
+    participantGroupId: context.participantGroupId,
+    timestamp: "2026-07-21T10:15:00.000Z",
+    recruitmentToken: null,
+    campaign: null,
+    existing: null,
+    ...overrides,
   });
 }
 
@@ -152,11 +171,100 @@ test("the frozen site catalog maps exactly once into five geographic panels", ()
   assert.equal(feasibilityPanelForSite("not-a-frozen-site"), null);
 });
 
+test("pre-activation signed recruitment captures direct and approved-community sources", async () => {
+  const context = await activeContext();
+  assert.ok(context);
+  const directPayload = {
+    schema_version: "castingcompass.validation-feasibility-recruitment-token/2.0.0",
+    activation_id: ACTIVATION.id,
+    campaign_id: "campaign-direct-runtime-test",
+    recruitment_source_id: "direct-opt-in-research-invite",
+    selection_method: "direct_precommitment",
+    issued_at: "2026-07-19T02:00:00.000Z",
+    expires_at: "2026-10-18T00:00:00.000Z",
+    community_approval_sha256: null,
+  };
+  const directToken = await createFeasibilityRecruitmentToken(
+    ENV.VALIDATION_RECRUITMENT_HMAC_SECRET,
+    directPayload,
+  );
+  assert.ok(directToken);
+  const directCampaign = await buildFeasibilityRecruitmentCampaign(
+    directPayload,
+    "2026-07-19T02:00:00.000Z",
+  );
+  assert.ok(directCampaign);
+  const storedCampaign = (campaign) => ({
+    activation_id: campaign.activationId,
+    campaign_id: campaign.campaignId,
+    recruitment_source_id: campaign.recruitmentSourceId,
+    selection_method: campaign.selectionMethod,
+    invite_issued_at: campaign.inviteIssuedAt,
+    invite_expires_at: campaign.inviteExpiresAt,
+    community_approval_sha256: campaign.communityApprovalSha256,
+    token_payload_sha256: campaign.tokenPayloadSha256,
+    sealed_at: campaign.sealedAt,
+  });
+  const direct = await activeRecruitment(context, {
+    recruitmentToken: directToken,
+    campaign: storedCampaign(directCampaign),
+  });
+  assert.equal(direct.record.recruitmentSourceId, "direct-opt-in-research-invite");
+  assert.equal(direct.record.selectionMethod, "direct_precommitment");
+  assert.equal(direct.record.campaignId, directPayload.campaign_id);
+  assert.equal(await activeRecruitment(context, {
+    recruitmentToken: directToken,
+    campaign: null,
+  }), null);
+  assert.equal(await activeRecruitment(context, {
+    recruitmentToken: directToken,
+    campaign: {
+      ...storedCampaign(directCampaign),
+      token_payload_sha256: "0".repeat(64),
+    },
+  }), null);
+  const tamperedToken = `${directToken.slice(0, -1)}${directToken.endsWith("A") ? "B" : "A"}`;
+  assert.equal(await activeRecruitment(context, {
+    recruitmentToken: tamperedToken,
+    campaign: storedCampaign(directCampaign),
+  }), null);
+
+  const communityPayload = {
+    ...directPayload,
+    campaign_id: "campaign-community-runtime-test",
+    recruitment_source_id: "admin-approved-community-prospective",
+    community_approval_sha256: "9".repeat(64),
+  };
+  const communityToken = await createFeasibilityRecruitmentToken(
+    ENV.VALIDATION_RECRUITMENT_HMAC_SECRET,
+    communityPayload,
+  );
+  assert.ok(communityToken);
+  const communityCampaign = await buildFeasibilityRecruitmentCampaign(
+    communityPayload,
+    "2026-07-19T02:00:00.000Z",
+  );
+  assert.ok(communityCampaign);
+  const community = await activeRecruitment(context, {
+    recruitmentToken: communityToken,
+    campaign: storedCampaign(communityCampaign),
+  });
+  assert.equal(community.record.recruitmentSourceId, "admin-approved-community-prospective");
+  assert.equal(community.record.communityApprovalSha256, "9".repeat(64));
+  assert.equal(await createFeasibilityRecruitmentToken(
+    ENV.VALIDATION_RECRUITMENT_HMAC_SECRET,
+    { ...directPayload, recruitment_source_id: "admin-approved-community-prospective" },
+  ), null);
+});
+
 test("event hashes, terminal bounds, safe cancellation, and reconciliation fail closed", async () => {
   const context = await activeContext();
   assert.ok(context);
+  const recruitment = await activeRecruitment(context);
+  assert.ok(recruitment);
   const started = await buildFeasibilityStartEvent({
     context,
+    recruitment: recruitment.record,
     tripId: "trip_11111111-1111-4111-8111-111111111111",
     opportunity: OPPORTUNITY,
     siteId: OPPORTUNITY.siteId,
@@ -178,6 +286,22 @@ test("event hashes, terminal bounds, safe cancellation, and reconciliation fail 
   assert.ok(completed);
   assert.equal(completed.targetEncountered, false);
   assert.equal(await verifyFeasibilityEventHash(completed), true);
+  const correction = await buildFeasibilityCorrectionEvent({
+    start: storedStart(started),
+    rootCompletionEventSha256: completed.eventSha256,
+    previousEventSha256: completed.eventSha256,
+    siteId: started.siteId,
+    mode: started.mode,
+    segmentStartAt: started.segmentStartAt,
+    segmentEndAt: completed.segmentEndAt,
+    anglerCount: 2,
+    targetEncounterCount: 1,
+    targetRetainedCount: 1,
+    targetReleasedCount: 0,
+    correctedAt: "2026-07-21T11:20:00.000Z",
+  });
+  assert.ok(correction);
+  assert.equal(correction.analyticalStatus, "eligible_corrected_completion");
   assert.equal(await buildFeasibilityCompletionEvent({
     start: storedStart(started),
     timestamp: "2026-07-23T00:15:00.001Z",
@@ -189,6 +313,7 @@ test("event hashes, terminal bounds, safe cancellation, and reconciliation fail 
 
   const canceledStart = await buildFeasibilityStartEvent({
     context,
+    recruitment: recruitment.record,
     tripId: "trip_22222222-2222-4222-8222-222222222222",
     opportunity: OPPORTUNITY,
     siteId: OPPORTUNITY.siteId,
@@ -212,6 +337,7 @@ test("event hashes, terminal bounds, safe cancellation, and reconciliation fail 
 
   const result = await reconcileFeasibilityEvents({
     events: [started, completed, canceledStart, canceled],
+    corrections: [correction],
     privacyRemovals: {
       removedStartedAttempts: 0,
       removedCompletedAttempts: 0,
@@ -225,6 +351,8 @@ test("event hashes, terminal bounds, safe cancellation, and reconciliation fail 
   assert.equal(result.unreconciledAttempts, 0);
   assert.equal(result.reconciliationRate, 1);
   assert.equal(result.completionRateExcludingSafeCancellations, 1);
+  assert.equal(result.correctionEvents, 1);
+  assert.equal(result.targetEncounters, 1);
   assert.equal(result.candidatePerformanceComputed, false);
   assert.equal(result.status, "collection-feasibility-not-demonstrated");
   assert.ok(result.failedGates.includes("minimum_recruitment_sources_with_attempts"));
@@ -232,8 +360,10 @@ test("event hashes, terminal bounds, safe cancellation, and reconciliation fail 
   const tampered = { ...completed, eventSha256: "0".repeat(64) };
   const invalid = await reconcileFeasibilityEvents({
     events: [started, started, tampered],
+    corrections: [{ ...correction, previousEventSha256: "1".repeat(64) }],
     snapshotAndRestorePassed: false,
   });
   assert.ok(invalid.failedGates.includes("duplicate_start_event"));
   assert.ok(invalid.failedGates.includes("invalid_event_hash"));
+  assert.ok(invalid.failedGates.includes("invalid_correction_hash"));
 });

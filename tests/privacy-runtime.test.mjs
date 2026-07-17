@@ -6,6 +6,10 @@ import { cleanupAuthData, LEGAL_VERSION, evaluateAgeEligibility, handleAccountRe
 import { createTripStore, handleTripRequest } from "../worker/trips.ts";
 import { reviewTripWithMimo } from "../worker/trip-review.ts";
 import { buildFeasibilityReconciliationExport } from "../worker/validation-feasibility-export.ts";
+import {
+  buildFeasibilityRecruitmentCampaign,
+  createFeasibilityRecruitmentToken,
+} from "../worker/validation-feasibility.ts";
 
 const MIGRATIONS = [
   "0000_unique_tusk.sql",
@@ -21,6 +25,7 @@ const MIGRATIONS = [
   "0011_species_aware_observations.sql",
   "0012_validation_protocol.sql",
   "0013_validation_feasibility_pilot.sql",
+  "0014_validation_feasibility_recruitment_and_corrections.sql",
 ];
 
 class D1StatementAdapter {
@@ -1244,9 +1249,32 @@ test("private export preserves immutable validation lineage without accepting ev
 
 test("feasibility pilot start, completion, safe cancellation, export, and privacy removal are atomic", async () => {
   const { sqlite, d1 } = await database();
-  const user = await addUser(sqlite, "feasibility");
+  const user = await addUser(sqlite, "feasibility28");
+  const directUser = await addUser(sqlite, "feasibility-direct29");
+  const hour = 60 * 60 * 1_000;
+  const day = 24 * hour;
+  const wallNow = Date.now();
+  const iso = (milliseconds) => new Date(milliseconds).toISOString();
+  const activationCreatedAt = iso(wallNow - day);
+  const preregisteredAt = iso(wallNow - (2 * hour));
+  const receiptVerifiedAt = iso(wallNow - hour);
+  const activationStartAt = iso(wallNow + (2 * day));
+  const activationEndAt = iso(wallNow + (92 * day));
+  const opportunityStartAt = iso(wallNow + (3 * day) + (10 * hour));
+  const opportunityEndAt = iso(wallNow + (3 * day) + (12 * hour));
+  const firstStartedAt = iso(wallNow + (3 * day) + (10 * hour) + (15 * 60 * 1_000));
+  const firstEndedAt = iso(wallNow + (3 * day) + (11 * hour) + (15 * 60 * 1_000));
+  const firstCorrectionAt = iso(wallNow + (3 * day) + (11 * hour) + (20 * 60 * 1_000));
+  const exclusionCorrectionAt = iso(wallNow + (3 * day) + (11 * hour) + (25 * 60 * 1_000));
+  const restoredCorrectionAt = iso(wallNow + (3 * day) + (11 * hour) + (30 * 60 * 1_000));
+  const canceledStartedAt = iso(wallNow + (3 * day) + (10 * hour) + (30 * 60 * 1_000));
+  const directStartedAt = iso(wallNow + (3 * day) + (10 * hour) + (40 * 60 * 1_000));
+  const canceledAt = iso(wallNow + (3 * day) + (10 * hour) + (45 * 60 * 1_000));
+  const replayedAt = iso(wallNow + (3 * day) + (10 * hour) + (46 * 60 * 1_000));
+  const directEndedAt = iso(wallNow + (3 * day) + (11 * hour) + (40 * 60 * 1_000));
   const siteId = "ocean-beach-north";
-  const windowId = `${siteId}--20260721T1000Z`;
+  const opportunityWindowStamp = opportunityStartAt.slice(0, 16).replaceAll("-", "").replaceAll(":", "");
+  const windowId = `${siteId}--${opportunityWindowStamp}Z`;
   const activationId = "feasibility-activation-test-v2";
   const studyConsentVersion = "castingcompass.validation-feasibility-consent/2.0.0";
   sqlite.prepare(`INSERT INTO validation_feasibility_activations (
@@ -1267,11 +1295,11 @@ test("feasibility pilot start, completion, safe cancellation, export, and privac
       `heuristic-california-halibut-${PRIVACY_TEST_SCORING_SHA}`,
       PRIVACY_TEST_SCORING_SHA,
       studyConsentVersion,
-      "2026-07-20T00:00:00.000Z",
-      "2026-10-18T00:00:00.000Z",
-      "2026-07-19T00:00:00.000Z",
-      "2026-07-19T01:00:00.000Z",
-      "2026-07-18T00:00:00.000Z",
+      activationStartAt,
+      activationEndAt,
+      preregisteredAt,
+      receiptVerifiedAt,
+      activationCreatedAt,
     );
 
   const env = {
@@ -1279,19 +1307,23 @@ test("feasibility pilot start, completion, safe cancellation, export, and privac
     ASSETS: privacyTestAssets({
       windowId,
       siteId,
-      start: "2026-07-21T10:00:00Z",
-      end: "2026-07-21T12:00:00Z",
+      start: opportunityStartAt,
+      end: opportunityEndAt,
     }),
     VALIDATION_FEASIBILITY_ENABLED: "true",
     VALIDATION_FEASIBILITY_ACTIVATION_ID: activationId,
     VALIDATION_FEASIBILITY_ACTIVATION_MANIFEST_SHA256: "d".repeat(64),
     VALIDATION_FEASIBILITY_COMMITMENT_SHA256: "e".repeat(64),
     VALIDATION_PARTICIPANT_HMAC_SECRET: "feasibility-test-secret-with-at-least-32-bytes",
+    VALIDATION_RECRUITMENT_HMAC_SECRET: "feasibility-recruitment-secret-at-least-32-bytes",
     CF_VERSION_METADATA: { id: "worker-feasibility-test" },
   };
-  const sites = [{ id: siteId, type: "Beach" }];
+  const sites = [
+    { id: siteId, type: "Beach" },
+    { id: "ocean-beach-south", type: "Beach" },
+  ];
 
-  const startTrip = async (timestamp, suffix) => {
+  const startTrip = async (timestamp, suffix, account = user, recruitmentToken = null) => {
     const response = await handleTripRequest(new Request("https://castingcompass.com/api/trips/start", {
       method: "POST",
       headers: { Origin: "https://castingcompass.com", "Content-Type": "application/json" },
@@ -1305,16 +1337,17 @@ test("feasibility pilot start, completion, safe cancellation, export, and privac
         scoreInfluencedChoice: true,
         studyConsent: true,
         studyConsentVersion,
+        recruitmentToken,
         reporterKey: `feasibility-reporter-${suffix}-12345678901234567890`,
         opportunityWindowId: windowId,
         website: "",
       }),
-    }), env, sites, { accountId: user.id, now: () => new Date(timestamp) });
+    }), env, sites, { accountId: account.id, now: () => new Date(timestamp) });
     assert.equal(response?.status, 201, JSON.stringify(await response?.clone().json()));
     return response.json();
   };
 
-  const first = await startTrip("2026-07-21T10:15:00.000Z", "complete");
+  const first = await startTrip(firstStartedAt, "complete");
   let events = sqlite.prepare(`SELECT * FROM validation_feasibility_events
     WHERE trip_id = ? ORDER BY sequence`).all(first.trip.id);
   assert.equal(events.length, 1);
@@ -1336,7 +1369,7 @@ test("feasibility pilot start, completion, safe cancellation, export, and privac
   const completedResponse = await handleTripRequest(new Request(
     `https://castingcompass.com/api/trips/${first.trip.id}/complete`,
     { method: "POST", headers: { Origin: "https://castingcompass.com" }, body: completion },
-  ), env, sites, { accountId: user.id, now: () => new Date("2026-07-21T11:15:00.000Z") });
+  ), env, sites, { accountId: user.id, now: () => new Date(firstEndedAt) });
   assert.equal(completedResponse?.status, 200, JSON.stringify(await completedResponse?.clone().json()));
   events = sqlite.prepare(`SELECT * FROM validation_feasibility_events
     WHERE trip_id = ? ORDER BY sequence`).all(first.trip.id);
@@ -1344,7 +1377,165 @@ test("feasibility pilot start, completion, safe cancellation, export, and privac
   assert.equal(events[1].previous_event_sha256, events[0].event_sha256);
   assert.equal(events[1].target_encountered, 0);
 
-  const second = await startTrip("2026-07-21T10:30:00.000Z", "cancel");
+  const correctionBody = (correctionSiteId) => ({
+    siteId: correctionSiteId,
+    startedAt: firstStartedAt,
+    endedAt: firstEndedAt,
+    mode: "beach",
+    fishingMethod: "artificial-lure",
+    anglerCount: 1,
+    keeperCount: 1,
+    shortReleasedCount: 0,
+    otherCatchCount: 0,
+    otherSpecies: null,
+    notes: "Participant-corrected outcome.",
+  });
+  const editTrip = (correctionSiteId, correctedAt) => handleAccountRequest(
+    request(`/api/profile/trips/${first.trip.id}`, {
+      method: "PATCH",
+      cookie: user.cookie,
+      body: correctionBody(correctionSiteId),
+    }),
+    env,
+    sites,
+    { now: () => new Date(correctedAt) },
+  );
+  const eligibleCorrectionResponse = await editTrip(siteId, firstCorrectionAt);
+  assert.equal(eligibleCorrectionResponse?.status, 200);
+  assert.deepEqual(await eligibleCorrectionResponse.json(), {
+    updated: true,
+    tripId: first.trip.id,
+    forecastAttributionCleared: false,
+    validationEvidenceExcluded: true,
+    validationFeasibilityCorrected: true,
+    validationFeasibilityStatus: "eligible_corrected_completion",
+  });
+  const eligibleCorrectionExport = await buildFeasibilityReconciliationExport({
+    db: d1,
+    activationId,
+    snapshotAndRestorePassed: true,
+    exportedAt: iso(new Date(firstCorrectionAt).getTime() + 60_000),
+  });
+  assert.equal(eligibleCorrectionExport.reconciliation.completedAttempts, 1);
+  assert.equal(eligibleCorrectionExport.reconciliation.targetEncounters, 1);
+
+  const exclusionResponse = await editTrip("ocean-beach-south", exclusionCorrectionAt);
+  assert.equal(exclusionResponse?.status, 200);
+  assert.equal((await exclusionResponse.json()).validationFeasibilityStatus, "excluded_after_identity_correction");
+  const exclusionExport = await buildFeasibilityReconciliationExport({
+    db: d1,
+    activationId,
+    snapshotAndRestorePassed: true,
+    exportedAt: iso(new Date(exclusionCorrectionAt).getTime() + 60_000),
+  });
+  assert.equal(exclusionExport.reconciliation.completedAttempts, 0);
+  assert.equal(exclusionExport.reconciliation.identityCorrectionExclusions, 1);
+
+  const restoredIdentityResponse = await editTrip(siteId, restoredCorrectionAt);
+  assert.equal(restoredIdentityResponse?.status, 200);
+  assert.equal((await restoredIdentityResponse.json()).validationFeasibilityStatus, "eligible_corrected_completion");
+  const correctionRows = sqlite.prepare(`SELECT * FROM validation_feasibility_corrections
+    WHERE trip_id = ? ORDER BY sequence`).all(first.trip.id);
+  assert.equal(correctionRows.length, 3);
+  assert.equal(correctionRows[0].previous_event_sha256, events[1].event_sha256);
+  assert.equal(correctionRows[1].previous_event_sha256, correctionRows[0].event_sha256);
+  assert.equal(correctionRows[2].previous_event_sha256, correctionRows[1].event_sha256);
+
+  const campaignSealedAt = sqlite.prepare("SELECT strftime('%Y-%m-%dT%H:%M:%fZ', 'now') AS value").get().value;
+  const directCampaignPayload = {
+    schema_version: "castingcompass.validation-feasibility-recruitment-token/2.0.0",
+    activation_id: activationId,
+    campaign_id: "campaign-direct-test",
+    recruitment_source_id: "direct-opt-in-research-invite",
+    selection_method: "direct_precommitment",
+    issued_at: campaignSealedAt,
+    expires_at: activationEndAt,
+    community_approval_sha256: null,
+  };
+  const directCampaign = await buildFeasibilityRecruitmentCampaign(
+    directCampaignPayload,
+    campaignSealedAt,
+  );
+  assert.ok(directCampaign);
+  sqlite.prepare(`INSERT INTO validation_feasibility_recruitment_campaigns (
+      activation_id, campaign_id, recruitment_source_id, selection_method,
+      invite_issued_at, invite_expires_at, community_approval_sha256,
+      token_payload_sha256, sealed_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(
+      directCampaign.activationId,
+      directCampaign.campaignId,
+      directCampaign.recruitmentSourceId,
+      directCampaign.selectionMethod,
+      directCampaign.inviteIssuedAt,
+      directCampaign.inviteExpiresAt,
+      directCampaign.communityApprovalSha256,
+      directCampaign.tokenPayloadSha256,
+      directCampaign.sealedAt,
+    );
+  assert.throws(() => sqlite.prepare(`UPDATE validation_feasibility_recruitment_campaigns
+    SET campaign_id = campaign_id WHERE activation_id = ? AND campaign_id = ?`)
+    .run(activationId, directCampaign.campaignId), /immutable/);
+  assert.throws(() => sqlite.prepare(`DELETE FROM validation_feasibility_recruitment_campaigns
+    WHERE activation_id = ? AND campaign_id = ?`)
+    .run(activationId, directCampaign.campaignId), /immutable/);
+  assert.throws(() => sqlite.prepare(`INSERT INTO validation_feasibility_recruitment_campaigns (
+      activation_id, campaign_id, recruitment_source_id, selection_method,
+      invite_issued_at, invite_expires_at, community_approval_sha256,
+      token_payload_sha256, sealed_at
+    ) VALUES (?, 'campaign-late-test', 'direct-opt-in-research-invite',
+      'direct_precommitment', ?, ?, NULL, ?, ?)`)
+    .run(
+      activationId,
+      campaignSealedAt,
+      directCampaign.inviteExpiresAt,
+      "0".repeat(64),
+      activationStartAt,
+    ), /must be sealed by the database before activation/);
+  const directRecruitmentToken = await createFeasibilityRecruitmentToken(
+    env.VALIDATION_RECRUITMENT_HMAC_SECRET,
+    directCampaignPayload,
+  );
+  assert.ok(directRecruitmentToken);
+  const direct = await startTrip(
+    directStartedAt,
+    "direct",
+    directUser,
+    directRecruitmentToken,
+  );
+  const directRecruitment = sqlite.prepare(`SELECT recruitment_source_id, selection_method,
+      campaign_id, invite_issued_at, user_id
+    FROM validation_feasibility_recruitment_events WHERE user_id = ?`).get(directUser.id);
+  assert.deepEqual({ ...directRecruitment }, {
+    recruitment_source_id: "direct-opt-in-research-invite",
+    selection_method: "direct_precommitment",
+    campaign_id: "campaign-direct-test",
+    invite_issued_at: campaignSealedAt,
+    user_id: directUser.id,
+  });
+  const directCompletion = new FormData();
+  directCompletion.set("token", direct.token);
+  directCompletion.set("mode", "beach");
+  directCompletion.set("anglerCount", "1");
+  directCompletion.set("keeperCount", "0");
+  directCompletion.set("shortReleasedCount", "0");
+  directCompletion.set("otherCatchCount", "0");
+  directCompletion.set("consent", "true");
+  directCompletion.set("primaryTargetConfirmed", "true");
+  directCompletion.set("completeAttempt", "true");
+  directCompletion.set("website", "");
+  const directCompletedResponse = await handleTripRequest(new Request(
+    `https://castingcompass.com/api/trips/${direct.trip.id}/complete`,
+    { method: "POST", headers: { Origin: "https://castingcompass.com" }, body: directCompletion },
+  ), env, sites, { accountId: directUser.id, now: () => new Date(directEndedAt) });
+  assert.equal(directCompletedResponse?.status, 200, JSON.stringify(await directCompletedResponse?.clone().json()));
+
+  const second = await startTrip(
+    canceledStartedAt,
+    "cancel",
+    user,
+    directRecruitmentToken,
+  );
   const canceledResponse = await handleTripRequest(new Request(
     `https://castingcompass.com/api/trips/${second.trip.id}/cancel`,
     {
@@ -1352,11 +1543,12 @@ test("feasibility pilot start, completion, safe cancellation, export, and privac
       headers: { Origin: "https://castingcompass.com", "Content-Type": "application/json" },
       body: JSON.stringify({ token: second.token, reason: "water_safety" }),
     },
-  ), env, sites, { accountId: user.id, now: () => new Date("2026-07-21T10:45:00.000Z") });
+  ), env, sites, { accountId: user.id, now: () => new Date(canceledAt) });
   assert.equal(canceledResponse?.status, 200, JSON.stringify(await canceledResponse?.clone().json()));
   const canceledEvents = sqlite.prepare(`SELECT * FROM validation_feasibility_events
     WHERE trip_id = ? ORDER BY sequence`).all(second.trip.id);
   assert.deepEqual(canceledEvents.map((event) => event.event_type), ["started", "safe_canceled"]);
+  assert.equal(canceledEvents[0].recruitment_source_id, "castingcompass-organic-product");
   assert.equal(canceledEvents[1].terminal_reason, "water_safety");
   assert.equal(sqlite.prepare("SELECT token_hash FROM trips WHERE id = ?").get(second.trip.id).token_hash, null);
 
@@ -1367,7 +1559,7 @@ test("feasibility pilot start, completion, safe cancellation, export, and privac
       headers: { Origin: "https://castingcompass.com", "Content-Type": "application/json" },
       body: JSON.stringify({ token: second.token, reason: "water_safety" }),
     },
-  ), env, sites, { accountId: user.id, now: () => new Date("2026-07-21T10:46:00.000Z") });
+  ), env, sites, { accountId: user.id, now: () => new Date(replayedAt) });
   assert.equal(replay?.status, 404);
   assert.equal(sqlite.prepare(`SELECT COUNT(*) AS count FROM validation_feasibility_events
     WHERE trip_id = ?`).get(second.trip.id).count, 2);
@@ -1380,6 +1572,9 @@ test("feasibility pilot start, completion, safe cancellation, export, and privac
   assert.equal(exported?.status, 200);
   const exportPayload = await exported.json();
   assert.equal(exportPayload.validationFeasibilityEvents.length, 4);
+  assert.equal(exportPayload.validationFeasibilityRecruitment.length, 1);
+  assert.equal(exportPayload.validationFeasibilityCorrections.length, 3);
+  assert.equal("user_id" in exportPayload.validationFeasibilityRecruitment[0], false);
   assert.doesNotMatch(JSON.stringify(exportPayload.validationFeasibilityEvents), new RegExp(user.id));
   assert.doesNotMatch(JSON.stringify(exportPayload.validationFeasibilityEvents), new RegExp(user.email));
 
@@ -1387,14 +1582,19 @@ test("feasibility pilot start, completion, safe cancellation, export, and privac
     db: d1,
     activationId,
     snapshotAndRestorePassed: true,
-    exportedAt: "2026-10-18T00:00:00.000Z",
+    exportedAt: activationEndAt,
   });
   assert.equal(reconciliationExport.candidatePerformanceComputed, false);
   assert.equal(reconciliationExport.privateRawRowsPublished, false);
-  assert.equal(reconciliationExport.eventCount, 4);
-  assert.equal(reconciliationExport.reconciliation.startedAttempts, 2);
-  assert.equal(reconciliationExport.reconciliation.completedAttempts, 1);
+  assert.equal(reconciliationExport.eventCount, 6);
+  assert.equal(reconciliationExport.reconciliation.startedAttempts, 3);
+  assert.equal(reconciliationExport.reconciliation.completedAttempts, 2);
   assert.equal(reconciliationExport.reconciliation.safeCanceledAttempts, 1);
+  assert.equal(reconciliationExport.reconciliation.correctionEvents, 3);
+  assert.equal(reconciliationExport.reconciliation.identityCorrectionExclusions, 0);
+  assert.equal(reconciliationExport.reconciliation.targetEncounters, 1);
+  assert.equal(reconciliationExport.reconciliation.nonEncounters, 1);
+  assert.equal(reconciliationExport.reconciliation.recruitmentSourcesWithAttempts, 2);
   assert.equal(reconciliationExport.reconciliation.reconciliationRate, 1);
   assert.equal(reconciliationExport.reconciliation.completionRateExcludingSafeCancellations, 1);
 
@@ -1418,14 +1618,48 @@ test("feasibility pilot start, completion, safe cancellation, export, and privac
     db: d1,
     activationId,
     snapshotAndRestorePassed: true,
-    exportedAt: "2026-10-18T00:00:01.000Z",
+    exportedAt: iso(new Date(activationEndAt).getTime() + 1_000),
   });
-  assert.equal(postDeletionExport.eventCount, 2);
-  assert.equal(postDeletionExport.reconciliation.startedAttempts, 2);
-  assert.equal(postDeletionExport.reconciliation.retainedStartedAttempts, 1);
+  assert.equal(postDeletionExport.eventCount, 4);
+  assert.equal(postDeletionExport.reconciliation.startedAttempts, 3);
+  assert.equal(postDeletionExport.reconciliation.retainedStartedAttempts, 2);
   assert.equal(postDeletionExport.reconciliation.removedStartedAttempts, 1);
   assert.equal(postDeletionExport.reconciliation.removedSafeCanceledAttempts, 1);
   assert.equal(postDeletionExport.reconciliation.reconciliationRate, 1);
+
+  assert.throws(() => sqlite.prepare("DELETE FROM validation_feasibility_recruitment_events WHERE activation_id = ?")
+    .run(activationId), /may be removed only with account privacy deletion/);
+  assert.throws(() => sqlite.prepare("UPDATE validation_feasibility_corrections SET corrected_at = corrected_at")
+    .run(), /append-only/);
+  const accountDeletion = await handleAccountRequest(
+    request("/api/profile", {
+      method: "DELETE",
+      cookie: user.cookie,
+      body: { confirmation: "DELETE", password: user.password },
+    }),
+    env,
+    sites,
+  );
+  assert.equal(accountDeletion?.status, 200, JSON.stringify(await accountDeletion?.clone().json()));
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM validation_feasibility_events").get().count, 2);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM validation_feasibility_corrections").get().count, 0);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM validation_feasibility_recruitment_events").get().count, 1);
+  assert.equal(sqlite.prepare(`SELECT SUM(removed_correction_count) AS count
+    FROM validation_feasibility_correction_removals WHERE activation_id = ?`).get(activationId).count, 3);
+  const directAccountDeletion = await handleAccountRequest(
+    request("/api/profile", {
+      method: "DELETE",
+      cookie: directUser.cookie,
+      body: { confirmation: "DELETE", password: directUser.password },
+    }),
+    env,
+    sites,
+  );
+  assert.equal(directAccountDeletion?.status, 200, JSON.stringify(await directAccountDeletion?.clone().json()));
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM validation_feasibility_events").get().count, 0);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM validation_feasibility_recruitment_events").get().count, 0);
+  assert.equal(sqlite.prepare(`SELECT SUM(removed_recruitment_count) AS count
+    FROM validation_feasibility_recruitment_removals WHERE activation_id = ?`).get(activationId).count, 2);
 });
 
 test("profile edits recompute valid v2 evidence, reject overrides, and never promote legacy rows", async () => {

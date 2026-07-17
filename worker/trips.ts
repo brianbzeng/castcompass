@@ -22,11 +22,16 @@ import {
   buildFeasibilityCompletionEvent,
   buildFeasibilityStartEvent,
   feasibilityPilotEnabled,
+  feasibilityRecruitmentCampaignReference,
   resolveFeasibilityContext,
+  resolveFeasibilityRecruitment,
   type FeasibilityEventRecord,
+  type FeasibilityRecruitmentRecord,
   type FeasibilityRuntimeEnv,
   type SafeCancellationReason,
   type StoredFeasibilityActivation,
+  type StoredFeasibilityRecruitment,
+  type StoredFeasibilityRecruitmentCampaign,
   type StoredFeasibilityStart,
 } from "./validation-feasibility.ts";
 
@@ -437,6 +442,7 @@ export interface TripStore {
     record: NewTripRecord,
     validation?: ValidationPersistenceBundle,
     feasibilityStart?: FeasibilityEventRecord | null,
+    feasibilityRecruitment?: FeasibilityRecruitmentRecord | null,
   ): Promise<TripRow>;
   getTrip(id: string): Promise<TripRow | null>;
   getValidationEnrollment?(tripId: string): Promise<StoredValidationEnrollment | null>;
@@ -446,6 +452,14 @@ export interface TripStore {
     activation: ValidationActivationRecord,
   ): Promise<StoredRecruitmentEvent | null>;
   getFeasibilityActivation?(activationId: string): Promise<StoredFeasibilityActivation | null>;
+  getFeasibilityRecruitment?(
+    activationId: string,
+    participantGroupId: string,
+  ): Promise<StoredFeasibilityRecruitment | null>;
+  getFeasibilityRecruitmentCampaign?(
+    activationId: string,
+    campaignId: string,
+  ): Promise<StoredFeasibilityRecruitmentCampaign | null>;
   getFeasibilityStart?(tripId: string): Promise<StoredFeasibilityStart | null>;
   completeTrip(
     id: string,
@@ -1124,6 +1138,17 @@ const INSERT_FEASIBILITY_EVENT_SQL = `INSERT INTO validation_feasibility_events 
   ${FEASIBILITY_EVENT_COLUMNS.join(", ")}
 ) VALUES (${FEASIBILITY_EVENT_COLUMNS.map(() => "?").join(", ")})`;
 
+const FEASIBILITY_RECRUITMENT_COLUMNS = [
+  "event_id", "activation_id", "user_id", "participant_group_id", "event_contract_version",
+  "recruitment_frame_id", "recruitment_source_id", "selection_method", "recruited_at",
+  "campaign_id", "invite_issued_at", "invite_expires_at", "community_approval_sha256",
+  "event_sha256", "created_at",
+] as const;
+
+const INSERT_FEASIBILITY_RECRUITMENT_SQL = `INSERT INTO validation_feasibility_recruitment_events (
+  ${FEASIBILITY_RECRUITMENT_COLUMNS.join(", ")}
+) VALUES (${FEASIBILITY_RECRUITMENT_COLUMNS.map(() => "?").join(", ")})`;
+
 const initializedDatabases = new WeakMap<object, Promise<void>>();
 
 export class RateLimitError extends Error {
@@ -1379,7 +1404,7 @@ export function createTripStore(db: D1DatabaseLike): TripStore {
       }
     },
 
-    async insertTrip(record, validation, feasibilityStart) {
+    async insertTrip(record, validation, feasibilityStart, feasibilityRecruitment) {
       const statements = [db.prepare(INSERT_TRIP_SQL).bind(
           record.id,
           record.userId,
@@ -1441,6 +1466,9 @@ export function createTripStore(db: D1DatabaseLike): TripStore {
         statements.push(prepareForecastImpressionInsert(db, validation.impression));
       }
       if (validation) statements.push(prepareValidationProvenanceInsert(db, validation.provenance));
+      if (feasibilityRecruitment) {
+        statements.push(prepareFeasibilityRecruitmentInsert(db, feasibilityRecruitment));
+      }
       if (feasibilityStart) statements.push(prepareFeasibilityEventInsert(db, feasibilityStart));
       await db.batch(statements);
 
@@ -1460,6 +1488,27 @@ export function createTripStore(db: D1DatabaseLike): TripStore {
         FROM validation_feasibility_activations WHERE id = ? LIMIT 1`)
         .bind(activationId)
         .first<StoredFeasibilityActivation>();
+    },
+
+    async getFeasibilityRecruitment(activationId, participantGroupId) {
+      return db.prepare(`SELECT event_id, activation_id, user_id, participant_group_id,
+          event_contract_version, recruitment_frame_id, recruitment_source_id,
+          selection_method, recruited_at, campaign_id, invite_issued_at, invite_expires_at,
+          community_approval_sha256, event_sha256, created_at
+        FROM validation_feasibility_recruitment_events
+        WHERE activation_id = ? AND participant_group_id = ? LIMIT 1`)
+        .bind(activationId, participantGroupId)
+        .first<StoredFeasibilityRecruitment>();
+    },
+
+    async getFeasibilityRecruitmentCampaign(activationId, campaignId) {
+      return db.prepare(`SELECT activation_id, campaign_id, recruitment_source_id,
+          selection_method, invite_issued_at, invite_expires_at,
+          community_approval_sha256, token_payload_sha256, sealed_at
+        FROM validation_feasibility_recruitment_campaigns
+        WHERE activation_id = ? AND campaign_id = ? LIMIT 1`)
+        .bind(activationId, campaignId)
+        .first<StoredFeasibilityRecruitmentCampaign>();
     },
 
     async getFeasibilityStart(tripId) {
@@ -1832,6 +1881,29 @@ function feasibilityEventBindings(record: FeasibilityEventRecord): unknown[] {
 
 function prepareFeasibilityEventInsert(db: D1DatabaseLike, record: FeasibilityEventRecord) {
   return db.prepare(INSERT_FEASIBILITY_EVENT_SQL).bind(...feasibilityEventBindings(record));
+}
+
+function prepareFeasibilityRecruitmentInsert(
+  db: D1DatabaseLike,
+  record: FeasibilityRecruitmentRecord,
+) {
+  return db.prepare(INSERT_FEASIBILITY_RECRUITMENT_SQL).bind(
+    record.eventId,
+    record.activationId,
+    record.userId,
+    record.participantGroupId,
+    record.eventContractVersion,
+    record.recruitmentFrameId,
+    record.recruitmentSourceId,
+    record.selectionMethod,
+    record.recruitedAt,
+    record.campaignId,
+    record.inviteIssuedAt,
+    record.inviteExpiresAt,
+    record.communityApprovalSha256,
+    record.eventSha256,
+    record.createdAt,
+  );
 }
 
 function prepareConditionalFeasibilityEventInsert(
@@ -2454,6 +2526,7 @@ export async function handleTripRequest(
         startedAt,
       });
       let feasibilityStart: FeasibilityEventRecord | null = null;
+      let feasibilityRecruitment: FeasibilityRecruitmentRecord | null = null;
       if (feasibilityPilotEnabled(env) && optionalBoolean(body.studyConsent, "studyConsent") === true) {
         const studyConsentVersion = optionalText(body.studyConsentVersion, "studyConsentVersion", 200);
         if (!studyConsentVersion) {
@@ -2464,7 +2537,11 @@ export async function handleTripRequest(
           );
         }
         const activationId = env.VALIDATION_FEASIBILITY_ACTIVATION_ID?.trim();
-        if (!activationId || !store.getFeasibilityActivation || !attestation.opportunity || !options.accountId) {
+        if (
+          !activationId || !store.getFeasibilityActivation || !store.getFeasibilityRecruitment ||
+          !store.getFeasibilityRecruitmentCampaign ||
+          !attestation.opportunity || !options.accountId
+        ) {
           throw new ApiError(503, "validation_pilot_unavailable", "The validation pilot is not available right now.");
         }
         const storedActivation = await store.getFeasibilityActivation(activationId);
@@ -2480,8 +2557,48 @@ export async function handleTripRequest(
         if (!context) {
           throw new ApiError(503, "validation_pilot_unavailable", "The validation pilot is not available right now.");
         }
+        const existingRecruitment = await store.getFeasibilityRecruitment(
+          activationId,
+          context.participantGroupId,
+        );
+        const recruitmentToken = optionalText(body.recruitmentToken, "recruitmentToken", 2_048);
+        const campaignReference = recruitmentToken && !existingRecruitment
+          ? feasibilityRecruitmentCampaignReference(recruitmentToken)
+          : null;
+        if (
+          recruitmentToken && !existingRecruitment &&
+          (!campaignReference || campaignReference.activationId !== activationId)
+        ) {
+          throw new ApiError(
+            422,
+            "validation_recruitment_invalid",
+            "The validation-pilot recruitment invitation is invalid or expired.",
+          );
+        }
+        const recruitmentCampaign = campaignReference
+          ? await store.getFeasibilityRecruitmentCampaign(activationId, campaignReference.campaignId)
+          : null;
+        const resolvedRecruitment = await resolveFeasibilityRecruitment({
+          env,
+          activation: context.activation,
+          accountId: options.accountId,
+          participantGroupId: context.participantGroupId,
+          timestamp,
+          recruitmentToken,
+          campaign: recruitmentCampaign,
+          existing: existingRecruitment,
+        });
+        if (!resolvedRecruitment) {
+          throw new ApiError(
+            422,
+            "validation_recruitment_invalid",
+            "The validation-pilot recruitment invitation is invalid or expired.",
+          );
+        }
+        feasibilityRecruitment = resolvedRecruitment.isNew ? resolvedRecruitment.record : null;
         feasibilityStart = await buildFeasibilityStartEvent({
           context,
+          recruitment: resolvedRecruitment.record,
           tripId: id,
           opportunity: attestation.opportunity,
           siteId: site.id,
@@ -2565,7 +2682,7 @@ export async function handleTripRequest(
         createdAt: timestamp,
         updatedAt: timestamp,
         completedAt: null,
-      }, validation, feasibilityStart);
+      }, validation, feasibilityStart, feasibilityRecruitment);
 
       return jsonResponse({ trip: publicTrip(trip), token }, 201, reporter.setCookie);
     }

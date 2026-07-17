@@ -354,13 +354,14 @@ test("documents v1 as inactive, records local ledger progress, and leaves activa
   assert.match(successor, /not activated/i);
   assert.match(successor, /Candidate score\/outcome associations[^.]+are not\s+computed/is);
   assert.match(successor, /- \[x\] Freeze and test the local protocol and activation schemas/);
-  assert.match(successor, /- \[ \] Implement the server-authoritative start/);
+  assert.match(successor, /- \[x\] Implement the server-authoritative start, completion, cancellation,/);
   assert.match(successor, /- \[x\] Implement the privacy-safe deletion-linked participant token/);
   assert.match(successor, /- \[x\] Implement the append-only event ledger/);
   assert.match(successor, /- \[ \] Submit the exact protocol artifact to OSF/);
   assert.match(roadmap, /- \[x\] Freeze and locally verify the v2 successor schemas/);
   assert.match(roadmap, /- \[x\] Locally implement and verify the default-off v2 start\/completion\/safe-cancellation/);
-  assert.match(roadmap, /- \[ \] Add append-only correction handling/);
+  assert.match(roadmap, /- \[x\] Locally implement and verify append-only correction handling/);
+  assert.match(roadmap, /an HMAC invitation alone is\s+not treated as proof of issue time/i);
   assert.match(successor, /No post-outcome change may reclassify pilot rows as confirmatory evidence/i);
   assert.match(pipelineReadme, /Historical v1 site-window validation — do not activate/);
   assert.match(pipelineReadme, /No command below satisfies those gates/);

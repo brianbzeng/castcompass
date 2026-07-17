@@ -90,7 +90,7 @@ Do not collect v2-eligible rows until every item below has evidence:
 - [x] Freeze and test the local protocol and activation schemas.
 - [x] Add an operator verifier for exact hashes, duration, prerequisite timing,
       immutable release identity, and activation chronology.
-- [ ] Implement the server-authoritative start, completion, cancellation,
+- [x] Implement the server-authoritative start, completion, cancellation,
       correction, and recruitment-source capture contract.
 - [x] Implement the privacy-safe deletion-linked participant token.
 - [x] Implement the append-only event ledger and exact started-attempt

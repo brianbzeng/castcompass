@@ -1,5 +1,10 @@
 import { buildSpeciesObservationFields, hasServerControlledObservationFields } from "./trips.ts";
 import type { CuratedSite, D1DatabaseLike, TripRow } from "./trips.ts";
+import {
+  buildFeasibilityCorrectionEvent,
+  type FeasibilityCorrectionRecord,
+  type StoredFeasibilityStart,
+} from "./validation-feasibility.ts";
 
 const SESSION_COOKIE = "cc_session";
 const DELETION_RECEIPT_COOKIE = "cc_deletion_receipt";
@@ -641,7 +646,14 @@ export async function handleAccountRequest(
         delete exportedTrip.photo_key;
         return exportedTrip;
       });
-      const [discussionRows, forecastImpressionRows, validationProvenanceRows, validationFeasibilityRows] = await Promise.all([
+      const [
+        discussionRows,
+        forecastImpressionRows,
+        validationProvenanceRows,
+        validationFeasibilityRows,
+        validationFeasibilityRecruitmentRows,
+        validationFeasibilityCorrectionRows,
+      ] = await Promise.all([
         db.prepare(`SELECT site_discussion_posts.id, site_discussion_posts.trip_id,
             site_discussion_posts.site_id, site_discussion_posts.summary, site_discussion_posts.gear_summary,
             site_discussion_posts.technique_tags_json, site_discussion_posts.observed_at,
@@ -664,6 +676,19 @@ export async function handleAccountRequest(
           JOIN trips ON trips.id = validation_feasibility_events.trip_id
           WHERE trips.user_id = ? ORDER BY validation_feasibility_events.sequence ASC`)
           .bind(user.id).all<Record<string, unknown>>(),
+        db.prepare(`SELECT recruitment.event_id, recruitment.activation_id,
+            recruitment.participant_group_id, recruitment.event_contract_version,
+            recruitment.recruitment_frame_id, recruitment.recruitment_source_id,
+            recruitment.selection_method, recruitment.recruited_at, recruitment.campaign_id,
+            recruitment.invite_issued_at, recruitment.invite_expires_at,
+            recruitment.community_approval_sha256, recruitment.event_sha256, recruitment.created_at
+          FROM validation_feasibility_recruitment_events AS recruitment
+          WHERE recruitment.user_id = ? ORDER BY recruitment.sequence ASC`)
+          .bind(user.id).all<Record<string, unknown>>(),
+        db.prepare(`SELECT corrections.* FROM validation_feasibility_corrections AS corrections
+          JOIN trips ON trips.id = corrections.trip_id
+          WHERE trips.user_id = ? ORDER BY corrections.sequence ASC`)
+          .bind(user.id).all<Record<string, unknown>>(),
       ]);
       const photoManifest = await Promise.all(tripRows
         .filter((trip) => typeof trip.photo_key === "string" && trip.photo_key)
@@ -677,6 +702,8 @@ export async function handleAccountRequest(
         forecastImpressions: forecastImpressionRows.results ?? [],
         validationProvenance: validationProvenanceRows.results ?? [],
         validationFeasibilityEvents: validationFeasibilityRows.results ?? [],
+        validationFeasibilityRecruitment: validationFeasibilityRecruitmentRows.results ?? [],
+        validationFeasibilityCorrections: validationFeasibilityCorrectionRows.results ?? [],
         discussionPosts: discussionRows.results ?? [],
         photos: photoManifest,
       }, 200, undefined, { "Content-Disposition": `attachment; filename="castingcompass-data-${new Date().toISOString().slice(0, 10)}.json"` });
@@ -893,6 +920,35 @@ export async function handleAccountRequest(
       if (request.method === "PATCH") {
         const body = await readJson(request);
         const requestNow = options.now?.() ?? new Date();
+        const [feasibilityStart, feasibilityCompletion, latestFeasibilityCorrection] = await Promise.all([
+          db.prepare(`SELECT activation_id, trip_id, event_sha256, source_record_sha256,
+              participant_group_id, recruitment_frame_id, recruitment_source_id, selection_method,
+              score_influenced_choice, study_consent_version, study_consented_at, target_taxon_id,
+              site_id, geographic_panel, mode, segment_start_at, angler_count,
+              scoring_system_kind, scoring_system_version, scoring_system_sha256,
+              opportunity_score, opportunity_window_id, snapshot_sha256
+            FROM validation_feasibility_events
+            WHERE trip_id = ? AND event_type = 'started' LIMIT 1`)
+            .bind(tripId).first<StoredFeasibilityStart>(),
+          db.prepare(`SELECT activation_id, event_sha256 FROM validation_feasibility_events
+            WHERE trip_id = ? AND event_type = 'completed' LIMIT 1`)
+            .bind(tripId).first<{ activation_id: string; event_sha256: string }>(),
+          db.prepare(`SELECT root_completion_event_sha256, event_sha256
+            FROM validation_feasibility_corrections WHERE trip_id = ?
+            ORDER BY sequence DESC LIMIT 1`)
+            .bind(tripId).first<{ root_completion_event_sha256: string; event_sha256: string }>(),
+        ]);
+        if (feasibilityStart && (
+          !feasibilityCompletion || feasibilityCompletion.activation_id !== feasibilityStart.activation_id ||
+          (latestFeasibilityCorrection &&
+            latestFeasibilityCorrection.root_completion_event_sha256 !== feasibilityCompletion.event_sha256)
+        )) {
+          throw new AuthError(
+            409,
+            "validation_correction_chain_invalid",
+            "This validation-pilot trip cannot be edited until its correction chain is reconciled.",
+          );
+        }
         if (hasServerControlledObservationFields(body)) {
           throw new AuthError(
             422,
@@ -969,6 +1025,29 @@ export async function handleAccountRequest(
         const noCatch = trip.contract_status === "valid"
           ? speciesObservation.anyFishEncounterCount === 0
           : keeperCount + shortReleasedCount + otherCatchCount === 0;
+        const feasibilityCorrection = feasibilityStart && feasibilityCompletion
+          ? await buildFeasibilityCorrectionEvent({
+              start: feasibilityStart,
+              rootCompletionEventSha256: feasibilityCompletion.event_sha256,
+              previousEventSha256: latestFeasibilityCorrection?.event_sha256 ?? feasibilityCompletion.event_sha256,
+              siteId,
+              mode,
+              segmentStartAt: startedAt,
+              segmentEndAt: endedAt,
+              anglerCount,
+              targetEncounterCount: keeperCount + shortReleasedCount,
+              targetRetainedCount: keeperCount,
+              targetReleasedCount: shortReleasedCount,
+              correctedAt: timestamp,
+            })
+          : null;
+        if (feasibilityStart && !feasibilityCorrection) {
+          throw new AuthError(
+            422,
+            "validation_correction_invalid",
+            "The edited trip is outside the validation-pilot correction contract.",
+          );
+        }
         const forecastInvalidation = forecastAttributionChanged
           ? `opportunity_window_id = NULL, opportunity_score = NULL, habitat_score = NULL,
              seasonality_score = NULL, conditions_score = NULL, fishability_score = NULL,
@@ -1040,6 +1119,14 @@ export async function handleAccountRequest(
               user.id,
             ),
         ];
+        if (feasibilityCorrection) {
+          statements.push(prepareConditionalFeasibilityCorrectionInsert(
+            db,
+            feasibilityCorrection,
+            user.id,
+            timestamp,
+          ));
+        }
         const [updateResult] = await db.batch(statements);
         if (mutationChanges(updateResult) !== 1) {
           return errorResponse(409, "trip_reviewed", "Reviewed trip logs can no longer be changed.");
@@ -1053,6 +1140,10 @@ export async function handleAccountRequest(
           tripId,
           forecastAttributionCleared: forecastAttributionChanged,
           validationEvidenceExcluded: true,
+          ...(feasibilityCorrection ? {
+            validationFeasibilityCorrected: true,
+            validationFeasibilityStatus: feasibilityCorrection.analyticalStatus,
+          } : {}),
         });
       }
 
@@ -1271,6 +1362,53 @@ function mutationChanges(result: unknown) {
   const meta = (result as { meta?: { changes?: unknown } }).meta;
   const changes = Number(meta?.changes ?? 0);
   return Number.isFinite(changes) ? changes : 0;
+}
+
+function prepareConditionalFeasibilityCorrectionInsert(
+  db: D1DatabaseLike,
+  correction: FeasibilityCorrectionRecord,
+  userId: string,
+  updatedAt: string,
+) {
+  return db.prepare(`INSERT INTO validation_feasibility_corrections (
+      correction_id, activation_id, trip_id, correction_contract_version,
+      root_completion_event_sha256, previous_event_sha256, correction_reason,
+      analytical_status, site_id, geographic_panel, mode, segment_start_at,
+      segment_end_at, angler_count, effort_minutes, target_encountered,
+      target_encounter_count, target_retained_count, target_released_count,
+      identification_confidence, corrected_at, event_sha256
+    ) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    WHERE EXISTS (
+      SELECT 1 FROM trips WHERE id = ? AND user_id = ? AND moderation_status = 'pending'
+        AND updated_at = ?
+    )`)
+    .bind(
+      correction.correctionId,
+      correction.activationId,
+      correction.tripId,
+      correction.correctionContractVersion,
+      correction.rootCompletionEventSha256,
+      correction.previousEventSha256,
+      correction.correctionReason,
+      correction.analyticalStatus,
+      correction.siteId,
+      correction.geographicPanel,
+      correction.mode,
+      correction.segmentStartAt,
+      correction.segmentEndAt,
+      correction.anglerCount,
+      correction.effortMinutes,
+      Number(correction.targetEncountered),
+      correction.targetEncounterCount,
+      correction.targetRetainedCount,
+      correction.targetReleasedCount,
+      correction.identificationConfidence,
+      correction.correctedAt,
+      correction.eventSha256,
+      correction.tripId,
+      userId,
+      updatedAt,
+    );
 }
 
 async function deletionStatusAfterCommit(

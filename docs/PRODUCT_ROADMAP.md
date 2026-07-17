@@ -70,10 +70,14 @@ after its acceptance checks pass in the intended environment.
     exact retained/deleted-start reconciliation, append-only/identity guards, and transactional
     runtime fixtures. This records no email, raw account ID, coordinates, notes, photos, IP, or
     user agent in the pilot ledger and computes no candidate-performance result.
-  - [ ] Add append-only correction handling and outcome-independent direct/community recruitment
-    source capture; configure the encrypted snapshot/restore path and operator audit evidence;
-    complete legal/privacy/data-steward review; externally preregister the exact artifact; then
-    seal and deploy a valid activation manifest before the first pilot-eligible row.
+  - [x] Locally implement and verify append-only correction handling plus outcome-independent
+    direct/community recruitment-source capture. Direct/community invitations must match an
+    immutable campaign sealed by D1 server time before activation; an HMAC invitation alone is
+    not treated as proof of issue time. First-source-wins, account export/deletion, correction
+    chaining, source-separated reconciliation, and adversarial mutation/timing cases are covered.
+  - [ ] Configure the encrypted snapshot/restore path and operator audit evidence; complete
+    legal/privacy/data-steward review; externally preregister the exact artifact; then seal and
+    deploy a valid activation manifest before the first pilot-eligible row.
   - [ ] If the pilot passes, freeze and preregister a separate confirmatory protocol with a fixed
     candidate and baselines, source-separated development and locked test data, geographic/time
     holdouts, clustered uncertainty, minimum support, and promotion/drift/rollback gates. Never

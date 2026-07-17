@@ -8,15 +8,26 @@ export const FEASIBILITY_SITE_CATALOG_SHA256 =
   "b0378742f40cca598c57d845fb683ab9b36068cdd69de541aeb3e45d93c31860" as const;
 export const FEASIBILITY_EVENT_CONTRACT_VERSION =
   "castingcompass.validation-feasibility-event/2.0.0" as const;
+export const FEASIBILITY_CORRECTION_CONTRACT_VERSION =
+  "castingcompass.validation-feasibility-correction/2.0.0" as const;
 export const FEASIBILITY_RECRUITMENT_FRAME_ID =
   "california-halibut-feasibility-recruitment-v2" as const;
+export const FEASIBILITY_RECRUITMENT_EVENT_CONTRACT_VERSION =
+  "castingcompass.validation-feasibility-recruitment/2.0.0" as const;
+export const FEASIBILITY_RECRUITMENT_TOKEN_VERSION =
+  "castingcompass.validation-feasibility-recruitment-token/2.0.0" as const;
 export const FEASIBILITY_ORGANIC_SOURCE_ID = "castingcompass-organic-product" as const;
 export const FEASIBILITY_SELECTION_METHOD = "organic_score_visible" as const;
+export const FEASIBILITY_DIRECT_SOURCE_ID = "direct-opt-in-research-invite" as const;
+export const FEASIBILITY_COMMUNITY_SOURCE_ID = "admin-approved-community-prospective" as const;
+export const FEASIBILITY_DIRECT_SELECTION_METHOD = "direct_precommitment" as const;
 
 const PARTICIPANT_DOMAIN = "castingcompass.validation-feasibility-participant/2.0.0";
 const SOURCE_RECORD_DOMAIN = "castingcompass.validation-feasibility-source/2.0.0";
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const PARTICIPANT_PATTERN = /^participant-[a-f0-9]{64}$/;
+const CAMPAIGN_ID_PATTERN = /^campaign-[a-z0-9][a-z0-9-]{2,79}$/;
+const BASE64URL_PATTERN = /^[A-Za-z0-9_-]+$/;
 const SAFE_CANCELLATION_REASONS = new Set<SafeCancellationReason>([
   "weather",
   "water_safety",
@@ -89,6 +100,13 @@ const PANELS = {
 export type FeasibilityPanelId = keyof typeof PANELS;
 export type FeasibilityEventType = "started" | "completed" | "safe_canceled";
 export type SafeCancellationReason = "weather" | "water_safety" | "access" | "health" | "personal" | "other";
+export type FeasibilityRecruitmentSourceId =
+  | typeof FEASIBILITY_ORGANIC_SOURCE_ID
+  | typeof FEASIBILITY_DIRECT_SOURCE_ID
+  | typeof FEASIBILITY_COMMUNITY_SOURCE_ID;
+export type FeasibilitySelectionMethod =
+  | typeof FEASIBILITY_SELECTION_METHOD
+  | typeof FEASIBILITY_DIRECT_SELECTION_METHOD;
 
 const PANEL_BY_SITE = new Map<string, FeasibilityPanelId>();
 for (const [panel, sites] of Object.entries(PANELS) as [FeasibilityPanelId, readonly string[]][]) {
@@ -104,6 +122,7 @@ export interface FeasibilityRuntimeEnv {
   VALIDATION_FEASIBILITY_ACTIVATION_MANIFEST_SHA256?: string;
   VALIDATION_FEASIBILITY_COMMITMENT_SHA256?: string;
   VALIDATION_PARTICIPANT_HMAC_SECRET?: string;
+  VALIDATION_RECRUITMENT_HMAC_SECRET?: string;
   CF_VERSION_METADATA?: { id?: string };
 }
 
@@ -132,6 +151,77 @@ export interface ActiveFeasibilityContext {
   participantGroupId: string;
 }
 
+export interface FeasibilityRecruitmentTokenPayload {
+  schema_version: typeof FEASIBILITY_RECRUITMENT_TOKEN_VERSION;
+  activation_id: string;
+  campaign_id: string;
+  recruitment_source_id: Exclude<FeasibilityRecruitmentSourceId, typeof FEASIBILITY_ORGANIC_SOURCE_ID>;
+  selection_method: typeof FEASIBILITY_DIRECT_SELECTION_METHOD;
+  issued_at: string;
+  expires_at: string;
+  community_approval_sha256: string | null;
+}
+
+export interface FeasibilityRecruitmentCampaignRecord {
+  activationId: string;
+  campaignId: string;
+  recruitmentSourceId: Exclude<FeasibilityRecruitmentSourceId, typeof FEASIBILITY_ORGANIC_SOURCE_ID>;
+  selectionMethod: typeof FEASIBILITY_DIRECT_SELECTION_METHOD;
+  inviteIssuedAt: string;
+  inviteExpiresAt: string;
+  communityApprovalSha256: string | null;
+  tokenPayloadSha256: string;
+  sealedAt: string;
+}
+
+export interface StoredFeasibilityRecruitmentCampaign {
+  activation_id: string;
+  campaign_id: string;
+  recruitment_source_id: string;
+  selection_method: string;
+  invite_issued_at: string;
+  invite_expires_at: string;
+  community_approval_sha256: string | null;
+  token_payload_sha256: string;
+  sealed_at: string;
+}
+
+export interface FeasibilityRecruitmentRecord {
+  eventId: string;
+  activationId: string;
+  userId: string;
+  participantGroupId: string;
+  eventContractVersion: typeof FEASIBILITY_RECRUITMENT_EVENT_CONTRACT_VERSION;
+  recruitmentFrameId: typeof FEASIBILITY_RECRUITMENT_FRAME_ID;
+  recruitmentSourceId: FeasibilityRecruitmentSourceId;
+  selectionMethod: FeasibilitySelectionMethod;
+  recruitedAt: string;
+  campaignId: string | null;
+  inviteIssuedAt: string | null;
+  inviteExpiresAt: string | null;
+  communityApprovalSha256: string | null;
+  eventSha256: string;
+  createdAt: string;
+}
+
+export interface StoredFeasibilityRecruitment {
+  event_id: string;
+  activation_id: string;
+  user_id: string;
+  participant_group_id: string;
+  event_contract_version: string;
+  recruitment_frame_id: string;
+  recruitment_source_id: string;
+  selection_method: string;
+  recruited_at: string;
+  campaign_id: string | null;
+  invite_issued_at: string | null;
+  invite_expires_at: string | null;
+  community_approval_sha256: string | null;
+  event_sha256: string;
+  created_at: string;
+}
+
 export interface FeasibilityEventRecord {
   eventId: string;
   activationId: string;
@@ -141,8 +231,8 @@ export interface FeasibilityEventRecord {
   sourceRecordSha256: string;
   participantGroupId: string;
   recruitmentFrameId: typeof FEASIBILITY_RECRUITMENT_FRAME_ID;
-  recruitmentSourceId: string;
-  selectionMethod: string;
+  recruitmentSourceId: FeasibilityRecruitmentSourceId;
+  selectionMethod: FeasibilitySelectionMethod;
   scoreInfluencedChoice: boolean;
   studyConsentVersion: string;
   studyConsentedAt: string;
@@ -178,8 +268,8 @@ export interface StoredFeasibilityStart {
   source_record_sha256: string;
   participant_group_id: string;
   recruitment_frame_id: typeof FEASIBILITY_RECRUITMENT_FRAME_ID;
-  recruitment_source_id: string;
-  selection_method: string;
+  recruitment_source_id: FeasibilityRecruitmentSourceId;
+  selection_method: FeasibilitySelectionMethod;
   score_influenced_choice: number;
   study_consent_version: string;
   study_consented_at: string;
@@ -197,12 +287,39 @@ export interface StoredFeasibilityStart {
   snapshot_sha256: string;
 }
 
+export interface FeasibilityCorrectionRecord {
+  correctionId: string;
+  activationId: string;
+  tripId: string;
+  correctionContractVersion: typeof FEASIBILITY_CORRECTION_CONTRACT_VERSION;
+  rootCompletionEventSha256: string;
+  previousEventSha256: string;
+  correctionReason: "participant_profile_edit";
+  analyticalStatus: "eligible_corrected_completion" | "excluded_after_identity_correction";
+  siteId: string;
+  geographicPanel: FeasibilityPanelId;
+  mode: "shore" | "beach" | "pier" | "jetty" | "kayak" | "boat" | "other";
+  segmentStartAt: string;
+  segmentEndAt: string;
+  anglerCount: number;
+  effortMinutes: number;
+  targetEncountered: boolean;
+  targetEncounterCount: number;
+  targetRetainedCount: number;
+  targetReleasedCount: number;
+  identificationConfidence: "self_reported" | "not_observed";
+  correctedAt: string;
+  eventSha256: string;
+}
+
 export interface FeasibilityReconciliationResult {
   status: "collection-feasibility-demonstrated" | "collection-feasibility-not-demonstrated";
   startedAttempts: number;
   retainedStartedAttempts: number;
   completedAttempts: number;
   safeCanceledAttempts: number;
+  correctionEvents: number;
+  identityCorrectionExclusions: number;
   unreconciledAttempts: number;
   reconciliationRate: number;
   completionRateExcludingSafeCancellations: number;
@@ -231,6 +348,24 @@ function bytesToHex(bytes: ArrayBuffer) {
   return [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+function bytesToBase64Url(bytes: ArrayBuffer | Uint8Array) {
+  const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  let binary = "";
+  for (const byte of view) binary += String.fromCharCode(byte);
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
+}
+
+function base64UrlToBytes(value: string) {
+  if (!BASE64URL_PATTERN.test(value)) return null;
+  try {
+    const padded = value.replaceAll("-", "+").replaceAll("_", "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
+    const binary = atob(padded);
+    return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  } catch {
+    return null;
+  }
+}
+
 async function sha256(value: string) {
   return bytesToHex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)));
 }
@@ -252,6 +387,260 @@ function canonicalJson(value: unknown): string {
 function strictTimestamp(value: string) {
   const date = new Date(value);
   return Number.isFinite(date.getTime()) && date.toISOString() === value ? date.getTime() : null;
+}
+
+function recruitmentSecretBytes(secret: string) {
+  const bytes = new TextEncoder().encode(secret);
+  return bytes.byteLength >= 32 && bytes.byteLength <= 512 ? bytes : null;
+}
+
+async function recruitmentHmacKey(secret: string) {
+  const bytes = recruitmentSecretBytes(secret);
+  if (!bytes) return null;
+  return crypto.subtle.importKey("raw", bytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
+}
+
+function validRecruitmentTokenShape(value: unknown): value is FeasibilityRecruitmentTokenPayload {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const payload = value as Record<string, unknown>;
+  const expectedKeys = [
+    "activation_id",
+    "campaign_id",
+    "community_approval_sha256",
+    "expires_at",
+    "issued_at",
+    "recruitment_source_id",
+    "schema_version",
+    "selection_method",
+  ];
+  if (JSON.stringify(Object.keys(payload).sort()) !== JSON.stringify(expectedKeys)) return false;
+  if (
+    payload.schema_version !== FEASIBILITY_RECRUITMENT_TOKEN_VERSION ||
+    typeof payload.activation_id !== "string" || !payload.activation_id || payload.activation_id.length > 200 ||
+    typeof payload.campaign_id !== "string" || !CAMPAIGN_ID_PATTERN.test(payload.campaign_id) ||
+    payload.selection_method !== FEASIBILITY_DIRECT_SELECTION_METHOD ||
+    (payload.recruitment_source_id !== FEASIBILITY_DIRECT_SOURCE_ID &&
+      payload.recruitment_source_id !== FEASIBILITY_COMMUNITY_SOURCE_ID) ||
+    typeof payload.issued_at !== "string" || strictTimestamp(payload.issued_at) === null ||
+    typeof payload.expires_at !== "string" || strictTimestamp(payload.expires_at) === null
+  ) return false;
+  return payload.recruitment_source_id === FEASIBILITY_COMMUNITY_SOURCE_ID
+    ? typeof payload.community_approval_sha256 === "string" && SHA256_PATTERN.test(payload.community_approval_sha256)
+    : payload.community_approval_sha256 === null;
+}
+
+export async function createFeasibilityRecruitmentToken(
+  secret: string,
+  payload: FeasibilityRecruitmentTokenPayload,
+) {
+  const key = await recruitmentHmacKey(secret);
+  if (!key || !validRecruitmentTokenShape(payload)) return null;
+  const encodedPayload = bytesToBase64Url(new TextEncoder().encode(canonicalJson(payload)));
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(encodedPayload));
+  return `${encodedPayload}.${bytesToBase64Url(signature)}`;
+}
+
+export function feasibilityRecruitmentCampaignReference(token: string) {
+  if (token.length > 2_048) return null;
+  const [encodedPayload, encodedSignature, ...extra] = token.split(".");
+  if (!encodedPayload || !encodedSignature || extra.length) return null;
+  const payloadBytes = base64UrlToBytes(encodedPayload);
+  if (!payloadBytes) return null;
+  try {
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(payloadBytes));
+    return validRecruitmentTokenShape(parsed)
+      ? { activationId: parsed.activation_id, campaignId: parsed.campaign_id }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function buildFeasibilityRecruitmentCampaign(
+  payload: FeasibilityRecruitmentTokenPayload,
+  sealedAt: string,
+): Promise<FeasibilityRecruitmentCampaignRecord | null> {
+  if (!validRecruitmentTokenShape(payload)) return null;
+  const issued = strictTimestamp(payload.issued_at);
+  const expires = strictTimestamp(payload.expires_at);
+  const sealed = strictTimestamp(sealedAt);
+  if (issued === null || expires === null || sealed === null || issued > sealed || expires <= sealed) return null;
+  return {
+    activationId: payload.activation_id,
+    campaignId: payload.campaign_id,
+    recruitmentSourceId: payload.recruitment_source_id,
+    selectionMethod: payload.selection_method,
+    inviteIssuedAt: payload.issued_at,
+    inviteExpiresAt: payload.expires_at,
+    communityApprovalSha256: payload.community_approval_sha256,
+    tokenPayloadSha256: await sha256(canonicalJson(payload)),
+    sealedAt,
+  };
+}
+
+async function verifyFeasibilityRecruitmentToken(input: {
+  secret: string;
+  token: string;
+  activation: StoredFeasibilityActivation;
+  campaign: StoredFeasibilityRecruitmentCampaign;
+  timestamp: string;
+}) {
+  if (input.token.length > 2_048) return null;
+  const [encodedPayload, encodedSignature, ...extra] = input.token.split(".");
+  if (!encodedPayload || !encodedSignature || extra.length) return null;
+  const key = await recruitmentHmacKey(input.secret);
+  const payloadBytes = base64UrlToBytes(encodedPayload);
+  const signatureBytes = base64UrlToBytes(encodedSignature);
+  if (!key || !payloadBytes || !signatureBytes || signatureBytes.byteLength !== 32) return null;
+  const verified = await crypto.subtle.verify(
+    "HMAC",
+    key,
+    signatureBytes,
+    new TextEncoder().encode(encodedPayload),
+  );
+  if (!verified) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(new TextDecoder().decode(payloadBytes));
+  } catch {
+    return null;
+  }
+  if (!validRecruitmentTokenShape(parsed)) return null;
+  if (bytesToBase64Url(new TextEncoder().encode(canonicalJson(parsed))) !== encodedPayload) return null;
+  const now = strictTimestamp(input.timestamp);
+  const activationStart = strictTimestamp(input.activation.start_at);
+  const activationEnd = strictTimestamp(input.activation.end_at);
+  const issued = strictTimestamp(parsed.issued_at);
+  const expires = strictTimestamp(parsed.expires_at);
+  if (
+    parsed.activation_id !== input.activation.id || now === null || activationStart === null ||
+    activationEnd === null || issued === null || expires === null || issued >= activationStart ||
+    expires <= now || expires > activationEnd || issued >= expires
+  ) return null;
+  const campaign = input.campaign;
+  if (
+    campaign.activation_id !== parsed.activation_id || campaign.campaign_id !== parsed.campaign_id ||
+    campaign.recruitment_source_id !== parsed.recruitment_source_id ||
+    campaign.selection_method !== parsed.selection_method || campaign.invite_issued_at !== parsed.issued_at ||
+    campaign.invite_expires_at !== parsed.expires_at ||
+    campaign.community_approval_sha256 !== parsed.community_approval_sha256 ||
+    campaign.token_payload_sha256 !== await sha256(canonicalJson(parsed)) ||
+    !SHA256_PATTERN.test(campaign.token_payload_sha256) ||
+    strictTimestamp(campaign.sealed_at) === null || strictTimestamp(campaign.sealed_at)! >= activationStart
+  ) return null;
+  return parsed;
+}
+
+function recruitmentEventPayload(record: Omit<FeasibilityRecruitmentRecord, "eventSha256" | "userId">) {
+  return {
+    activation_id: record.activationId,
+    campaign_id: record.campaignId,
+    community_approval_sha256: record.communityApprovalSha256,
+    created_at: record.createdAt,
+    event_contract_version: record.eventContractVersion,
+    event_id: record.eventId,
+    invite_expires_at: record.inviteExpiresAt,
+    invite_issued_at: record.inviteIssuedAt,
+    participant_group_id: record.participantGroupId,
+    recruited_at: record.recruitedAt,
+    recruitment_frame_id: record.recruitmentFrameId,
+    recruitment_source_id: record.recruitmentSourceId,
+    selection_method: record.selectionMethod,
+  };
+}
+
+async function recruitmentEventSha256(record: Omit<FeasibilityRecruitmentRecord, "eventSha256">) {
+  return sha256(canonicalJson(recruitmentEventPayload(record)));
+}
+
+async function storedRecruitmentRecord(
+  row: StoredFeasibilityRecruitment,
+  accountId: string,
+  activationId: string,
+  participantGroupId: string,
+) {
+  if (
+    row.user_id !== accountId || row.activation_id !== activationId ||
+    row.participant_group_id !== participantGroupId ||
+    row.event_contract_version !== FEASIBILITY_RECRUITMENT_EVENT_CONTRACT_VERSION ||
+    row.recruitment_frame_id !== FEASIBILITY_RECRUITMENT_FRAME_ID ||
+    !PARTICIPANT_PATTERN.test(row.participant_group_id) || !SHA256_PATTERN.test(row.event_sha256) ||
+    ![FEASIBILITY_ORGANIC_SOURCE_ID, FEASIBILITY_DIRECT_SOURCE_ID, FEASIBILITY_COMMUNITY_SOURCE_ID]
+      .includes(row.recruitment_source_id as FeasibilityRecruitmentSourceId) ||
+    ![FEASIBILITY_SELECTION_METHOD, FEASIBILITY_DIRECT_SELECTION_METHOD]
+      .includes(row.selection_method as FeasibilitySelectionMethod)
+  ) return null;
+  const record: FeasibilityRecruitmentRecord = {
+    eventId: row.event_id,
+    activationId: row.activation_id,
+    userId: row.user_id,
+    participantGroupId: row.participant_group_id,
+    eventContractVersion: FEASIBILITY_RECRUITMENT_EVENT_CONTRACT_VERSION,
+    recruitmentFrameId: FEASIBILITY_RECRUITMENT_FRAME_ID,
+    recruitmentSourceId: row.recruitment_source_id as FeasibilityRecruitmentSourceId,
+    selectionMethod: row.selection_method as FeasibilitySelectionMethod,
+    recruitedAt: row.recruited_at,
+    campaignId: row.campaign_id,
+    inviteIssuedAt: row.invite_issued_at,
+    inviteExpiresAt: row.invite_expires_at,
+    communityApprovalSha256: row.community_approval_sha256,
+    eventSha256: row.event_sha256,
+    createdAt: row.created_at,
+  };
+  const { eventSha256, ...unsigned } = record;
+  return await recruitmentEventSha256(unsigned) === eventSha256 ? record : null;
+}
+
+export async function resolveFeasibilityRecruitment(input: {
+  env: FeasibilityRuntimeEnv;
+  activation: StoredFeasibilityActivation;
+  accountId: string;
+  participantGroupId: string;
+  timestamp: string;
+  recruitmentToken: string | null;
+  campaign: StoredFeasibilityRecruitmentCampaign | null;
+  existing: StoredFeasibilityRecruitment | null;
+}): Promise<{ record: FeasibilityRecruitmentRecord; isNew: boolean } | null> {
+  if (input.existing) {
+    const record = await storedRecruitmentRecord(
+      input.existing,
+      input.accountId,
+      input.activation.id,
+      input.participantGroupId,
+    );
+    return record ? { record, isNew: false } : null;
+  }
+  if (input.recruitmentToken && !input.campaign) return null;
+  const tokenPayload = input.recruitmentToken
+    ? await verifyFeasibilityRecruitmentToken({
+        secret: input.env.VALIDATION_RECRUITMENT_HMAC_SECRET ?? "",
+        token: input.recruitmentToken,
+        activation: input.activation,
+        campaign: input.campaign!,
+        timestamp: input.timestamp,
+      })
+    : null;
+  if (input.recruitmentToken && !tokenPayload) return null;
+  const unsigned: Omit<FeasibilityRecruitmentRecord, "eventSha256"> = {
+    eventId: `frecruit_${crypto.randomUUID()}`,
+    activationId: input.activation.id,
+    userId: input.accountId,
+    participantGroupId: input.participantGroupId,
+    eventContractVersion: FEASIBILITY_RECRUITMENT_EVENT_CONTRACT_VERSION,
+    recruitmentFrameId: FEASIBILITY_RECRUITMENT_FRAME_ID,
+    recruitmentSourceId: tokenPayload?.recruitment_source_id ?? FEASIBILITY_ORGANIC_SOURCE_ID,
+    selectionMethod: tokenPayload?.selection_method ?? FEASIBILITY_SELECTION_METHOD,
+    recruitedAt: input.timestamp,
+    campaignId: tokenPayload?.campaign_id ?? null,
+    inviteIssuedAt: tokenPayload?.issued_at ?? null,
+    inviteExpiresAt: tokenPayload?.expires_at ?? null,
+    communityApprovalSha256: tokenPayload?.community_approval_sha256 ?? null,
+    createdAt: input.timestamp,
+  };
+  return {
+    record: { ...unsigned, eventSha256: await recruitmentEventSha256(unsigned) },
+    isNew: true,
+  };
 }
 
 function enabled(value: string | undefined) {
@@ -390,6 +779,7 @@ async function finishEvent(record: Omit<FeasibilityEventRecord, "eventSha256">):
 
 export async function buildFeasibilityStartEvent(input: {
   context: ActiveFeasibilityContext;
+  recruitment: FeasibilityRecruitmentRecord;
   tripId: string;
   opportunity: AttestedOpportunity;
   siteId: string;
@@ -400,6 +790,10 @@ export async function buildFeasibilityStartEvent(input: {
 }): Promise<FeasibilityEventRecord | null> {
   const panel = feasibilityPanelForSite(input.siteId);
   if (!panel || !["shore", "beach", "pier", "jetty"].includes(input.mode)) return null;
+  if (
+    input.recruitment.activationId !== input.context.activation.id ||
+    input.recruitment.participantGroupId !== input.context.participantGroupId
+  ) return null;
   if (
     !Number.isInteger(input.opportunity.opportunityScore) ||
     input.opportunity.opportunityScore < 0 || input.opportunity.opportunityScore > 100 ||
@@ -416,8 +810,8 @@ export async function buildFeasibilityStartEvent(input: {
     sourceRecordSha256,
     participantGroupId: input.context.participantGroupId,
     recruitmentFrameId: FEASIBILITY_RECRUITMENT_FRAME_ID,
-    recruitmentSourceId: FEASIBILITY_ORGANIC_SOURCE_ID,
-    selectionMethod: FEASIBILITY_SELECTION_METHOD,
+    recruitmentSourceId: input.recruitment.recruitmentSourceId,
+    selectionMethod: input.recruitment.selectionMethod,
     scoreInfluencedChoice: input.scoreInfluencedChoice,
     studyConsentVersion: input.context.activation.study_consent_version,
     studyConsentedAt: input.timestamp,
@@ -549,6 +943,99 @@ export async function buildFeasibilityCancellationEvent(input: {
   });
 }
 
+function correctionPayload(record: Omit<FeasibilityCorrectionRecord, "eventSha256">) {
+  return {
+    activation_id: record.activationId,
+    analytical_status: record.analyticalStatus,
+    angler_count: record.anglerCount,
+    corrected_at: record.correctedAt,
+    correction_contract_version: record.correctionContractVersion,
+    correction_id: record.correctionId,
+    correction_reason: record.correctionReason,
+    effort_minutes: record.effortMinutes,
+    geographic_panel: record.geographicPanel,
+    identification_confidence: record.identificationConfidence,
+    mode: record.mode,
+    previous_event_sha256: record.previousEventSha256,
+    root_completion_event_sha256: record.rootCompletionEventSha256,
+    segment_end_at: record.segmentEndAt,
+    segment_start_at: record.segmentStartAt,
+    site_id: record.siteId,
+    target_encounter_count: record.targetEncounterCount,
+    target_encountered: record.targetEncountered,
+    target_released_count: record.targetReleasedCount,
+    target_retained_count: record.targetRetainedCount,
+    trip_id: record.tripId,
+  };
+}
+
+export async function buildFeasibilityCorrectionEvent(input: {
+  start: StoredFeasibilityStart;
+  rootCompletionEventSha256: string;
+  previousEventSha256: string;
+  siteId: string;
+  mode: string;
+  segmentStartAt: string;
+  segmentEndAt: string;
+  anglerCount: number;
+  targetEncounterCount: number;
+  targetRetainedCount: number;
+  targetReleasedCount: number;
+  correctedAt: string;
+}): Promise<FeasibilityCorrectionRecord | null> {
+  const panel = feasibilityPanelForSite(input.siteId);
+  const startMs = strictTimestamp(input.segmentStartAt);
+  const endMs = strictTimestamp(input.segmentEndAt);
+  const correctedMs = strictTimestamp(input.correctedAt);
+  if (
+    !panel || !["shore", "beach", "pier", "jetty", "kayak", "boat", "other"].includes(input.mode) ||
+    !SHA256_PATTERN.test(input.rootCompletionEventSha256) ||
+    !SHA256_PATTERN.test(input.previousEventSha256) ||
+    startMs === null || endMs === null || correctedMs === null || endMs <= startMs ||
+    endMs - startMs > MAX_ATTEMPT_MILLISECONDS || correctedMs < endMs ||
+    !Number.isInteger(input.anglerCount) || input.anglerCount < 1 || input.anglerCount > 12 ||
+    !Number.isInteger(input.targetEncounterCount) || input.targetEncounterCount < 0 || input.targetEncounterCount > 40 ||
+    !Number.isInteger(input.targetRetainedCount) || input.targetRetainedCount < 0 || input.targetRetainedCount > 25 ||
+    !Number.isInteger(input.targetReleasedCount) || input.targetReleasedCount < 0 || input.targetReleasedCount > 25 ||
+    input.targetEncounterCount !== input.targetRetainedCount + input.targetReleasedCount
+  ) return null;
+  const identityStillEligible = input.siteId === input.start.site_id && panel === input.start.geographic_panel &&
+    input.mode === input.start.mode && input.segmentStartAt === input.start.segment_start_at &&
+    input.anglerCount === input.start.angler_count;
+  const unsigned: Omit<FeasibilityCorrectionRecord, "eventSha256"> = {
+    correctionId: `fcorrect_${crypto.randomUUID()}`,
+    activationId: input.start.activation_id,
+    tripId: input.start.trip_id,
+    correctionContractVersion: FEASIBILITY_CORRECTION_CONTRACT_VERSION,
+    rootCompletionEventSha256: input.rootCompletionEventSha256,
+    previousEventSha256: input.previousEventSha256,
+    correctionReason: "participant_profile_edit",
+    analyticalStatus: identityStillEligible
+      ? "eligible_corrected_completion"
+      : "excluded_after_identity_correction",
+    siteId: input.siteId,
+    geographicPanel: panel,
+    mode: input.mode as FeasibilityCorrectionRecord["mode"],
+    segmentStartAt: input.segmentStartAt,
+    segmentEndAt: input.segmentEndAt,
+    anglerCount: input.anglerCount,
+    effortMinutes: (endMs - startMs) / 60_000,
+    targetEncountered: input.targetEncounterCount > 0,
+    targetEncounterCount: input.targetEncounterCount,
+    targetRetainedCount: input.targetRetainedCount,
+    targetReleasedCount: input.targetReleasedCount,
+    identificationConfidence: input.targetEncounterCount > 0 ? "self_reported" : "not_observed",
+    correctedAt: input.correctedAt,
+  };
+  return { ...unsigned, eventSha256: await sha256(canonicalJson(correctionPayload(unsigned))) };
+}
+
+export async function verifyFeasibilityCorrectionHash(correction: FeasibilityCorrectionRecord) {
+  const { eventSha256, ...record } = correction;
+  return SHA256_PATTERN.test(eventSha256) &&
+    await sha256(canonicalJson(correctionPayload(record))) === eventSha256;
+}
+
 export async function verifyFeasibilityEventHash(event: FeasibilityEventRecord) {
   const { eventSha256, ...record } = event;
   return SHA256_PATTERN.test(eventSha256) && await sha256(canonicalJson(eventPayload(record))) === eventSha256;
@@ -556,6 +1043,7 @@ export async function verifyFeasibilityEventHash(event: FeasibilityEventRecord) 
 
 export async function reconcileFeasibilityEvents(input: {
   events: FeasibilityEventRecord[];
+  corrections?: FeasibilityCorrectionRecord[];
   privacyRemovals?: FeasibilityPrivacyRemovalSummary;
   snapshotAndRestorePassed: boolean;
 }): Promise<FeasibilityReconciliationResult> {
@@ -588,8 +1076,49 @@ export async function reconcileFeasibilityEvents(input: {
     ) integrityFailures.add("terminal_identity_mismatch");
   }
 
-  const completed = [...terminals.values()].filter((event) => event.eventType === "completed");
+  const rawCompleted = [...terminals.values()].filter((event) => event.eventType === "completed");
   const safeCanceled = [...terminals.values()].filter((event) => event.eventType === "safe_canceled");
+  const rawCompletionByTrip = new Map(rawCompleted.map((event) => [event.tripId, event]));
+  const latestCorrections = new Map<string, FeasibilityCorrectionRecord>();
+  for (const correction of input.corrections ?? []) {
+    if (!await verifyFeasibilityCorrectionHash(correction)) {
+      integrityFailures.add("invalid_correction_hash");
+      continue;
+    }
+    const completion = rawCompletionByTrip.get(correction.tripId);
+    const previous = latestCorrections.get(correction.tripId);
+    if (
+      !completion || correction.activationId !== completion.activationId ||
+      correction.rootCompletionEventSha256 !== completion.eventSha256 ||
+      correction.previousEventSha256 !== (previous?.eventSha256 ?? completion.eventSha256)
+    ) {
+      integrityFailures.add("invalid_correction_chain");
+      continue;
+    }
+    latestCorrections.set(correction.tripId, correction);
+  }
+  const identityCorrectionExclusions = [...latestCorrections.values()]
+    .filter((correction) => correction.analyticalStatus === "excluded_after_identity_correction").length;
+  const completed = rawCompleted.flatMap((event) => {
+    const correction = latestCorrections.get(event.tripId);
+    if (!correction) return [event];
+    if (correction.analyticalStatus === "excluded_after_identity_correction") return [];
+    return [{
+      ...event,
+      siteId: correction.siteId,
+      geographicPanel: correction.geographicPanel,
+      mode: correction.mode as FeasibilityEventRecord["mode"],
+      segmentStartAt: correction.segmentStartAt,
+      segmentEndAt: correction.segmentEndAt,
+      anglerCount: correction.anglerCount,
+      effortMinutes: correction.effortMinutes,
+      targetEncountered: correction.targetEncountered,
+      targetEncounterCount: correction.targetEncounterCount,
+      targetRetainedCount: correction.targetRetainedCount,
+      targetReleasedCount: correction.targetReleasedCount,
+      identificationConfidence: correction.identificationConfidence,
+    }];
+  });
   const retainedReconciled = [...starts.keys()].filter((tripId) => terminals.has(tripId)).length;
   const unreconciled = starts.size - retainedReconciled;
   const privacyRemovals = input.privacyRemovals ?? {
@@ -676,6 +1205,8 @@ export async function reconcileFeasibilityEvents(input: {
     retainedStartedAttempts: starts.size,
     completedAttempts: completed.length,
     safeCanceledAttempts: safeCanceled.length,
+    correctionEvents: input.corrections?.length ?? 0,
+    identityCorrectionExclusions,
     unreconciledAttempts: unreconciled,
     reconciliationRate,
     completionRateExcludingSafeCancellations: completionRate,

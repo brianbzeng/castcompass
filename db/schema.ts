@@ -907,6 +907,165 @@ export const validationFeasibilityPrivacyRemovals = sqliteTable(
   ],
 );
 
+export const validationFeasibilityRecruitmentCampaigns = sqliteTable(
+  "validation_feasibility_recruitment_campaigns",
+  {
+    activationId: text("activation_id").notNull().references(() => validationFeasibilityActivations.id, { onDelete: "restrict" }),
+    campaignId: text("campaign_id").notNull(),
+    recruitmentSourceId: text("recruitment_source_id").notNull(),
+    selectionMethod: text("selection_method").notNull(),
+    inviteIssuedAt: text("invite_issued_at").notNull(),
+    inviteExpiresAt: text("invite_expires_at").notNull(),
+    communityApprovalSha256: text("community_approval_sha256"),
+    tokenPayloadSha256: text("token_payload_sha256").notNull(),
+    sealedAt: text("sealed_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.activationId, table.campaignId] }),
+    uniqueIndex("validation_feasibility_campaign_payload_unique")
+      .on(table.activationId, table.tokenPayloadSha256),
+    check(
+      "validation_feasibility_campaign_identity_check",
+      sql`${table.campaignId} glob 'campaign-[a-z0-9]*'
+        and length(${table.campaignId}) between 12 and 88
+        and ${table.selectionMethod} = 'direct_precommitment'
+        and length(${table.tokenPayloadSha256}) = 64
+        and ${table.tokenPayloadSha256} not glob '*[^a-f0-9]*'`,
+    ),
+    check(
+      "validation_feasibility_campaign_source_check",
+      sql`(${table.recruitmentSourceId} = 'direct-opt-in-research-invite'
+          and ${table.communityApprovalSha256} is null)
+        or (${table.recruitmentSourceId} = 'admin-approved-community-prospective'
+          and length(${table.communityApprovalSha256}) = 64
+          and ${table.communityApprovalSha256} not glob '*[^a-f0-9]*')`,
+    ),
+    check(
+      "validation_feasibility_campaign_time_check",
+      sql`length(${table.inviteIssuedAt}) = 24
+        and strftime('%Y-%m-%dT%H:%M:%fZ', ${table.inviteIssuedAt}) = ${table.inviteIssuedAt}
+        and length(${table.inviteExpiresAt}) = 24
+        and strftime('%Y-%m-%dT%H:%M:%fZ', ${table.inviteExpiresAt}) = ${table.inviteExpiresAt}
+        and length(${table.sealedAt}) = 24
+        and strftime('%Y-%m-%dT%H:%M:%fZ', ${table.sealedAt}) = ${table.sealedAt}
+        and julianday(${table.inviteIssuedAt}) <= julianday(${table.sealedAt})
+        and julianday(${table.inviteExpiresAt}) > julianday(${table.sealedAt})`,
+    ),
+  ],
+);
+
+export const validationFeasibilityRecruitmentEvents = sqliteTable(
+  "validation_feasibility_recruitment_events",
+  {
+    sequence: integer("sequence").primaryKey({ autoIncrement: true }),
+    eventId: text("event_id").notNull(),
+    activationId: text("activation_id").notNull().references(() => validationFeasibilityActivations.id, { onDelete: "restrict" }),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    participantGroupId: text("participant_group_id").notNull(),
+    eventContractVersion: text("event_contract_version").notNull(),
+    recruitmentFrameId: text("recruitment_frame_id").notNull(),
+    recruitmentSourceId: text("recruitment_source_id").notNull(),
+    selectionMethod: text("selection_method").notNull(),
+    recruitedAt: text("recruited_at").notNull(),
+    campaignId: text("campaign_id"),
+    inviteIssuedAt: text("invite_issued_at"),
+    inviteExpiresAt: text("invite_expires_at"),
+    communityApprovalSha256: text("community_approval_sha256"),
+    eventSha256: text("event_sha256").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("validation_feasibility_recruitment_event_id_unique").on(table.eventId),
+    uniqueIndex("validation_feasibility_recruitment_event_hash_unique").on(table.eventSha256),
+    uniqueIndex("validation_feasibility_recruitment_participant_unique")
+      .on(table.activationId, table.participantGroupId),
+    uniqueIndex("validation_feasibility_recruitment_user_unique").on(table.activationId, table.userId),
+    check(
+      "validation_feasibility_recruitment_contract_check",
+      sql`${table.eventContractVersion} = 'castingcompass.validation-feasibility-recruitment/2.0.0'
+        and ${table.recruitmentFrameId} = 'california-halibut-feasibility-recruitment-v2'`,
+    ),
+    check(
+      "validation_feasibility_recruitment_source_check",
+      sql`${table.recruitmentSourceId} in ('castingcompass-organic-product', 'direct-opt-in-research-invite', 'admin-approved-community-prospective')
+        and ${table.selectionMethod} in ('organic_score_visible', 'direct_precommitment')`,
+    ),
+  ],
+);
+
+export const validationFeasibilityRecruitmentRemovals = sqliteTable(
+  "validation_feasibility_recruitment_removals",
+  {
+    activationId: text("activation_id").notNull().references(() => validationFeasibilityActivations.id, { onDelete: "restrict" }),
+    removalDay: text("removal_day").notNull(),
+    removedRecruitmentCount: integer("removed_recruitment_count").notNull().default(0),
+    removedOrganicCount: integer("removed_organic_count").notNull().default(0),
+    removedDirectCount: integer("removed_direct_count").notNull().default(0),
+    removedCommunityCount: integer("removed_community_count").notNull().default(0),
+    firstRemovedAt: text("first_removed_at").notNull(),
+    lastRemovedAt: text("last_removed_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.activationId, table.removalDay] }),
+    check(
+      "validation_feasibility_recruitment_removal_counts_check",
+      sql`${table.removedRecruitmentCount} = ${table.removedOrganicCount} + ${table.removedDirectCount} + ${table.removedCommunityCount}`,
+    ),
+  ],
+);
+
+export const validationFeasibilityCorrections = sqliteTable(
+  "validation_feasibility_corrections",
+  {
+    sequence: integer("sequence").primaryKey({ autoIncrement: true }),
+    correctionId: text("correction_id").notNull(),
+    activationId: text("activation_id").notNull().references(() => validationFeasibilityActivations.id, { onDelete: "restrict" }),
+    tripId: text("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
+    correctionContractVersion: text("correction_contract_version").notNull(),
+    rootCompletionEventSha256: text("root_completion_event_sha256").notNull(),
+    previousEventSha256: text("previous_event_sha256").notNull(),
+    correctionReason: text("correction_reason").notNull(),
+    analyticalStatus: text("analytical_status").notNull(),
+    siteId: text("site_id").notNull(),
+    geographicPanel: text("geographic_panel").notNull(),
+    mode: text("mode").notNull(),
+    segmentStartAt: text("segment_start_at").notNull(),
+    segmentEndAt: text("segment_end_at").notNull(),
+    anglerCount: integer("angler_count").notNull(),
+    effortMinutes: real("effort_minutes").notNull(),
+    targetEncountered: integer("target_encountered", { mode: "boolean" }).notNull(),
+    targetEncounterCount: integer("target_encounter_count").notNull(),
+    targetRetainedCount: integer("target_retained_count").notNull(),
+    targetReleasedCount: integer("target_released_count").notNull(),
+    identificationConfidence: text("identification_confidence").notNull(),
+    correctedAt: text("corrected_at").notNull(),
+    eventSha256: text("event_sha256").notNull(),
+  },
+  (table) => [
+    uniqueIndex("validation_feasibility_correction_id_unique").on(table.correctionId),
+    uniqueIndex("validation_feasibility_correction_hash_unique").on(table.eventSha256),
+    index("validation_feasibility_correction_trip_sequence_idx").on(table.tripId, table.sequence),
+    check(
+      "validation_feasibility_correction_contract_check",
+      sql`${table.correctionContractVersion} = 'castingcompass.validation-feasibility-correction/2.0.0'
+        and ${table.correctionReason} = 'participant_profile_edit'
+        and ${table.analyticalStatus} in ('eligible_corrected_completion', 'excluded_after_identity_correction')`,
+    ),
+  ],
+);
+
+export const validationFeasibilityCorrectionRemovals = sqliteTable(
+  "validation_feasibility_correction_removals",
+  {
+    activationId: text("activation_id").notNull().references(() => validationFeasibilityActivations.id, { onDelete: "restrict" }),
+    removalDay: text("removal_day").notNull(),
+    removedCorrectionCount: integer("removed_correction_count").notNull().default(0),
+    firstRemovedAt: text("first_removed_at").notNull(),
+    lastRemovedAt: text("last_removed_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.activationId, table.removalDay] })],
+);
+
 export const siteDiscussionPosts = sqliteTable(
   "site_discussion_posts",
   {
