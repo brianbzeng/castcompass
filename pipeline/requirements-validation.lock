@@ -1,5 +1,5 @@
 cffi==2.1.0
-cryptography==46.0.4
+cryptography==48.0.1
 joblib==1.5.3
 numpy==2.0.2
 pycparser==3.0

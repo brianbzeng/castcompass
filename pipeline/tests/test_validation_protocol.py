@@ -1581,7 +1581,7 @@ class ValidationProtocolTests(unittest.TestCase):
             "scipy": "1.13.1",
             "scikit-learn": "1.6.1",
             "cffi": "2.1.0",
-            "cryptography": "46.0.4",
+            "cryptography": "48.0.1",
             "joblib": "1.5.3",
             "pycparser": "3.0",
             "threadpoolctl": "3.6.0",
@@ -1593,7 +1593,7 @@ class ValidationProtocolTests(unittest.TestCase):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 if relative == "pipeline/requirements-validation.lock":
                     path.write_text(
-                        "cffi==2.1.0\ncryptography==46.0.4\njoblib==1.5.3\n"
+                        "cffi==2.1.0\ncryptography==48.0.1\njoblib==1.5.3\n"
                         "numpy==2.0.2\npycparser==3.0\nscikit-learn==1.6.1\n"
                         "scipy==1.13.1\nthreadpoolctl==3.6.0\n"
                     )

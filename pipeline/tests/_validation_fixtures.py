@@ -945,7 +945,7 @@ def fake_evaluator_identity(protocol: Mapping[str, Any]) -> dict[str, Any]:
             "scipy": "1.13.1",
             "scikit-learn": "1.6.1",
             "cffi": "2.1.0",
-            "cryptography": "46.0.4",
+            "cryptography": "48.0.1",
             "joblib": "1.5.3",
             "pycparser": "3.0",
             "threadpoolctl": "3.6.0",

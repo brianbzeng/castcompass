@@ -127,6 +127,11 @@ after its acceptance checks pass in the intended environment.
       all-or-nothing hash checking and binary-only installs in CI/API containers, pin the API
       Python base image by patch and multi-platform digest, and schedule Docker updates. The
       optional Geo/PyTorch stack and signed deployment provenance remain open.
+    - [x] Locally remediate the dependency-graph alerts by upgrading the validation/CI graph to
+      `cryptography` 48.0.1 and the API test graph to `pytest` 9.0.3; regenerate the source-bound
+      hashed locks and pass isolated Python 3.12.13 installs, query-plan checks, API tests,
+      pipeline lint/tests, and the deterministic smoke workflow. Default-branch alert closure
+      remains dependent on merging the reviewed change.
     - [x] Locally inventory all seven Worker runtime secrets, extend named-secret scanning and
       ignored local Wrangler secret files, define environment/purpose/backup-key separation,
       document D1 managed-encryption and application-controlled AES-256-GCM boundaries, and
