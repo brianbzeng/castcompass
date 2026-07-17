@@ -3058,6 +3058,122 @@ footer > div {
   line-height: 1.5;
 }
 
+.profile-load-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(255, 156, 141, 0.42);
+  background: rgba(82, 24, 30, 0.44);
+}
+
+.account-profile-page > .profile-load-error,
+.account-profile-page > .profile-load-status {
+  grid-column: 1 / -1;
+}
+
+.profile-load-error p,
+.profile-load-status {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.profile-load-error button {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--seafoam);
+  color: var(--seafoam);
+  background: rgba(14, 48, 85, 0.72);
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.profile-load-error button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.profile-load-error button:focus-visible {
+  outline: 3px solid var(--seafoam);
+  outline-offset: 3px;
+}
+
+.profile-load-status {
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--line);
+  background: rgba(3, 20, 42, 0.7);
+}
+
+.profile-section-loading {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  background: rgba(3, 20, 42, 0.58);
+  font-size: 0.68rem;
+}
+
+.profile-section-loading > div {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.profile-section-loading i {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 100px;
+  background: rgba(15, 54, 91, 0.76);
+}
+
+.profile-section-loading i:nth-child(2) {
+  width: 78%;
+}
+
+.profile-section-loading i:nth-child(3) {
+  width: 56%;
+}
+
+.profile-section-loading i::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 20%, rgba(168, 216, 242, 0.13) 45%, transparent 70%);
+  content: "";
+  transform: translateX(-100%);
+  animation: profile-loading-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes profile-loading-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.profile-section > .profile-data-unavailable {
+  color: #ffb2a6;
+  border-color: rgba(255, 156, 141, 0.3);
+}
+
+@media (max-width: 640px) {
+  .profile-load-error {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .profile-load-error button {
+    width: 100%;
+  }
+}
+
 .profile-section {
   margin-top: 1.25rem;
 }
