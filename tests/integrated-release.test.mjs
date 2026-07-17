@@ -81,6 +81,20 @@ test("integrated preflight recognizes only the observed 0007 schema-ledger drift
   sqlite.exec("ALTER TABLE site_discussion_posts ADD COLUMN approved_at TEXT");
   const drifted = sqlite.prepare(source).get();
   assert.throws(() => verifyInitialPreflight(readEnvelope(drifted)), /approval_columns_found/);
+
+  const idempotencyDrift = await legalSchemaWithUnrecordedMigration();
+  idempotencyDrift.exec("ALTER TABLE trips ADD COLUMN idempotency_key_hash TEXT");
+  assert.throws(
+    () => verifyInitialPreflight(readEnvelope(idempotencyDrift.prepare(source).get())),
+    /later_trip_columns_found/,
+  );
+
+  const indexDrift = await legalSchemaWithUnrecordedMigration();
+  indexDrift.exec("CREATE INDEX auth_sessions_expires_idx ON auth_sessions(expires_at)");
+  assert.throws(
+    () => verifyInitialPreflight(readEnvelope(indexDrift.prepare(source).get())),
+    /later_indexes_found/,
+  );
 });
 
 test("0007 reconciliation is one guarded ledger insert and refuses replay", async () => {
@@ -169,4 +183,17 @@ test("release migration allowlist matches every checked-in migration file", asyn
     .sort();
   assert.deepEqual(diskFiles, ALL_RELEASE_MIGRATIONS);
   assert.deepEqual(await verifyLocalMigrationSet(), ALL_RELEASE_MIGRATIONS);
+});
+
+test("the operator runbook enumerates the exact guarded migration sequence", async () => {
+  const [runbook, operations] = await Promise.all([
+    readFile(new URL("../docs/INTEGRATED-RELEASE.md", import.meta.url), "utf8"),
+    readFile(new URL("../docs/PRODUCTION-OPERATIONS.md", import.meta.url), "utf8"),
+  ]);
+  const documentedMigrations = [...runbook.matchAll(/export RELEASE_MIGRATION=(\d{4}_[A-Za-z0-9_]+\.sql)/g)]
+    .map((match) => match[1]);
+  assert.deepEqual(documentedMigrations, STAGED_MIGRATIONS);
+  assert.match(runbook, /`0009` through `0017`/);
+  assert.match(runbook, /exact nullable\s+text trip-idempotency column/);
+  assert.match(operations, /Migration `0017_trip_idempotency\.sql` completed before normal traffic resumed/);
 });

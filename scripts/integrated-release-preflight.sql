@@ -40,7 +40,25 @@ WITH expected_legal_columns(table_name, column_name) AS (
     ('outcome_class'),
     ('target_encounter_count'),
     ('any_fish_encounter_count'),
-    ('target_identification_confidence')
+    ('target_identification_confidence'),
+    ('idempotency_key_hash')
+), later_indexes(name) AS (
+  VALUES
+    ('auth_sessions_expires_idx'),
+    ('saved_sites_user_created_idx'),
+    ('auth_attempts_attempted_idx'),
+    ('email_challenges_expires_idx'),
+    ('email_challenges_user_idx'),
+    ('signup_age_proofs_consumed_idx'),
+    ('privacy_deletion_jobs_scope_subject_idx'),
+    ('privacy_deletion_jobs_state_completed_idx'),
+    ('trips_user_history_idx'),
+    ('trips_user_created_idx'),
+    ('trips_ai_review_backlog_idx'),
+    ('trips_reporter_active_created_idx'),
+    ('trip_validation_provenance_forecast_trip_idx'),
+    ('validation_feasibility_recruitment_user_sequence_idx'),
+    ('validation_feasibility_correction_activation_sequence_idx')
 )
 SELECT
   COALESCE((
@@ -72,6 +90,10 @@ SELECT
     FROM pragma_table_info('trips')
     WHERE name IN (SELECT name FROM later_trip_columns)
   ) AS later_trip_columns_found,
+  (SELECT COUNT(*)
+    FROM sqlite_master
+    WHERE type = 'index' AND name IN (SELECT name FROM later_indexes)
+  ) AS later_indexes_found,
   (SELECT COUNT(*)
     FROM sqlite_master
     WHERE type = 'trigger' AND name IN (

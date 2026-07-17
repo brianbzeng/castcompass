@@ -76,7 +76,9 @@ SELECT
   (
     SELECT COUNT(*) FROM pragma_table_info('trips')
     WHERE name = 'idempotency_key_hash'
-  ) AS trip_idempotency_columns,
+      AND lower(type) = 'text' AND "notnull" = 0
+      AND dflt_value IS NULL AND pk = 0
+  ) AS exact_trip_idempotency_columns,
   (SELECT COUNT(*) FROM users) AS users,
   (SELECT COUNT(*) FROM users WHERE age_eligibility_confirmed_at IS NULL) AS users_missing_age_eligibility,
   (SELECT COUNT(*) FROM users

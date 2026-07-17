@@ -255,6 +255,9 @@ prove that the object is either attached to a live trip or durably queued for cl
 - [ ] Migration `0016_data_resilience_indexes.sql` completed within its reviewed window;
       `PRAGMA optimize`, representative production `EXPLAIN QUERY PLAN` output, foreign-key
       checks, and before/after D1 rows-read evidence were recorded without query parameters.
+- [ ] Migration `0017_trip_idempotency.sql` completed before normal traffic resumed; postflight
+      verified its exact nullable text column and synthetic start, completion, and past-report
+      retries returned the original operation/trip receipt after a simulated lost response.
 - [ ] Privacy pre/postflight counts match; the missing-age and legal-reacceptance cohorts have
       an explicit support decision, while export and account deletion remain available.
 - [ ] Canonical, redirect-alias, and `workers.dev` smoke checks passed.
