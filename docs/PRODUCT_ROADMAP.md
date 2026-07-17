@@ -363,6 +363,10 @@ after its acceptance checks pass in the intended environment.
   - [x] Make sign-out fail safe: do not imply that the secure server session ended while offline
     or after a dropped or unverifiable response, require an exact server receipt, and use an
     explicit read-only session check before permitting a retry after an ambiguous outcome.
+  - [x] Make saved-location creation and removal fail safe: block writes while offline, retain
+    the last confirmed local state, require an exact action/site receipt, keep slow or dropped
+    responses visibly unconfirmed, block conflicting location writes, and reconcile an ambiguous
+    outcome through the read-only saved-location list before allowing a retry.
   - [ ] Add operation-specific progress, timeout, retry, cancellation, and reconnection states
     only where the underlying API can report them truthfully; retain authoritative confirmation
     for account, trip, privacy, and other privileged writes.

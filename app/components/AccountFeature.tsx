@@ -43,7 +43,21 @@ export interface AccountController {
   signOutLabel: string;
   signOutCheckDisabled: boolean;
   signOutCheckLabel: string;
+  savedSiteRequest: {
+    kind: "submit" | "verify";
+    siteId: string;
+    desiredSaved: boolean;
+    state: MutationRequestState;
+    message: string;
+  } | null;
+  savedSiteOffline: boolean;
+  savedSiteNetworkRestored: boolean;
+  savedSiteToggleDisabled: boolean;
+  savedSiteToggleLabel(siteId: string): string;
+  savedSiteCheckDisabled: boolean;
+  savedSiteCheckLabel: string;
   toggleSavedSite(siteId: string): Promise<boolean>;
+  checkSavedSiteStatus(): Promise<void>;
   refresh(): Promise<void>;
 }
 
@@ -141,6 +155,43 @@ function SignOutControls({ account, primary = false }: { account: AccountControl
   );
 }
 
+export function SavedSiteControls({ account, siteId }: { account: AccountController; siteId: string }) {
+  const isSaved = account.savedSiteIds.has(siteId);
+  const request = account.savedSiteRequest;
+  const globallyBlocking = request?.state === "submitting" || request?.state === "ambiguous";
+  const displayedRequest = request && (request.siteId === siteId || globallyBlocking) ? request : null;
+  const checking = displayedRequest?.kind === "verify" && displayedRequest.state === "submitting";
+  const canCheck = displayedRequest?.state === "ambiguous" || checking;
+  const displayedState = displayedRequest?.state ?? (account.savedSiteOffline ? "error" : "idle");
+  const displayedMessage = displayedRequest?.message ?? (account.savedSiteOffline
+    ? "This device appears offline. No saved-location change was submitted, and nothing will be submitted automatically after reconnection."
+    : account.savedSiteNetworkRestored
+      ? "Connection restored. No saved-location change was submitted automatically."
+      : "");
+  return (
+    <div className="saved-site-controls">
+      <button
+        className={`save-site-button ${isSaved ? "saved" : ""}`}
+        type="button"
+        disabled={account.savedSiteToggleDisabled}
+        onClick={() => void account.toggleSavedSite(siteId)}
+      >
+        <span>{isSaved ? "★" : "☆"}</span>
+        {account.savedSiteToggleLabel(siteId)}
+      </button>
+      {canCheck ? (
+        <button
+          className="account-secondary saved-site-check"
+          type="button"
+          disabled={account.savedSiteCheckDisabled}
+          onClick={() => void account.checkSavedSiteStatus()}
+        >{account.savedSiteCheckLabel}</button>
+      ) : null}
+      <MutationRequestStatus state={displayedState} message={displayedMessage} />
+    </div>
+  );
+}
+
 function isAccountUser(value: unknown): value is AccountUser {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const candidate = value as Record<string, unknown>;
@@ -148,6 +199,23 @@ function isAccountUser(value: unknown): value is AccountUser {
     typeof candidate.email === "string" &&
     typeof candidate.ageEligible === "boolean" &&
     typeof candidate.legalAccepted === "boolean";
+}
+
+function savedSiteIdsFromReceipt(value: unknown): string[] | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const candidate = value as Record<string, unknown>;
+  if (Object.keys(candidate).length !== 1 || !Array.isArray(candidate.siteIds)) return null;
+  if (!candidate.siteIds.every((siteId) => typeof siteId === "string" && /^[a-z0-9-]+$/.test(siteId))) return null;
+  if (new Set(candidate.siteIds).size !== candidate.siteIds.length) return null;
+  return candidate.siteIds;
+}
+
+function isExactSavedSiteReceipt(value: unknown, siteId: string, saved: boolean) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  const keys = Object.keys(candidate).sort();
+  return keys.length === 2 && keys[0] === "saved" && keys[1] === "siteId" &&
+    candidate.saved === saved && candidate.siteId === siteId;
 }
 
 function isExactSignOutReceipt(value: unknown): value is { signedOut: true; user: null } {
@@ -357,6 +425,13 @@ export function useAccount(): AccountController {
     state: MutationRequestState;
     message: string;
   } | null>(null);
+  const [savedSiteRequest, setSavedSiteRequest] = useState<{
+    kind: "submit" | "verify";
+    siteId: string;
+    desiredSaved: boolean;
+    state: MutationRequestState;
+    message: string;
+  } | null>(null);
   const networkState = useClientNetworkState();
 
   const refresh = useCallback(async () => {
@@ -367,14 +442,18 @@ export function useAccount(): AccountController {
       setUser(nextUser);
       if (!nextUser || !nextUser.legalAccepted) {
         setSavedSiteIds(new Set());
+        setSavedSiteRequest(null);
         return;
       }
       const savedResponse = await fetch("/api/saved-sites", { cache: "no-store" });
-      const savedBody = await savedResponse.json() as { siteIds?: string[] };
-      setSavedSiteIds(new Set(savedResponse.ok ? savedBody.siteIds ?? [] : []));
+      const savedBody = await savedResponse.json().catch(() => null) as unknown;
+      const siteIds = savedResponse.ok ? savedSiteIdsFromReceipt(savedBody) : null;
+      if (!siteIds) throw new Error("Saved locations could not be verified.");
+      setSavedSiteIds(new Set(siteIds));
     } catch {
       setUser(null);
       setSavedSiteIds(new Set());
+      setSavedSiteRequest(null);
     } finally {
       setLoading(false);
     }
@@ -398,6 +477,7 @@ export function useAccount(): AccountController {
   const completeLocalSignOut = useCallback(() => {
     setUser(null);
     setSavedSiteIds(new Set());
+    setSavedSiteRequest(null);
     setSignOutRequest(null);
     closeAccount();
   }, [closeAccount]);
@@ -489,6 +569,30 @@ export function useAccount(): AccountController {
           ? "Retry sign out"
           : "Sign out";
 
+  const savedSiteMutationBlocked = savedSiteRequest?.state === "submitting" || savedSiteRequest?.state === "ambiguous";
+  const savedSiteToggleDisabled = networkState === "offline" || savedSiteMutationBlocked;
+  const savedSiteCheckDisabled = networkState === "offline" || (savedSiteRequest?.kind === "verify" && savedSiteRequest.state === "submitting");
+  const savedSiteCheckLabel = savedSiteRequest?.kind === "verify" && savedSiteRequest.state === "submitting"
+    ? "Checking…"
+    : networkState === "offline"
+      ? "Reconnect to check saved-location status"
+      : "Check saved-location status";
+
+  const savedSiteToggleLabel = useCallback((siteId: string) => {
+    const isSaved = savedSiteIds.has(siteId);
+    if (savedSiteRequest?.state === "submitting") {
+      if (savedSiteRequest.kind === "verify") return "Saved-location check in progress";
+      if (savedSiteRequest.siteId !== siteId) return "Another location change is pending";
+      return savedSiteRequest.desiredSaved ? "Saving location…" : "Removing saved location…";
+    }
+    if (savedSiteRequest?.state === "ambiguous") return "Saved-location status unresolved";
+    if (networkState === "offline") return isSaved ? "Reconnect to remove saved location" : "Reconnect to save location";
+    if (savedSiteRequest?.state === "error" && savedSiteRequest.siteId === siteId) {
+      return savedSiteRequest.desiredSaved ? "Retry save location" : "Retry remove saved location";
+    }
+    return isSaved ? "Saved location" : "Save location";
+  }, [networkState, savedSiteIds, savedSiteRequest]);
+
   const toggleSavedSite = useCallback(async (siteId: string) => {
     if (!user) {
       openAccount("Sign in to save fishing locations across devices.");
@@ -500,19 +604,118 @@ export function useAccount(): AccountController {
         : "Account features are paused. Open your account for privacy support or deletion options.");
       return false;
     }
+    if (networkState === "offline") {
+      setSavedSiteRequest({
+        kind: "submit",
+        siteId,
+        desiredSaved: !savedSiteIds.has(siteId),
+        state: "error",
+        message: "This device appears offline. No saved-location change was submitted, and nothing will be submitted automatically after reconnection.",
+      });
+      return false;
+    }
+    if (savedSiteMutationBlocked) return false;
     const wasSaved = savedSiteIds.has(siteId);
-    const response = await fetch(`/api/saved-sites/${encodeURIComponent(siteId)}`, {
-      method: wasSaved ? "DELETE" : "POST",
+    const desiredSaved = !wasSaved;
+    setSavedSiteRequest({
+      kind: "submit",
+      siteId,
+      desiredSaved,
+      state: "submitting",
+      message: desiredSaved
+        ? "Saving this location on the server. The change is not confirmed yet."
+        : "Removing this saved location on the server. The change is not confirmed yet.",
     });
-    if (!response.ok) return false;
-    setSavedSiteIds((current) => {
-      const next = new Set(current);
-      if (wasSaved) next.delete(siteId);
-      else next.add(siteId);
-      return next;
+    const slowNotice = window.setTimeout(() => {
+      setSavedSiteRequest((current) => current?.kind === "submit" && current.siteId === siteId && current.state === "submitting"
+        ? { ...current, message: "Still waiting for the server. Keep this page open; the saved-location change has not been confirmed yet." }
+        : current);
+    }, SLOW_MUTATION_NOTICE_MS);
+    try {
+      const response = await fetch(`/api/saved-sites/${encodeURIComponent(siteId)}`, {
+        method: desiredSaved ? "POST" : "DELETE",
+      });
+      const body = await response.json().catch(() => null) as (Record<string, unknown> & { error?: { message?: string } }) | null;
+      if (!response.ok) {
+        if (response.status >= 500) throw new AmbiguousMutationError("The server could not confirm the saved-location change.");
+        throw new Error(body?.error?.message ?? "The saved-location change was rejected. Check the location and try again.");
+      }
+      if (response.status !== 200 || !isExactSavedSiteReceipt(body, siteId, desiredSaved)) {
+        throw new AmbiguousMutationError("The saved-location response could not be verified.");
+      }
+      setSavedSiteIds((current) => {
+        const next = new Set(current);
+        if (desiredSaved) next.add(siteId);
+        else next.delete(siteId);
+        return next;
+      });
+      setSavedSiteRequest({
+        kind: "submit",
+        siteId,
+        desiredSaved,
+        state: "idle",
+        message: desiredSaved ? "Location saved and confirmed by the server." : "Saved location removed and confirmed by the server.",
+      });
+      return true;
+    } catch (savedSiteError) {
+      const ambiguous = isConnectionFailure(savedSiteError) || savedSiteError instanceof AmbiguousMutationError;
+      setSavedSiteRequest({
+        kind: "submit",
+        siteId,
+        desiredSaved,
+        state: ambiguous ? "ambiguous" : "error",
+        message: ambiguous
+          ? "No authoritative confirmation arrived. This location may already have changed. Do not submit another saved-location change; check server status first."
+          : savedSiteError instanceof Error ? savedSiteError.message : "The saved-location change was rejected. Try again when ready.",
+      });
+      return false;
+    } finally {
+      window.clearTimeout(slowNotice);
+    }
+  }, [networkState, openAccount, savedSiteIds, savedSiteMutationBlocked, user]);
+
+  const checkSavedSiteStatus = useCallback(async () => {
+    const unresolved = savedSiteRequest;
+    if (!unresolved || unresolved.state !== "ambiguous" || networkState === "offline") return;
+    setSavedSiteRequest({
+      ...unresolved,
+      kind: "verify",
+      state: "submitting",
+      message: "Checking the saved-location list without repeating the write.",
     });
-    return true;
-  }, [openAccount, savedSiteIds, user]);
+    try {
+      const response = await fetch("/api/saved-sites", { cache: "no-store" });
+      const body = await response.json().catch(() => null) as unknown;
+      const siteIds = response.ok ? savedSiteIdsFromReceipt(body) : null;
+      if (!siteIds) throw new Error("The saved-location list could not be verified.");
+      const next = new Set(siteIds);
+      setSavedSiteIds(next);
+      if (next.has(unresolved.siteId) === unresolved.desiredSaved) {
+        setSavedSiteRequest({
+          ...unresolved,
+          kind: "verify",
+          state: "idle",
+          message: unresolved.desiredSaved
+            ? "The server confirms that this location is saved."
+            : "The server confirms that this location is no longer saved.",
+        });
+        return;
+      }
+      setSavedSiteRequest({
+        ...unresolved,
+        kind: "submit",
+        state: "error",
+        message: "The server confirms that the previous change did not complete. You can retry it now.",
+      });
+    } catch {
+      setSavedSiteRequest({
+        ...unresolved,
+        kind: "submit",
+        state: "ambiguous",
+        message: "Saved-location status is still unverified. Do not submit another change; reconnect if needed and check again.",
+      });
+    }
+  }, [networkState, savedSiteRequest]);
 
   return {
     user,
@@ -529,7 +732,15 @@ export function useAccount(): AccountController {
     signOutLabel,
     signOutCheckDisabled,
     signOutCheckLabel,
+    savedSiteRequest,
+    savedSiteOffline: networkState === "offline",
+    savedSiteNetworkRestored: networkState === "restored",
+    savedSiteToggleDisabled,
+    savedSiteToggleLabel,
+    savedSiteCheckDisabled,
+    savedSiteCheckLabel,
     toggleSavedSite,
+    checkSavedSiteStatus,
     refresh,
   };
 }
