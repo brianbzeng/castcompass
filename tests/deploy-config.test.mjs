@@ -20,6 +20,9 @@ test("generated Cloudflare configuration has one production D1 binding", () => {
 test("generated Cloudflare configuration keeps discussions off and exposes version metadata", () => {
   assert.equal(config.vars?.PUBLIC_DISCUSSIONS_ENABLED, "false");
   assert.equal(config.vars?.TRIP_PHOTO_UPLOADS_ENABLED, "false");
+  assert.equal(config.vars?.TURNSTILE_ENABLED, "false");
+  assert.equal(config.vars?.TURNSTILE_SITE_KEY, undefined);
+  assert.equal(config.vars?.TURNSTILE_SECRET_KEY, undefined);
   assert.equal(config.version_metadata?.binding, "CF_VERSION_METADATA");
 });
 
@@ -31,6 +34,7 @@ test("production build omits disabled photo controls and preserves static header
       .map((name) => readFile(`dist/client/assets/${name}`, "utf8")),
   );
   assert.doesNotMatch(javascript.join("\n"), /Verification photo|image\/jpeg,image\/png,image\/webp/);
+  assert.doesNotMatch(javascript.join("\n"), /TURNSTILE_SECRET_KEY|TURNSTILE_ALLOWED_HOSTNAMES/);
   assert.equal(
     await readFile("dist/client/_headers", "utf8"),
     await readFile("public/_headers", "utf8"),

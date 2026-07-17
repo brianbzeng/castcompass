@@ -40,7 +40,7 @@ export default function PrivacyPage() {
       <LegalSection title="5. Service providers and disclosures">
         <p>We disclose information only as needed to operate the service, follow the law, protect safety and rights, or complete a transaction you request. Current providers include:</p>
         <ul>
-          <li><strong>Cloudflare:</strong> website hosting, security, logs, D1 account/trip storage, and optional R2 photo storage.</li>
+          <li><strong>Cloudflare:</strong> website hosting, security, logs, D1 account/trip storage, optional R2 photo storage, and Turnstile account-abuse checks when enabled. Turnstile may use network, browser, and device security signals to decide whether to present or accept a challenge; CastingCompass does not add your email, birth date, password, account ID, or precise location to the Turnstile verification request.</li>
           <li><strong>Resend:</strong> verification, password-recovery, and welcome email delivery.</li>
           <li><strong>Xiaomi MiMo:</strong> automated gear and trip-note review as described above.</li>
           <li><strong>Public data providers:</strong> forecast requests use public weather, tide, marine, bathymetry, and fisheries sources. Links to Google Maps and official agencies open their services under their own policies.</li>

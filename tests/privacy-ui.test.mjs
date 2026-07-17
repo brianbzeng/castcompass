@@ -29,12 +29,12 @@ test("signup collects age before and separately from credentials", () => {
   assert.doesNotMatch(detailsForm, /name="birthDate"/);
 });
 
-test("signup sends only age to eligibility and proof with credentials", () => {
+test("signup sends only age and security token to eligibility, then proof with credentials", () => {
   const ageHandlerStart = account.indexOf("const submitSignupEligibility");
   const ageHandlerEnd = account.indexOf("const resendCode", ageHandlerStart);
   const ageHandler = account.slice(ageHandlerStart, ageHandlerEnd);
   assert.match(ageHandler, /\/api\/auth\/signup\/eligibility/);
-  assert.match(ageHandler, /JSON\.stringify\(\{ birthDate: form\.get\("birthDate"\) \}\)/);
+  assert.match(ageHandler, /JSON\.stringify\(\{ birthDate: form\.get\("birthDate"\), turnstileToken \}\)/);
   assert.doesNotMatch(ageHandler, /form\.get\("email"\)|form\.get\("password"\)/);
   assert.match(ageHandler, /Account signup is not available with the information provided\./);
   assert.doesNotMatch(ageHandler, /body\.error/);

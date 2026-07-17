@@ -5,6 +5,11 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { CloseIcon } from "./icons";
 import { GearCatalogFields } from "./GearCatalogFields";
 import { SiteCombobox } from "./SiteCombobox";
+import {
+  TurnstileChallenge,
+  type TurnstileAction,
+  type TurnstileChallengeState,
+} from "./TurnstileChallenge";
 import type { FishingSite } from "../types";
 
 export interface AccountUser {
@@ -324,6 +329,15 @@ export function useAccount(): AccountController {
 
 type AccountMode = "login" | "signup" | "signupDetails" | "verify" | "recover" | "reset";
 
+function turnstileActionForMode(mode: AccountMode): TurnstileAction {
+  if (mode === "signup") return "signup_eligibility";
+  if (mode === "signupDetails") return "signup_request";
+  if (mode === "verify") return "signup_verify";
+  if (mode === "recover") return "password_request";
+  if (mode === "reset") return "password_reset";
+  return "login";
+}
+
 export function AccountModal({
   account,
   sites,
@@ -343,6 +357,12 @@ export function AccountModal({
   const [eligibilityProof, setEligibilityProof] = useState("");
   const [signupAvailable, setSignupAvailable] = useState<boolean | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileState, setTurnstileState] = useState<TurnstileChallengeState>("loading");
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+  const [resendTurnstileToken, setResendTurnstileToken] = useState("");
+  const [resendTurnstileState, setResendTurnstileState] = useState<TurnstileChallengeState>("loading");
+  const [resendTurnstileResetKey, setResendTurnstileResetKey] = useState(0);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [editingTrip, setEditingTrip] = useState<ProfileTrip | null>(null);
@@ -357,6 +377,31 @@ export function AccountModal({
   const [gearDraft, setGearDraft] = useState(EMPTY_GEAR);
   const reviewRetryRequestedRef = useRef(false);
   const deletionStatusCheckedRef = useRef(false);
+
+  const resetTurnstile = useCallback(() => {
+    setTurnstileToken("");
+    setTurnstileState("loading");
+    setTurnstileResetKey((value) => value + 1);
+  }, []);
+  const resetResendTurnstile = useCallback(() => {
+    setResendTurnstileToken("");
+    setResendTurnstileState("loading");
+    setResendTurnstileResetKey((value) => value + 1);
+  }, []);
+  const changeMode = useCallback((nextMode: AccountMode) => {
+    resetTurnstile();
+    resetResendTurnstile();
+    setMode(nextMode);
+  }, [resetResendTurnstile, resetTurnstile]);
+  const closeAccount = useCallback(() => {
+    resetTurnstile();
+    resetResendTurnstile();
+    account.closeAccount();
+  }, [account, resetResendTurnstile, resetTurnstile]);
+  const turnstileCanSubmit = turnstileState === "disabled" ||
+    (turnstileState === "verified" && Boolean(turnstileToken));
+  const resendTurnstileCanSubmit = resendTurnstileState === "disabled" ||
+    (resendTurnstileState === "verified" && Boolean(resendTurnstileToken));
 
   const loadProfile = useCallback(async () => {
     setProfileLoading(true);
@@ -454,6 +499,10 @@ export function AccountModal({
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!turnstileCanSubmit) {
+      setError("Complete the security verification before continuing.");
+      return;
+    }
     setBusy(true);
     setError("");
     setNotice("");
@@ -469,9 +518,9 @@ export function AccountModal({
               ? "/api/auth/password/reset"
               : "/api/auth/login";
       const payload = mode === "verify"
-        ? { challengeId, code: form.get("code") }
+        ? { challengeId, code: form.get("code"), turnstileToken }
         : mode === "reset"
-          ? { challengeId, code: form.get("code"), password: form.get("password") }
+          ? { challengeId, code: form.get("code"), password: form.get("password"), turnstileToken }
           : mode === "signupDetails"
             ? {
                 eligibilityProof,
@@ -479,8 +528,11 @@ export function AccountModal({
                 password: form.get("password"),
                 termsAccepted: form.get("termsAccepted") === "on",
                 privacyAccepted: form.get("privacyAccepted") === "on",
+                turnstileToken,
               }
-            : { email: form.get("email"), password: form.get("password") };
+            : mode === "recover"
+              ? { email: form.get("email"), turnstileToken }
+              : { email: form.get("email"), password: form.get("password"), turnstileToken };
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -491,20 +543,25 @@ export function AccountModal({
       if ((mode === "signupDetails" || mode === "recover") && body.challengeId) {
         setChallengeId(body.challengeId);
         setResendCooldown(60);
-        setMode(mode === "signupDetails" ? "verify" : "reset");
+        changeMode(mode === "signupDetails" ? "verify" : "reset");
         return;
       }
       await account.refresh();
-      account.closeAccount();
+      closeAccount();
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "The account request failed.");
     } finally {
+      resetTurnstile();
       setBusy(false);
     }
   };
 
   const submitSignupEligibility = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!turnstileCanSubmit) {
+      setError("Complete the security verification before continuing.");
+      return;
+    }
     setBusy(true);
     setError("");
     setNotice("");
@@ -513,32 +570,42 @@ export function AccountModal({
       const response = await fetch("/api/auth/signup/eligibility", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ birthDate: form.get("birthDate") }),
+        body: JSON.stringify({ birthDate: form.get("birthDate"), turnstileToken }),
       });
       const body = await response.json().catch(() => ({})) as { eligibilityProof?: string };
       if (!response.ok || !body.eligibilityProof) {
         if (response.status === 403) setSignupAvailable(false);
+        if (response.status === 503) {
+          throw new Error("Security verification is temporarily unavailable. Try again shortly.");
+        }
         throw new Error("Account signup is not available with the information provided.");
       }
       setEligibilityProof(body.eligibilityProof);
-      setMode("signupDetails");
-    } catch {
+      changeMode("signupDetails");
+    } catch (eligibilityError) {
       setEligibilityProof("");
-      setError("Account signup is not available with the information provided.");
+      setError(eligibilityError instanceof Error
+        ? eligibilityError.message
+        : "Account signup is not available with the information provided.");
     } finally {
+      resetTurnstile();
       setBusy(false);
     }
   };
 
   const resendCode = async () => {
     if (!challengeId || resendCooldown > 0 || busy) return;
+    if (!resendTurnstileCanSubmit) {
+      setError("Complete the resend security verification before requesting another code.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
       const response = await fetch("/api/auth/challenge/resend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ challengeId }),
+        body: JSON.stringify({ challengeId, turnstileToken: resendTurnstileToken }),
       });
       const body = await response.json() as { retryAfterSeconds?: number; error?: { message?: string } };
       if (!response.ok) throw new Error(body.error?.message ?? "A new code could not be sent.");
@@ -547,6 +614,7 @@ export function AccountModal({
     } catch (resendError) {
       setError(resendError instanceof Error ? resendError.message : "A new code could not be sent.");
     } finally {
+      resetResendTurnstile();
       setBusy(false);
     }
   };
@@ -763,13 +831,13 @@ export function AccountModal({
 
   return (
     <div className={standalone ? "profile-page-shell" : "account-modal-layer"} role="presentation" onClick={(event) => {
-      if (!standalone && event.target === event.currentTarget) account.closeAccount();
+      if (!standalone && event.target === event.currentTarget) closeAccount();
     }}>
       <section className={`account-modal${standalone ? " account-profile-page" : ""}`} role={standalone ? "main" : "dialog"} aria-modal={standalone ? undefined : "true"} aria-labelledby="account-title">
         {standalone ? (
           <Link className="sheet-close" href="/" aria-label="Back to forecast"><CloseIcon /></Link>
         ) : (
-          <button className="sheet-close" type="button" onClick={account.closeAccount} aria-label="Close account"><CloseIcon /></button>
+          <button className="sheet-close" type="button" onClick={closeAccount} aria-label="Close account"><CloseIcon /></button>
         )}
         {deletionDetails ? (
           <>
@@ -874,7 +942,7 @@ export function AccountModal({
                             window.location.assign(`/?site=${encodeURIComponent(saved.site_id)}`);
                             return;
                           }
-                          account.closeAccount();
+                          closeAccount();
                           onOpenSite?.(saved.site_id);
                         }}
                       >
@@ -1066,16 +1134,22 @@ export function AccountModal({
                 : account.modalMessage || "Save locations and contribute trip reports to improve the forecast."}</p>
             {mode === "login" || mode === "signup" ? (
               <div className="account-tabs" role="tablist" aria-label="Account action">
-                <button type="button" className={mode === "login" ? "active" : ""} onClick={() => { setMode("login"); setEligibilityProof(""); setError(""); }}>Sign in</button>
-                <button type="button" className={mode === "signup" ? "active" : ""} onClick={() => { setMode("signup"); setSignupAvailable(null); setEligibilityProof(""); setError(""); }}>Create account</button>
+                <button type="button" className={mode === "login" ? "active" : ""} onClick={() => { changeMode("login"); setEligibilityProof(""); setError(""); }}>Sign in</button>
+                <button type="button" className={mode === "signup" ? "active" : ""} onClick={() => { changeMode("signup"); setSignupAvailable(null); setEligibilityProof(""); setError(""); }}>Create account</button>
               </div>
             ) : null}
             {mode === "signup" && signupAvailable === true ? (
               <form aria-label="Age eligibility" onSubmit={submitSignupEligibility}>
                 <label>Birth date<input name="birthDate" type="date" autoComplete="bday" required /></label>
                 <small>The entered date is not retained. The service keeps only a short-lived eligibility result without your birth date, email, or account details.</small>
+                <TurnstileChallenge
+                  action={turnstileActionForMode(mode)}
+                  resetKey={turnstileResetKey}
+                  onTokenChange={setTurnstileToken}
+                  onStateChange={setTurnstileState}
+                />
                 {error ? <p className="account-error" role="alert">{error}</p> : null}
-                <button className="account-primary" type="submit" disabled={busy}>{busy ? "Checking…" : "Continue"}</button>
+                <button className="account-primary" type="submit" disabled={busy || !turnstileCanSubmit}>{busy ? "Checking…" : "Continue"}</button>
               </form>
             ) : mode === "signup" ? (
               <p className={signupAvailable === false ? "account-error" : "account-notice"} role="status">
@@ -1092,19 +1166,35 @@ export function AccountModal({
                 {mode === "verify" || mode === "reset" ? <label>Six-digit email code<input name="code" type="text" inputMode="numeric" autoComplete="one-time-code" required minLength={6} maxLength={6} pattern="[0-9]{6}" /></label> : null}
                 {mode === "signupDetails" ? <small>Use at least 10 characters. We’ll email a six-digit code before creating the account.</small> : null}
                 {mode === "verify" || mode === "reset" ? <small>The code expires after 15 minutes and can be tried six times.</small> : null}
+                <TurnstileChallenge
+                  action={turnstileActionForMode(mode)}
+                  resetKey={turnstileResetKey}
+                  onTokenChange={setTurnstileToken}
+                  onStateChange={setTurnstileState}
+                />
                 {error ? <p className="account-error" role="alert">{error}</p> : null}
                 {notice ? <p className="account-notice" role="status">{notice}</p> : null}
-                <button className="account-primary" type="submit" disabled={busy}>{busy ? "Please wait…" : mode === "login" ? "Sign in" : mode === "signupDetails" ? "Email verification code" : mode === "verify" ? "Verify and create account" : mode === "recover" ? "Email reset code" : "Set new password"}</button>
+                <button className="account-primary" type="submit" disabled={busy || !turnstileCanSubmit}>{busy ? "Please wait…" : mode === "login" ? "Sign in" : mode === "signupDetails" ? "Email verification code" : mode === "verify" ? "Verify and create account" : mode === "recover" ? "Email reset code" : "Set new password"}</button>
               </form>
             )}
             {mode === "verify" || mode === "reset" ? (
-              <button className="account-text-button" type="button" disabled={busy || resendCooldown > 0} onClick={() => void resendCode()}>
-                {resendCooldown > 0 ? `Send another code in ${resendCooldown}s` : "Send another code"}
-              </button>
+              <div className="account-resend">
+                {resendCooldown <= 0 ? (
+                  <TurnstileChallenge
+                    action="challenge_resend"
+                    resetKey={resendTurnstileResetKey}
+                    onTokenChange={setResendTurnstileToken}
+                    onStateChange={setResendTurnstileState}
+                  />
+                ) : null}
+                <button className="account-text-button" type="button" disabled={busy || resendCooldown > 0 || !resendTurnstileCanSubmit} onClick={() => void resendCode()}>
+                  {resendCooldown > 0 ? `Send another code in ${resendCooldown}s` : "Send another code"}
+                </button>
+              </div>
             ) : null}
-            {mode === "login" ? <button className="account-text-button" type="button" onClick={() => { setMode("recover"); setError(""); }}>Forgot password?</button> : null}
-            {mode === "signupDetails" ? <button className="account-text-button" type="button" onClick={() => { setMode("signup"); setSignupAvailable(null); setEligibilityProof(""); setError(""); }}>Start age check again</button> : null}
-            {mode === "recover" || mode === "verify" || mode === "reset" ? <button className="account-text-button" type="button" onClick={() => { setMode("login"); setEligibilityProof(""); setError(""); setChallengeId(""); }}>Back to sign in</button> : null}
+            {mode === "login" ? <button className="account-text-button" type="button" onClick={() => { changeMode("recover"); setError(""); }}>Forgot password?</button> : null}
+            {mode === "signupDetails" ? <button className="account-text-button" type="button" onClick={() => { changeMode("signup"); setSignupAvailable(null); setEligibilityProof(""); setError(""); }}>Start age check again</button> : null}
+            {mode === "recover" || mode === "verify" || mode === "reset" ? <button className="account-text-button" type="button" onClick={() => { changeMode("login"); setEligibilityProof(""); setError(""); setChallengeId(""); }}>Back to sign in</button> : null}
             <p className="account-legal-links"><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link><Link href="/ai-disclosure">AI disclosure</Link></p>
           </>
         )}

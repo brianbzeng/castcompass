@@ -5,6 +5,13 @@ import {
   type FeasibilityCorrectionRecord,
   type StoredFeasibilityStart,
 } from "./validation-feasibility.ts";
+import {
+  TURNSTILE_ACTIONS,
+  TurnstileVerificationError,
+  verifyTurnstileChallenge,
+  type TurnstileAction,
+  type TurnstileEnv,
+} from "./turnstile.ts";
 
 const SESSION_COOKIE = "cc_session";
 const DELETION_RECEIPT_COOKIE = "cc_deletion_receipt";
@@ -19,7 +26,7 @@ const MINIMUM_ACCOUNT_AGE = 13;
 // Cloudflare Workers currently caps Web Crypto PBKDF2 at 100,000 rounds.
 const PASSWORD_ITERATIONS = 100_000;
 
-export interface AuthApiEnv {
+export interface AuthApiEnv extends TurnstileEnv {
   DB?: D1DatabaseLike;
   TRIP_PHOTOS?: {
     delete(key: string): Promise<void>;
@@ -271,6 +278,18 @@ export async function handleAccountRequest(
   if (!env.DB) return errorResponse(503, "storage_unavailable", "Account storage is temporarily unavailable.");
 
   const db = env.DB;
+  const turnstileAction = turnstileActionForAccountRequest(request);
+  if (turnstileAction) {
+    try {
+      // Reject cross-origin requests before spending a single-use provider
+      // token, and verify before D1 initialization or any account side effect.
+      assertSameOrigin(request);
+      const challengeBody = await readJson(request.clone());
+      await verifyTurnstileChallenge(env, challengeBody, turnstileAction);
+    } catch (error) {
+      return accountRequestErrorResponse(error);
+    }
+  }
   await initialize(db);
 
   try {
@@ -296,7 +315,7 @@ export async function handleAccountRequest(
         return errorResponse(403, "age_restricted", "CastingCompass accounts are not available from this browser right now.");
       }
       const body = await readJson(request);
-      assertOnlyFields(body, ["birthDate"]);
+      assertOnlyFields(body, ["birthDate", "turnstileToken"]);
       let confirmedAt: string;
       try {
         confirmedAt = evaluateAgeEligibility(body.birthDate);
@@ -340,7 +359,7 @@ export async function handleAccountRequest(
       if (request.method !== "POST") return methodNotAllowed("POST");
       assertSameOrigin(request);
       const body = await readJson(request);
-      assertOnlyFields(body, ["eligibilityProof", "email", "password", "termsAccepted", "privacyAccepted"]);
+      assertOnlyFields(body, ["eligibilityProof", "email", "password", "termsAccepted", "privacyAccepted", "turnstileToken"]);
       if (parseCookies(request.headers.get("Cookie") ?? "").has(AGE_INELIGIBLE_COOKIE)) {
         return errorResponse(403, "age_restricted", "CastingCompass accounts are not available from this browser right now.");
       }
@@ -385,6 +404,7 @@ export async function handleAccountRequest(
       if (request.method !== "POST") return methodNotAllowed("POST");
       assertSameOrigin(request);
       const body = await readJson(request);
+      assertOnlyFields(body, ["challengeId", "code", "turnstileToken"]);
       const challenge = await verifyEmailChallenge(db, body.challengeId, body.code, "signup");
       const existing = await db.prepare("SELECT id FROM users WHERE email = ? LIMIT 1").bind(challenge.email).first();
       if (existing) return errorResponse(409, "email_in_use", "An account already uses this email.");
@@ -422,6 +442,7 @@ export async function handleAccountRequest(
       if (request.method !== "POST") return methodNotAllowed("POST");
       assertSameOrigin(request);
       const body = await readJson(request);
+      assertOnlyFields(body, ["challengeId", "turnstileToken"]);
       const challengeId = typeof body.challengeId === "string" ? body.challengeId : "";
       if (!/^challenge_[a-f0-9-]{36}$/.test(challengeId)) {
         throw new AuthError(422, "invalid_challenge", "Start the email verification again.");
@@ -473,6 +494,13 @@ export async function handleAccountRequest(
       if (request.method !== "POST") return methodNotAllowed("POST");
       assertSameOrigin(request);
       const body = await readJson(request);
+      // The previously shipped client used one generic payload branch and sent
+      // `password: null` from this password-less form. Accept only that exact
+      // legacy shape so a default-off rollout does not break cached PWAs.
+      assertOnlyFields(body, ["email", "password", "turnstileToken"]);
+      if (body.password !== undefined && body.password !== null) {
+        throw new AuthError(422, "unexpected_fields", "Send only the fields required for this account step.");
+      }
       const email = parseEmail(body.email);
       const user = await db.prepare("SELECT id FROM users WHERE email = ? LIMIT 1").bind(email).first<{ id: string }>();
       if (!user) return jsonResponse({ requested: true, challengeId: `challenge_${crypto.randomUUID()}`, expiresInMinutes: 15 });
@@ -498,6 +526,7 @@ export async function handleAccountRequest(
       if (request.method !== "POST") return methodNotAllowed("POST");
       assertSameOrigin(request);
       const body = await readJson(request);
+      assertOnlyFields(body, ["challengeId", "code", "password", "turnstileToken"]);
       const password = parsePassword(body.password);
       const challenge = await verifyEmailChallenge(db, body.challengeId, body.code, "password_reset");
       if (!challenge.user_id) throw new AuthError(400, "invalid_challenge", "Request a new reset code.");
@@ -518,6 +547,7 @@ export async function handleAccountRequest(
       if (request.method !== "POST") return methodNotAllowed("POST");
       assertSameOrigin(request);
       const body = await readJson(request);
+      assertOnlyFields(body, ["email", "password", "turnstileToken"]);
       const email = parseEmail(body.email);
       const password = parsePassword(body.password);
       const emailHash = await sha256(email);
@@ -1180,10 +1210,31 @@ export async function handleAccountRequest(
     }
     return methodNotAllowed("POST, DELETE");
   } catch (error) {
-    if (error instanceof AuthError) return errorResponse(error.status, error.code, error.message);
-    console.error("Account API request failed", safeErrorContext(error));
-    return errorResponse(500, "internal_error", "The account request could not be completed.");
+    return accountRequestErrorResponse(error);
   }
+}
+
+export function turnstileActionForAccountRequest(request: Request) {
+  if (request.method !== "POST") return null;
+  const pathname = new URL(request.url).pathname;
+  const actionByPath: Record<string, TurnstileAction> = {
+    "/api/auth/signup/eligibility": TURNSTILE_ACTIONS.signupEligibility,
+    "/api/auth/signup/request": TURNSTILE_ACTIONS.signupRequest,
+    "/api/auth/signup/verify": TURNSTILE_ACTIONS.signupVerify,
+    "/api/auth/challenge/resend": TURNSTILE_ACTIONS.challengeResend,
+    "/api/auth/password/request": TURNSTILE_ACTIONS.passwordRequest,
+    "/api/auth/password/reset": TURNSTILE_ACTIONS.passwordReset,
+    "/api/auth/login": TURNSTILE_ACTIONS.login,
+  };
+  return actionByPath[pathname] ?? null;
+}
+
+function accountRequestErrorResponse(error: unknown) {
+  if (error instanceof AuthError || error instanceof TurnstileVerificationError) {
+    return errorResponse(error.status, error.code, error.message);
+  }
+  console.error("Account API request failed", safeErrorContext(error));
+  return errorResponse(500, "internal_error", "The account request could not be completed.");
 }
 
 function parseProfileTripSite(value: unknown, curatedSites: readonly CuratedSite[]) {

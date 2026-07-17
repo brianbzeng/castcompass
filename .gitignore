@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+/test-results/
 .pytest_cache/
 **/.pytest_cache/
 .ruff_cache/

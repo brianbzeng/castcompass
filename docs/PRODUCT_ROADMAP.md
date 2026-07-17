@@ -27,9 +27,14 @@ after its acceptance checks pass in the intended environment.
     fixed 89-day retention, private checksum manifests, a role-labeled hash-chained audit log,
     isolated restore, current deletion-ledger replay, validation-ledger integrity checks, and
     aggregate-only evidence. No production backup or restore drill has been performed.
-  - [ ] Deploy the reviewed release, configure and test edge rate limits and Turnstile, deliver
-    test alerts, create an encrypted backup, complete a non-production restore drill, and
-    attach the production evidence required by `docs/PRODUCTION-OPERATIONS.md`.
+  - [x] Implement and locally verify default-off Turnstile protection for all seven public
+    account-abuse flows, including exact action/hostname binding, staged-toggle recovery,
+    privacy-minimized provider requests, mobile/accessibility coverage, and provider-independent
+    privacy-rights routes.
+  - [ ] Deploy the reviewed release, configure and test edge rate limits, create the production
+    Turnstile widget and activate it through a separate reviewed change, deliver test alerts,
+    create an encrypted backup, complete a non-production restore drill, and attach the
+    production evidence required by `docs/PRODUCTION-OPERATIONS.md`.
 - [ ] Make account privacy promises durable: deletion queue/tombstones for photos and public
   copies, truthful completion semantics, and an age-only first step before email/password.
   - [x] Implement and locally verify single-use age proofs, consent-safe reacceptance,

@@ -17,8 +17,8 @@ const rules = [
   {
     name: "named secret assignment",
     pattern: signature(
-      "\\b(?:CLOUDFLARE_API_TOKEN|CF_API_TOKEN|MIMO_API_KEY|RESEND_API_KEY|OPENAI_API_KEY|AWS_SECRET_ACCESS_KEY|GITHUB_TOKEN|NPM_TOKEN)",
-      "[\\t ]*[:=][\\t ]*[\\\"']?",
+      "\\b(?:CLOUDFLARE_API_TOKEN|CF_API_TOKEN|MIMO_API_KEY|RESEND_API_KEY|TURNSTILE_SECRET_KEY|OPENAI_API_KEY|AWS_SECRET_ACCESS_KEY|GITHUB_TOKEN|NPM_TOKEN)",
+      "[\\\"']?[\\t ]*[:=][\\t ]*[\\\"']?",
       "(?!(?:replace|example|test|your)\\b)",
       "[A-Za-z0-9_./+=-]{20,}",
     ),

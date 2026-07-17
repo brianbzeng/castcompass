@@ -7,12 +7,13 @@ import { cleanupAuthData, getAuthenticatedUser, handleAccountRequest, legalAccep
 import { reviewTripBacklog, reviewTripWithMimo } from "./trip-review";
 import { handleDiscussionRequest } from "./discussions";
 import { canonicalRedirect, guardRequestBody, hardenResponse, healthResponse } from "./security";
+import { handleTurnstileConfigRequest, type TurnstileEnv } from "./turnstile";
 
 interface AssetFetcher {
   fetch(request: Request): Promise<Response>;
 }
 
-interface Env extends TripApiEnv {
+interface Env extends TripApiEnv, TurnstileEnv {
   ASSETS: AssetFetcher;
   MIMO_API_KEY?: string;
   MIMO_MODEL?: string;
@@ -51,6 +52,9 @@ const worker = {
 
 async function routeRequest(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
+
+  const turnstileConfig = handleTurnstileConfigRequest(request, env);
+  if (turnstileConfig) return turnstileConfig;
 
   const health = await healthResponse(request, env);
   if (health) return health;

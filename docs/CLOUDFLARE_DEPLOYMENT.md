@@ -112,3 +112,66 @@ are complete:
 
 Raw notes and photos have no public read endpoint. Trip summaries expose totals
 only, and new reports remain pending review.
+
+## Turnstile account protection
+
+Turnstile is implemented for the seven public account-abuse flows: age-proof
+creation, signup-code request and verification, code resend, password-reset
+request and completion, and login. It is deliberately **off by default** through
+`TURNSTILE_ENABLED=false`. Account deletion and privacy export/status routes do
+not themselves depend on Turnstile. An authenticated user can still reach those
+routes during a provider outage; a signed-out user may need the operator to use
+the kill switch before they can authenticate and exercise account rights.
+
+The browser reads the public site key at runtime from
+`GET /api/auth/turnstile-config`; no `NEXT_PUBLIC_*` build input is used. That
+endpoint never returns the secret or hostname allowlist. The Worker alone sends
+the challenge token, secret, and a random idempotency key to Cloudflare
+Siteverify. It does not send `remoteip`, email, birth date, password, account ID,
+user agent, or custom data. Successful responses must carry the exact expected
+action and one exact lowercase hostname from `TURNSTILE_ALLOWED_HOSTNAMES`.
+Enabled but incomplete configuration, provider errors, timeouts, malformed
+responses, reused tokens, wrong actions, and wrong hostnames all fail closed.
+The browser shares only an in-flight runtime-config request, then discards it so
+an already-open tab or PWA can observe enablement, emergency disablement, and key
+rotation on the next challenge reset. Provider auto-retry and the direct-to-
+Cloudflare feedback form are disabled; a visible retry is initiated by the user.
+
+Activation is a separate, reviewed production operation:
+
+1. Deploy and verify the updated client and Worker while the checked-in kill
+   switch remains `false`. Confirm both a fresh browser and installed PWA can
+   load the new account UI; never enable enforcement while an older cached
+   client is still the expected path.
+2. Create a **Managed** Turnstile widget in Cloudflare and restrict its hostname
+   management to the exact production hosts that will display it. Use separate
+   widgets and keys for non-production environments.
+3. Store `TURNSTILE_SECRET_KEY` only as a Cloudflare Worker secret. Do not place
+   it in Wrangler vars, `.env` files committed to Git, logs, screenshots, or
+   release evidence.
+4. In a reviewed config change, set the public `TURNSTILE_SITE_KEY`, a
+   comma-separated exact lowercase `TURNSTILE_ALLOWED_HOSTNAMES`, and finally
+   `TURNSTILE_ENABLED=true`. A non-boolean switch value is treated as a broken
+   enabled configuration and blocks protected actions.
+5. Exercise every protected action, token expiry/reuse, action/hostname
+   rejection, provider failure, accessibility, and 320/360px layouts before
+   promotion. Keep the separate edge rate limits in
+   [Production operations](PRODUCTION-OPERATIONS.md); Turnstile does not replace
+   them.
+
+Emergency rollback is the reviewed runtime change
+`TURNSTILE_ENABLED=false`. Turning it off bypasses Siteverify immediately while
+leaving the durable per-email/code/login ceilings in place. Follow the normal
+immutable-release procedure above; do not expose or rotate the secret through
+the public config endpoint. Server-side validation behavior follows Cloudflare's
+[current Siteverify requirements](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/),
+including five-minute, single-use tokens.
+
+The current Privacy Policy already names Cloudflare security processing and the
+IP/device/browser security-data category; the Turnstile sentence is a narrower
+clarification of that existing provider and purpose, and this default-off code
+change does not increment `LEGAL_VERSION`. Before production enablement, the
+operator must re-check the actual dashboard/widget configuration and provider
+terms against that disclosure. If enablement adds a provider, data category,
+purpose, retention practice, or other material privacy change, update the legal
+documents, increment `LEGAL_VERSION`, and collect renewed acceptance first.

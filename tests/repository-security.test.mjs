@@ -16,6 +16,14 @@ test("secret scanner detects representative provider credentials without storing
     ["npm access token", ["npm_", "A".repeat(36)].join("")],
     ["OpenAI-style API key", ["s", "k-", "A".repeat(32)].join("")],
     ["Resend API key", ["re", "_", "A".repeat(32)].join("")],
+    [
+      "named secret assignment",
+      `${["TURNSTILE", "_SECRET_KEY"].join("")}=${"A".repeat(32)}`,
+    ],
+    [
+      "named secret assignment",
+      `${["\"", "TURNSTILE", "_SECRET_KEY", "\""].join("")}: "${"A".repeat(32)}"`,
+    ],
     ["AWS access key", ["A", "KIA", "A".repeat(16)].join("")],
     ["Google API key", ["AI", "za", "A".repeat(35)].join("")],
     ["Slack token", ["xo", "xb-", "A".repeat(24)].join("")],

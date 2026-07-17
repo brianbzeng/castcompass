@@ -462,6 +462,23 @@ test("age eligibility uses the California calendar at the exact birthday boundar
   );
 });
 
+test("default-off password recovery preserves the cached-client null payload only", async () => {
+  const { d1 } = await database();
+  const legacy = await handleAccountRequest(request("/api/auth/password/request", {
+    method: "POST",
+    body: { email: "missing@example.com", password: null },
+  }), { DB: d1 }, []);
+  assert.equal(legacy?.status, 200);
+  assert.equal((await legacy?.json()).requested, true);
+
+  const unexpectedCredential = await handleAccountRequest(request("/api/auth/password/request", {
+    method: "POST",
+    body: { email: "missing@example.com", password: "must-not-be-accepted" },
+  }), { DB: d1 }, []);
+  assert.equal(unexpectedCredential?.status, 422);
+  assert.equal((await unexpectedCredential?.json()).error.code, "unexpected_fields");
+});
+
 test("legal reacceptance preserves prior age eligibility and legacy accounts fail closed with rights intact", async () => {
   const { sqlite, d1 } = await database();
   const user = await addUser(sqlite, "9");

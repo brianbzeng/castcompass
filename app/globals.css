@@ -2899,6 +2899,57 @@ footer > div {
   border-color: var(--seafoam);
 }
 
+.turnstile-challenge {
+  display: grid;
+  min-width: 0;
+  margin-top: 0.35rem;
+  gap: 0.45rem;
+}
+
+.turnstile-widget {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.turnstile-challenge p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.66rem;
+  line-height: 1.5;
+}
+
+.turnstile-unavailable {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(255, 156, 141, 0.55);
+  background: rgba(91, 24, 31, 0.28);
+}
+
+.turnstile-unavailable p {
+  color: #ffb3a8;
+}
+
+.turnstile-unavailable button {
+  justify-self: start;
+  padding: 0.35rem 0;
+  color: var(--ink);
+  background: transparent;
+  font-size: 0.68rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+  cursor: pointer;
+}
+
+.account-resend {
+  margin-top: 0.9rem;
+}
+
+.account-resend .account-text-button {
+  margin-top: 0.5rem;
+}
+
 .account-primary {
   display: inline-flex;
   align-items: center;
