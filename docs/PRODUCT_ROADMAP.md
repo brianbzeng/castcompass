@@ -31,7 +31,11 @@ after its acceptance checks pass in the intended environment.
   - [x] Implement and locally verify AES-256-GCM sealing for full-D1 operational exports,
     fixed 89-day retention, private checksum manifests, a role-labeled hash-chained audit log,
     isolated restore, current deletion-ledger replay, validation-ledger integrity checks, and
-    aggregate-only evidence. No production backup or restore drill has been performed.
+    aggregate-only evidence.
+  - [x] Create an initial encrypted pre-release production D1 artifact with fixed 89-day
+    retention, owner-only file modes, a verified audit-chain head, separately stored key
+    material, and confirmed plaintext destruction. This is real backup evidence, but it is not
+    an accepted restore drill or an approved key-custody policy.
   - [x] Implement and locally verify default-off Turnstile protection for all seven public
     account-abuse flows, including exact action/hostname binding, staged-toggle recovery,
     privacy-minimized provider requests, mobile/accessibility coverage, and provider-independent
@@ -41,8 +45,8 @@ after its acceptance checks pass in the intended environment.
     fix-forward boundary required to release the accumulated migrations safely.
   - [ ] Deploy the reviewed release, configure and test edge rate limits, create the production
     Turnstile widget and activate it through a separate reviewed change, deliver test alerts,
-    create an encrypted backup, complete a non-production restore drill, and attach the
-    production evidence required by `docs/PRODUCTION-OPERATIONS.md`.
+    approve key custody, complete a non-production restore/deletion-replay drill, and attach
+    the remaining production evidence required by `docs/PRODUCTION-OPERATIONS.md`.
 - [ ] Make account privacy promises durable: deletion queue/tombstones for photos and public
   copies, truthful completion semantics, and an age-only first step before email/password.
   - [x] Implement and locally verify single-use age proofs, consent-safe reacceptance,
