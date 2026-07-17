@@ -1160,11 +1160,12 @@ export function AccountModal({
             ) : (
               <form onSubmit={submit}>
                 {mode !== "verify" && mode !== "reset" ? <label>Email<input name="email" type="email" autoComplete="email" required maxLength={254} /></label> : null}
-                {mode === "login" || mode === "signupDetails" || mode === "reset" ? <label>{mode === "reset" ? "New password" : "Password"}<input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={10} maxLength={128} /></label> : null}
+                {mode === "login" || mode === "signupDetails" || mode === "reset" ? <label>{mode === "reset" ? "New password" : "Password"}<input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={mode === "login" ? 10 : 15} maxLength={128} /></label> : null}
                 {mode === "signupDetails" ? <label className="account-consent"><input name="termsAccepted" type="checkbox" required /><span>I agree to the <Link href="/terms" target="_blank">Terms of Service</Link>.</span></label> : null}
                 {mode === "signupDetails" ? <label className="account-consent"><input name="privacyAccepted" type="checkbox" required /><span>I acknowledge the <Link href="/privacy" target="_blank">Privacy Policy</Link> and <Link href="/ai-disclosure" target="_blank">AI disclosure</Link>.</span></label> : null}
                 {mode === "verify" || mode === "reset" ? <label>Six-digit email code<input name="code" type="text" inputMode="numeric" autoComplete="one-time-code" required minLength={6} maxLength={6} pattern="[0-9]{6}" /></label> : null}
-                {mode === "signupDetails" ? <small>Use at least 10 characters. We’ll email a six-digit code before creating the account.</small> : null}
+                {mode === "signupDetails" ? <small>Use at least 15 characters. Common, breached, email-based, and CastingCompass-based passwords are rejected. Password managers, paste, spaces, and passphrases are supported. We’ll email a six-digit code before creating the account.</small> : null}
+                {mode === "reset" ? <small>Use at least 15 characters. Common, breached, email-based, and CastingCompass-based passwords are rejected.</small> : null}
                 {mode === "verify" || mode === "reset" ? <small>The code expires after 15 minutes and can be tried six times.</small> : null}
                 <TurnstileChallenge
                   action={turnstileActionForMode(mode)}

@@ -142,10 +142,12 @@ test("email-provider failures log status metadata but not recipient or provider 
   const signup = await signupRequest(d1, recipient);
   const providerBody = `delivery rejected for ${recipient}; api_key=super-secret-value`;
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(providerBody, {
-    status: 400,
-    headers: { "x-request-id": "req_safe-123" },
-  });
+  globalThis.fetch = async (input) => String(input).startsWith("https://api.pwnedpasswords.com/range/")
+    ? new Response(`${"0".repeat(35)}:0`)
+    : new Response(providerBody, {
+        status: 400,
+        headers: { "x-request-id": "req_safe-123" },
+      });
 
   try {
     const { value: response, entries } = await withCapturedConsole("error", () =>
@@ -170,7 +172,9 @@ test("accepted email logs omit the recipient", async () => {
   const recipient = "private.angler@example.com";
   const signup = await signupRequest(d1, recipient);
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => Response.json({ id: "email_safe-123" });
+  globalThis.fetch = async (input) => String(input).startsWith("https://api.pwnedpasswords.com/range/")
+    ? new Response(`${"0".repeat(35)}:0`)
+    : Response.json({ id: "email_safe-123" });
 
   try {
     const { value: response, entries } = await withCapturedConsole("log", () =>
@@ -193,7 +197,9 @@ test("accepted email logs reject untrusted provider receipt text", async () => {
   const recipient = "private.angler@example.com";
   const signup = await signupRequest(d1, recipient);
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => Response.json({ id: `accepted for ${recipient}; bearer-secret` });
+  globalThis.fetch = async (input) => String(input).startsWith("https://api.pwnedpasswords.com/range/")
+    ? new Response(`${"0".repeat(35)}:0`)
+    : Response.json({ id: `accepted for ${recipient}; bearer-secret` });
 
   try {
     const { value: response, entries } = await withCapturedConsole("log", () =>

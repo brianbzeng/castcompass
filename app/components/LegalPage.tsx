@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-export const LEGAL_EFFECTIVE_DATE = "July 16, 2026";
-export const LEGAL_DOCUMENT_VERSION = "2026-07-16.2";
+export const LEGAL_EFFECTIVE_DATE = "July 17, 2026";
+export const LEGAL_DOCUMENT_VERSION = "2026-07-17.1";
 
 export function LegalPage({
   eyebrow,

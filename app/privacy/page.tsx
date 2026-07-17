@@ -38,7 +38,7 @@ export default function PrivacyPage() {
           <li><strong>Age eligibility:</strong> signup first sends a birth date by itself to decide whether account creation is available using the California calendar. The entered birth date is not retained. The service keeps a short-lived, one-use eligibility proof or ineligibility marker without the birth date, email address, or account details; after account creation, it retains the time of the successful eligibility check. Terms and Privacy acceptance versions are retained separately.</li>
           <li><strong>Fishing preferences:</strong> saved locations and optional gear presets.</li>
           <li><strong>Trip reports:</strong> curated fishing location, date and time, effort, method, catches or skunks, gear, practical fishability observations, notes, forecast context, model version, and an optional photo.</li>
-          <li><strong>Security and technical data:</strong> session tokens stored in secure cookies, hashed email identifiers used for rate limiting, request and error logs, IP address and device/browser information processed by infrastructure providers, and security events.</li>
+          <li><strong>Security and technical data:</strong> session tokens stored in secure cookies, hashed email identifiers used for rate limiting, a five-character password-hash prefix used only when checking a new password against known breach data, request and error logs, IP address and device/browser information processed by infrastructure providers, and security events.</li>
         </ul>
       </LegalSection>
 
@@ -61,6 +61,7 @@ export default function PrivacyPage() {
         <ul>
           <li><strong>Cloudflare:</strong> website hosting, security, logs, D1 account/trip storage, optional R2 photo storage, and Turnstile account-abuse checks when enabled. Turnstile may use network, browser, and device security signals to decide whether to present or accept a challenge; CastingCompass does not add your email, birth date, password, account ID, or precise location to the Turnstile verification request.</li>
           <li><strong>Resend:</strong> verification, password-recovery, and welcome email delivery.</li>
+          <li><strong>Have I Been Pwned Pwned Passwords:</strong> when you establish or reset a password, the server computes a SHA-1 lookup hash and sends only its first five characters through the provider&apos;s padded range API. The password, email address, and complete hash are not sent. CastingCompass compares the remaining hash characters locally and does not retain the provider response.</li>
           <li><strong>Xiaomi MiMo:</strong> automated gear and trip-note review as described above.</li>
           <li><strong>Public data providers:</strong> forecast requests use public weather, tide, marine, bathymetry, and fisheries sources. Links to Google Maps and official agencies open their services under their own policies.</li>
         </ul>

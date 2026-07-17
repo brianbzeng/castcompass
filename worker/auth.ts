@@ -20,11 +20,16 @@ const SESSION_SECONDS = 30 * 24 * 60 * 60;
 const DELETION_RECEIPT_SECONDS = 30 * 24 * 60 * 60;
 const AGE_PROOF_SECONDS = 10 * 60;
 const MAX_DELETION_ATTEMPTS = 8;
-export const LEGAL_VERSION = "2026-07-16.2";
+export const LEGAL_VERSION = "2026-07-17.1";
 const AGE_GATE_VERSION = `age-13:${LEGAL_VERSION}`;
 const MINIMUM_ACCOUNT_AGE = 13;
 // Cloudflare Workers currently caps Web Crypto PBKDF2 at 100,000 rounds.
 const PASSWORD_ITERATIONS = 100_000;
+const NEW_PASSWORD_MINIMUM_CHARACTERS = 15;
+const PASSWORD_MAXIMUM_CHARACTERS = 128;
+const PWNED_PASSWORDS_RANGE_URL = "https://api.pwnedpasswords.com/range/";
+const PWNED_PASSWORDS_TIMEOUT_MS = 3_000;
+const PWNED_PASSWORDS_MAX_RESPONSE_BYTES = 64 * 1024;
 
 export interface AuthApiEnv extends TurnstileEnv {
   DB?: D1DatabaseLike;
@@ -363,10 +368,12 @@ export async function handleAccountRequest(
       if (parseCookies(request.headers.get("Cookie") ?? "").has(AGE_INELIGIBLE_COOKIE)) {
         return errorResponse(403, "age_restricted", "CastingCompass accounts are not available from this browser right now.");
       }
-      const ageEligibilityConfirmedAt = await consumeSignupAgeProof(db, body.eligibilityProof);
+      const ageProof = await validateSignupAgeProof(db, body.eligibilityProof);
       const email = parseEmail(body.email);
-      const password = parsePassword(body.password);
+      const password = parseNewPassword(body.password);
       assertSignupLegalAcceptance(body);
+      await assertNewPasswordAllowed(password, email);
+      const ageEligibilityConfirmedAt = await consumeSignupAgeProof(db, ageProof);
       const existing = await db.prepare("SELECT id FROM users WHERE email = ? LIMIT 1").bind(email).first();
       if (existing) return errorResponse(409, "email_in_use", "An account already uses this email.");
       await assertEmailChallengeAllowed(db, email);
@@ -527,9 +534,10 @@ export async function handleAccountRequest(
       assertSameOrigin(request);
       const body = await readJson(request);
       assertOnlyFields(body, ["challengeId", "code", "password", "turnstileToken"]);
-      const password = parsePassword(body.password);
+      const password = parseNewPassword(body.password);
       const challenge = await verifyEmailChallenge(db, body.challengeId, body.code, "password_reset");
       if (!challenge.user_id) throw new AuthError(400, "invalid_challenge", "Request a new reset code.");
+      await assertNewPasswordAllowed(password, challenge.email);
       const salt = randomSecret(18);
       const timestamp = new Date().toISOString();
       await db.batch([
@@ -1845,6 +1853,143 @@ function parsePassword(value: unknown) {
   return value;
 }
 
+export function parseNewPassword(value: unknown) {
+  if (typeof value !== "string") {
+    throw new AuthError(
+      422,
+      "invalid_password",
+      `Use a password between ${NEW_PASSWORD_MINIMUM_CHARACTERS} and ${PASSWORD_MAXIMUM_CHARACTERS} characters.`,
+    );
+  }
+  const characterCount = Array.from(value).length;
+  if (characterCount < NEW_PASSWORD_MINIMUM_CHARACTERS || characterCount > PASSWORD_MAXIMUM_CHARACTERS) {
+    throw new AuthError(
+      422,
+      "invalid_password",
+      `Use a password between ${NEW_PASSWORD_MINIMUM_CHARACTERS} and ${PASSWORD_MAXIMUM_CHARACTERS} characters.`,
+    );
+  }
+  return value;
+}
+
+/**
+ * Screen a prospective password only after the complete value is submitted.
+ * HIBP receives a padded five-character SHA-1 prefix, never the password,
+ * account email, or complete hash. SHA-1 is used solely because it is the
+ * range API's lookup format; stored passwords continue to use salted PBKDF2.
+ */
+export async function assertNewPasswordAllowed(
+  password: string,
+  email: string,
+  fetcher: typeof fetch = fetch,
+) {
+  if (isContextSpecificPassword(password, email)) {
+    throw new AuthError(
+      422,
+      "context_specific_password",
+      "Choose a password that is not based on your email address or the CastingCompass name.",
+    );
+  }
+
+  const passwordSha1 = await sha1(password);
+  const prefix = passwordSha1.slice(0, 5);
+  const suffix = passwordSha1.slice(5);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PWNED_PASSWORDS_TIMEOUT_MS);
+
+  try {
+    const response = await fetcher(`${PWNED_PASSWORDS_RANGE_URL}${prefix}`, {
+      method: "GET",
+      headers: {
+        Accept: "text/plain",
+        "Add-Padding": "true",
+        "User-Agent": "CastingCompass password safety/1.0",
+      },
+      signal: controller.signal,
+    });
+    if (response.status !== 200) {
+      await response.body?.cancel().catch(() => undefined);
+      throw new Error("unexpected Pwned Passwords status");
+    }
+    const range = await readBoundedText(response, PWNED_PASSWORDS_MAX_RESPONSE_BYTES);
+    let parsedEntries = 0;
+    for (const rawLine of range.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line) continue;
+      const match = line.match(/^([A-F0-9]{35}):(\d+)$/i);
+      if (!match) throw new Error("invalid Pwned Passwords response");
+      parsedEntries += 1;
+      if (match[1].toUpperCase() === suffix && Number(match[2]) > 0) {
+        throw new AuthError(
+          422,
+          "compromised_password",
+          "That password appears in known breach data. Choose a unique password or passphrase.",
+        );
+      }
+    }
+    if (parsedEntries === 0) throw new Error("empty Pwned Passwords response");
+  } catch (error) {
+    if (error instanceof AuthError) throw error;
+    throw new AuthError(
+      503,
+      "password_screening_unavailable",
+      "Password safety screening is temporarily unavailable. No account change was made; try again shortly.",
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function isContextSpecificPassword(password: string, email: string) {
+  const candidate = passwordComparisonToken(password);
+  const [localPart = "", domain = ""] = email.split("@", 2);
+  const roots = new Set([
+    "castingcompass",
+    "castingcompasscom",
+    passwordComparisonToken(localPart),
+    passwordComparisonToken(domain),
+    passwordComparisonToken(email),
+  ]);
+  for (const root of roots) {
+    if (root.length < 4 || !candidate.startsWith(root)) continue;
+    const suffix = candidate.slice(root.length);
+    if (/^\d{0,6}$/.test(suffix)) return true;
+  }
+  return false;
+}
+
+function passwordComparisonToken(value: string) {
+  return value.normalize("NFKC").toLocaleLowerCase("en-US").replace(/[^\p{L}\p{N}]/gu, "");
+}
+
+async function readBoundedText(response: Response, maximumBytes: number) {
+  if (!response.body) throw new Error("missing response body");
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let receivedBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      receivedBytes += value.byteLength;
+      if (receivedBytes > maximumBytes) {
+        await reader.cancel("Pwned Passwords response exceeds limit");
+        throw new Error("oversized response body");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const body = new Uint8Array(receivedBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(body);
+}
+
 function assertSignupLegalAcceptance(body: Record<string, unknown>) {
   if (body.termsAccepted !== true || body.privacyAccepted !== true) {
     throw new AuthError(422, "legal_acceptance_required", "Accept the Terms of Service and Privacy Policy to create an account.");
@@ -1858,24 +2003,39 @@ function assertOnlyFields(body: Record<string, unknown>, allowed: string[]) {
   }
 }
 
-async function consumeSignupAgeProof(db: D1DatabaseLike, value: unknown) {
+interface ValidSignupAgeProof {
+  tokenHash: string;
+  confirmedAt: string;
+}
+
+async function validateSignupAgeProof(db: D1DatabaseLike, value: unknown): Promise<ValidSignupAgeProof> {
   const proof = typeof value === "string" ? value : "";
   if (!/^[A-Za-z0-9_-]{40,160}$/.test(proof)) {
     throw new AuthError(422, "eligibility_proof_required", "Confirm age eligibility before entering account details.");
   }
-  const consumedAt = new Date().toISOString();
   const tokenHash = await sha256(proof);
+  const checkedAt = new Date().toISOString();
+  const row = await db.prepare(`SELECT confirmed_at FROM signup_age_proofs
+    WHERE token_hash = ? AND consumed_at IS NULL AND expires_at > ? AND gate_version = ?
+    LIMIT 1`)
+    .bind(tokenHash, checkedAt, AGE_GATE_VERSION)
+    .first<{ confirmed_at: string }>();
+  if (!row?.confirmed_at) {
+    throw new AuthError(410, "eligibility_proof_expired", "Age eligibility expired or was already used. Start the age step again.");
+  }
+  return { tokenHash, confirmedAt: row.confirmed_at };
+}
+
+async function consumeSignupAgeProof(db: D1DatabaseLike, proof: ValidSignupAgeProof) {
+  const consumedAt = new Date().toISOString();
   const result = await db.prepare(`UPDATE signup_age_proofs SET consumed_at = ?
     WHERE token_hash = ? AND consumed_at IS NULL AND expires_at > ? AND gate_version = ?`)
-    .bind(consumedAt, tokenHash, consumedAt, AGE_GATE_VERSION)
+    .bind(consumedAt, proof.tokenHash, consumedAt, AGE_GATE_VERSION)
     .run();
   if (Number(result.meta?.changes ?? 0) !== 1) {
     throw new AuthError(410, "eligibility_proof_expired", "Age eligibility expired or was already used. Start the age step again.");
   }
-  const row = await db.prepare("SELECT confirmed_at FROM signup_age_proofs WHERE token_hash = ? LIMIT 1")
-    .bind(tokenHash).first<{ confirmed_at: string }>();
-  if (!row?.confirmed_at) throw new Error("Consumed eligibility proof could not be read");
-  return row.confirmed_at;
+  return proof.confirmedAt;
 }
 
 export function evaluateAgeEligibility(value: unknown, now = new Date()) {
@@ -2092,6 +2252,11 @@ function base64UrlDecode(value: string) {
 async function sha256(value: string) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function sha1(value: string) {
+  const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
 function parseCookies(header: string) {

@@ -64,8 +64,9 @@ output never grants authority.
 - Production edge rate limits, Turnstile activation, alert delivery, key custody,
   restore/deletion replay, and the guarded migration/deployment sequence remain
   open in `docs/PRODUCT_ROADMAP.md`.
-- Password breach/common-pattern screening, session rotation/revocation policy,
-  and an approved operator/moderator IAM design remain open. Their absence must
+- Password breach/common-pattern screening is locally implemented for new and reset
+  passwords, but production activation evidence remains open. Session rotation/revocation
+  policy and an approved operator/moderator IAM design also remain open. Their absence must
   not be hidden by calling the current matrix complete.
 - Any future operator dashboard must use a separate server-enforced role model,
   MFA, least privilege, immutable audit history, and field-level privacy controls.

@@ -104,9 +104,9 @@ test("legal reacceptance never recollects birth date and restricted accounts ret
   assert.ok((restrictedBranches.match(/Permanently delete account/g) ?? []).length >= 2);
 });
 
-test("same-day legal revision describes age artifacts and deletion limits without claiming production rollout", () => {
-  assert.match(legalPage, /LEGAL_EFFECTIVE_DATE = "July 16, 2026"/);
-  assert.match(legalPage, /LEGAL_DOCUMENT_VERSION = "2026-07-16\.2"/);
+test("versioned legal revision describes age artifacts and deletion limits without claiming production rollout", () => {
+  assert.match(legalPage, /LEGAL_EFFECTIVE_DATE = "July 17, 2026"/);
+  assert.match(legalPage, /LEGAL_DOCUMENT_VERSION = "2026-07-17\.1"/);
   assert.match(privacy, /one-use eligibility proof or ineligibility marker/);
   assert.match(privacy, /California calendar/);
   assert.match(privacy, /status receipt expires after 30 days/);

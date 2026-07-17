@@ -1,6 +1,6 @@
 # CastingCompass legal and product compliance register
 
-Last reviewed: 2026-07-16
+Last reviewed: 2026-07-17
 
 This is an engineering and product checklist, not legal advice. The public Terms and Privacy Policy are a practical launch baseline. A California attorney should review them before paid subscriptions, advertising, native-app distribution, SMS, large-scale marketing, or material growth.
 

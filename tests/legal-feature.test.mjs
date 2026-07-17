@@ -27,9 +27,9 @@ test("account creation enforces age eligibility and versioned legal acceptance",
   assert.match(account, /Privacy Policy/);
   assert.match(account, /submitLegalAcceptance/);
   assert.match(account, /Account features<br \/>paused/);
-  assert.match(auth, /LEGAL_VERSION = "2026-07-16\.2"/);
-  assert.match(legalPage, /LEGAL_EFFECTIVE_DATE = "July 16, 2026"/);
-  assert.match(legalPage, /LEGAL_DOCUMENT_VERSION = "2026-07-16\.2"/);
+  assert.match(auth, /LEGAL_VERSION = "2026-07-17\.1"/);
+  assert.match(legalPage, /LEGAL_EFFECTIVE_DATE = "July 17, 2026"/);
+  assert.match(legalPage, /LEGAL_DOCUMENT_VERSION = "2026-07-17\.1"/);
 });
 
 test("privacy controls provide export, deletion, and an optional location notice", async () => {

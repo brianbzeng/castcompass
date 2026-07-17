@@ -85,6 +85,10 @@ after its acceptance checks pass in the intended environment.
     allow password managers/passphrases, block breached/common passwords using a privacy-safe
     lookup, reject account-derived patterns, and avoid arbitrary composition rules that reduce
     usability without improving security.
+    - [x] Locally implement and verify new-password length rules, account/service-derived
+      pattern rejection, padded five-character HIBP range lookup, fail-closed provider handling,
+      privacy disclosure/versioning, and compatibility for existing ten-character passwords.
+      Production activation and endpoint-specific edge rate-limit evidence remain open.
   - [ ] Verify encryption in transit and at rest, key separation/rotation/recovery, least
     privilege, secret scanning, dependency/runtime/action version locks, reproducible builds,
     an SBOM, vulnerability-response ownership, and restore-tested backups. Pinning must include

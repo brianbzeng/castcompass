@@ -211,6 +211,22 @@ async function addUser(sqlite, suffix = "1") {
   return { id, email, password, token, cookie: `cc_session=${token}` };
 }
 
+test("existing ten-character passwords remain valid for sign-in", async () => {
+  const { sqlite, d1 } = await database();
+  const user = await addUser(sqlite, "10");
+  const legacyPassword = "ten-chars!";
+  sqlite.prepare("UPDATE users SET password_hash = ? WHERE id = ?")
+    .run(await passwordHash(legacyPassword, sqlite.prepare("SELECT password_salt FROM users WHERE id = ?").get(user.id).password_salt), user.id);
+
+  const response = await handleAccountRequest(request("/api/auth/login", {
+    method: "POST",
+    body: { email: user.email, password: legacyPassword },
+  }), { DB: d1 }, []);
+
+  assert.equal(response?.status, 200);
+  assert.match(response.headers.get("set-cookie") ?? "", /cc_session=.*HttpOnly/);
+});
+
 function addTrip(sqlite, user, {
   id = `trip_${crypto.randomUUID()}`,
   photoKey = null,
@@ -305,7 +321,10 @@ test("age eligibility is isolated, one-use, non-retaining, and fail-closed", asy
 
   const originalFetch = globalThis.fetch;
   let emailCalls = 0;
-  globalThis.fetch = async () => {
+  globalThis.fetch = async (input) => {
+    if (String(input).startsWith("https://api.pwnedpasswords.com/range/")) {
+      return new Response(`${"0".repeat(35)}:0`);
+    }
     emailCalls += 1;
     return Response.json({ id: "email-safe" });
   };
@@ -407,17 +426,32 @@ test("age eligibility is isolated, one-use, non-retaining, and fail-closed", asy
     },
   }), { DB: d1 }, []);
   assert.equal(invalidCredentialStage?.status, 422);
-  const consumedAfterValidationFailure = await handleAccountRequest(request("/api/auth/signup/request", {
-    method: "POST",
-    body: {
-      eligibilityProof: validationProof,
-      email: "now-valid@example.com",
-      password: "correct-horse-battery-staple",
-      termsAccepted: true,
-      privacyAccepted: true,
-    },
-  }), { DB: d1 }, []);
-  assert.equal(consumedAfterValidationFailure?.status, 410);
+  assert.equal(
+    sqlite.prepare("SELECT consumed_at FROM signup_age_proofs WHERE token_hash = ?").get(await sha256(validationProof)).consumed_at,
+    null,
+  );
+
+  const originalScreeningFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response("unavailable", { status: 503 });
+  try {
+    const unavailableScreening = await handleAccountRequest(request("/api/auth/signup/request", {
+      method: "POST",
+      body: {
+        eligibilityProof: validationProof,
+        email: "now-valid@example.com",
+        password: "correct-horse-battery-staple",
+        termsAccepted: true,
+        privacyAccepted: true,
+      },
+    }), { DB: d1 }, []);
+    assert.equal(unavailableScreening?.status, 503);
+    assert.equal(
+      sqlite.prepare("SELECT consumed_at FROM signup_age_proofs WHERE token_hash = ?").get(await sha256(validationProof)).consumed_at,
+      null,
+    );
+  } finally {
+    globalThis.fetch = originalScreeningFetch;
+  }
 
   sqlite.prepare("UPDATE signup_age_proofs SET expires_at = '2000-01-01' WHERE token_hash = ?").run(await sha256(freshProof));
   const expired = await handleAccountRequest(request("/api/auth/signup/request", {
