@@ -26,9 +26,10 @@ object keys, or the Time Travel bookmark in source control.
 - Remote D1 does not authorize SQLite `PRAGMA integrity_check`. The release therefore uses
   D1's supported foreign-key check and exact schema/data predicates; the complete migration
   chain still runs `integrity_check` in local automated tests.
-- The maintenance Worker keeps static pages/assets and `/api/health` available, returns a
-  non-cacheable `503 release_maintenance` for every other API before body parsing or database
-  handlers, and suppresses scheduled review and cleanup work.
+- The maintenance Worker keeps crawler-control files, static assets, and `/api/health`
+  available; returns a self-contained non-cacheable HTML `503` for browser documents and a
+  non-cacheable `503 release_maintenance` for every API or mutation before body parsing or
+  database handlers; and suppresses scheduled review and cleanup work.
 
 ## Compatibility sequence
 
@@ -126,7 +127,8 @@ npm run release:cloudflare:maintenance
 
 Record the maintenance deployment ID and version ID and confirm exactly one version receives
 `100%` of traffic. Then prove both the canonical and direct `workers.dev` hosts identify that
-version, report maintenance active, and block both read and mutation APIs:
+version, report maintenance active, serve the marked browser `503`, keep `robots.txt` available,
+and block both read and mutation APIs:
 
 ```sh
 npm run verify:release-maintenance -- \

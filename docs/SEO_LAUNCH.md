@@ -20,6 +20,11 @@ halibut opportunity windows. It must not describe the live heuristic configurati
 as a trained catch-probability model or imply that access, regulations, safety, or
 catch outcomes are guaranteed.
 
+Operator-reported state on July 17, 2026: Google Search Console and Bing Webmaster
+Tools dashboards have been created. Repository evidence does not yet prove property
+ownership, sitemap submission, URL inspection, indexing, or search performance, so
+those milestones remain open.
+
 ## Milestone 1 — local crawl foundation
 
 - [x] Each public page has one HTTPS self-canonical and route-specific title,
@@ -30,6 +35,8 @@ catch outcomes are guaranteed.
 - [x] `sitemap.xml` contains exactly the four public pages with absolute HTTPS URLs.
 - [x] The homepage publishes narrow `WebSite` JSON-LD only; no ratings, accuracy,
       business status, products, FAQs, or dataset claims are invented.
+- [x] Unknown routes return a useful branded page, a real `404` status, noindex
+      metadata, and a clear return-to-home action; the page is absent from the sitemap.
 - [x] Automated tests enforce the rendered and static crawl contract.
 
 ### Local performance and privacy hygiene
@@ -48,6 +55,22 @@ Google recommends `WebSite` structured data on the homepage for a preferred site
 name and warns that a robots-blocked page can hide its `noindex` directive. See
 [site names](https://developers.google.com/search/docs/appearance/site-names) and
 [robots meta directives](https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag).
+
+### Error and short-maintenance semantics
+
+The custom not-found page is permanent error handling: it returns `404`, not `200`
+and not a redirect to the homepage. During a short emergency or release bridge,
+browser documents instead receive self-contained static HTML with `503`, numeric
+`Retry-After`, and browser/CDN `no-store`; APIs receive the equivalent JSON `503`
+before body parsing or data access. The temporary maintenance document deliberately
+does **not** publish `noindex`, while `/robots.txt` and `/sitemap.xml` remain available.
+The PWA forwards marked maintenance responses without caching them and a new cache
+version removes prior application shells when the maintenance release activates.
+
+This follows Google's current guidance to return useful `404` pages with the real
+status and to reserve whole-site `503` maintenance for brief outages while keeping
+`robots.txt` crawlable. See [soft 404 guidance](https://developers.google.com/search/docs/crawling-indexing/troubleshoot-crawling-errors)
+and [temporarily pausing a site](https://developers.google.com/search/docs/crawling-indexing/pause-online-business).
 
 ## Milestone 2 — reviewed production release
 
@@ -77,6 +100,11 @@ Google's sitemap guidance requires absolute canonical URLs and does not require
 - [ ] Record Page Indexing, sitemap, Performance, and Core Web Vitals baselines.
       Zero impressions and “not enough data” are valid initial results.
 
+Keep a private evidence record with the property type, verification timestamp and
+operator, DNS record **name/type but not its value**, sitemap submission/processing
+timestamps, each inspected URL and verdict, the Google-selected canonical, and links
+or screenshots of initial reports. Dashboard creation by itself is not verification.
+
 See Google's [ownership verification](https://support.google.com/webmasters/answer/9008080),
 [URL Inspection](https://support.google.com/webmasters/answer/9012289), and
 [Core Web Vitals report](https://support.google.com/webmasters/answer/9205520).
@@ -89,6 +117,12 @@ See Google's [ownership verification](https://support.google.com/webmasters/answ
 - [ ] Use Live URL inspection for the four public pages and request indexing.
 - [ ] Confirm `/profile` reports `noindex`.
 - [ ] Record the initial Site Explorer and SEO Reports state after Bing has data.
+
+The private evidence record should state whether Bing was imported from Google or
+verified independently, the permission granted during import, sitemap source and
+processing status, each Live URL result, Bing-selected canonical/markup findings,
+and the date of the first Site Explorer/SEO Reports baseline. Do not commit Bing
+verification codes or broad account-access artifacts.
 
 See Bing's [site verification](https://www.bing.com/webmasters/help/add-and-verify-site-12184f8b),
 [sitemap guidance](https://www.bing.com/webmasters/help/sitemaps-3b5cf6ed), and

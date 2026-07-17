@@ -117,6 +117,38 @@ secret/release workflow and record the exact Worker version. Do not rotate valid
 mid-activation, do not rotate a backup key before all retained artifacts remain recoverable,
 and account for the temporary edge-counter reset caused by rate-limit pseudonym-key rotation.
 
+## Release and emergency maintenance
+
+`RELEASE_MAINTENANCE_MODE` is a deployment-bound kill switch, not a browser or local-storage
+flag. When active, the Worker stops scheduled work, rejects every `/api/` request other than the
+minimized health probe before body parsing or database access, and rejects any future non-API
+mutation method fail closed. Document navigations receive self-contained static HTML with
+`503`, numeric `Retry-After`, and browser/CDN `no-store`. The page contains no script, remote
+resource, account state, or `noindex`; `/robots.txt` and `/sitemap.xml` remain available.
+
+For a reviewed release bridge or a short urgent incident:
+
+1. Disable Cloudflare Git-connected automatic deployments and pause scheduled snapshot
+   publication. Record the current deployment/version and the immutable 40-character commit.
+2. Use a clean detached checkout at that exact commit, run `npm ci`, export `RELEASE_COMMIT`,
+   and execute `npm run release:cloudflare:maintenance`. Do not edit the checked-in default or
+   use an ad hoc dashboard variable that cannot be tied to reviewed source.
+3. Confirm one maintenance version has `100%` traffic. Run `npm run verify:release-maintenance`
+   with the canonical and direct Worker hosts plus the exact version ID. Separately prove all
+   aliases redirect to the canonical host.
+4. Confirm the live verifier saw the marked HTML `503`, available `robots.txt`, blocked read and
+   write APIs, active health flag, no cacheability, and the exact version. Inspect redacted logs
+   for bypasses without querying user rows.
+5. Fix forward from a newly reviewed immutable commit when code changes are required. Recover
+   by deploying that same approved commit with maintenance off, then prove normal health,
+   canonical pages, API authorization, scheduled work, and service-worker cache replacement.
+
+Whole-site `503` is appropriate only for a short outage. If an incident will last longer than a
+few days, obtain a product/search decision instead of leaving an indefinite maintenance release.
+Never use `403`, `404`, a robots-wide disallow, Search Console removal, or `noindex` as an outage
+switch. Production activation and recovery evidence remain external gates; local tests do not
+prove the switch is live.
+
 ## Monitoring and alerting
 
 Cloudflare Worker observability is enabled in `wrangler.jsonc`; raw invocation URL logs are
@@ -254,6 +286,9 @@ prove that the object is either attached to a live trip or durably queued for cl
       beta use; dashboard/plan limitations and final thresholds are recorded.
 - [ ] Turnstile is enforced and tested on the agreed high-abuse forms, or an explicit
       time-bounded risk acceptance identifies the owner and deadline.
+- [ ] The exact maintenance release served marked, self-contained HTML `503` responses on
+      browser navigations, kept crawler-control files available, blocked every API/mutation and
+      scheduled job, replaced stale PWA caches, and recovered through the reviewed normal release.
 - [ ] Exception, 5xx, CPU, D1, uptime, and volume alerts delivered a test notification.
 - [ ] The `docs/OBSERVABILITY.md` saved views exist under an MFA-protected operator role;
       raw invocation URLs are absent, request-ID reconstruction passed, the dedicated

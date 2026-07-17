@@ -23,6 +23,18 @@ function requireNoStore(response, label) {
   if (!/\bno-store\b/i.test(value)) throw new Error(`${label}: expected Cache-Control no-store`);
 }
 
+function requireRetryAfter(response, label) {
+  if (!/^\d+$/.test(response.headers.get("Retry-After") ?? "")) {
+    throw new Error(`${label}: expected a numeric Retry-After`);
+  }
+}
+
+function requireMaintenanceMarker(response, label) {
+  if (response.headers.get("X-CastingCompass-Maintenance") !== "true") {
+    throw new Error(`${label}: expected the maintenance response marker`);
+  }
+}
+
 export async function verifyReleaseMaintenance({
   baseUrls,
   expectedWorkerVersionId,
@@ -54,6 +66,44 @@ export async function verifyReleaseMaintenance({
       throw new Error(`${healthLabel}: release maintenance is not active`);
     }
 
+    const pageLabel = `${baseUrl}/`;
+    const page = await fetchImpl(pageLabel, {
+      redirect: "manual",
+      headers: { Accept: "text/html", "Cache-Control": "no-cache" },
+    });
+    requests += 1;
+    if (page.status !== 503) throw new Error(`${pageLabel}: expected 503, received ${page.status}`);
+    requireNoStore(page, pageLabel);
+    requireRetryAfter(page, pageLabel);
+    requireMaintenanceMarker(page, pageLabel);
+    if (!/^text\/html\b/i.test(page.headers.get("Content-Type") ?? "")) {
+      throw new Error(`${pageLabel}: expected an HTML maintenance page`);
+    }
+    const isWorkerPreview = new URL(baseUrl).hostname.endsWith(".workers.dev");
+    if (!isWorkerPreview && /\bnoindex\b/i.test(page.headers.get("X-Robots-Tag") ?? "")) {
+      throw new Error(`${pageLabel}: temporary maintenance must not publish noindex`);
+    }
+    const pageBody = await page.text();
+    if (
+      !/Brief maintenance · CastingCompass/.test(pageBody) ||
+      /<script\b|<img\b|<meta\b[^>]*\bnoindex\b/i.test(pageBody)
+    ) {
+      throw new Error(`${pageLabel}: expected the self-contained maintenance document`);
+    }
+
+    const robotsLabel = `${baseUrl}/robots.txt`;
+    const robots = await fetchImpl(robotsLabel, {
+      redirect: "manual",
+      headers: { Accept: "text/plain", "Cache-Control": "no-cache" },
+    });
+    requests += 1;
+    if (robots.status !== 200) {
+      throw new Error(`${robotsLabel}: expected 200 during maintenance, received ${robots.status}`);
+    }
+    if (!/\bUser-agent:\s*\*/i.test(await robots.text())) {
+      throw new Error(`${robotsLabel}: expected the production crawler policy`);
+    }
+
     for (const probe of [
       { path: "/api/trips/summary", method: "GET" },
       { path: "/api/auth/login", method: "POST", body: "{}" },
@@ -68,9 +118,8 @@ export async function verifyReleaseMaintenance({
       requests += 1;
       if (response.status !== 503) throw new Error(`${label}: expected 503, received ${response.status}`);
       requireNoStore(response, label);
-      if (!/^\d+$/.test(response.headers.get("Retry-After") ?? "")) {
-        throw new Error(`${label}: expected a numeric Retry-After`);
-      }
+      requireRetryAfter(response, label);
+      requireMaintenanceMarker(response, label);
       const payload = await json(response, label);
       if (payload?.error?.code !== "release_maintenance") {
         throw new Error(`${label}: expected release_maintenance error`);
