@@ -14,6 +14,7 @@ import type { FishingSite, OpportunitySnapshot, OpportunityWindow, TripReportReq
 import { ArrowIcon, ClockIcon, CloseIcon } from "./icons";
 import { GearCatalogFields } from "./GearCatalogFields";
 import { SiteCombobox } from "./SiteCombobox";
+import { useClientNetworkState } from "../lib/use-client-network-state";
 
 const ACTIVE_TRIP_KEY = "castingcompass.active-trip.v1";
 const LEGACY_ACTIVE_TRIP_KEY = "contourcast.active-trip.v1";
@@ -29,7 +30,6 @@ const SLOW_SUBMISSION_NOTICE_MS = 4_000;
 
 type Panel = "start" | "complete" | "past";
 type SubmitState = "idle" | "submitting" | "success" | "error";
-type NetworkState = "unknown" | "online" | "offline" | "restored";
 
 interface StoredActiveTrip {
   id: string;
@@ -432,7 +432,7 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
   const [message, setMessage] = useState("");
   const [summary, setSummary] = useState<SummaryView | null>(null);
   const [summaryUnavailable, setSummaryUnavailable] = useState(false);
-  const [networkState, setNetworkState] = useState<NetworkState>("unknown");
+  const networkState = useClientNetworkState();
 
   const siteMap = useMemo(() => new Map(sites.map((site) => [site.id, site])), [sites]);
   const targetEncounters = fields.keeperCount + fields.shortReleasedCount;
@@ -531,21 +531,6 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
     }
     return () => window.cancelAnimationFrame(restoreFrame);
   }, [openPanel]);
-
-  useEffect(() => {
-    const initialSyncFrame = window.requestAnimationFrame(() => {
-      setNetworkState(window.navigator.onLine ? "online" : "offline");
-    });
-    const handleOffline = () => setNetworkState("offline");
-    const handleOnline = () => setNetworkState((current) => current === "offline" ? "restored" : "online");
-    window.addEventListener("offline", handleOffline);
-    window.addEventListener("online", handleOnline);
-    return () => {
-      window.cancelAnimationFrame(initialSyncFrame);
-      window.removeEventListener("offline", handleOffline);
-      window.removeEventListener("online", handleOnline);
-    };
-  }, []);
 
   useEffect(() => {
     if (!request || request.key === lastRequestKeyRef.current) return;

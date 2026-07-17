@@ -11,6 +11,11 @@ import {
   type TurnstileChallengeState,
 } from "./TurnstileChallenge";
 import type { FishingSite } from "../types";
+import { useClientNetworkState } from "../lib/use-client-network-state";
+
+// Deletion may commit before its response is lost. Never abort or replay it client-side;
+// the durable deletion receipt is the authoritative recovery path.
+const SLOW_ACCOUNT_DELETION_NOTICE_MS = 4_000;
 
 export interface AccountUser {
   id: string;
@@ -76,6 +81,29 @@ interface ProfileData {
   savedSites: Array<{ site_id: string; created_at: string }>;
   trips: ProfileTrip[];
   gearProfiles: GearProfile[];
+}
+
+type AccountDeletionRequestState = "idle" | "submitting" | "ambiguous" | "error";
+
+class AmbiguousAccountDeletionError extends Error {}
+
+function isConnectionFailure(error: unknown) {
+  return error instanceof TypeError;
+}
+
+function AccountDeletionStatus({ state, message }: { state: AccountDeletionRequestState; message: string }) {
+  if (state === "idle" && !message) return null;
+  const isAlert = state === "ambiguous" || state === "error";
+  return (
+    <div
+      className={`account-deletion-status ${state}`}
+      role={isAlert ? "alert" : "status"}
+      aria-live={isAlert ? undefined : "polite"}
+    >
+      <span>{message}</span>
+      {state === "submitting" ? <i aria-hidden="true" /> : null}
+    </div>
+  );
 }
 
 function isProfileData(value: unknown): value is ProfileData {
@@ -401,6 +429,8 @@ export function AccountModal({
   const [profileActionBusy, setProfileActionBusy] = useState(false);
   const [profileActionError, setProfileActionError] = useState("");
   const [profileActionNotice, setProfileActionNotice] = useState("");
+  const [accountDeletionState, setAccountDeletionState] = useState<AccountDeletionRequestState>("idle");
+  const [accountDeletionMessage, setAccountDeletionMessage] = useState("");
   const [deletionDetails, setDeletionDetails] = useState<DeletionDetails | null>(null);
   const [browserAccountStorageCleared, setBrowserAccountStorageCleared] = useState<boolean | null>(null);
   const [deletionStatusAction, setDeletionStatusAction] = useState<"checking" | "dismissing" | null>(null);
@@ -408,6 +438,25 @@ export function AccountModal({
   const [gearDraft, setGearDraft] = useState(EMPTY_GEAR);
   const reviewRetryRequestedRef = useRef(false);
   const deletionStatusCheckedRef = useRef(false);
+  const networkState = useClientNetworkState();
+  const displayedAccountDeletionState = accountDeletionState === "idle" && networkState === "offline"
+    ? "error"
+    : accountDeletionState;
+  const displayedAccountDeletionMessage = accountDeletionState === "idle" && networkState === "offline"
+    ? "This device appears offline. Account deletion has not been submitted."
+    : accountDeletionState === "idle" && networkState === "restored"
+      ? "This device reports that its connection is back. No deletion request was submitted automatically."
+      : accountDeletionMessage;
+  const accountDeletionDisabled = profileActionBusy || networkState === "offline" || accountDeletionState === "ambiguous";
+  const accountDeletionButtonLabel = accountDeletionState === "submitting"
+    ? "Deleting…"
+    : accountDeletionState === "ambiguous"
+      ? "Verify deletion status before retrying"
+    : networkState === "offline"
+      ? "Reconnect to delete account"
+      : profileActionBusy
+        ? "Account action in progress…"
+        : "Permanently delete account";
 
   const resetTurnstile = useCallback(() => {
     setTurnstileToken("");
@@ -679,9 +728,19 @@ export function AccountModal({
 
   const deleteAccount = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (networkState === "offline") {
+      setAccountDeletionState("error");
+      setAccountDeletionMessage("This device appears offline. Account deletion was not submitted.");
+      return;
+    }
     if (!window.confirm("Permanently delete your account, saved locations, trip reports, photos, and public discussion summaries?")) return;
     setProfileActionBusy(true);
     setProfileActionError("");
+    setAccountDeletionState("submitting");
+    setAccountDeletionMessage("Removing account access and active-service records. No deletion is confirmed yet.");
+    const slowNotice = window.setTimeout(() => {
+      setAccountDeletionMessage("Still waiting for the server. Keep this page open; account removal has not been confirmed yet.");
+    }, SLOW_ACCOUNT_DELETION_NOTICE_MS);
     const form = new FormData(event.currentTarget);
     try {
       const response = await fetch("/api/profile", {
@@ -689,21 +748,34 @@ export function AccountModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: form.get("password"), confirmation: form.get("confirmation") }),
       });
-      const body = await response.json() as Record<string, unknown> & { error?: { message?: string } };
-      if (!response.ok) throw new Error(body.error?.message ?? "The account could not be deleted.");
+      const body = await response.json().catch(() => null) as (Record<string, unknown> & { error?: { message?: string } }) | null;
+      if (!response.ok) {
+        if (response.status >= 500) {
+          throw new AmbiguousAccountDeletionError("The server could not confirm whether account deletion completed.");
+        }
+        throw new Error(body?.error?.message ?? "The account could not be deleted.");
+      }
+      if (!body) {
+        throw new AmbiguousAccountDeletionError("The deletion response could not be read.");
+      }
       const nextDeletionDetails = deletionDetailsFromResponse(body);
       const responseMatchesStatus = response.status === 200
         ? nextDeletionDetails.status === "completed"
         : response.status === 202 && nextDeletionDetails.status !== "completed";
       if (body.deleted !== true || nextDeletionDetails.scope !== "account" || !responseMatchesStatus) {
-        throw new Error("The deletion response could not be verified. Sign-in access may already be removed; contact support before retrying.");
+        throw new AmbiguousAccountDeletionError("The deletion response could not be verified.");
       }
       setBrowserAccountStorageCleared(clearCastingCompassAccountStorage());
       setDeletionDetails(nextDeletionDetails);
       await account.refresh();
     } catch (deleteError) {
-      setProfileActionError(deleteError instanceof Error ? deleteError.message : "The account could not be deleted.");
+      const ambiguous = isConnectionFailure(deleteError) || deleteError instanceof AmbiguousAccountDeletionError;
+      setAccountDeletionState(ambiguous ? "ambiguous" : "error");
+      setAccountDeletionMessage(ambiguous
+        ? "No server confirmation arrived. Account access may already be removed. Do not submit again; reconnect, refresh, and use the deletion-status receipt or contact support."
+        : deleteError instanceof Error ? deleteError.message : "The account could not be deleted.");
     } finally {
+      window.clearTimeout(slowNotice);
       setProfileActionBusy(false);
     }
   };
@@ -922,7 +994,8 @@ export function AccountModal({
               <form onSubmit={deleteAccount}>
                 <label>Password<input name="password" type="password" autoComplete="current-password" minLength={10} maxLength={128} required /></label>
                 <label>Type DELETE<input name="confirmation" type="text" autoComplete="off" pattern="DELETE" required /></label>
-                <button type="submit" className="account-danger" disabled={profileActionBusy}>{profileActionBusy ? "Deleting…" : "Permanently delete account"}</button>
+                <button type="submit" className="account-danger" disabled={accountDeletionDisabled}>{accountDeletionButtonLabel}</button>
+                <AccountDeletionStatus state={displayedAccountDeletionState} message={displayedAccountDeletionMessage} />
               </form>
             </details>
             {profileActionError ? <p className="account-error" role="alert">{profileActionError}</p> : null}
@@ -945,7 +1018,8 @@ export function AccountModal({
               <form onSubmit={deleteAccount}>
                 <label>Password<input name="password" type="password" autoComplete="current-password" minLength={10} maxLength={128} required /></label>
                 <label>Type DELETE<input name="confirmation" type="text" autoComplete="off" pattern="DELETE" required /></label>
-                <button type="submit" className="account-danger" disabled={profileActionBusy}>{profileActionBusy ? "Deleting…" : "Permanently delete account"}</button>
+                <button type="submit" className="account-danger" disabled={accountDeletionDisabled}>{accountDeletionButtonLabel}</button>
+                <AccountDeletionStatus state={displayedAccountDeletionState} message={displayedAccountDeletionMessage} />
               </form>
             </details>
             {profileActionError ? <p className="account-error" role="alert">{profileActionError}</p> : null}
@@ -1160,7 +1234,8 @@ export function AccountModal({
                 <form onSubmit={deleteAccount}>
                   <label>Password<input name="password" type="password" autoComplete="current-password" minLength={10} maxLength={128} required /></label>
                   <label>Type DELETE<input name="confirmation" type="text" autoComplete="off" pattern="DELETE" required /></label>
-                  <button type="submit" className="account-danger" disabled={profileActionBusy}>{profileActionBusy ? "Deleting…" : "Permanently delete account"}</button>
+                  <button type="submit" className="account-danger" disabled={accountDeletionDisabled}>{accountDeletionButtonLabel}</button>
+                  <AccountDeletionStatus state={displayedAccountDeletionState} message={displayedAccountDeletionMessage} />
                 </form>
               </details>
             </section>

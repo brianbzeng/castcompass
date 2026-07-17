@@ -36,14 +36,29 @@ async function preparePastTripForSubmission(page: Page) {
   return modal;
 }
 
+async function prepareAccountDeletion(page: Page) {
+  await page.locator(".account-button").click();
+  const modal = page.locator(".account-modal");
+  await expect(modal.getByRole("heading", { name: "Your fishing profile." })).toBeVisible();
+  const deletion = modal.locator(".profile-privacy-section .account-delete-details");
+  await deletion.locator("summary").click();
+  await deletion.getByLabel("Password").fill("correct horse battery staple");
+  await deletion.getByLabel("Type DELETE").fill("DELETE");
+  return { modal, deletion };
+}
+
 test.beforeEach(async ({ page }, testInfo) => {
-  if (testInfo.title.includes("failed lazy route dependency")) {
+  const testTitle = testInfo.titlePath.join(" ");
+  if (testTitle.includes("failed lazy route dependency")) {
     await page.route("**/assets/ContourMap-*.js", (route) => route.abort());
   }
-  const profileRecoveryTest = testInfo.title.includes("failed profile load stays unknown");
-  const tripRecoveryTest = testInfo.title.includes("trip submissions pause while offline") ||
-    testInfo.title.includes("slow trip save stays pending") ||
-    testInfo.title.includes("failed trip save remains ambiguous");
+  const profileRecoveryTest = testTitle.includes("failed profile load stays unknown");
+  const tripRecoveryTest = testTitle.includes("trip submissions pause while offline") ||
+    testTitle.includes("slow trip save stays pending") ||
+    testTitle.includes("failed trip save remains ambiguous");
+  const accountDeletionRecoveryTest = testTitle.includes("account deletion pauses while offline") ||
+    testTitle.includes("slow account deletion stays unconfirmed") ||
+    testTitle.includes("failed account deletion stays ambiguous");
   let profileAttempts = 0;
   await page.route("**/api/auth/session", (route) => route.fulfill({
     status: 200,
@@ -53,10 +68,12 @@ test.beforeEach(async ({ page }, testInfo) => {
         ? { id: "user_profile_recovery", email: "profiletest@example.com", ageEligible: true, legalAccepted: true }
         : tripRecoveryTest
           ? { id: "user_trip_recovery", email: "triptest@example.com", ageEligible: true, legalAccepted: true }
+          : accountDeletionRecoveryTest
+            ? { id: "user_account_deletion", email: "deletiontest@example.com", ageEligible: true, legalAccepted: true }
         : null,
     }),
   }));
-  if (profileRecoveryTest || tripRecoveryTest) {
+  if (profileRecoveryTest || tripRecoveryTest || accountDeletionRecoveryTest) {
     await page.route("**/api/saved-sites", (route) => route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -281,6 +298,72 @@ test.describe("trip network recovery", () => {
     await expect(modal.getByRole("button", { name: "Record no-fish trip" })).toBeEnabled();
     expect(reportAttempts).toBe(1);
     expect(await page.evaluate(() => window.localStorage.getItem("castingcompass.trip-draft.v1.past"))).not.toBeNull();
+  });
+});
+
+test.describe("account deletion recovery", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("account deletion pauses while offline and never submits automatically", async ({ page, context }) => {
+    let deletionAttempts = 0;
+    await page.route("**/api/profile", (route) => {
+      if (route.request().method() === "GET") {
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ savedSites: [], trips: [], gearProfiles: [] }) });
+      }
+      deletionAttempts += 1;
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ deleted: true, deletion: { status: "completed", scope: "account", objectsTotal: 0, objectsDeleted: 0 } }) });
+    });
+
+    const { deletion } = await prepareAccountDeletion(page);
+    await context.setOffline(true);
+    await expect(deletion.getByRole("alert")).toContainText("Account deletion has not been submitted");
+    await expect(deletion.getByRole("button", { name: "Reconnect to delete account" })).toBeDisabled();
+
+    await context.setOffline(false);
+    await expect(deletion.getByRole("status")).toContainText("No deletion request was submitted automatically");
+    await expect(deletion.getByRole("button", { name: "Permanently delete account" })).toBeEnabled();
+    await page.waitForTimeout(100);
+    expect(deletionAttempts).toBe(0);
+  });
+
+  test("a slow account deletion stays unconfirmed until the receipt arrives", async ({ page }) => {
+    await page.route("**/api/profile", async (route) => {
+      if (route.request().method() === "GET") {
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ savedSites: [], trips: [], gearProfiles: [] }) });
+      }
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ deleted: true, deletion: { status: "completed", scope: "account", objectsTotal: 0, objectsDeleted: 0 } }) });
+    });
+
+    const { modal, deletion } = await prepareAccountDeletion(page);
+    page.once("dialog", (dialog) => dialog.accept());
+    await deletion.getByRole("button", { name: "Permanently delete account" }).click();
+    const status = deletion.getByRole("status");
+    await expect(status).toContainText("account removal has not been confirmed yet", { timeout: 5_500 });
+    await expect(status.locator("i")).toBeVisible();
+    await expect(deletion.getByRole("button", { name: "Deleting…" })).toBeDisabled();
+    await expect(modal.getByRole("heading", { name: "Account access removed." })).toBeVisible({ timeout: 8_000 });
+  });
+
+  test("a failed account deletion stays ambiguous and warns against resubmission", async ({ page }) => {
+    let deletionAttempts = 0;
+    await page.route("**/api/profile", (route) => {
+      if (route.request().method() === "GET") {
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ savedSites: [], trips: [], gearProfiles: [] }) });
+      }
+      deletionAttempts += 1;
+      return route.abort("connectionfailed");
+    });
+
+    const { deletion } = await prepareAccountDeletion(page);
+    page.once("dialog", (dialog) => dialog.accept());
+    await deletion.getByRole("button", { name: "Permanently delete account" }).click();
+    const alert = deletion.getByRole("alert");
+    await expect(alert).toContainText("Account access may already be removed");
+    await expect(alert).toContainText("Do not submit again");
+    await expect(alert).toContainText("deletion-status receipt");
+    await expect(deletion.getByRole("button", { name: "Verify deletion status before retrying" })).toBeDisabled();
+    expect(deletionAttempts).toBe(1);
   });
 });
 

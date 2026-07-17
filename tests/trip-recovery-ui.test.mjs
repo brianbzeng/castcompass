@@ -2,15 +2,16 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const [tripFeature, styles] = await Promise.all([
+const [tripFeature, networkStateHook, styles] = await Promise.all([
   readFile(new URL("../app/components/TripReportFeature.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../app/lib/use-client-network-state.ts", import.meta.url), "utf8"),
   readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
 ]);
 
 test("trip writes pause while the browser reports offline", () => {
-  assert.match(tripFeature, /window\.navigator\.onLine/);
-  assert.match(tripFeature, /addEventListener\("offline"/);
-  assert.match(tripFeature, /addEventListener\("online"/);
+  assert.match(networkStateHook, /window\.navigator\.onLine/);
+  assert.match(networkStateHook, /addEventListener\("offline"/);
+  assert.match(networkStateHook, /addEventListener\("online"/);
   assert.match(tripFeature, /trip submissions are paused/);
   assert.match(tripFeature, /networkState === "offline"/);
   assert.match(tripFeature, /Reconnect to save report/);

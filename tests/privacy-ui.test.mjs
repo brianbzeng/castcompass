@@ -101,7 +101,8 @@ test("legal reacceptance never recollects birth date and restricted accounts ret
   assert.match(account, /will not ask for a birth date alongside an existing account/);
   const restrictedBranches = account.slice(account.indexOf("account.user && !account.user.ageEligible"), account.indexOf(") : account.user ? ("));
   assert.ok((restrictedBranches.match(/Download my account records \(JSON\)/g) ?? []).length >= 2);
-  assert.ok((restrictedBranches.match(/Permanently delete account/g) ?? []).length >= 2);
+  assert.match(account, /: "Permanently delete account"/);
+  assert.ok((restrictedBranches.match(/\{accountDeletionButtonLabel\}/g) ?? []).length >= 2);
 });
 
 test("versioned legal revision describes age artifacts and deletion limits without claiming production rollout", () => {

@@ -3082,6 +3082,47 @@ footer > div {
   line-height: 1.5;
 }
 
+.account-deletion-status {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+  color: var(--ink-soft);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.account-deletion-status.ambiguous,
+.account-deletion-status.error {
+  color: #ffb2a6;
+}
+
+.account-deletion-status.submitting {
+  color: var(--seafoam);
+}
+
+.account-deletion-status > i {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 3px;
+  overflow: hidden;
+  background: rgba(99, 151, 188, 0.2);
+}
+
+.account-deletion-status > i::after {
+  position: absolute;
+  inset: 0;
+  width: 42%;
+  background: linear-gradient(90deg, transparent, var(--seafoam), transparent);
+  content: "";
+  animation: account-deletion-progress 1.4s ease-in-out infinite;
+}
+
+@keyframes account-deletion-progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(340%); }
+}
+
 .profile-load-error button {
   flex: 0 0 auto;
   min-height: 40px;
