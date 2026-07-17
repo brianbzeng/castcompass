@@ -163,15 +163,24 @@ export RELEASE_MIGRATION=0015_validation_snapshot_suppression.sql
 npm run migrate:cloudflare:remote -- \
   --confirm-primary contourcast-trips --confirm-bookmark-recorded
 
+export RELEASE_MIGRATION=0016_data_resilience_indexes.sql
+npm run migrate:cloudflare:remote -- \
+  --confirm-primary contourcast-trips --confirm-bookmark-recorded
+
 npm run postflight:cloudflare:remote
 ```
 
 The postflight must prove the exact full ledger; approval, privacy, species, validation, and
-snapshot-suppression schema; every pre-release trip classified `legacy_unverified`; zero photo
+snapshot-suppression schema; all 15 workload-backed data-resilience indexes; every pre-release
+trip classified `legacy_unverified`; zero photo
 locators; zero discussion approval metadata; zero validation activations/events; and no
 foreign-key violations. Preserve its aggregate evidence hash. Once `0011` begins, never route
 ordinary traffic to the older safety Worker. On failure, keep the maintenance bridge active
 and fix forward from a newly reviewed immutable commit.
+
+After postflight succeeds, run `PRAGMA optimize` as a separate reviewed primary-D1 operation,
+then capture the representative `EXPLAIN QUERY PLAN` and rows-read evidence defined in
+`docs/PERFORMANCE-READINESS.md`. Do not combine that evidence operation with application deploy.
 
 ## 7. Publish the normal release and run live checks
 

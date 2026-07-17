@@ -54,6 +54,25 @@ SELECT
   ) + (SELECT COUNT(*) FROM pragma_table_info('validation_feasibility_recruitment_events')
     WHERE name = 'snapshot_suppression_sha256'
   ) AS snapshot_suppression_columns,
+  (SELECT COUNT(*) FROM sqlite_master
+    WHERE type = 'index' AND name IN (
+      'auth_sessions_expires_idx',
+      'saved_sites_user_created_idx',
+      'auth_attempts_attempted_idx',
+      'email_challenges_expires_idx',
+      'email_challenges_user_idx',
+      'signup_age_proofs_consumed_idx',
+      'privacy_deletion_jobs_scope_subject_idx',
+      'privacy_deletion_jobs_state_completed_idx',
+      'trips_user_history_idx',
+      'trips_user_created_idx',
+      'trips_ai_review_backlog_idx',
+      'trips_reporter_active_created_idx',
+      'trip_validation_provenance_forecast_trip_idx',
+      'validation_feasibility_recruitment_user_sequence_idx',
+      'validation_feasibility_correction_activation_sequence_idx'
+    )
+  ) AS data_resilience_indexes,
   (SELECT COUNT(*) FROM users) AS users,
   (SELECT COUNT(*) FROM users WHERE age_eligibility_confirmed_at IS NULL) AS users_missing_age_eligibility,
   (SELECT COUNT(*) FROM users

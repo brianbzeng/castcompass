@@ -1,7 +1,11 @@
 const CACHE_PREFIXES = ["castingcompass-", "castcompass-", "contourcast-"];
-const CACHE_NAME = "castingcompass-v11";
+const CACHE_NAME = "castingcompass-v12";
+const PUBLIC_NAVIGATION_PATHS = new Set(["/", "/privacy", "/terms", "/ai-disclosure"]);
 const APP_SHELL = [
   "/",
+  "/privacy",
+  "/terms",
+  "/ai-disclosure",
   "/manifest.webmanifest",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
@@ -48,9 +52,9 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          if (response.ok) {
+          if (cacheableResponse(response)) {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)));
           }
           return response;
         })
@@ -63,11 +67,13 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put("/", clone));
+          if (PUBLIC_NAVIGATION_PATHS.has(url.pathname) && cacheableResponse(response)) {
+            const clone = response.clone();
+            event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(url.pathname, clone)));
+          }
           return response;
         })
-        .catch(() => caches.match("/")),
+        .catch(async () => (await caches.match(url.pathname)) || caches.match("/")),
     );
     return;
   }
@@ -76,9 +82,9 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       caches.match(event.request).then((cached) =>
         cached || fetch(event.request).then((response) => {
-          if (response.ok) {
+          if (cacheableResponse(response)) {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)));
           }
           return response;
         }),
@@ -86,3 +92,8 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
+
+function cacheableResponse(response) {
+  const cacheControl = response.headers.get("Cache-Control")?.toLowerCase() ?? "";
+  return response.ok && !cacheControl.includes("no-store") && !cacheControl.includes("private");
+}

@@ -27,7 +27,10 @@ export const authSessions = sqliteTable(
     expiresAt: text("expires_at").notNull(),
     createdAt: text("created_at").notNull(),
   },
-  (table) => [index("auth_sessions_user_idx").on(table.userId, table.expiresAt)],
+  (table) => [
+    index("auth_sessions_user_idx").on(table.userId, table.expiresAt),
+    index("auth_sessions_expires_idx").on(table.expiresAt),
+  ],
 );
 
 export const savedSites = sqliteTable(
@@ -37,7 +40,10 @@ export const savedSites = sqliteTable(
     siteId: text("site_id").notNull(),
     createdAt: text("created_at").notNull(),
   },
-  (table) => [primaryKey({ columns: [table.userId, table.siteId] })],
+  (table) => [
+    primaryKey({ columns: [table.userId, table.siteId] }),
+    index("saved_sites_user_created_idx").on(table.userId, table.createdAt),
+  ],
 );
 
 export const authAttempts = sqliteTable(
@@ -48,7 +54,10 @@ export const authAttempts = sqliteTable(
     attemptedAt: text("attempted_at").notNull(),
     successful: integer("successful", { mode: "boolean" }).notNull().default(false),
   },
-  (table) => [index("auth_attempts_email_time_idx").on(table.emailHash, table.attemptedAt)],
+  (table) => [
+    index("auth_attempts_email_time_idx").on(table.emailHash, table.attemptedAt),
+    index("auth_attempts_attempted_idx").on(table.attemptedAt),
+  ],
 );
 
 export const emailChallenges = sqliteTable(
@@ -72,6 +81,8 @@ export const emailChallenges = sqliteTable(
   (table) => [
     check("email_challenges_kind_check", sql`${table.kind} in ('signup', 'password_reset')`),
     index("email_challenges_email_time_idx").on(table.email, table.createdAt),
+    index("email_challenges_expires_idx").on(table.expiresAt),
+    index("email_challenges_user_idx").on(table.userId).where(sql`${table.userId} is not null`),
   ],
 );
 
@@ -85,7 +96,10 @@ export const signupAgeProofs = sqliteTable(
     consumedAt: text("consumed_at"),
     createdAt: text("created_at").notNull(),
   },
-  (table) => [index("signup_age_proofs_expiry_idx").on(table.expiresAt, table.consumedAt)],
+  (table) => [
+    index("signup_age_proofs_expiry_idx").on(table.expiresAt, table.consumedAt),
+    index("signup_age_proofs_consumed_idx").on(table.consumedAt).where(sql`${table.consumedAt} is not null`),
+  ],
 );
 
 export const privacyDeletionJobs = sqliteTable(
@@ -109,6 +123,8 @@ export const privacyDeletionJobs = sqliteTable(
     uniqueIndex("privacy_deletion_jobs_receipt_unique").on(table.receiptHash),
     index("privacy_deletion_jobs_state_updated_idx").on(table.state, table.updatedAt),
     index("privacy_deletion_jobs_owner_state_idx").on(table.ownerSubjectHash, table.state, table.updatedAt),
+    index("privacy_deletion_jobs_scope_subject_idx").on(table.scope, table.subjectHash),
+    index("privacy_deletion_jobs_state_completed_idx").on(table.state, table.completedAt),
     check("privacy_deletion_jobs_scope_check", sql`${table.scope} in ('account', 'trip')`),
     check(
       "privacy_deletion_jobs_state_check",
@@ -371,6 +387,18 @@ export const trips = sqliteTable(
     index("trips_reporter_created_idx").on(table.reporterKeyHash, table.createdAt),
     index("trips_referral_created_idx").on(table.referralCode, table.createdAt),
     index("trips_user_completed_idx").on(table.userId, table.completedAt),
+    index("trips_user_history_idx")
+      .on(table.userId, sql`coalesce(${table.completedAt}, ${table.endedAt}, ${table.startedAt})`)
+      .where(sql`${table.status} = 'completed' and ${table.userId} is not null`),
+    index("trips_user_created_idx")
+      .on(table.userId, table.createdAt)
+      .where(sql`${table.userId} is not null`),
+    index("trips_ai_review_backlog_idx")
+      .on(table.status, sql`coalesce(${table.completedAt}, ${table.endedAt}, ${table.startedAt})`)
+      .where(sql`${table.aiReviewStatus} is null or ${table.aiReviewStatus} = 'retry'`),
+    index("trips_reporter_active_created_idx")
+      .on(table.reporterKeyHash, table.createdAt)
+      .where(sql`${table.status} = 'active'`),
     index("trips_contract_target_completed_idx").on(
       table.contractStatus,
       table.targetTaxonId,
@@ -511,6 +539,9 @@ export const tripValidationProvenance = sqliteTable(
       name: "trip_validation_forecast_impression_trip_fk",
     }).onDelete("cascade"),
     index("trip_validation_provenance_trip_created_idx").on(table.tripId, table.createdAt),
+    index("trip_validation_provenance_forecast_trip_idx")
+      .on(table.forecastImpressionId, table.tripId)
+      .where(sql`${table.forecastImpressionId} is not null`),
     index("trip_validation_provenance_cohort_role_idx").on(
       table.collectionContractVersion,
       table.validationProtocolId,
@@ -982,6 +1013,7 @@ export const validationFeasibilityRecruitmentEvents = sqliteTable(
     uniqueIndex("validation_feasibility_recruitment_participant_unique")
       .on(table.activationId, table.participantGroupId),
     uniqueIndex("validation_feasibility_recruitment_user_unique").on(table.activationId, table.userId),
+    index("validation_feasibility_recruitment_user_sequence_idx").on(table.userId, table.sequence),
     check(
       "validation_feasibility_recruitment_contract_check",
       sql`${table.eventContractVersion} = 'castingcompass.validation-feasibility-recruitment/2.0.0'
@@ -1047,6 +1079,7 @@ export const validationFeasibilityCorrections = sqliteTable(
     uniqueIndex("validation_feasibility_correction_id_unique").on(table.correctionId),
     uniqueIndex("validation_feasibility_correction_hash_unique").on(table.eventSha256),
     index("validation_feasibility_correction_trip_sequence_idx").on(table.tripId, table.sequence),
+    index("validation_feasibility_correction_activation_sequence_idx").on(table.activationId, table.sequence),
     check(
       "validation_feasibility_correction_contract_check",
       sql`${table.correctionContractVersion} = 'castingcompass.validation-feasibility-correction/2.0.0'

@@ -29,6 +29,7 @@ export const STAGED_MIGRATIONS = Object.freeze([
   "0013_validation_feasibility_pilot.sql",
   "0014_validation_feasibility_recruitment_and_corrections.sql",
   "0015_validation_snapshot_suppression.sql",
+  "0016_data_resilience_indexes.sql",
 ]);
 export const ALL_RELEASE_MIGRATIONS = Object.freeze([
   ...BASE_APPLIED_MIGRATIONS,
@@ -88,6 +89,25 @@ const STAGE_ABSENCE_QUERIES = Object.freeze({
       + (SELECT COUNT(*) FROM sqlite_master WHERE type = 'table'
         AND name = 'validation_feasibility_snapshot_suppressions')
       AS target_artifacts_found`,
+  "0016_data_resilience_indexes.sql": `
+    SELECT COUNT(*) AS target_artifacts_found FROM sqlite_master
+    WHERE type = 'index' AND name IN (
+      'auth_sessions_expires_idx',
+      'saved_sites_user_created_idx',
+      'auth_attempts_attempted_idx',
+      'email_challenges_expires_idx',
+      'email_challenges_user_idx',
+      'signup_age_proofs_consumed_idx',
+      'privacy_deletion_jobs_scope_subject_idx',
+      'privacy_deletion_jobs_state_completed_idx',
+      'trips_user_history_idx',
+      'trips_user_created_idx',
+      'trips_ai_review_backlog_idx',
+      'trips_reporter_active_created_idx',
+      'trip_validation_provenance_forecast_trip_idx',
+      'validation_feasibility_recruitment_user_sequence_idx',
+      'validation_feasibility_correction_activation_sequence_idx'
+    )`,
 });
 
 function fail(label, expected, actual) {
@@ -221,6 +241,7 @@ export function verifyFinalPostflight(payload) {
     species_completion_triggers: 2,
     validation_tables: 11,
     snapshot_suppression_columns: 2,
+    data_resilience_indexes: 15,
     non_legacy_trip_rows: 0,
     trip_photo_locators: 0,
     discussion_rows_with_approval_metadata: 0,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import threading
+from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -14,6 +15,7 @@ from services.api.app.repository import (
     DataUnavailableError,
     FileRepository,
     HybridRepository,
+    PostgresRepository,
     validate_database_window_shape,
 )
 
@@ -223,6 +225,89 @@ def test_missing_snapshot_returns_explicit_503(tmp_path: Path):
     assert response.status_code == 503
     assert response.json()["invented_values_used"] is False
     assert response.headers["retry-after"] == "300"
+
+
+def test_postgres_repository_reuses_bounded_pool_and_public_site_cache():
+    site_row = {
+        "id": "pooled-pier",
+        "name": "Pooled Pier",
+        "region": "San Francisco Bay",
+        "locality": "Test City",
+        "latitude": 37.8,
+        "longitude": -122.4,
+        "fishing_modes": ["pier"],
+        "access_type": "public",
+        "is_accessible": True,
+        "structure_tags": ["pier pilings"],
+        "regulation_url": "https://wildlife.ca.gov/Fishing/Ocean/Regulations/Fishing-Map/sf-bay",
+        "description": "A public test site.",
+        "access_notes": "Use posted public access.",
+        "parking_notes": None,
+        "transit_notes": None,
+        "amenities": [],
+        "bathymetry_summary": None,
+        "casting_zone": None,
+        "official_links": [],
+    }
+
+    class Cursor:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def execute(self, query, parameters=None):
+            assert "FROM public.sites" in query
+            assert parameters is None
+
+        def fetchall(self):
+            return [site_row]
+
+    class Connection:
+        def cursor(self):
+            return Cursor()
+
+    class Pool:
+        def __init__(self):
+            self.closed = True
+            self.open_calls = 0
+            self.close_calls = 0
+            self.checkouts = 0
+
+        def open(self):
+            self.closed = False
+            self.open_calls += 1
+
+        def close(self):
+            self.closed = True
+            self.close_calls += 1
+
+        @contextmanager
+        def connection(self):
+            self.checkouts += 1
+            yield Connection()
+
+    pool = Pool()
+    postgres = PostgresRepository(
+        "postgresql+psycopg://ignored.example/castingcompass",
+        pool=pool,
+        site_cache_seconds=60,
+    )
+
+    first, source = postgres.list_sites()
+    second, _ = postgres.list_sites()
+    selected, _ = postgres.get_site("pooled-pier")
+
+    assert source == "postgres-postgis"
+    assert first[0].id == "pooled-pier"
+    assert second[0].id == "pooled-pier"
+    assert selected is not None and selected.id == "pooled-pier"
+    assert pool.open_calls == 1
+    assert pool.checkouts == 1
+
+    postgres.close()
+    assert pool.close_calls == 1
 
 
 def test_incomplete_or_mixed_opportunity_contract_fails_closed(snapshot_root: Path):

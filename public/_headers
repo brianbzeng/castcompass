@@ -10,5 +10,17 @@
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
 
+/data/opportunities.json
+  Cache-Control: public, max-age=0, must-revalidate
+  CDN-Cache-Control: public, s-maxage=300, stale-while-revalidate=600
+
+/data/community-pulse.json
+  Cache-Control: public, max-age=0, must-revalidate
+  CDN-Cache-Control: public, s-maxage=300, stale-while-revalidate=600
+
+/data/sites.json
+  Cache-Control: public, max-age=0, must-revalidate
+  CDN-Cache-Control: public, s-maxage=3600, stale-while-revalidate=86400
+
 https://:worker.:account.workers.dev/*
   X-Robots-Tag: noindex, nofollow

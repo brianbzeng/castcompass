@@ -5,6 +5,8 @@ import logging
 import math
 import os
 import re
+import threading
+import time
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from pathlib import Path
@@ -915,21 +917,106 @@ class FileRepository(Repository):
         return ranked, generated_at, identity, self.source
 
 
+def _bounded_environment_number(name: str, default: float, minimum: float, maximum: float) -> float:
+    raw = os.getenv(name)
+    try:
+        value = default if raw is None else float(raw)
+    except ValueError as exc:
+        raise DataUnavailableError(f"{name} must be numeric") from exc
+    if not math.isfinite(value) or value < minimum or value > maximum:
+        raise DataUnavailableError(f"{name} must be between {minimum:g} and {maximum:g}")
+    return value
+
+
+def _bounded_environment_integer(name: str, default: int, minimum: int, maximum: int) -> int:
+    value = _bounded_environment_number(name, float(default), float(minimum), float(maximum))
+    if not value.is_integer():
+        raise DataUnavailableError(f"{name} must be an integer")
+    return int(value)
+
+
 class PostgresRepository(Repository):
     source = "postgres-postgis"
 
-    def __init__(self, database_url: str):
+    def __init__(
+        self,
+        database_url: str,
+        *,
+        pool: Any | None = None,
+        site_cache_seconds: float | None = None,
+    ):
         self.database_url = database_url.replace("postgresql+psycopg://", "postgresql://", 1)
+        self._pool = pool
+        self._pool_lock = threading.Lock()
+        self._site_cache_lock = threading.Lock()
+        self._site_cache: tuple[float, tuple[SiteDetail, ...]] | None = None
+        configured_cache_seconds = (
+            _bounded_environment_number("DATABASE_SITE_CACHE_SECONDS", 60.0, 0.0, 300.0)
+            if site_cache_seconds is None
+            else site_cache_seconds
+        )
+        if not math.isfinite(configured_cache_seconds) or not 0 <= configured_cache_seconds <= 300:
+            raise ValueError("site_cache_seconds must be between 0 and 300")
+        self._site_cache_seconds = float(configured_cache_seconds)
+
+    def _create_pool(self):
+        try:
+            from psycopg.rows import dict_row
+            from psycopg_pool import ConnectionPool
+        except ImportError as exc:  # pragma: no cover - dependencies are present in the API image
+            raise DataUnavailableError(
+                "psycopg and psycopg-pool are required when DATABASE_URL is configured"
+            ) from exc
+        minimum = _bounded_environment_integer("DATABASE_POOL_MIN_SIZE", 1, 0, 8)
+        maximum = _bounded_environment_integer("DATABASE_POOL_MAX_SIZE", 4, 1, 16)
+        if minimum > maximum:
+            raise DataUnavailableError("DATABASE_POOL_MIN_SIZE cannot exceed DATABASE_POOL_MAX_SIZE")
+        return ConnectionPool(
+            conninfo=self.database_url,
+            kwargs={"row_factory": dict_row, "connect_timeout": 5},
+            min_size=minimum,
+            max_size=maximum,
+            timeout=_bounded_environment_number("DATABASE_POOL_TIMEOUT_SECONDS", 3.0, 1.0, 15.0),
+            max_waiting=_bounded_environment_integer("DATABASE_POOL_MAX_WAITING", 8, 1, 64),
+            max_lifetime=1_800.0,
+            max_idle=300.0,
+            name="castingcompass-api",
+            open=False,
+        )
+
+    def open(self) -> None:
+        with self._pool_lock:
+            if self._pool is None:
+                self._pool = self._create_pool()
+            if getattr(self._pool, "closed", True):
+                self._pool.open()
+
+    def close(self) -> None:
+        with self._pool_lock:
+            if self._pool is not None and not getattr(self._pool, "closed", True):
+                self._pool.close()
+            # Psycopg pools cannot be reopened after close. Dropping the closed
+            # instance lets a later application lifespan create a fresh pool.
+            self._pool = None
+        with self._site_cache_lock:
+            self._site_cache = None
 
     def _connect(self):
-        try:
-            import psycopg
-            from psycopg.rows import dict_row
-        except ImportError as exc:  # pragma: no cover - dependency is present in production image
-            raise DataUnavailableError("psycopg is required when DATABASE_URL is configured") from exc
-        return psycopg.connect(self.database_url, row_factory=dict_row, connect_timeout=5)
+        self.open()
+        if self._pool is None:  # pragma: no cover - guarded by open()
+            raise DataUnavailableError("Postgres connection pool did not initialize")
+        return self._pool.connection()
 
     def list_sites(self) -> tuple[list[SiteDetail], str]:
+        now = time.monotonic()
+        with self._site_cache_lock:
+            if self._site_cache is not None and self._site_cache[0] > now:
+                return list(self._site_cache[1]), self.source
+            sites = self._load_sites()
+            self._site_cache = (time.monotonic() + self._site_cache_seconds, tuple(sites))
+            return list(sites), self.source
+
+    def _load_sites(self) -> list[SiteDetail]:
         query = """
             SELECT id, name, region, locality, ST_Y(location::geometry) AS latitude,
                    ST_X(location::geometry) AS longitude, fishing_modes, access_type,
@@ -945,22 +1032,11 @@ class PostgresRepository(Repository):
             sites = [normalize_site(dict(row)) for row in cursor.fetchall()]
         if not sites:
             raise DataUnavailableError("The database contains no accessible fishing sites")
-        return sites, self.source
+        return sites
 
     def get_site(self, site_id: str) -> tuple[SiteDetail | None, str]:
-        query = """
-            SELECT id, name, region, locality, ST_Y(location::geometry) AS latitude,
-                   ST_X(location::geometry) AS longitude, fishing_modes, access_type,
-                   is_accessible, structure_tags, regulation_url, description, access_notes,
-                   parking_notes, transit_notes, amenities, bathymetry_summary, casting_zone,
-                   official_links
-              FROM public.sites
-             WHERE id = %s AND is_accessible = TRUE
-        """
-        with self._connect() as connection, connection.cursor() as cursor:
-            cursor.execute(query, (site_id,))
-            row = cursor.fetchone()
-            return (normalize_site(dict(row)) if row else None), self.source
+        sites, _ = self.list_sites()
+        return next((site for site in sites if site.id == site_id), None), self.source
 
     def list_opportunities(
         self, species: str, from_time: datetime, through: datetime
@@ -1033,6 +1109,14 @@ class HybridRepository(Repository):
     def __init__(self, file_repository: FileRepository, database_repository: PostgresRepository | None):
         self.file_repository = file_repository
         self.database_repository = database_repository
+
+    def open(self) -> None:
+        if self.database_repository is not None:
+            self.database_repository.open()
+
+    def close(self) -> None:
+        if self.database_repository is not None:
+            self.database_repository.close()
 
     def _call(self, method: str, *args: Any):
         if self.database_repository is not None:

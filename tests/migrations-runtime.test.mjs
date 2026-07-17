@@ -207,6 +207,7 @@ test("the complete migration chain applies atomically and produces the runtime s
     "0013_validation_feasibility_pilot.sql",
     "0014_validation_feasibility_recruitment_and_corrections.sql",
     "0015_validation_snapshot_suppression.sql",
+    "0016_data_resilience_indexes.sql",
   ]);
 
   const sqlite = new DatabaseSync(":memory:");

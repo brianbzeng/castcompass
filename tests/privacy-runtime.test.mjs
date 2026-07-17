@@ -27,6 +27,7 @@ const MIGRATIONS = [
   "0013_validation_feasibility_pilot.sql",
   "0014_validation_feasibility_recruitment_and_corrections.sql",
   "0015_validation_snapshot_suppression.sql",
+  "0016_data_resilience_indexes.sql",
 ];
 
 class D1StatementAdapter {

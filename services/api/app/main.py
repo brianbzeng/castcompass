@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import os
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Annotated
+from typing import Annotated, AsyncIterator
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,6 +31,18 @@ LOGGER = logging.getLogger(__name__)
 repository = build_repository()
 
 
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    try:
+        repository.open()
+    except Exception as exc:
+        LOGGER.warning("Postgres pool startup deferred; file snapshot remains available (%s)", type(exc).__name__)
+    try:
+        yield
+    finally:
+        repository.close()
+
+
 def _attribute_data_source(response: Response, source: str) -> None:
     response.headers["X-CastingCompass-Data-Source"] = source
 
@@ -54,6 +67,7 @@ app = FastAPI(
         "Scores are percentiles among currently evaluated options, not catch probabilities. "
         "Bathymetry is not navigational data; regulation links are informational, not legal advice."
     ),
+    lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
 )

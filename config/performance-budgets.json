@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "castingcompass.performance-budgets/1.0.0",
+  "profiles": {
+    "smoke": { "durationSeconds": 15, "concurrency": 2 },
+    "load": { "durationSeconds": 120, "concurrency": 10 },
+    "spike": { "durationSeconds": 30, "concurrency": 30 },
+    "soak": { "durationSeconds": 900, "concurrency": 5 }
+  },
+  "limits": { "maximumDurationSeconds": 1800, "maximumConcurrency": 50 },
+  "requestTimeoutMilliseconds": 5000,
+  "budgets": {
+    "p95Milliseconds": 750,
+    "p99Milliseconds": 1500,
+    "errorRatePercent": 1
+  },
+  "routes": [
+    { "name": "home", "path": "/", "expectedStatuses": [200] },
+    { "name": "health", "path": "/api/health", "expectedStatuses": [200] },
+    { "name": "sites", "path": "/data/sites.json", "expectedStatuses": [200] },
+    { "name": "opportunities", "path": "/data/opportunities.json", "expectedStatuses": [200] }
+  ]
+}

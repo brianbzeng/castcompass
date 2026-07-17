@@ -1056,9 +1056,20 @@ const CREATE_INDEX_STATEMENTS = [
   "CREATE INDEX IF NOT EXISTS trips_reporter_created_idx ON trips (reporter_key_hash, created_at)",
   "CREATE INDEX IF NOT EXISTS trips_referral_created_idx ON trips (referral_code, created_at)",
   "CREATE INDEX IF NOT EXISTS trips_user_completed_idx ON trips (user_id, completed_at)",
+  `CREATE INDEX IF NOT EXISTS trips_user_history_idx
+    ON trips (user_id, COALESCE(completed_at, ended_at, started_at) DESC)
+    WHERE status = 'completed' AND user_id IS NOT NULL`,
+  "CREATE INDEX IF NOT EXISTS trips_user_created_idx ON trips (user_id, created_at DESC) WHERE user_id IS NOT NULL",
+  `CREATE INDEX IF NOT EXISTS trips_ai_review_backlog_idx
+    ON trips (status, COALESCE(completed_at, ended_at, started_at))
+    WHERE ai_review_status IS NULL OR ai_review_status = 'retry'`,
+  "CREATE INDEX IF NOT EXISTS trips_reporter_active_created_idx ON trips (reporter_key_hash, created_at) WHERE status = 'active'",
   "CREATE INDEX IF NOT EXISTS trips_contract_target_completed_idx ON trips (contract_status, target_taxon_id, completed_at)",
   "CREATE INDEX IF NOT EXISTS forecast_impressions_window_idx ON forecast_impressions (window_id, site_id, window_start)",
   "CREATE INDEX IF NOT EXISTS trip_validation_provenance_trip_created_idx ON trip_validation_provenance (trip_id, created_at)",
+  `CREATE INDEX IF NOT EXISTS trip_validation_provenance_forecast_trip_idx
+    ON trip_validation_provenance (forecast_impression_id, trip_id)
+    WHERE forecast_impression_id IS NOT NULL`,
   "CREATE INDEX IF NOT EXISTS trip_validation_provenance_cohort_role_idx ON trip_validation_provenance (collection_contract_version, validation_protocol_id, cohort_id, source_role, evidence_status)",
   "CREATE INDEX IF NOT EXISTS trip_validation_provenance_participant_recruitment_idx ON trip_validation_provenance (participant_group_id, recruitment_event_at)",
   `CREATE TRIGGER IF NOT EXISTS forecast_impressions_append_only_guard

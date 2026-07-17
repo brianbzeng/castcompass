@@ -198,6 +198,12 @@ after its acceptance checks pass in the intended environment.
   - [ ] Define performance budgets and run isolated load, soak, spike, and failure-injection
     tests with production-shaped synthetic data. Record saturation points, tail latency, error
     rates, queue depth, database contention, cache effectiveness, cost, and a safe rollback plan.
+  - [x] Locally add workload-backed D1 indexes, machine-check 13 critical `EXPLAIN QUERY PLAN`
+    paths plus every foreign-key child index, remove the public-site N+1 behind a bounded cache,
+    publish the cache/async/connection contracts, add a bounded Postgres process pool only for
+    the optional API, and provide a read-only load harness that permanently refuses production.
+    Migration application, `PRAGMA optimize`, production-shaped staging measurements, queue
+    provider implementation, failure injection, and authorized penetration testing remain open.
 
 - [ ] Freeze the species-aware observation and model-run contract before new ingestion or
   recruitment: canonical/versioned taxa or explicit complexes; one primary target per

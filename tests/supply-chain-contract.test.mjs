@@ -53,7 +53,7 @@ test("Python API and pipeline installs use exact source-bound wheel hashes", asy
   });
   assert.equal(verifier.status, 0, verifier.stderr);
   assert.match(verifier.stdout, /FastAPI runtime Python lock verified \(\d+ exact hashed packages\)/);
-  assert.match(verifier.stdout, /FastAPI test Python lock verified \(30 exact hashed packages\)/);
+  assert.match(verifier.stdout, /FastAPI test Python lock verified \(31 exact hashed packages\)/);
   assert.match(verifier.stdout, /pipeline CI Python lock verified \(14 exact hashed packages\)/);
 
   const manifest = JSON.parse(await readFile(new URL("package.json", root), "utf8"));

@@ -218,6 +218,9 @@ prove that the object is either attached to a live trip or durably queued for cl
 - [ ] Release came from a clean worktree at the reviewed immutable commit.
 - [ ] Deployment ID and Worker version ID were recorded; exactly one version has `100%` traffic.
 - [ ] Production migration preflight, Time Travel bookmark, migration, and postflight passed.
+- [ ] Migration `0016_data_resilience_indexes.sql` completed within its reviewed window;
+      `PRAGMA optimize`, representative production `EXPLAIN QUERY PLAN` output, foreign-key
+      checks, and before/after D1 rows-read evidence were recorded without query parameters.
 - [ ] Privacy pre/postflight counts match; the missing-age and legal-reacceptance cohorts have
       an explicit support decision, while export and account deletion remain available.
 - [ ] Canonical, redirect-alias, and `workers.dev` smoke checks passed.
@@ -236,6 +239,12 @@ prove that the object is either attached to a live trip or durably queued for cl
       rollback, redacted-log, and provider-revocation checks on the exact Worker version.
 - [ ] A named operator exercised the reviewed snapshot PR and guarded publication cadence;
       a deliberately aged fixture displayed `Cached`/`stale` instead of `Live data`/`fresh`.
+- [ ] Browser/edge/PWA cache headers match `docs/CACHING-STRATEGY.md`; explicit purge,
+      snapshot rollover, old-service-worker removal, offline fallback, and profile/API
+      non-caching passed on every production hostname.
+- [ ] The exact release passed smoke, load, spike/recovery, and soak profiles against isolated
+      production-shaped staging data; p95/p99, errors, D1 rows, cache behavior, pool waits,
+      saturation, and cost evidence meet the approved budgets. Production was not load-tested.
 - [ ] The six Worker rate-limit bindings have the reviewed production limits; their secret,
       exact-true activation, 429/503 behavior, privacy-safe keys, and emergency-disable path
       were tested without blocking normal beta use.

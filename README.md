@@ -158,7 +158,7 @@ The public forecast snapshot refreshes every three hours through `.github/workfl
 - **Database:** Supabase PostgreSQL with PostGIS; apply `infra/schema.sql`.
 - **Static resilience:** the PWA retains the most recently loaded forecast and can fall back to the versioned snapshot.
 
-Set the production PWA's `NEXT_PUBLIC_API_URL` to the Render service URL and the API's `ALLOWED_ORIGINS` to the final PWA origin. Never commit `DATABASE_URL` or service tokens.
+Set the production PWA's `NEXT_PUBLIC_API_URL` to the Render service URL and the API's `ALLOWED_ORIGINS` to the final PWA origin. The optional Postgres service uses a bounded process pool (defaults: 1 warm, 4 maximum, 8 queued checkouts) and a 60-second public-site cache; size each deployed process against the database provider's total connection ceiling. Cloudflare D1 continues through its managed binding and does not use this pool. Never commit `DATABASE_URL` or service tokens.
 
 For the production Worker, D1 trip storage, custom domain, release command, and
 Cloudflare Git build settings, see [Cloudflare deployment](docs/CLOUDFLARE_DEPLOYMENT.md).

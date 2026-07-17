@@ -9,7 +9,7 @@ const registrationSource = await readFile(
 );
 
 test("service worker publishes a new cache and removes prior CastingCompass releases", () => {
-  assert.match(workerSource, /CACHE_NAME = "castingcompass-v11"/);
+  assert.match(workerSource, /CACHE_NAME = "castingcompass-v12"/);
   assert.match(workerSource, /CACHE_PREFIXES\.some/);
   assert.match(workerSource, /caches\.delete\(key\)/);
   assert.doesNotMatch(workerSource, /\/castingcompass-icon\.png/);
@@ -19,6 +19,15 @@ test("service worker publishes a new cache and removes prior CastingCompass rele
 test("live trip APIs bypass the offline response cache", () => {
   assert.match(workerSource, /url\.pathname\.startsWith\("\/api\/"\)/);
   assert.match(workerSource, /event\.respondWith\(fetch\(event\.request\)\)/);
+});
+
+test("offline navigation caches only public routes without overwriting the home shell", () => {
+  assert.match(workerSource, /PUBLIC_NAVIGATION_PATHS = new Set/);
+  assert.match(workerSource, /PUBLIC_NAVIGATION_PATHS\.has\(url\.pathname\)/);
+  assert.match(workerSource, /cache\.put\(url\.pathname, clone\)/);
+  assert.doesNotMatch(workerSource, /cache\.put\("\/", clone\)/);
+  assert.match(workerSource, /cacheControl\.includes\("no-store"\)/);
+  assert.match(workerSource, /cacheControl\.includes\("private"\)/);
 });
 
 test("registration bypasses cached worker scripts and checks for updates", () => {

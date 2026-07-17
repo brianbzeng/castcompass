@@ -223,13 +223,21 @@ async function initialize(db: D1DatabaseLike) {
       ]);
       await db.batch([
         db.prepare("CREATE INDEX IF NOT EXISTS auth_sessions_user_idx ON auth_sessions (user_id, expires_at)"),
+        db.prepare("CREATE INDEX IF NOT EXISTS auth_sessions_expires_idx ON auth_sessions (expires_at)"),
+        db.prepare("CREATE INDEX IF NOT EXISTS saved_sites_user_created_idx ON saved_sites (user_id, created_at DESC)"),
         db.prepare("CREATE INDEX IF NOT EXISTS auth_attempts_email_time_idx ON auth_attempts (email_hash, attempted_at)"),
+        db.prepare("CREATE INDEX IF NOT EXISTS auth_attempts_attempted_idx ON auth_attempts (attempted_at)"),
         db.prepare("CREATE INDEX IF NOT EXISTS email_challenges_email_time_idx ON email_challenges (email, created_at)"),
+        db.prepare("CREATE INDEX IF NOT EXISTS email_challenges_expires_idx ON email_challenges (expires_at)"),
+        db.prepare("CREATE INDEX IF NOT EXISTS email_challenges_user_idx ON email_challenges (user_id) WHERE user_id IS NOT NULL"),
         db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS gear_profiles_user_name_unique ON gear_profiles (user_id, name)"),
         db.prepare("CREATE INDEX IF NOT EXISTS gear_profiles_user_updated_idx ON gear_profiles (user_id, updated_at)"),
         db.prepare("CREATE INDEX IF NOT EXISTS signup_age_proofs_expiry_idx ON signup_age_proofs (expires_at, consumed_at)"),
+        db.prepare("CREATE INDEX IF NOT EXISTS signup_age_proofs_consumed_idx ON signup_age_proofs (consumed_at) WHERE consumed_at IS NOT NULL"),
         db.prepare("CREATE INDEX IF NOT EXISTS privacy_deletion_jobs_state_updated_idx ON privacy_deletion_jobs (state, updated_at)"),
         db.prepare("CREATE INDEX IF NOT EXISTS privacy_deletion_jobs_owner_state_idx ON privacy_deletion_jobs (owner_subject_hash, state, updated_at)"),
+        db.prepare("CREATE INDEX IF NOT EXISTS privacy_deletion_jobs_scope_subject_idx ON privacy_deletion_jobs (scope, subject_hash)"),
+        db.prepare("CREATE INDEX IF NOT EXISTS privacy_deletion_jobs_state_completed_idx ON privacy_deletion_jobs (state, completed_at)"),
         db.prepare("CREATE INDEX IF NOT EXISTS privacy_deletion_tasks_retry_idx ON privacy_deletion_tasks (state, available_at, lease_expires_at)"),
       ]);
     })().catch((error) => {

@@ -31,6 +31,8 @@
     "security:python-locks:write": "node scripts/generate-python-locks.mjs --write",
     "security:sbom": "node scripts/generate-sbom.mjs --check",
     "security:sbom:write": "node scripts/generate-sbom.mjs --write",
+    "load:smoke": "node scripts/load-test.mjs --profile smoke",
+    "load:test": "node scripts/load-test.mjs",
     "verify:discussion-safety": "node scripts/verify-discussion-safety.mjs",
     "verify:validation-successor": "node scripts/verify-validation-successor.mjs",
     "data:refresh": "PYTHONPATH=. python3 scripts/generate_snapshot.py && PYTHONPATH=. python3 scripts/generate_opportunity_attestations.py",
