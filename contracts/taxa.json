@@ -1,0 +1,50 @@
+{
+  "schema_path": "contracts/taxa.schema.json",
+  "contract_version": "castingcompass.taxa/1.0.0",
+  "catalog_version": "castingcompass.taxa/1.0.0",
+  "catalog_id": "castingcompass-canonical-taxa",
+  "description": "Closed taxon catalog for canonical CastingCompass observations and model targets.",
+  "taxa": [
+    {
+      "taxon_id": "california-halibut",
+      "kind": "taxon",
+      "common_name": "California halibut",
+      "scientific_name": "Paralichthys californicus",
+      "taxonomic_rank": "species",
+      "observation_eligible": true,
+      "model_eligible": true,
+      "production_observation_eligible": true,
+      "environments": ["production", "test"]
+    },
+    {
+      "taxon_id": "unresolved-fish",
+      "kind": "unresolved-observation-bucket",
+      "common_name": "Unresolved fish",
+      "scientific_name": null,
+      "taxonomic_rank": "unresolved",
+      "observation_eligible": true,
+      "model_eligible": false,
+      "production_observation_eligible": true,
+      "environments": ["production", "test"]
+    },
+    {
+      "taxon_id": "synthetic-target",
+      "kind": "synthetic-fixture",
+      "common_name": "Synthetic target",
+      "scientific_name": null,
+      "taxonomic_rank": "synthetic",
+      "observation_eligible": true,
+      "model_eligible": true,
+      "production_observation_eligible": false,
+      "environments": ["test"]
+    }
+  ],
+  "prohibited_production_target_terms": [
+    "fish",
+    "generic-rockfish",
+    "rockfish",
+    "unknown",
+    "unknown-fish",
+    "unresolved-fish"
+  ]
+}

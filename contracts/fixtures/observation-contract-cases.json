@@ -1,0 +1,585 @@
+{
+  "fixture_version": "castingcompass.observation-fixtures/1.0.0",
+  "description": "Shared positive and adversarial observations. JSON Schema expectations cover the structural envelope; semantic expectations must agree in TypeScript and the Python ingestion boundary.",
+  "base_records": {
+    "production_point_offset": {
+      "contract_version": "castingcompass.observation/2.0.0",
+      "taxon_catalog_version": "castingcompass.taxa/1.0.0",
+      "contract_status": "valid",
+      "observation_id": "obs-offset-1",
+      "effort_segment_id": "segment-offset-1",
+      "primary_target_taxon_id": "california-halibut",
+      "source": {
+        "source_id": "cdfw_crfs",
+        "source_record_id": "record-offset-1",
+        "data_kind": "complete-effort-segment",
+        "complete_attempt": true,
+        "expanded_estimate": false
+      },
+      "target_effort": {
+        "value": 2.5,
+        "unit": "angler-hours",
+        "mode": "shore"
+      },
+      "temporal_support": {
+        "start_at": "2026-07-16T08:00:00-07:00",
+        "end_at": "2026-07-16T10:30:00-07:00",
+        "precision": "exact"
+      },
+      "spatial_support": {
+        "kind": "point",
+        "support_id": "point-offset-1",
+        "crs": "EPSG:32610",
+        "x": 551000,
+        "y": 4180000
+      },
+      "taxon_observations": [
+        {
+          "taxon_id": "california-halibut",
+          "encounter_count": 1,
+          "retained_count": 0,
+          "released_count": 1,
+          "disposition_unknown_count": 0,
+          "identification_confidence": "verified",
+          "identification_basis": "official-survey-code"
+        }
+      ],
+      "outcome_class": "target_encountered"
+    },
+    "synthetic_point": {
+      "contract_version": "castingcompass.observation/2.0.0",
+      "taxon_catalog_version": "castingcompass.taxa/1.0.0",
+      "contract_status": "valid",
+      "observation_id": "obs-synthetic-1",
+      "effort_segment_id": "segment-synthetic-1",
+      "primary_target_taxon_id": "synthetic-target",
+      "source": {
+        "source_id": "synthetic_fixture",
+        "source_record_id": "record-synthetic-1",
+        "data_kind": "synthetic-fixture",
+        "complete_attempt": true,
+        "expanded_estimate": false
+      },
+      "target_effort": {
+        "value": 1,
+        "unit": "trip-hours",
+        "mode": "synthetic"
+      },
+      "temporal_support": {
+        "start_at": "2026-07-16T15:00:00Z",
+        "end_at": "2026-07-16T16:00:00Z",
+        "precision": "exact"
+      },
+      "spatial_support": {
+        "kind": "point",
+        "support_id": "point-synthetic-1",
+        "crs": "EPSG:32610",
+        "x": 551000,
+        "y": 4180000
+      },
+      "taxon_observations": [
+        {
+          "taxon_id": "synthetic-target",
+          "encounter_count": 1,
+          "retained_count": 0,
+          "released_count": 0,
+          "disposition_unknown_count": 1,
+          "identification_confidence": "verified",
+          "identification_basis": "synthetic-fixture"
+        }
+      ],
+      "outcome_class": "target_encountered"
+    }
+  },
+  "cases": [
+    {
+      "name": "valid-production-explicit-offset",
+      "category": "offset-parity",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "mutations": []
+    },
+    {
+      "name": "valid-production-approved-nad83-crs",
+      "category": "model-crs",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "mutations": [
+        { "op": "replace", "path": "/spatial_support/crs", "value": "EPSG:26910" }
+      ]
+    },
+    {
+      "name": "valid-integral-json-float-counts",
+      "category": "counts",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "mutations": [
+        { "op": "replace", "path": "/taxon_observations/0/encounter_count", "value": 1.0 },
+        { "op": "replace", "path": "/taxon_observations/0/released_count", "value": 1.0 }
+      ]
+    },
+    {
+      "name": "reject-natural-language-timestamp",
+      "category": "timestamp-grammar",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/temporal_support/start_at", "value": "July 16, 2026 08:00 UTC" }
+      ]
+    },
+    {
+      "name": "reject-numeric-timestamp",
+      "category": "timestamp-grammar",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/temporal_support/start_at", "value": 1784214000 }
+      ]
+    },
+    {
+      "name": "reject-space-separated-timestamp",
+      "category": "timestamp-grammar",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/temporal_support/start_at", "value": "2026-07-16 08:00:00-07:00" }
+      ]
+    },
+    {
+      "name": "reject-lowercase-t-timestamp",
+      "category": "timestamp-grammar",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/temporal_support/start_at", "value": "2026-07-16t08:00:00-07:00" }
+      ]
+    },
+    {
+      "name": "reject-offset-without-colon",
+      "category": "timestamp-grammar",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/temporal_support/start_at", "value": "2026-07-16T08:00:00-0700" }
+      ]
+    },
+    {
+      "name": "reject-impossible-leap-date",
+      "category": "timestamp-calendar",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/temporal_support/start_at", "value": "2026-02-29T08:00:00Z" }
+      ]
+    },
+    {
+      "name": "reject-impossible-month-day",
+      "category": "timestamp-calendar",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/temporal_support/start_at", "value": "2026-04-31T08:00:00Z" }
+      ]
+    },
+    {
+      "name": "reject-year-zero-timestamp",
+      "category": "timestamp-calendar",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/temporal_support/start_at", "value": "0000-01-01T08:00:00Z" }
+      ]
+    },
+    {
+      "name": "valid-nanosecond-ordering",
+      "category": "timestamp-calendar",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "mutations": [
+        { "op": "replace", "path": "/temporal_support/start_at", "value": "2026-07-16T15:00:00.000000001Z" },
+        { "op": "replace", "path": "/temporal_support/end_at", "value": "2026-07-16T15:00:00.000000002Z" }
+      ]
+    },
+    {
+      "name": "reject-geographic-model-crs",
+      "category": "model-crs",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/spatial_support/crs", "value": "EPSG:4326" }
+      ]
+    },
+    {
+      "name": "reject-garbage-model-crs",
+      "category": "model-crs",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/spatial_support/crs", "value": "garbage" }
+      ]
+    },
+    {
+      "name": "reject-case-folded-model-crs",
+      "category": "model-crs",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/spatial_support/crs", "value": "epsg:32610" }
+      ]
+    },
+    {
+      "name": "reject-whitespace-model-crs",
+      "category": "model-crs",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/spatial_support/crs", "value": " EPSG:32610 " }
+      ]
+    },
+    {
+      "name": "reject-count-above-json-safe-integer",
+      "category": "counts",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/taxon_observations/0/encounter_count", "value": 9007199254740992 },
+        { "op": "replace", "path": "/taxon_observations/0/released_count", "value": 9007199254740992 }
+      ]
+    },
+    {
+      "name": "valid-production-site-no-fish",
+      "category": "non-point-support",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "mutations": [
+        { "op": "replace", "path": "/spatial_support", "value": { "kind": "site", "support_id": "site-1" } },
+        { "op": "replace", "path": "/taxon_observations/0/encounter_count", "value": 0 },
+        { "op": "replace", "path": "/taxon_observations/0/released_count", "value": 0 },
+        { "op": "replace", "path": "/taxon_observations/0/identification_confidence", "value": "not_observed" },
+        { "op": "replace", "path": "/taxon_observations/0/identification_basis", "value": "not-observed" },
+        { "op": "replace", "path": "/outcome_class", "value": "no_fish" }
+      ]
+    },
+    {
+      "name": "valid-test-synthetic-environment",
+      "category": "environments",
+      "base": "synthetic_point",
+      "environment": "test",
+      "ingest_source_id": "synthetic_fixture",
+      "ingest_target_taxon_id": "synthetic-target",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "mutations": []
+    },
+    {
+      "name": "reject-numeric-string-effort",
+      "category": "numeric-strings",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/target_effort/value", "value": "2.5" }
+      ]
+    },
+    {
+      "name": "reject-numeric-string-coordinate",
+      "category": "numeric-strings",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/spatial_support/x", "value": "551000" }
+      ]
+    },
+    {
+      "name": "reject-invalid-observation-id",
+      "category": "invalid-ids",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/observation_id", "value": "bad observation id" }
+      ]
+    },
+    {
+      "name": "reject-invalid-source-record-id",
+      "category": "source-ids",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/source/source_record_id", "value": "bad source record" }
+      ]
+    },
+    {
+      "name": "reject-extra-top-level-field",
+      "category": "extra-fields",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "add", "path": "/species", "value": "california-halibut" }
+      ]
+    },
+    {
+      "name": "reject-non-point-crs-field",
+      "category": "non-point-crs-fields",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/spatial_support", "value": { "kind": "site", "support_id": "site-1", "crs": "EPSG:32610" } }
+      ]
+    },
+    {
+      "name": "reject-disposition-count-mismatch",
+      "category": "counts",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/taxon_observations/0/retained_count", "value": 1 }
+      ]
+    },
+    {
+      "name": "reject-negative-count",
+      "category": "counts",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/taxon_observations/0/encounter_count", "value": -1 }
+      ]
+    },
+    {
+      "name": "reject-duplicate-taxon-rows",
+      "category": "counts",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        {
+          "op": "add",
+          "path": "/taxon_observations/1",
+          "value": {
+            "taxon_id": "california-halibut",
+            "encounter_count": 0,
+            "retained_count": 0,
+            "released_count": 0,
+            "disposition_unknown_count": 0,
+            "identification_confidence": "not_observed",
+            "identification_basis": "not-observed"
+          }
+        }
+      ]
+    },
+    {
+      "name": "reject-derived-outcome-mismatch",
+      "category": "counts",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/outcome_class", "value": "no_fish" }
+      ]
+    },
+    {
+      "name": "reject-confidence-basis-mismatch",
+      "category": "confidence-pairs",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/taxon_observations/0/identification_confidence", "value": "self_reported" }
+      ]
+    },
+    {
+      "name": "reject-zero-count-positive-confidence",
+      "category": "confidence-pairs",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/taxon_observations/0/encounter_count", "value": 0 },
+        { "op": "replace", "path": "/taxon_observations/0/released_count", "value": 0 },
+        { "op": "replace", "path": "/outcome_class", "value": "no_fish" }
+      ]
+    },
+    {
+      "name": "reject-catch-only-source",
+      "category": "source-assertions",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/source/complete_attempt", "value": false }
+      ]
+    },
+    {
+      "name": "reject-expanded-estimate",
+      "category": "source-assertions",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/source/expanded_estimate", "value": true }
+      ]
+    },
+    {
+      "name": "reject-generic-production-target",
+      "category": "environments",
+      "base": "production_point_offset",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "rockfish",
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/primary_target_taxon_id", "value": "rockfish" },
+        { "op": "replace", "path": "/taxon_observations/0/taxon_id", "value": "rockfish" }
+      ]
+    },
+    {
+      "name": "reject-synthetic-target-in-production",
+      "category": "environments",
+      "base": "synthetic_point",
+      "environment": "production",
+      "ingest_source_id": "cdfw_crfs",
+      "ingest_target_taxon_id": "synthetic-target",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/source/source_id", "value": "cdfw_crfs" },
+        { "op": "replace", "path": "/source/data_kind", "value": "complete-effort-segment" }
+      ]
+    },
+    {
+      "name": "reject-halibut-as-synthetic-fixture",
+      "category": "environments",
+      "base": "production_point_offset",
+      "environment": "test",
+      "ingest_source_id": "synthetic_fixture",
+      "ingest_target_taxon_id": "california-halibut",
+      "expected_schema_valid": true,
+      "expected_semantic_valid": false,
+      "mutations": [
+        { "op": "replace", "path": "/source/source_id", "value": "synthetic_fixture" },
+        { "op": "replace", "path": "/source/data_kind", "value": "synthetic-fixture" }
+      ]
+    }
+  ]
+}

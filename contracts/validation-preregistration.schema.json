@@ -1,0 +1,1252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "castingcompass.validation-preregistration/1.0.0",
+  "title": "CastingCompass validation preregistration 1.0.0",
+  "description": "Strict structural envelope for a frozen prospective site-by-window validation design. Semantic verification remains mandatory for dates, cohort roles, exact site coverage, holdout logic, metric semantics, and production activation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol_id",
+    "protocol_version",
+    "status",
+    "based_on_commit",
+    "frozen_at",
+    "hash_anchor",
+    "activation",
+    "evaluator_runtime",
+    "enrollment",
+    "target_and_claim",
+    "cohorts",
+    "recruitment",
+    "eligibility",
+    "geography",
+    "temporal_design",
+    "baselines",
+    "candidate",
+    "analysis",
+    "sample_plan",
+    "split_policy",
+    "privacy",
+    "reporting",
+    "production_gate",
+    "change_control"
+  ],
+  "properties": {
+    "schema_version": { "const": "castingcompass.validation-preregistration/1.0.0" },
+    "protocol_id": { "$ref": "#/$defs/stableId" },
+    "protocol_version": { "type": "string", "pattern": "^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$" },
+    "status": { "enum": ["draft", "frozen", "superseded"] },
+    "based_on_commit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "frozen_at": { "type": "string", "format": "date" },
+    "hash_anchor": { "$ref": "#/$defs/hashAnchor" },
+    "activation": { "$ref": "#/$defs/activation" },
+    "evaluator_runtime": { "$ref": "#/$defs/evaluatorRuntime" },
+    "enrollment": { "$ref": "#/$defs/enrollment" },
+    "target_and_claim": { "$ref": "#/$defs/targetAndClaim" },
+    "cohorts": { "$ref": "#/$defs/cohorts" },
+    "recruitment": { "$ref": "#/$defs/recruitment" },
+    "eligibility": { "$ref": "#/$defs/eligibility" },
+    "geography": { "$ref": "#/$defs/geography" },
+    "temporal_design": { "$ref": "#/$defs/temporalDesign" },
+    "baselines": { "$ref": "#/$defs/baselines" },
+    "candidate": { "$ref": "#/$defs/candidate" },
+    "analysis": { "$ref": "#/$defs/analysis" },
+    "sample_plan": { "$ref": "#/$defs/samplePlan" },
+    "split_policy": { "$ref": "#/$defs/splitPolicy" },
+    "privacy": { "$ref": "#/$defs/privacy" },
+    "reporting": { "$ref": "#/$defs/reporting" },
+    "production_gate": { "$ref": "#/$defs/productionGate" },
+    "change_control": { "$ref": "#/$defs/changeControl" }
+  },
+  "$defs": {
+    "stableId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "nonemptyString": { "type": "string", "minLength": 1, "pattern": ".*\\S.*" },
+    "nonemptyStringArray": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/nonemptyString" }
+    },
+    "hashAnchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "self_referential_hash"],
+      "properties": {
+        "method": { "const": "containing-git-commit" },
+        "self_referential_hash": { "const": false }
+      }
+    },
+    "activation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_contract_version",
+        "must_be_sealed_and_deployed_before_first_eligible_row",
+        "backdating_prohibited",
+        "seal_timestamp_source",
+        "caller_supplied_seal_timestamps_allowed",
+        "missing_or_late_activation_action",
+        "pre_activation_rows_role",
+        "trusted_export_signature_algorithm",
+        "trusted_export_public_key_pinned_in_activation",
+        "external_log_anchor_identity_pinned_in_activation",
+        "external_log_anchor_key_must_differ_from_export_key",
+        "external_log_anchor_provider_id_required",
+        "external_log_anchor_must_be_externally_allowlisted_and_independently_custodied",
+        "production_signing_key_must_be_externally_allowlisted",
+        "tamper_evident_pre_enrollment_activation_commitment_required",
+        "same_key_signature_alone_proves_server_provenance_or_independence"
+      ],
+      "properties": {
+        "manifest_contract_version": { "const": "castingcompass.validation-split-manifest/1.0.0" },
+        "must_be_sealed_and_deployed_before_first_eligible_row": { "const": true },
+        "backdating_prohibited": { "const": true },
+        "seal_timestamp_source": { "const": "trusted-server-clock" },
+        "caller_supplied_seal_timestamps_allowed": { "const": false },
+        "missing_or_late_activation_action": { "const": "supersede-protocol-before-enrollment" },
+        "pre_activation_rows_role": { "const": "exploratory-only" },
+        "trusted_export_signature_algorithm": { "const": "ed25519-rfc8032" },
+        "trusted_export_public_key_pinned_in_activation": { "const": true },
+        "external_log_anchor_identity_pinned_in_activation": { "const": true },
+        "external_log_anchor_key_must_differ_from_export_key": { "const": true },
+        "external_log_anchor_provider_id_required": { "const": true },
+        "external_log_anchor_must_be_externally_allowlisted_and_independently_custodied": { "const": true },
+        "production_signing_key_must_be_externally_allowlisted": { "const": true },
+        "tamper_evident_pre_enrollment_activation_commitment_required": { "const": true },
+        "same_key_signature_alone_proves_server_provenance_or_independence": { "const": false }
+      }
+    },
+    "evaluatorRuntime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "python_major_minor", "dependency_lock_path", "exact_dependency_versions_required",
+        "immutable_runtime_image_required", "runtime_image_digest_file",
+        "runtime_image_digest_file_must_be_root_owned_nonwritable",
+        "independent_publication_recomputation_required"
+      ],
+      "properties": {
+        "python_major_minor": { "const": "3.12" },
+        "dependency_lock_path": { "const": "pipeline/requirements-validation.lock" },
+        "exact_dependency_versions_required": { "const": true },
+        "immutable_runtime_image_required": { "const": true },
+        "runtime_image_digest_file": { "const": "/etc/castingcompass-validation-image-digest" },
+        "runtime_image_digest_file_must_be_root_owned_nonwritable": { "const": true },
+        "independent_publication_recomputation_required": { "const": true }
+      }
+    },
+    "enrollment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_at", "end_at", "boundary_convention", "stop_rule", "outcome_independent", "early_success_stop_allowed", "terminal_finalization_required", "finalization_not_before_end_at", "trusted_complete_census_export_required", "zero_eligible_terminal_census_and_finalization_required"],
+      "properties": {
+        "start_at": { "type": "string", "format": "date-time" },
+        "end_at": { "type": "string", "format": "date-time" },
+        "boundary_convention": { "const": "half-open-start-inclusive-end-exclusive" },
+        "stop_rule": { "const": "fixed-half-open-interval-end" },
+        "outcome_independent": { "const": true },
+        "early_success_stop_allowed": { "const": false },
+        "terminal_finalization_required": { "const": true },
+        "finalization_not_before_end_at": { "const": true },
+        "trusted_complete_census_export_required": { "const": true },
+        "zero_eligible_terminal_census_and_finalization_required": { "const": true }
+      }
+    },
+    "contractVersions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["taxon_catalog", "observation", "model_run", "opportunity"],
+      "properties": {
+        "taxon_catalog": { "const": "castingcompass.taxa/1.0.0" },
+        "observation": { "const": "castingcompass.observation/2.0.0" },
+        "model_run": { "const": "castingcompass.model-run/2.0.0" },
+        "opportunity": { "const": "castingcompass.opportunity/2.0.0" }
+      }
+    },
+    "targetAndClaim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_taxon_id",
+        "contract_versions",
+        "unit_of_analysis",
+        "outcome",
+        "score_semantics",
+        "allowed_claim",
+        "prohibited_claims"
+      ],
+      "properties": {
+        "target_taxon_id": { "const": "california-halibut" },
+        "contract_versions": { "$ref": "#/$defs/contractVersions" },
+        "unit_of_analysis": { "const": "one-complete-unexpanded-solo-angler-whole-trip-attempt-at-one-curated-site-within-one-authoritative-two-hour-window" },
+        "outcome": { "const": "self-reported-california-halibut-target-encounter" },
+        "score_semantics": { "const": "ordinal-relative-ranking-0-to-100" },
+        "allowed_claim": { "$ref": "#/$defs/nonemptyString" },
+        "prohibited_claims": { "$ref": "#/$defs/nonemptyStringArray" }
+      }
+    },
+    "primaryCohort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "cohort_id", "allowed_selection_designs", "authoritative_pre_outcome_impression_or_assignment_required", "score_visible_self_selection_allowed", "past_report_allowed", "precommitment", "safe_randomization"],
+      "properties": {
+        "role": { "const": "prospective-primary" },
+        "cohort_id": { "const": "california-halibut-site-window-primary-v1" },
+        "allowed_selection_designs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["prospective-precommitted-without-score", "prospective-safely-randomized"] }
+        },
+        "authoritative_pre_outcome_impression_or_assignment_required": { "const": true },
+        "score_visible_self_selection_allowed": { "const": false },
+        "past_report_allowed": { "const": false },
+        "precommitment": { "$ref": "#/$defs/precommitment" },
+        "safe_randomization": { "$ref": "#/$defs/safeRandomization" }
+      }
+    },
+    "precommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_version",
+        "durable_server_event_required",
+        "must_precede_score_exposure",
+        "impression_or_assignment_at_semantics",
+        "event_hash_field",
+        "event_payload_fields"
+      ],
+      "properties": {
+        "policy_version": { "const": "castingcompass.score-blind-precommitment/1.0.0" },
+        "durable_server_event_required": { "const": true },
+        "must_precede_score_exposure": { "const": true },
+        "impression_or_assignment_at_semantics": { "const": "durable-precommitment-persisted-at" },
+        "event_hash_field": { "const": "precommitment_event_sha256" },
+        "event_payload_fields": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "participant_group_id",
+              "site_id",
+              "opportunity_window_id",
+              "target_taxon_id",
+              "target_intent_confirmed_at",
+              "scoring_system_version",
+              "scoring_system_sha256",
+              "score_visible_before_precommit"
+            ]
+          }
+        }
+      }
+    },
+    "safeRandomization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_version",
+        "feasible_set_declared_before_score",
+        "minimum_feasible_options",
+        "allocation",
+        "algorithm",
+        "single_durable_draw",
+        "redraw_allowed",
+        "safe_refusal_role",
+        "required_audit_fields"
+      ],
+      "properties": {
+        "policy_version": { "const": "castingcompass.safe-randomization/1.0.0" },
+        "feasible_set_declared_before_score": { "const": true },
+        "minimum_feasible_options": { "const": 2 },
+        "allocation": { "const": "uniform-one-of-declared-feasible-options" },
+        "algorithm": { "const": "server-csprng-unbiased-rejection-sampling-v1" },
+        "single_durable_draw": { "const": true },
+        "redraw_allowed": { "const": false },
+        "safe_refusal_role": { "const": "unsealed-safe-canceled-not-negative-outcome" },
+        "required_audit_fields": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "feasible_set_sha256",
+              "feasible_option_count",
+              "assignment_probability_numerator",
+              "assignment_probability_denominator",
+              "randomization_draw_index",
+              "randomization_audit_sha256"
+            ]
+          }
+        }
+      }
+    },
+    "secondaryCohort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "cohort_id", "allowed_selection_designs", "influence_answer_changes_role", "eligible_for_primary_gate"],
+      "properties": {
+        "role": { "const": "observational-secondary" },
+        "cohort_id": { "const": "california-halibut-site-window-observational-secondary-v1" },
+        "allowed_selection_designs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "const": "prospective-score-visible-self-selected" }
+        },
+        "influence_answer_changes_role": { "const": false },
+        "eligible_for_primary_gate": { "const": false }
+      }
+    },
+    "exploratoryCohort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "sources", "eligible_for_primary_gate"],
+      "properties": {
+        "role": { "const": "exploratory-only" },
+        "sources": { "$ref": "#/$defs/nonemptyStringArray" },
+        "eligible_for_primary_gate": { "const": false }
+      }
+    },
+    "incentives": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy", "future_incentive_requirements"],
+      "properties": {
+        "policy": { "const": "none-v1" },
+        "future_incentive_requirements": { "$ref": "#/$defs/nonemptyStringArray" }
+      }
+    },
+    "cohorts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary", "secondary", "exploratory", "incentives", "trusted_export_mapping", "provenance_chain"],
+      "properties": {
+        "primary": { "$ref": "#/$defs/primaryCohort" },
+        "secondary": { "$ref": "#/$defs/secondaryCohort" },
+        "exploratory": { "$ref": "#/$defs/exploratoryCohort" },
+        "incentives": { "$ref": "#/$defs/incentives" },
+        "trusted_export_mapping": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["primary", "secondary", "exploratory", "quarantined"],
+          "properties": {
+            "primary": { "$ref": "#/$defs/trustedExportRole" },
+            "secondary": { "$ref": "#/$defs/trustedExportRole" },
+            "exploratory": { "$ref": "#/$defs/trustedExportRole" },
+            "quarantined": { "$ref": "#/$defs/trustedExportRole" }
+          }
+        },
+        "provenance_chain": { "$ref": "#/$defs/provenanceChain" }
+      }
+    },
+    "provenanceChain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_projection_fields", "canonical_sort", "canonical_hash",
+        "required_prospective_event_type_counts",
+        "terminal_effective_event_must_equal_completion",
+        "any_exclusion_permanently_disqualifies_prospective_admission",
+        "signed_summary_fields"
+      ],
+      "properties": {
+        "event_projection_fields": {
+          "const": ["id", "event_type", "created_at", "exclusion_reason"]
+        },
+        "canonical_sort": { "const": ["created_at", "event_type", "id"] },
+        "canonical_hash": { "const": "sha256-of-compact-sorted-key-utf8-json-array" },
+        "required_prospective_event_type_counts": {
+          "const": {
+            "enrollment": 1,
+            "completion": 1,
+            "evidence_exclusion": 0,
+            "retrospective_submission": 0,
+            "legacy_context": 0
+          }
+        },
+        "terminal_effective_event_must_equal_completion": { "const": true },
+        "any_exclusion_permanently_disqualifies_prospective_admission": { "const": true },
+        "signed_summary_fields": {
+          "const": [
+            "collection_event_type", "collection_event_id", "collection_event_at",
+            "collection_event_type_counts", "collection_terminal_event_id",
+            "collection_terminal_event_type", "collection_terminal_event_at",
+            "collection_provenance_chain_sha256"
+          ]
+        }
+      }
+    },
+    "trustedExportRole": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["collection_source_role", "collection_evidence_status", "cohort_id"],
+      "properties": {
+        "collection_source_role": { "$ref": "#/$defs/stableId" },
+        "collection_evidence_status": { "$ref": "#/$defs/stableId" },
+        "cohort_id": { "$ref": "#/$defs/stableId" }
+      }
+    },
+    "recruitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frame_id",
+        "event_contract_version",
+        "event_hash_method",
+        "event_payload_fields",
+        "allowed_source_ids",
+        "source_assignment_rule",
+        "inclusion_rule",
+        "outcome_adaptive_quotas_allowed",
+        "community_approval_rule",
+        "pooled_primary_analysis",
+        "required_stratified_reporting",
+        "trusted_export_query_id",
+        "trusted_export_record_order_field",
+        "trusted_export_requires_consecutive_export_ordinal",
+        "trusted_export_requires_per_source_and_status_counts",
+        "trusted_export_eligible_omissions_allowed",
+        "issuance_reconciliation_query_id",
+        "issuance_stream_id",
+        "exposure_stream_id",
+        "issuance_reconciliation_evidence_basis",
+        "append_only_log_proof_included_in_local_freeze",
+        "production_requires_external_append_only_log_proof"
+      ],
+      "properties": {
+        "frame_id": { "const": "california-halibut-site-window-recruitment-v1" },
+        "event_contract_version": { "const": "castingcompass.recruitment-event/1.0.0" },
+        "event_hash_method": { "const": "castingcompass-canonical-json/1.0.0-sha256" },
+        "event_payload_fields": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "participant_group_id",
+              "recruitment_frame_id",
+              "recruitment_source_id",
+              "recruitment_event_at",
+              "community_approval_sha256"
+            ]
+          }
+        },
+        "allowed_source_ids": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "castingcompass-organic-product",
+              "direct-opt-in-research-invite",
+              "admin-approved-community-prospective"
+            ]
+          }
+        },
+        "source_assignment_rule": { "const": "first-eligible-pre-outcome-recruitment-event-wins-and-is-immutable" },
+        "inclusion_rule": { "const": "consecutive-every-eligible-accepted-row-in-fixed-interval" },
+        "outcome_adaptive_quotas_allowed": { "const": false },
+        "community_approval_rule": { "const": "sha256-required-only-for-admin-approved-community-prospective" },
+        "pooled_primary_analysis": { "const": true },
+        "required_stratified_reporting": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "recruitment-source-id",
+              "selection-design",
+              "recruitment-source-id-by-selection-design"
+            ]
+          }
+        },
+        "trusted_export_query_id": { "const": "castingcompass-fixed-interval-eligibility-census-v1" },
+        "trusted_export_record_order_field": { "const": "export_ordinal" },
+        "trusted_export_requires_consecutive_export_ordinal": { "const": true },
+        "trusted_export_requires_per_source_and_status_counts": { "const": true },
+        "trusted_export_eligible_omissions_allowed": { "const": false },
+        "issuance_reconciliation_query_id": { "const": "castingcompass-terminal-issuance-exposure-reconciliation-v1" },
+        "issuance_stream_id": { "const": "castingcompass-assignment-issuance-v1" },
+        "exposure_stream_id": { "const": "castingcompass-signed-primary-score-exposure-v1" },
+        "issuance_reconciliation_evidence_basis": { "const": "signed-exporter-assertion-without-raw-ledger-proof" },
+        "append_only_log_proof_included_in_local_freeze": { "const": false },
+        "production_requires_external_append_only_log_proof": { "const": true }
+      }
+    },
+    "eligibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_contract_status",
+        "complete_attempt_required",
+        "expanded_estimate_allowed",
+        "whole_segment_target_intent_required",
+        "primary_angler_count",
+        "accepted_study_consent_version",
+        "completion_event_contract_version",
+        "completion_consent_and_target_intent_required",
+        "supported_modes",
+        "spatial_support_kind",
+        "one_curated_site_required",
+        "entire_segment_within_one_authoritative_window",
+        "authoritative_window_duration_minutes",
+        "effort_unit",
+        "attempt_count",
+        "effort_definition",
+        "angler_count_min",
+        "angler_count_max",
+        "effort_hash_integer_fields",
+        "angler_hours_derivation",
+        "overlapping_participant_segments_allowed",
+        "multiple_attempts_per_participant-opportunity-window",
+        "participant_opportunity_window_identity",
+        "authoritative_window_duration_check",
+        "completion_must_not_postdate_assignment_batch_seal",
+        "completion_must_not_postdate_census_generation_or_query_watermark",
+        "primary_participant_grouping_identity",
+        "resettable-reporter-or-device-token-eligible-for-primary",
+        "impression_attestation_contract",
+        "score_exposure_attestation_contract",
+        "terminal_issuance_reconciliation_contract",
+        "server_bound_identity_fields",
+        "immutable_pre_outcome_fields",
+        "immutable_score_exposure_event_fields",
+        "immutable_completion_fields",
+        "immutable_terminal_reconciliation_fields",
+        "server_identity_derivation",
+        "outcome_dependent_verification_gate_allowed",
+        "photo_required",
+        "exact_coordinates_allowed",
+        "edit_policy",
+        "deletion_withdrawal_and_exclusion_policy"
+      ],
+      "properties": {
+        "observation_contract_status": { "const": "valid" },
+        "complete_attempt_required": { "const": true },
+        "expanded_estimate_allowed": { "const": false },
+        "whole_segment_target_intent_required": { "const": true },
+        "primary_angler_count": { "const": 1 },
+        "accepted_study_consent_version": { "const": "castingcompass.trip-validation-consent/1.0.0" },
+        "completion_event_contract_version": { "const": "castingcompass.validation-completion-event/1.0.0" },
+        "completion_consent_and_target_intent_required": { "const": true },
+        "supported_modes": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": { "enum": ["shore", "beach", "pier", "jetty"] }
+        },
+        "spatial_support_kind": { "const": "site" },
+        "one_curated_site_required": { "const": true },
+        "entire_segment_within_one_authoritative_window": { "const": true },
+        "authoritative_window_duration_minutes": { "const": 120 },
+        "effort_unit": { "const": "whole-trip-group-attempt" },
+        "attempt_count": { "const": 1 },
+        "effort_definition": { "const": "one-completed-unexpanded-whole-trip-group-attempt-with-angler-hours-equal-to-segment-duration-hours-times-angler-count" },
+        "angler_count_min": { "const": 1 },
+        "angler_count_max": { "const": 12 },
+        "effort_hash_integer_fields": { "const": ["duration_milliseconds", "angler_count", "person_milliseconds", "attempt_count"] },
+        "angler_hours_derivation": { "const": "person-milliseconds-divided-by-3600000-without-rounding" },
+        "overlapping_participant_segments_allowed": { "const": false },
+        "multiple_attempts_per_participant-opportunity-window": { "const": false },
+        "participant_opportunity_window_identity": {
+          "const": ["participant_group_id", "site_id", "utc_window_start_instant", "utc_window_end_instant"]
+        },
+        "authoritative_window_duration_check": { "const": "exact-timedelta-with-millisecond-aligned-bounds" },
+        "completion_must_not_postdate_assignment_batch_seal": { "const": true },
+        "completion_must_not_postdate_census_generation_or_query_watermark": { "const": true },
+        "primary_participant_grouping_identity": { "const": "server-authoritative-study-stable-across-sessions-and-devices" },
+        "resettable-reporter-or-device-token-eligible-for-primary": { "const": false },
+        "impression_attestation_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version", "canonicalization", "canonicalization_rules", "payload_encoding", "payload_sha256_rule", "signature_algorithm",
+            "public_key_source", "signing_key_id_source", "required_cohort_roles",
+            "envelope_fields", "payload_fields", "envelope_hash_field",
+            "attested_at_rule", "full_row_match_required",
+            "signature_verification_required_before_prospective_admission",
+            "unsigned_or_arbitrary_digest_allowed",
+            "future_completion_or_admission_status_fields_allowed",
+            "primary_exposure_state_rule", "secondary_exposure_state_rule",
+            "cross_runtime_vector_path",
+            "cross_runtime_vector_file_sha256"
+          ],
+          "properties": {
+            "schema_version": { "const": "castingcompass.validation-impression-attestation/1.0.0" },
+            "canonicalization": { "const": "castingcompass-canonical-json/1.0.0" },
+            "canonicalization_rules": {
+              "const": [
+                "utf-8",
+                "object-keys-sorted-lexicographically-by-unicode-code-point",
+                "compact-comma-and-colon-separators",
+                "non-ascii-characters-unescaped",
+                "duplicate-object-keys-rejected",
+                "floating-point-and-nonfinite-numbers-rejected"
+              ]
+            },
+            "payload_encoding": { "const": "canonical-json-utf8-base64-canonical" },
+            "payload_sha256_rule": { "const": "sha256-of-decoded-canonical-payload-bytes" },
+            "signature_algorithm": { "const": "ed25519-rfc8032" },
+            "public_key_source": { "const": "root-activation-validation-export-public-key-ed25519" },
+            "signing_key_id_source": { "const": "root-activation-validation-export-signing-key-id" },
+            "required_cohort_roles": { "const": ["primary", "secondary"] },
+            "envelope_fields": {
+              "const": ["schema_version", "signing_key_id", "payload_base64", "payload_sha256", "signature_ed25519"]
+            },
+            "payload_fields": {
+              "const": [
+                "protocol_id", "protocol_version", "activation_manifest_sha256",
+                "assignment_id", "source_record_sha256", "participant_group_id",
+                "activation_activated_at", "intended_cohort_role", "intended_source_role",
+                "selection_design", "selection_method", "intended_cohort_id",
+                "target_taxon_id", "recruitment_frame_id",
+                "recruitment_source_id", "recruitment_event_contract_version",
+                "recruitment_event_at", "recruitment_event_sha256", "community_approval_sha256",
+                "incentive_policy_id", "score_influenced_choice_at_assignment",
+                "study_consent_version", "study_consent_at",
+                "target_intent_confirmed_at", "precommitment_event_sha256", "feasible_set_sha256",
+                "feasible_option_count", "assignment_probability_numerator",
+                "assignment_probability_denominator", "randomization_draw_index",
+                "randomization_audit_sha256", "forecast_impression_id",
+                "opportunity_window_id", "site_id", "window_start_at", "window_end_at",
+                "opportunity_score", "snapshot_sha256", "site_catalog_sha256",
+                "scoring_system_kind", "scoring_system_version", "scoring_system_sha256",
+                "opportunity_contract_version", "impression_or_assignment_at",
+                "score_exposure_state_at_attestation",
+                "score_first_exposed_at_if_already_exposed", "attested_at"
+              ]
+            },
+            "envelope_hash_field": { "const": "evidence.impression_attestation_sha256" },
+            "attested_at_rule": { "const": "equals-impression-or-assignment-at-and-before-segment-start" },
+            "full_row_match_required": { "const": true },
+            "signature_verification_required_before_prospective_admission": { "const": true },
+            "unsigned_or_arbitrary_digest_allowed": { "const": false },
+            "future_completion_or_admission_status_fields_allowed": { "const": false },
+            "primary_exposure_state_rule": { "const": "not-yet-exposed-and-no-future-exposure-time" },
+            "secondary_exposure_state_rule": { "const": "already-exposed-with-observed-time-before-assignment" },
+            "cross_runtime_vector_path": { "const": "contracts/fixtures/impression-attestation-vector.json" },
+            "cross_runtime_vector_file_sha256": { "const": "8ef6ec7b001d0a9a84d554b6327f711274e0af992081f342aa6b8392894c173c" }
+          }
+        },
+        "score_exposure_attestation_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version", "scope", "sealed_row_envelope_scope",
+            "terminal_stream_event_scope", "postsegment_event_rule",
+            "never_exposed_rule", "canonicalization",
+            "canonicalization_rules", "payload_encoding", "payload_sha256_rule",
+            "signature_algorithm", "public_key_source", "signing_key_id_source",
+            "envelope_fields", "payload_fields", "chain_rule", "attested_at_rule",
+            "sealed_row_admission_rule",
+            "secondary_rule", "envelope_hash_field", "signature_verification_required",
+            "disposition_field", "disposition_mapping",
+            "terminal_signed_census_binds_disposition",
+            "terminal_exposure_ledger_reconciliation_required",
+            "cross_runtime_vector_path", "cross_runtime_vector_file_sha256"
+          ],
+          "properties": {
+            "schema_version": { "const": "castingcompass.validation-score-exposure-attestation/1.0.0" },
+            "scope": { "const": "primary-only-when-score-is-actually-exposed" },
+            "sealed_row_envelope_scope": { "const": "primary-first-exposure-after-assignment-and-before-segment-start-only" },
+            "terminal_stream_event_scope": { "const": "all-signed-primary-first-exposure-events-after-assignment-through-reconciliation-watermark-including-during-or-after-effort" },
+            "postsegment_event_rule": { "const": "terminal-reconciliation-only-never-backfilled-into-a-sealed-label-free-row" },
+            "never_exposed_rule": { "const": "score-time-envelope-and-envelope-hash-all-null" },
+            "canonicalization": { "const": "castingcompass-canonical-json/1.0.0" },
+            "canonicalization_rules": {
+              "const": [
+                "utf-8",
+                "object-keys-sorted-lexicographically-by-unicode-code-point",
+                "compact-comma-and-colon-separators",
+                "non-ascii-characters-unescaped",
+                "duplicate-object-keys-rejected",
+                "floating-point-and-nonfinite-numbers-rejected"
+              ]
+            },
+            "payload_encoding": { "const": "canonical-json-utf8-base64-canonical" },
+            "payload_sha256_rule": { "const": "sha256-of-decoded-canonical-payload-bytes" },
+            "signature_algorithm": { "const": "ed25519-rfc8032" },
+            "public_key_source": { "const": "root-activation-validation-export-public-key-ed25519" },
+            "signing_key_id_source": { "const": "root-activation-validation-export-signing-key-id" },
+            "envelope_fields": { "const": ["schema_version", "signing_key_id", "payload_base64", "payload_sha256", "signature_ed25519"] },
+            "payload_fields": {
+              "const": [
+                "protocol_id", "protocol_version", "activation_manifest_sha256",
+                "assignment_id", "source_record_sha256", "participant_group_id",
+                "selection_design", "impression_attestation_sha256",
+                "forecast_impression_id", "opportunity_window_id", "site_id",
+                "window_start_at", "window_end_at", "opportunity_score",
+                "snapshot_sha256", "site_catalog_sha256", "scoring_system_kind",
+                "scoring_system_version", "scoring_system_sha256",
+                "opportunity_contract_version", "score_first_exposed_at", "attested_at"
+              ]
+            },
+            "chain_rule": { "const": "links-prior-impression-attestation-sha256" },
+            "attested_at_rule": { "const": "equals-score-first-exposed-at-strictly-after-assignment-and-at-or-before-reconciliation-watermark" },
+            "sealed_row_admission_rule": { "const": "score-first-exposed-at-and-attested-at-must-both-be-strictly-before-segment-start" },
+            "secondary_rule": { "const": "no-exposure-envelope-assignment-attestation-binds-prior-observed-exposure" },
+            "envelope_hash_field": { "const": "evidence.score_exposure_attestation_sha256" },
+            "signature_verification_required": { "const": true },
+            "disposition_field": { "const": "evidence.score_exposure_disposition" },
+            "disposition_mapping": {
+              "const": {
+                "primary_never_exposed": "never-exposed-through-completion",
+                "primary_exposed": "exposed-after-assignment-before-segment",
+                "secondary": "already-exposed-before-assignment",
+                "nonprospective": "not-applicable"
+              }
+            },
+            "terminal_signed_census_binds_disposition": { "const": true },
+            "terminal_exposure_ledger_reconciliation_required": { "const": true },
+            "cross_runtime_vector_path": { "const": "contracts/fixtures/impression-attestation-vector.json" },
+            "cross_runtime_vector_file_sha256": { "const": "8ef6ec7b001d0a9a84d554b6327f711274e0af992081f342aa6b8392894c173c" }
+          }
+        },
+        "terminal_issuance_reconciliation_contract": {
+          "const": {
+            "census_field": "issuance_reconciliation",
+            "query_id": "castingcompass-terminal-issuance-exposure-reconciliation-v1",
+            "local_evidence_basis": "signed-exporter-assertion-without-raw-ledger-proof",
+            "local_append_only_log_proof_included": false,
+            "stream_fields": ["stream_id", "first_sequence", "last_sequence", "event_count", "event_set_sha256", "chain_tip_sha256", "external_log_proof_sha256"],
+            "issuance_stream_id": "castingcompass-assignment-issuance-v1",
+            "signed_primary_exposure_stream_id": "castingcompass-signed-primary-score-exposure-v1",
+            "signed_primary_exposure_stream_scope": "signer-issued-post-assignment-primary-first-exposure-events-only",
+            "secondary_prior_exposure_rule": "asserted-in-later-assignment-envelope-not-counted-in-signed-exposure-stream",
+            "record_fields": [
+              "assignment_sequence", "assignment_id", "source_record_sha256", "impression_attestation_sha256", "assignment_issued_at",
+              "intended_cohort_role", "intended_source_role", "segment_start_at", "completion_event_at", "exposure_sequence",
+              "score_exposure_attestation_sha256", "score_exposure_links_impression_attestation_sha256", "score_exposed_at",
+              "score_exposure_evidence_kind", "score_exposure_disposition", "sealed_row_score_exposure_disposition",
+              "terminal_disposition", "terminal_reason", "final_cohort_role", "label_free_row_sha256", "completion_event_sha256",
+              "reconciliation_watermark_at", "terminal_collection_provenance_chain_sha256", "disposition_event_sha256"
+            ],
+            "assignment_set_projection_fields": ["assignment_id", "impression_attestation_sha256"],
+            "signed_primary_exposure_set_projection_fields": ["assignment_id", "score_exposure_attestation_sha256"],
+            "terminal_disposition_set_projection_fields": ["assignment_id", "disposition_event_sha256"],
+            "stream_event_projection_fields": ["sequence", "event_type", "assignment_id", "event_sha256", "event_at"],
+            "score_exposure_evidence_kinds": ["none", "signed-first-exposure-event", "prior-exposure-asserted-in-impression"],
+            "score_exposure_dispositions": [
+              "already-exposed-before-assignment", "exposed-after-assignment-no-effort-started", "exposed-after-assignment-before-segment",
+              "exposed-during-started-incomplete-effort", "exposed-during-effort-through-completion", "exposed-after-completion",
+              "no-issued-exposure-through-terminal-watermark"
+            ],
+            "terminal_dispositions": ["completed-and-exported", "incomplete-or-expired", "safe-canceled", "withdrawn", "excluded"],
+            "terminal_snapshot_rule": "reconciliation-watermark-at-equals-reconciled-through-at-and-is-not-an-event-occurrence-time",
+            "sequence_rule": "consecutive-gapless-monotone-timestamps-starting-at-one",
+            "zero_missing_and_unmatched_required": true,
+            "sealed_issued_role_rule": "final-primary-or-secondary-must-exactly-equal-signed-intended-role",
+            "unsealed_issued_rule": "final-role-and-label-free-row-hash-null-with-exhaustive-terminal-disposition",
+            "external_log_proof_interface": {
+              "implementation_status": "not-implemented-production-blocker",
+              "artifact_schema_version": "castingcompass.validation-external-log-proof/1.0.0",
+              "anchor_identity_source": "activation-pinned-distinct-from-exporter",
+              "anchor_must_differ_from_export_signing_key": true,
+              "required_artifact_fields": [
+                "protocol_id", "activation_manifest_sha256", "issuance_checkpoint_tree_root_sha256",
+                "issuance_checkpoint_tree_size", "exposure_checkpoint_tree_root_sha256",
+                "exposure_checkpoint_tree_size", "event_inclusion_proofs",
+                "checkpoint_consistency_chain", "effort_boundary_events", "anchored_checkpoint_at",
+                "anchor_signing_key_id", "anchor_allowlist_receipt_sha256",
+                "transparency_receipt_sha256", "signature_ed25519"
+              ],
+              "issuance_inclusion_deadline": "each-assignment-included-within-300-seconds-of-assignment-issued-at-and-strictly-before-segment-start-when-a-segment-exists",
+              "exposure_inclusion_deadline": "each-signed-exposure-included-within-300-seconds-of-score-first-exposed-at-and-exposures-admitted-into-the-sealed-label-free-row-strictly-before-segment-start",
+              "maximum_assignment_anchor_delay_seconds": 300,
+              "maximum_exposure_anchor_delay_seconds": 300,
+              "gapless_consistency_rule": "verified-consistency-and-inclusion-proofs-cover-every-sequence-through-terminal-checkpoint",
+              "zero_event_stream_rule": "independently-signed-and-anchored-zero-size-terminal-checkpoint-with-verified-genesis-consistency-required",
+              "proof_bundle_data_rule": "verifier-consumes-canonical-proof-arrays-checkpoint-roots-and-tree-sizes-not-caller-asserted-proof-digests",
+              "anchor_trust_rule": "activation-pinned-anchor-must-also-verify-against-an-external-allowlist-with-independent-key-custody",
+              "terminal_checkpoint_max_delay_seconds": 300,
+              "terminal_checkpoint_rule": "covers-every-issuance-and-exposure-event-through-reconciled-through-at-and-is-anchored-at-or-after-that-watermark-and-within-300-seconds-including-zero-size-streams",
+              "effort_boundary_rule": "exact-server-authoritative-segment-start-and-completion-event-identities-and-times-covered-by-the-independently-verified-collection-ledger-proof",
+              "verification_required_before_activation": true,
+              "verification_required_before_publication": true,
+              "local_evaluator_accepts_proof_mode": false
+            }
+          }
+        },
+        "server_bound_identity_fields": { "$ref": "#/$defs/nonemptyStringArray" },
+        "immutable_pre_outcome_fields": {
+          "const": [
+            "selection_design", "score_influenced_choice", "precommitment_event_sha256",
+            "study_consent_version", "target_intent_confirmed_at", "impression_or_assignment_at"
+          ]
+        },
+        "immutable_score_exposure_event_fields": {
+          "const": ["score_first_exposed_at", "score_exposure_attestation_sha256"]
+        },
+        "immutable_completion_fields": {
+          "const": [
+            "completion_event_at", "completion_consent_version", "completion_consented_at",
+            "completion_primary_target_confirmed", "completion_complete_attempt_confirmed",
+            "completion_event_sha256", "effort_unit", "attempt_count",
+            "duration_milliseconds", "angler_count", "person_milliseconds"
+          ]
+        },
+        "immutable_terminal_reconciliation_fields": {
+          "const": ["score_exposure_disposition", "terminal_disposition", "terminal_reason", "disposition_event_sha256"]
+        },
+        "server_identity_derivation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["text_encoding", "separator", "source_record_sha256", "effort_segment_id", "assignment_id"],
+          "properties": {
+            "text_encoding": { "const": "utf-8" },
+            "separator": { "const": "nul-byte" },
+            "source_record_sha256": { "const": "sha256(castingcompass.validation-source-record/1.0.0 NUL immutable-trip-id)" },
+            "effort_segment_id": { "const": "effort- plus sha256(castingcompass.validation-effort-segment/1.0.0 NUL immutable-trip-id)" },
+            "assignment_id": { "const": "assignment- plus sha256(castingcompass.validation-assignment/1.0.0 NUL protocol-id NUL source-record-sha256)" }
+          }
+        },
+        "outcome_dependent_verification_gate_allowed": { "const": false },
+        "photo_required": { "const": false },
+        "exact_coordinates_allowed": { "const": false },
+        "edit_policy": { "const": "fail-closed-append-evidence-exclusion-and-remove-from-active-analysis" },
+        "deletion_withdrawal_and_exclusion_policy": { "const": "remove-from-future-runs-and-reconcile-derived-private-artifacts" }
+      }
+    },
+    "siteId": {
+      "enum": [
+        "limantour-beach", "drakes-beach", "point-reyes-south-beach", "bolinas-beach", "stinson-beach", "muir-beach", "rodeo-beach",
+        "fort-baker-pier", "torpedo-wharf", "crissy-field-east-beach", "baker-beach", "china-beach", "ocean-beach-north", "ocean-beach-south",
+        "mcnears-beach-pier", "paradise-beach-pier", "ferry-point-pier", "keller-beach", "point-isabel-shoreline", "albany-bulb", "berkeley-marina-north-basin", "cesar-chavez-park", "emeryville-marina-pier",
+        "pier-7", "pier-14", "crane-cove-park", "herons-head-park-pier", "port-view-park-pier", "middle-harbor-shoreline", "alameda-south-shore-rockwall", "crown-memorial-state-beach", "oyster-bay-shoreline", "san-leandro-marina-shore", "dumbarton-pier", "coyote-point-jetty", "seal-point-park", "oyster-point-fishing-pier",
+        "sharp-park-beach", "rockaway-beach", "pacifica-state-beach", "montara-state-beach", "pillar-point-west-jetty", "pillar-point-east-jetty", "surfers-beach", "francis-state-beach", "poplar-beach"
+      ]
+    },
+    "panelId": { "enum": ["north-coast", "golden-gate-sf-coast", "north-east-bay", "central-south-bay", "san-mateo-coast"] },
+    "panel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["panel_id", "site_ids"],
+      "properties": {
+        "panel_id": { "$ref": "#/$defs/panelId" },
+        "site_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/siteId" }
+        }
+      }
+    },
+    "excludedSite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["site_id", "reason"],
+      "properties": {
+        "site_id": { "const": "pacifica-municipal-pier" },
+        "reason": { "const": "no-emitted-opportunity-windows" }
+      }
+    },
+    "geography": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["site_catalog_path", "site_catalog_sha256", "eligible_site_count", "excluded_sites", "panels"],
+      "properties": {
+        "site_catalog_path": { "const": "public/data/sites.json" },
+        "site_catalog_sha256": { "$ref": "#/$defs/sha256" },
+        "eligible_site_count": { "const": 46 },
+        "excluded_sites": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "$ref": "#/$defs/excludedSite" } },
+        "panels": { "type": "array", "minItems": 5, "maxItems": 5, "items": { "$ref": "#/$defs/panel" } }
+      }
+    },
+    "blockId": { "enum": ["block-1", "block-2", "block-3", "block-4"] },
+    "temporalBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["block_id", "start_at", "end_at", "role"],
+      "properties": {
+        "block_id": { "$ref": "#/$defs/blockId" },
+        "start_at": { "type": "string", "format": "date-time" },
+        "end_at": { "type": "string", "format": "date-time" },
+        "role": { "enum": ["baseline-development", "locked-primary-test"] }
+      }
+    },
+    "temporalDesign": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blocks", "boundary_convention", "development_blocks", "locked_test_blocks", "held_panel_rule", "test_is_unseen_geography_and_later_time"],
+      "properties": {
+        "blocks": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "$ref": "#/$defs/temporalBlock" } },
+        "boundary_convention": { "const": "half-open-start-inclusive-end-exclusive" },
+        "development_blocks": { "type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": { "$ref": "#/$defs/blockId" } },
+        "locked_test_blocks": { "type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": { "$ref": "#/$defs/blockId" } },
+        "held_panel_rule": { "$ref": "#/$defs/nonemptyString" },
+        "test_is_unseen_geography_and_later_time": { "const": true }
+      }
+    },
+    "baselineHyperparameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "alpha": { "type": "number", "exclusiveMinimum": 0 },
+        "beta": { "type": "number", "exclusiveMinimum": 0 },
+        "penalty": { "const": "l2" },
+        "C": { "type": "number", "exclusiveMinimum": 0 },
+        "solver": { "const": "liblinear" },
+        "class_weight": { "type": "null" },
+        "fit_intercept": { "const": true },
+        "intercept_scaling": { "const": 1 },
+        "tol": { "const": 0.0001 },
+        "max_iter": { "type": "integer", "minimum": 1 },
+        "random_state": { "type": "integer" }
+      },
+      "minProperties": 2
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseline_id", "model", "features", "preprocessing", "preprocessing_parameters", "hyperparameters", "fallback"],
+      "properties": {
+        "baseline_id": { "enum": ["prevalence-only", "calendar-mode-effort-logistic", "site-calendar-mode-effort-logistic"] },
+        "model": { "$ref": "#/$defs/nonemptyString" },
+        "features": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/nonemptyString" } },
+        "preprocessing": { "$ref": "#/$defs/nonemptyString" },
+        "preprocessing_parameters": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["numeric_standardization", "utc_day_of_year_cycle_denominator_days"],
+              "properties": {
+                "numeric_standardization": { "const": "training-fold-population-standard-deviation-ddof-0" },
+                "utc_day_of_year_cycle_denominator_days": { "const": 365.2425 }
+              }
+            },
+            { "type": "null" }
+          ]
+        },
+        "hyperparameters": { "$ref": "#/$defs/baselineHyperparameters" },
+        "fallback": { "$ref": "#/$defs/nonemptyString" }
+      }
+    },
+    "baselines": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selection_data", "selection_metric", "tie_break_order", "definitions"],
+      "properties": {
+        "selection_data": { "const": "development-blocks-only" },
+        "selection_metric": { "const": "mean-leave-one-panel-out-auroc" },
+        "tie_break_order": {
+          "type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true,
+          "items": { "enum": ["prevalence-only", "calendar-mode-effort-logistic", "site-calendar-mode-effort-logistic"] }
+        },
+        "definitions": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "$ref": "#/$defs/baseline" } }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "output", "single_scoring_identity_required", "identity_source", "trained_or_tuned_on_locked_test", "calibrated_probability_claimed"],
+      "properties": {
+        "kind": { "const": "heuristic-configuration" },
+        "output": { "const": "ordinal-opportunity-score-0-to-100" },
+        "single_scoring_identity_required": { "const": true },
+        "identity_source": { "const": "authoritative-activation-manifest-and-pre-outcome-impression" },
+        "trained_or_tuned_on_locked_test": { "const": false },
+        "calibrated_probability_claimed": { "const": false }
+      }
+    },
+    "bootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method", "resamples", "random_state", "participant_group", "strata",
+        "participant_rows_stay_together_across_all_panels_and_blocks", "interval",
+        "bit_generator", "percentile_method", "one-class_replicates", "maximum_draws",
+        "zero_estimable_locked_geographies_result"
+      ],
+      "properties": {
+        "method": { "const": "paired-global-participant-cluster-bootstrap" },
+        "resamples": { "type": "integer", "minimum": 1000 },
+        "random_state": { "type": "integer" },
+        "participant_group": { "const": "privacy-safe-participant-group-id" },
+        "strata": { "const": [] },
+        "participant_rows_stay_together_across_all_panels_and_blocks": { "const": true },
+        "interval": { "const": "percentile-95" },
+        "bit_generator": { "const": "PCG64" },
+        "percentile_method": { "const": "linear" },
+        "one-class_replicates": { "const": "discard-and-resample" },
+        "maximum_draws": { "type": "integer", "minimum": 1000 },
+        "zero_estimable_locked_geographies_result": { "const": "inconclusive" }
+      }
+    },
+    "promotionGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_auroc_lower_95_gt", "paired_delta_point_gte", "paired_delta_lower_95_gt", "minimum_estimable_geography_auroc"],
+      "properties": {
+        "candidate_auroc_lower_95_gt": { "type": "number", "minimum": 0, "maximum": 1 },
+        "paired_delta_point_gte": { "type": "number", "minimum": -1, "maximum": 1 },
+        "paired_delta_lower_95_gt": { "type": "number", "minimum": -1, "maximum": 1 },
+        "minimum_estimable_geography_auroc": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary_metric", "paired_comparison", "probability_metrics_prohibited_for_candidate", "bootstrap", "secondary_metrics", "inferential_secondary_adjustment", "promotion_gate"],
+      "properties": {
+        "primary_metric": { "const": "auroc-concordance" },
+        "paired_comparison": { "const": "candidate-minus-strongest-development-baseline" },
+        "probability_metrics_prohibited_for_candidate": { "$ref": "#/$defs/nonemptyStringArray" },
+        "bootstrap": { "$ref": "#/$defs/bootstrap" },
+        "secondary_metrics": { "$ref": "#/$defs/nonemptyStringArray" },
+        "inferential_secondary_adjustment": { "const": "not-applicable-no-secondary-hypothesis-tests" },
+        "promotion_gate": { "$ref": "#/$defs/promotionGate" }
+      }
+    },
+    "samplePlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "design_description", "analysis_set_rule", "accepted_attempt_gate_scope", "operational_planning_target_accepted_attempts",
+        "operational_target_controls_enrollment_or_analysis", "post_hoc_subsampling_allowed", "arrival_order_exclusion_allowed",
+        "minimum_total_accepted_attempts",
+        "minimum_development_attempts_per_geography", "minimum_development_target_encounters_per_geography",
+        "minimum_development_non_encounters_per_geography", "all_development_lopo_aurocs_must_be_estimable",
+        "minimum_locked_test_attempts", "minimum_locked_test_target_encounters", "minimum_locked_test_non_encounters",
+        "minimum_test_attempts_per_geography", "minimum_locked_test_target_encounters_per_geography", "minimum_locked_test_non_encounters_per_geography",
+        "minimum_attempts_per_locked_temporal_block",
+        "minimum_total_unique_participant_groups", "minimum_total_effective_participant_groups",
+        "minimum_development_unique_participant_groups", "minimum_development_effective_participant_groups",
+        "minimum_locked_test_unique_participant_groups", "minimum_locked_test_effective_participant_groups",
+        "minimum_development_target_encounter_participant_groups", "minimum_development_non_encounter_participant_groups",
+        "minimum_locked_test_target_encounter_participant_groups", "minimum_locked_test_non_encounter_participant_groups",
+        "minimum_development_target_encounter_effective_participant_groups", "minimum_development_non_encounter_effective_participant_groups",
+        "minimum_locked_test_target_encounter_effective_participant_groups", "minimum_locked_test_non_encounter_effective_participant_groups",
+        "minimum_development_unique_participant_groups_per_geography", "minimum_development_effective_participant_groups_per_geography",
+        "minimum_locked_test_unique_participant_groups_per_geography", "minimum_locked_test_effective_participant_groups_per_geography",
+        "minimum_development_target_encounter_participant_groups_per_geography", "minimum_development_target_encounter_effective_participant_groups_per_geography",
+        "minimum_development_non_encounter_participant_groups_per_geography", "minimum_development_non_encounter_effective_participant_groups_per_geography",
+        "minimum_locked_test_target_encounter_participant_groups_per_geography", "minimum_locked_test_target_encounter_effective_participant_groups_per_geography",
+        "minimum_locked_test_non_encounter_participant_groups_per_geography", "minimum_locked_test_non_encounter_effective_participant_groups_per_geography",
+        "minimum_unique_participant_groups_per_locked_temporal_block", "minimum_effective_participant_groups_per_locked_temporal_block",
+        "minimum_unique_participant_groups_per_development_temporal_block", "minimum_effective_participant_groups_per_development_temporal_block",
+        "maximum_single_participant_attempt_share_numerator", "maximum_single_participant_attempt_share_denominator",
+        "participant_effective_group_formula", "participant_concentration_gate_scope",
+        "insufficient_support_result", "all_locked_geography_aurocs_must_be_estimable", "sample_gate_is_not_power_claim"
+      ],
+      "properties": {
+        "design_description": { "const": "conservative-design-gates-not-a-power-guarantee" },
+        "analysis_set_rule": { "const": "fixed-interval-census-of-every-eligible-accepted-row" },
+        "accepted_attempt_gate_scope": { "const": "primary-only" },
+        "operational_planning_target_accepted_attempts": { "type": "integer", "minimum": 1 },
+        "operational_target_controls_enrollment_or_analysis": { "const": false },
+        "post_hoc_subsampling_allowed": { "const": false },
+        "arrival_order_exclusion_allowed": { "const": false },
+        "minimum_total_accepted_attempts": { "type": "integer", "minimum": 1 },
+        "minimum_development_attempts_per_geography": { "type": "integer", "minimum": 1 },
+        "minimum_development_target_encounters_per_geography": { "type": "integer", "minimum": 1 },
+        "minimum_development_non_encounters_per_geography": { "type": "integer", "minimum": 1 },
+        "all_development_lopo_aurocs_must_be_estimable": { "const": true },
+        "minimum_locked_test_attempts": { "type": "integer", "minimum": 1 },
+        "minimum_locked_test_target_encounters": { "type": "integer", "minimum": 1 },
+        "minimum_locked_test_non_encounters": { "type": "integer", "minimum": 1 },
+        "minimum_test_attempts_per_geography": { "type": "integer", "minimum": 1 },
+        "minimum_locked_test_target_encounters_per_geography": { "const": 5 },
+        "minimum_locked_test_non_encounters_per_geography": { "const": 10 },
+        "minimum_attempts_per_locked_temporal_block": { "type": "integer", "minimum": 1 },
+        "minimum_total_unique_participant_groups": { "const": 250 },
+        "minimum_total_effective_participant_groups": { "const": 200 },
+        "minimum_development_unique_participant_groups": { "const": 100 },
+        "minimum_development_effective_participant_groups": { "const": 75 },
+        "minimum_locked_test_unique_participant_groups": { "const": 100 },
+        "minimum_locked_test_effective_participant_groups": { "const": 75 },
+        "minimum_development_target_encounter_participant_groups": { "const": 20 },
+        "minimum_development_target_encounter_effective_participant_groups": { "const": 15 },
+        "minimum_development_non_encounter_participant_groups": { "const": 40 },
+        "minimum_development_non_encounter_effective_participant_groups": { "const": 30 },
+        "minimum_locked_test_target_encounter_participant_groups": { "const": 20 },
+        "minimum_locked_test_target_encounter_effective_participant_groups": { "const": 15 },
+        "minimum_locked_test_non_encounter_participant_groups": { "const": 40 },
+        "minimum_locked_test_non_encounter_effective_participant_groups": { "const": 30 },
+        "minimum_development_unique_participant_groups_per_geography": { "const": 15 },
+        "minimum_development_effective_participant_groups_per_geography": { "const": 12 },
+        "minimum_locked_test_unique_participant_groups_per_geography": { "const": 15 },
+        "minimum_locked_test_effective_participant_groups_per_geography": { "const": 12 },
+        "minimum_development_target_encounter_participant_groups_per_geography": { "const": 5 },
+        "minimum_development_target_encounter_effective_participant_groups_per_geography": { "const": 5 },
+        "minimum_development_non_encounter_participant_groups_per_geography": { "const": 10 },
+        "minimum_development_non_encounter_effective_participant_groups_per_geography": { "const": 10 },
+        "minimum_locked_test_target_encounter_participant_groups_per_geography": { "const": 5 },
+        "minimum_locked_test_target_encounter_effective_participant_groups_per_geography": { "const": 5 },
+        "minimum_locked_test_non_encounter_participant_groups_per_geography": { "const": 10 },
+        "minimum_locked_test_non_encounter_effective_participant_groups_per_geography": { "const": 10 },
+        "minimum_unique_participant_groups_per_locked_temporal_block": { "const": 50 },
+        "minimum_effective_participant_groups_per_locked_temporal_block": { "const": 40 },
+        "minimum_unique_participant_groups_per_development_temporal_block": { "const": 50 },
+        "minimum_effective_participant_groups_per_development_temporal_block": { "const": 40 },
+        "maximum_single_participant_attempt_share_numerator": { "const": 1 },
+        "maximum_single_participant_attempt_share_denominator": { "const": 10 },
+        "participant_effective_group_formula": { "const": "kish-square-of-sum-attempt-counts-divided-by-sum-of-squared-participant-attempt-counts" },
+        "participant_concentration_gate_scope": {
+          "const": [
+            "all-primary", "development-primary", "locked-test-primary",
+            "development-primary-by-outcome-class", "locked-test-primary-by-outcome-class",
+            "development-primary-by-geography", "locked-test-primary-by-geography",
+            "development-primary-by-temporal-block",
+            "locked-test-primary-by-temporal-block"
+          ]
+        },
+        "insufficient_support_result": { "const": "inconclusive" },
+        "all_locked_geography_aurocs_must_be_estimable": { "const": true },
+        "sample_gate_is_not_power_claim": { "const": true }
+      }
+    },
+    "splitPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_private", "created_outcome_blind", "append_only_chain", "binds_hashes",
+        "per_assignment_ordinal_score_frozen_in_first_batch",
+        "cumulative_batches_preserve_prior_assignment_objects_exactly",
+        "participant_grouping_required", "source_roles_immutable",
+        "assignments_regenerated_after_label_access", "labels_opened_at_required_when_unblinded",
+        "deletion_reconciliation_required", "terminal_finalization_manifest_required",
+        "trusted_signed_census_export_required", "deletion_ledger_append_only_cumulative",
+        "deletion_ledger_timestamps_strictly_advance",
+        "new_deletion_events_must_follow_predecessor_reconciliation_watermark",
+        "deletion_events_require_complete_manifest_chain",
+        "deletion_events_must_strictly_follow_first_assignment_seal",
+        "deletion_event_order",
+        "deletion_source_event_sha256_unique_in_cumulative_snapshot",
+        "deletion_status_reason_map", "deletion_status_transition_policy",
+        "deletion_first_removal_semantics", "deletion_latest_status_semantics",
+        "raw_labeled_file_bound_before_parse",
+        "evaluator_identity_frozen_in_finalization",
+        "independent_pinned_runtime_recomputation_required_before_publication",
+        "signed_labeled_export_binds_exact_label_lock",
+        "signed_labeled_export_generated_after_label_lock",
+        "label_lock_revalidates_frozen_evaluator_identity",
+        "client_publication_request_nonce_is_publication_authority",
+        "trusted_service_issues_and_atomically_consumes_single_use_publication_nonce",
+        "trusted_service_reconciles_nonce-consumes-and-publishes_in_one_operation",
+        "publication_request_to_atomic_receipt_max_seconds",
+        "local_evaluator_may_publish",
+        "local_publication_receipt_archive_publishable"
+      ],
+      "properties": {
+        "manifest_private": { "const": true },
+        "created_outcome_blind": { "const": true },
+        "append_only_chain": { "const": true },
+        "binds_hashes": { "$ref": "#/$defs/nonemptyStringArray" },
+        "per_assignment_ordinal_score_frozen_in_first_batch": { "const": true },
+        "cumulative_batches_preserve_prior_assignment_objects_exactly": { "const": true },
+        "participant_grouping_required": { "const": true },
+        "source_roles_immutable": { "const": true },
+        "assignments_regenerated_after_label_access": { "const": false },
+        "labels_opened_at_required_when_unblinded": { "const": true },
+        "deletion_reconciliation_required": { "const": true },
+        "terminal_finalization_manifest_required": { "const": true },
+        "trusted_signed_census_export_required": { "const": true },
+        "deletion_ledger_append_only_cumulative": { "const": true },
+        "deletion_ledger_timestamps_strictly_advance": { "const": true },
+        "new_deletion_events_must_follow_predecessor_reconciliation_watermark": { "const": true },
+        "deletion_events_require_complete_manifest_chain": { "const": true },
+        "deletion_events_must_strictly_follow_first_assignment_seal": { "const": true },
+        "deletion_event_order": { "const": "cumulative-prefix-sorted-by-occurred-at-then-event-id" },
+        "deletion_source_event_sha256_unique_in_cumulative_snapshot": { "const": true },
+        "deletion_status_reason_map": {
+          "const": {
+            "withdrawn": ["participant-withdrawal"],
+            "deleted": ["account-deletion"],
+            "excluded": ["post_completion_profile_edit", "trusted_review_exclusion"]
+          }
+        },
+        "deletion_status_transition_policy": { "const": "active-to-withdrawn-excluded-or-deleted;excluded-to-excluded-withdrawn-or-deleted;withdrawn-to-withdrawn-or-deleted;deleted-terminal-never-reactivates" },
+        "deletion_first_removal_semantics": { "const": "immutable-first-event-for-analytical-accounting" },
+        "deletion_latest_status_semantics": { "const": "latest-monotone-privacy-state-for-current-counts" },
+        "raw_labeled_file_bound_before_parse": { "const": true },
+        "evaluator_identity_frozen_in_finalization": { "const": true },
+        "independent_pinned_runtime_recomputation_required_before_publication": { "const": true },
+        "signed_labeled_export_binds_exact_label_lock": { "const": true },
+        "signed_labeled_export_generated_after_label_lock": { "const": true },
+        "label_lock_revalidates_frozen_evaluator_identity": { "const": true },
+        "client_publication_request_nonce_is_publication_authority": { "const": false },
+        "trusted_service_issues_and_atomically_consumes_single_use_publication_nonce": { "const": true },
+        "trusted_service_reconciles_nonce-consumes-and-publishes_in_one_operation": { "const": true },
+        "publication_request_to_atomic_receipt_max_seconds": { "const": 300 },
+        "local_evaluator_may_publish": { "const": false },
+        "local_publication_receipt_archive_publishable": { "const": false }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "forbidden_manifest_fields", "precise_location_collection", "public_outputs",
+        "withdrawal_propagates_to_future_evaluation", "derived_private_artifacts_reconciled",
+        "private_directory_mode", "private_artifact_mode", "encrypted_private_storage_required"
+      ],
+      "properties": {
+        "forbidden_manifest_fields": { "$ref": "#/$defs/nonemptyStringArray" },
+        "precise_location_collection": { "const": false },
+        "public_outputs": { "$ref": "#/$defs/nonemptyString" },
+        "withdrawal_propagates_to_future_evaluation": { "const": true },
+        "derived_private_artifacts_reconciled": { "const": true },
+        "private_directory_mode": { "const": "0700" },
+        "private_artifact_mode": { "const": "0600" },
+        "encrypted_private_storage_required": { "const": true }
+      }
+    },
+    "reporting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publish_negative_result", "publish_inconclusive_result", "report_all_geographies_and_temporal_blocks",
+        "report_descriptive_discrimination_by_recruitment_source", "report_descriptive_discrimination_by_selection_design",
+        "report_descriptive_discrimination_by_recruitment_source_and_selection_design",
+        "recruitment_and_selection_stratum_results_are_promotion_bearing",
+        "report_protocol_deviations", "claim_must_repeat_scope_and_limitations"
+      ],
+      "properties": {
+        "publish_negative_result": { "const": true },
+        "publish_inconclusive_result": { "const": true },
+        "report_all_geographies_and_temporal_blocks": { "const": true },
+        "report_descriptive_discrimination_by_recruitment_source": { "const": true },
+        "report_descriptive_discrimination_by_selection_design": { "const": true },
+        "report_descriptive_discrimination_by_recruitment_source_and_selection_design": { "const": true },
+        "recruitment_and_selection_stratum_results_are_promotion_bearing": { "const": false },
+        "report_protocol_deviations": { "const": true },
+        "claim_must_repeat_scope_and_limitations": { "const": true }
+      }
+    },
+    "productionGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["local_artifacts_are_production_evidence", "requirements"],
+      "properties": {
+        "local_artifacts_are_production_evidence": { "const": false },
+        "requirements": { "$ref": "#/$defs/nonemptyStringArray" }
+      }
+    },
+    "changeControl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frozen_artifact_edited_in_place", "semantic_change_requires_new_version", "post-label-access_change_role", "material_changes"],
+      "properties": {
+        "frozen_artifact_edited_in_place": { "const": false },
+        "semantic_change_requires_new_version": { "const": true },
+        "post-label-access_change_role": { "const": "exploratory-or-new-prospective-protocol" },
+        "material_changes": { "$ref": "#/$defs/nonemptyStringArray" }
+      }
+    }
+  }
+}

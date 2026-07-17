@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "castingcompass.validation-feasibility-activation/2.0.0",
+  "title": "CastingCompass collection-feasibility pilot activation 2.0.0",
+  "description": "Outcome-blind activation envelope whose exact deployment, interval, governance, and storage commitment must be externally preregistered before the first pilot-eligible row.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "activation_id",
+    "protocol_id",
+    "protocol_version",
+    "protocol_sha256",
+    "protocol_release_commit",
+    "created_at",
+    "enrollment",
+    "preregistration",
+    "release",
+    "contracts",
+    "site_catalog_sha256",
+    "scoring_system",
+    "governance",
+    "storage",
+    "status"
+  ],
+  "properties": {
+    "schema_version": { "const": "castingcompass.validation-feasibility-activation/2.0.0" },
+    "activation_id": { "$ref": "#/$defs/stableId" },
+    "protocol_id": { "const": "california-halibut-collection-feasibility-v2" },
+    "protocol_version": { "const": "2.0.0" },
+    "protocol_sha256": { "$ref": "#/$defs/sha256" },
+    "protocol_release_commit": { "$ref": "#/$defs/gitCommit" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "enrollment": { "$ref": "#/$defs/enrollment" },
+    "preregistration": { "$ref": "#/$defs/preregistration" },
+    "release": { "$ref": "#/$defs/release" },
+    "contracts": { "$ref": "#/$defs/contracts" },
+    "site_catalog_sha256": { "$ref": "#/$defs/sha256" },
+    "scoring_system": { "$ref": "#/$defs/scoringSystem" },
+    "governance": { "$ref": "#/$defs/governance" },
+    "storage": { "$ref": "#/$defs/storage" },
+    "status": { "const": "sealed-before-enrollment" }
+  },
+  "$defs": {
+    "stableId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "gitCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approved_at", "policy_or_notice_version", "approved_by_role"],
+      "properties": {
+        "approved_at": { "type": "string", "format": "date-time" },
+        "policy_or_notice_version": { "$ref": "#/$defs/stableId" },
+        "approved_by_role": {
+          "enum": ["data-steward", "privacy-reviewer", "legal-reviewer"]
+        }
+      }
+    },
+    "enrollment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_at", "end_at", "boundary_convention", "fixed_before_first_row"],
+      "properties": {
+        "start_at": { "type": "string", "format": "date-time" },
+        "end_at": { "type": "string", "format": "date-time" },
+        "boundary_convention": { "const": "half-open-start-inclusive-end-exclusive" },
+        "fixed_before_first_row": { "const": true }
+      }
+    },
+    "preregistration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "registration_url",
+        "registration_id",
+        "registered_at",
+        "visibility",
+        "registered_artifact_sha256",
+        "read_only_after_submission",
+        "receipt_verified_at",
+        "receipt_verified_by_role",
+        "registered_artifact_download_sha256",
+        "artifact_archive_id"
+      ],
+      "properties": {
+        "provider": { "const": "osf-registration" },
+        "registration_url": { "type": "string", "format": "uri", "pattern": "^https://osf\\.io/[A-Za-z0-9_-]+/?$" },
+        "registration_id": { "$ref": "#/$defs/stableId" },
+        "registered_at": { "type": "string", "format": "date-time" },
+        "visibility": { "enum": ["public", "embargoed"] },
+        "registered_artifact_sha256": { "$ref": "#/$defs/sha256" },
+        "read_only_after_submission": { "const": true },
+        "receipt_verified_at": { "type": "string", "format": "date-time" },
+        "receipt_verified_by_role": { "const": "data-steward" },
+        "registered_artifact_download_sha256": { "$ref": "#/$defs/sha256" },
+        "artifact_archive_id": { "$ref": "#/$defs/stableId" }
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_commit",
+        "worker_version_id",
+        "deployed_at",
+        "deployed_before_first_eligible_row",
+        "runtime_capture_acceptance_passed_at"
+      ],
+      "properties": {
+        "release_commit": { "$ref": "#/$defs/gitCommit" },
+        "worker_version_id": { "$ref": "#/$defs/stableId" },
+        "deployed_at": { "type": "string", "format": "date-time" },
+        "deployed_before_first_eligible_row": { "const": true },
+        "runtime_capture_acceptance_passed_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "contracts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["taxon_catalog", "observation", "model_run", "opportunity", "storage_schema"],
+      "properties": {
+        "taxon_catalog": { "const": "castingcompass.taxa/1.0.0" },
+        "observation": { "const": "castingcompass.observation/2.0.0" },
+        "model_run": { "const": "castingcompass.model-run/2.0.0" },
+        "opportunity": { "const": "castingcompass.opportunity/2.0.0" },
+        "storage_schema": { "$ref": "#/$defs/stableId" }
+      }
+    },
+    "scoringSystem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "version", "sha256", "frozen_for_pilot"],
+      "properties": {
+        "kind": { "const": "heuristic-configuration" },
+        "version": { "$ref": "#/$defs/stableId" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "frozen_for_pilot": { "const": true }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "study_consent_version",
+        "data_steward_approval",
+        "privacy_approval",
+        "legal_approval"
+      ],
+      "properties": {
+        "study_consent_version": { "$ref": "#/$defs/stableId" },
+        "data_steward_approval": {
+          "allOf": [
+            { "$ref": "#/$defs/approval" },
+            {
+              "type": "object",
+              "required": ["approved_by_role"],
+              "properties": { "approved_by_role": { "const": "data-steward" } }
+            }
+          ]
+        },
+        "privacy_approval": {
+          "allOf": [
+            { "$ref": "#/$defs/approval" },
+            {
+              "type": "object",
+              "required": ["approved_by_role"],
+              "properties": { "approved_by_role": { "const": "privacy-reviewer" } }
+            }
+          ]
+        },
+        "legal_approval": {
+          "allOf": [
+            { "$ref": "#/$defs/approval" },
+            {
+              "type": "object",
+              "required": ["approved_by_role"],
+              "properties": { "approved_by_role": { "const": "legal-reviewer" } }
+            }
+          ]
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "encrypted_at_rest",
+        "least_privilege_access_reviewed",
+        "daily_snapshot_destination",
+        "daily_snapshot_checksum_algorithm",
+        "restore_tested_at",
+        "deletion_reconciliation_tested_at",
+        "retention_days"
+      ],
+      "properties": {
+        "encrypted_at_rest": { "const": true },
+        "least_privilege_access_reviewed": { "const": true },
+        "daily_snapshot_destination": { "$ref": "#/$defs/stableId" },
+        "daily_snapshot_checksum_algorithm": { "const": "sha256" },
+        "restore_tested_at": { "type": "string", "format": "date-time" },
+        "deletion_reconciliation_tested_at": { "type": "string", "format": "date-time" },
+        "retention_days": { "const": 730 }
+      }
+    }
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "castingcompass.observation/2.0.0",
+  "title": "CastingCompass effort-segment observation 2.0.0",
+  "description": "Structural envelope for one valid complete targeted effort segment. Semantic validation is additionally required for environment eligibility, unique taxon IDs, confidence/basis compatibility, disposition reconciliation, temporal ordering, and derived outcome consistency. Persisted legacy_unverified and rejected rows intentionally do not satisfy this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "taxon_catalog_version",
+    "contract_status",
+    "observation_id",
+    "effort_segment_id",
+    "primary_target_taxon_id",
+    "source",
+    "target_effort",
+    "temporal_support",
+    "spatial_support",
+    "taxon_observations",
+    "outcome_class"
+  ],
+  "properties": {
+    "contract_version": { "const": "castingcompass.observation/2.0.0" },
+    "taxon_catalog_version": { "const": "castingcompass.taxa/1.0.0" },
+    "contract_status": { "const": "valid" },
+    "observation_id": { "$ref": "#/$defs/stableId" },
+    "effort_segment_id": { "$ref": "#/$defs/stableId" },
+    "primary_target_taxon_id": {
+      "enum": ["california-halibut", "synthetic-target"]
+    },
+    "source": { "$ref": "#/$defs/source" },
+    "target_effort": { "$ref": "#/$defs/targetEffort" },
+    "temporal_support": { "$ref": "#/$defs/temporalSupport" },
+    "spatial_support": { "$ref": "#/$defs/spatialSupport" },
+    "taxon_observations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": { "$ref": "#/$defs/taxonObservation" }
+    },
+    "outcome_class": {
+      "enum": ["target_encountered", "non_target_only", "no_fish"]
+    }
+  },
+  "$defs": {
+    "stableId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "data_kind", "complete_attempt", "expanded_estimate"],
+      "properties": {
+        "source_id": { "$ref": "#/$defs/stableId" },
+        "source_record_id": { "$ref": "#/$defs/stableId" },
+        "data_kind": {
+          "enum": ["complete-effort-segment", "synthetic-fixture"]
+        },
+        "complete_attempt": { "const": true },
+        "expanded_estimate": { "const": false }
+      }
+    },
+    "targetEffort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "unit", "mode"],
+      "properties": {
+        "value": { "type": "number", "exclusiveMinimum": 0 },
+        "unit": { "enum": ["trip-hours", "angler-hours", "rod-hours"] },
+        "mode": { "type": "string", "minLength": 1, "maxLength": 120 }
+      }
+    },
+    "temporalSupport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_at", "end_at", "precision"],
+      "properties": {
+        "start_at": { "type": "string", "format": "date-time" },
+        "end_at": { "type": "string", "format": "date-time" },
+        "precision": { "enum": ["exact", "bounded"] }
+      }
+    },
+    "spatialSupport": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "support_id", "crs", "x", "y"],
+          "properties": {
+            "kind": { "const": "point" },
+            "support_id": { "$ref": "#/$defs/stableId" },
+            "crs": { "type": "string", "minLength": 1, "maxLength": 120 },
+            "x": { "type": "number" },
+            "y": { "type": "number" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "support_id"],
+          "properties": {
+            "kind": { "enum": ["site", "area"] },
+            "support_id": { "$ref": "#/$defs/stableId" }
+          }
+        }
+      ]
+    },
+    "taxonObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taxon_id",
+        "encounter_count",
+        "retained_count",
+        "released_count",
+        "disposition_unknown_count",
+        "identification_confidence",
+        "identification_basis"
+      ],
+      "properties": {
+        "taxon_id": {
+          "enum": ["california-halibut", "unresolved-fish", "synthetic-target"]
+        },
+        "encounter_count": { "type": "integer", "minimum": 0 },
+        "retained_count": { "type": "integer", "minimum": 0 },
+        "released_count": { "type": "integer", "minimum": 0 },
+        "disposition_unknown_count": { "type": "integer", "minimum": 0 },
+        "identification_confidence": {
+          "enum": ["verified", "self_reported", "uncertain", "unresolved", "not_observed"]
+        },
+        "identification_basis": {
+          "enum": [
+            "official-survey-code",
+            "expert-review",
+            "photo-review",
+            "angler-report",
+            "unresolved",
+            "not-observed",
+            "synthetic-fixture"
+          ]
+        }
+      }
+    }
+  }
+}

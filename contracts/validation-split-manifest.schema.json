@@ -1,0 +1,722 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "castingcompass.validation-split-manifest/1.0.0",
+  "title": "CastingCompass private validation split manifest 1.0.0",
+  "description": "Strict, outcome-free activation and append-only assignment manifest. The file is private; it binds protocol, site-catalog, data, and prediction identity without raw account, note, photo, or coordinate fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_id",
+    "manifest_role",
+    "sequence",
+    "previous_manifest_sha256",
+    "protocol_id",
+    "protocol_version",
+    "protocol_sha256",
+    "site_catalog_sha256",
+    "data_snapshot_sha256",
+    "prediction_snapshot_sha256",
+    "created_at",
+    "activated_at",
+    "labels_opened_at",
+    "outcome_blind",
+    "append_only",
+    "activation",
+    "finalization",
+    "assignments",
+    "aggregate_counts",
+    "privacy"
+  ],
+  "properties": {
+    "schema_version": { "const": "castingcompass.validation-split-manifest/1.0.0" },
+    "manifest_id": { "$ref": "#/$defs/stableId" },
+    "manifest_role": { "enum": ["activation", "assignment-batch", "finalization", "label-lock"] },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "previous_manifest_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+    "protocol_id": { "const": "california-halibut-site-window-v1" },
+    "protocol_version": { "const": "1.0.0" },
+    "protocol_sha256": { "$ref": "#/$defs/sha256" },
+    "site_catalog_sha256": { "$ref": "#/$defs/sha256" },
+    "data_snapshot_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+    "prediction_snapshot_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+    "created_at": { "type": "string", "format": "date-time" },
+    "activated_at": { "type": ["string", "null"], "format": "date-time" },
+    "labels_opened_at": { "type": ["string", "null"], "format": "date-time" },
+    "outcome_blind": { "type": "boolean" },
+    "append_only": { "const": true },
+    "activation": { "oneOf": [{ "$ref": "#/$defs/activation" }, { "type": "null" }] },
+    "finalization": { "oneOf": [{ "$ref": "#/$defs/finalization" }, { "type": "null" }] },
+    "assignments": { "type": "array", "items": { "$ref": "#/$defs/assignment" } },
+    "aggregate_counts": { "$ref": "#/$defs/aggregateCounts" },
+    "privacy": { "$ref": "#/$defs/privacy" }
+  },
+  "$defs": {
+    "stableId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "gitCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "participantGroup": { "type": "string", "pattern": "^participant-[a-f0-9]{64}$" },
+    "assignmentId": { "type": "string", "pattern": "^assignment-[a-f0-9]{64}$" },
+    "panelId": { "enum": ["north-coast", "golden-gate-sf-coast", "north-east-bay", "central-south-bay", "san-mateo-coast"] },
+    "blockId": { "enum": ["block-1", "block-2", "block-3", "block-4"] },
+    "siteId": {
+      "enum": [
+        "limantour-beach", "drakes-beach", "point-reyes-south-beach", "bolinas-beach", "stinson-beach", "muir-beach", "rodeo-beach",
+        "fort-baker-pier", "torpedo-wharf", "crissy-field-east-beach", "baker-beach", "china-beach", "ocean-beach-north", "ocean-beach-south",
+        "mcnears-beach-pier", "paradise-beach-pier", "ferry-point-pier", "keller-beach", "point-isabel-shoreline", "albany-bulb", "berkeley-marina-north-basin", "cesar-chavez-park", "emeryville-marina-pier",
+        "pier-7", "pier-14", "crane-cove-park", "herons-head-park-pier", "port-view-park-pier", "middle-harbor-shoreline", "alameda-south-shore-rockwall", "crown-memorial-state-beach", "oyster-bay-shoreline", "san-leandro-marina-shore", "dumbarton-pier", "coyote-point-jetty", "seal-point-park", "oyster-point-fishing-pier",
+        "sharp-park-beach", "rockaway-beach", "pacifica-state-beach", "montara-state-beach", "pillar-point-west-jetty", "pillar-point-east-jetty", "surfers-beach", "francis-state-beach", "poplar-beach"
+      ]
+    },
+    "activation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_commit",
+        "scoring_system_kind",
+        "scoring_system_version",
+        "scoring_system_sha256",
+        "opportunity_contract_version",
+        "validation_export_signing_key_id",
+        "validation_export_public_key_ed25519",
+        "external_log_anchor_provider_id",
+        "external_log_anchor_signing_key_id",
+        "external_log_anchor_public_key_ed25519",
+        "deployed_before_first_eligible_row"
+      ],
+      "properties": {
+        "release_commit": { "$ref": "#/$defs/gitCommit" },
+        "scoring_system_kind": { "const": "heuristic-configuration" },
+        "scoring_system_version": { "$ref": "#/$defs/stableId" },
+        "scoring_system_sha256": { "$ref": "#/$defs/sha256" },
+        "opportunity_contract_version": { "const": "castingcompass.opportunity/2.0.0" },
+        "validation_export_signing_key_id": { "$ref": "#/$defs/stableId" },
+        "validation_export_public_key_ed25519": { "type": "string", "pattern": "^[A-Za-z0-9+/]{43}=$" },
+        "external_log_anchor_provider_id": { "$ref": "#/$defs/stableId" },
+        "external_log_anchor_signing_key_id": { "$ref": "#/$defs/stableId" },
+        "external_log_anchor_public_key_ed25519": { "type": "string", "pattern": "^[A-Za-z0-9+/]{43}=$" },
+        "deployed_before_first_eligible_row": { "const": true }
+      }
+    },
+    "finalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "census_export_canonical_sha256", "census_export_file_sha256",
+        "eligible_source_count", "query_watermark_start_at", "query_watermark_end_at",
+        "completion_event_set_sha256", "issuance_reconciliation",
+        "finalized_after_enrollment", "evaluator_identity"
+      ],
+      "properties": {
+        "census_export_canonical_sha256": { "$ref": "#/$defs/sha256" },
+        "census_export_file_sha256": { "$ref": "#/$defs/sha256" },
+        "eligible_source_count": { "type": "integer", "minimum": 0 },
+        "query_watermark_start_at": { "const": "2026-08-01T00:00:00Z" },
+        "query_watermark_end_at": { "const": "2027-08-01T00:00:00Z" },
+        "completion_event_set_sha256": { "$ref": "#/$defs/sha256" },
+        "issuance_reconciliation": { "$ref": "#/$defs/finalizationIssuanceReconciliation" },
+        "finalized_after_enrollment": { "const": true },
+        "evaluator_identity": { "$ref": "#/$defs/evaluatorIdentity" }
+      }
+    },
+    "reconciliationStream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stream_id", "first_sequence", "last_sequence", "event_count",
+        "event_set_sha256", "chain_tip_sha256", "external_log_proof_sha256"
+      ],
+      "properties": {
+        "stream_id": { "$ref": "#/$defs/stableId" },
+        "first_sequence": { "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }] },
+        "last_sequence": { "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }] },
+        "event_count": { "type": "integer", "minimum": 0 },
+        "event_set_sha256": { "$ref": "#/$defs/sha256" },
+        "chain_tip_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "external_log_proof_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] }
+      }
+    },
+    "finalizationIssuanceReconciliation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_basis", "append_only_log_proof_included", "query_id",
+        "reconciled_through_at", "issuance_stream", "signed_primary_exposure_stream",
+        "issued_assignment_count", "issued_assignment_set_sha256",
+        "signed_primary_exposure_event_count", "signed_primary_exposure_event_set_sha256",
+        "terminal_disposition_set_sha256", "terminal_disposition_counts",
+        "intended_to_final_disposition_counts", "missing_issued_assignment_count",
+        "unmatched_exposure_event_count"
+      ],
+      "properties": {
+        "evidence_basis": { "const": "signed-exporter-assertion-without-raw-ledger-proof" },
+        "append_only_log_proof_included": { "const": false },
+        "query_id": { "const": "castingcompass-terminal-issuance-exposure-reconciliation-v1" },
+        "reconciled_through_at": { "type": "string", "format": "date-time" },
+        "issuance_stream": { "$ref": "#/$defs/reconciliationStream" },
+        "signed_primary_exposure_stream": { "$ref": "#/$defs/reconciliationStream" },
+        "issued_assignment_count": { "type": "integer", "minimum": 0 },
+        "issued_assignment_set_sha256": { "$ref": "#/$defs/sha256" },
+        "signed_primary_exposure_event_count": { "type": "integer", "minimum": 0 },
+        "signed_primary_exposure_event_set_sha256": { "$ref": "#/$defs/sha256" },
+        "terminal_disposition_set_sha256": { "$ref": "#/$defs/sha256" },
+        "terminal_disposition_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["completed-and-exported", "incomplete-or-expired", "safe-canceled", "withdrawn", "excluded"],
+          "properties": {
+            "completed-and-exported": { "type": "integer", "minimum": 0 },
+            "incomplete-or-expired": { "type": "integer", "minimum": 0 },
+            "safe-canceled": { "type": "integer", "minimum": 0 },
+            "withdrawn": { "type": "integer", "minimum": 0 },
+            "excluded": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "intended_to_final_disposition_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "primary->primary", "primary->secondary", "primary->unsealed",
+            "secondary->primary", "secondary->secondary", "secondary->unsealed"
+          ],
+          "properties": {
+            "primary->primary": { "type": "integer", "minimum": 0 },
+            "primary->secondary": { "const": 0 },
+            "primary->unsealed": { "type": "integer", "minimum": 0 },
+            "secondary->primary": { "const": 0 },
+            "secondary->secondary": { "type": "integer", "minimum": 0 },
+            "secondary->unsealed": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "missing_issued_assignment_count": { "const": 0 },
+        "unmatched_exposure_event_count": { "const": 0 }
+      }
+    },
+    "evaluatorIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_commit", "tracked_source_tree_clean", "file_sha256",
+        "dependency_lock_sha256", "runtime_versions", "algorithm_config_sha256",
+        "runtime_image_digest", "evaluator_environment_sha256"
+      ],
+      "properties": {
+        "release_commit": { "$ref": "#/$defs/gitCommit" },
+        "tracked_source_tree_clean": { "const": true },
+        "file_sha256": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contracts/fixtures/impression-attestation-vector.json",
+            "contracts/model-run.schema.json",
+            "contracts/observation.schema.json",
+            "contracts/opportunity.schema.json",
+            "contracts/taxa.json",
+            "contracts/validation-preregistration.schema.json",
+            "contracts/validation-split-manifest.schema.json",
+            "pipeline/contourcast/validation_protocol.py",
+            "pipeline/contourcast/first_party_validation.py",
+            "pipeline/contourcast/cli.py",
+            "pipeline/requirements-validation.lock",
+            "public/data/sites.json",
+            "shared/species_contract.py",
+            "validation/protocols/california-halibut-site-window-v1.json"
+          ],
+          "properties": {
+            "contracts/fixtures/impression-attestation-vector.json": { "$ref": "#/$defs/sha256" },
+            "contracts/model-run.schema.json": { "$ref": "#/$defs/sha256" },
+            "contracts/observation.schema.json": { "$ref": "#/$defs/sha256" },
+            "contracts/opportunity.schema.json": { "$ref": "#/$defs/sha256" },
+            "contracts/taxa.json": { "$ref": "#/$defs/sha256" },
+            "contracts/validation-preregistration.schema.json": { "$ref": "#/$defs/sha256" },
+            "contracts/validation-split-manifest.schema.json": { "$ref": "#/$defs/sha256" },
+            "pipeline/contourcast/validation_protocol.py": { "$ref": "#/$defs/sha256" },
+            "pipeline/contourcast/first_party_validation.py": { "$ref": "#/$defs/sha256" },
+            "pipeline/contourcast/cli.py": { "$ref": "#/$defs/sha256" },
+            "pipeline/requirements-validation.lock": { "$ref": "#/$defs/sha256" },
+            "public/data/sites.json": { "$ref": "#/$defs/sha256" },
+            "shared/species_contract.py": { "$ref": "#/$defs/sha256" },
+            "validation/protocols/california-halibut-site-window-v1.json": { "$ref": "#/$defs/sha256" }
+          }
+        },
+        "dependency_lock_sha256": { "$ref": "#/$defs/sha256" },
+        "runtime_versions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "python", "python_implementation", "numpy", "scipy", "scikit-learn",
+            "cffi", "cryptography", "joblib", "pycparser", "threadpoolctl"
+          ],
+          "properties": {
+            "python": { "type": "string", "pattern": "^3\\.12\\.[0-9]+$" },
+            "python_implementation": { "const": "CPython" },
+            "numpy": { "const": "2.0.2" },
+            "scipy": { "const": "1.13.1" },
+            "scikit-learn": { "const": "1.6.1" },
+            "cffi": { "const": "2.1.0" },
+            "cryptography": { "const": "46.0.4" },
+            "joblib": { "const": "1.5.3" },
+            "pycparser": { "const": "3.0" },
+            "threadpoolctl": { "const": "3.6.0" }
+          }
+        },
+        "algorithm_config_sha256": { "$ref": "#/$defs/sha256" },
+        "runtime_image_digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "evaluator_environment_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_contract_status",
+        "observation_contract_version",
+        "taxon_catalog_version",
+        "target_taxon_id",
+        "recruitment_frame_id",
+        "recruitment_source_id",
+        "recruitment_event_contract_version",
+        "recruitment_event_at",
+        "recruitment_event_sha256",
+        "community_approval_sha256",
+        "complete_attempt",
+        "expanded_estimate",
+        "activation_manifest_sha256",
+        "cohort_id",
+        "prospective_assignment_issued",
+        "intended_cohort_role",
+        "intended_source_role",
+        "intended_cohort_id",
+        "intended_selection_method",
+        "collection_source_role",
+        "collection_event_type",
+        "collection_event_id",
+        "collection_event_at",
+        "collection_event_type_counts",
+        "collection_terminal_event_id",
+        "collection_terminal_event_type",
+        "collection_terminal_event_at",
+        "collection_provenance_chain_sha256",
+        "collection_evidence_status",
+        "collection_cohort_id",
+        "collection_selection_method",
+        "collection_validation_protocol_id",
+        "collection_activated_at",
+        "collection_activation_scoring_system_sha256",
+        "collection_exclusion_reason",
+        "incentive_policy_id",
+        "effort_segment_id",
+        "effort_unit",
+        "attempt_count",
+        "duration_milliseconds",
+        "angler_count",
+        "person_milliseconds",
+        "mode",
+        "segment_start_at",
+        "segment_end_at",
+        "opportunity_window_id",
+        "window_start_at",
+        "window_end_at",
+        "opportunity_contract_version",
+        "scoring_system_kind",
+        "scoring_system_version",
+        "scoring_system_sha256",
+        "snapshot_sha256",
+        "site_catalog_sha256",
+        "impression_attestation_sha256",
+        "score_exposure_attestation_sha256",
+        "forecast_impression_id",
+        "impression_or_assignment_at",
+        "selection_design",
+        "score_influenced_choice",
+        "study_consent_version",
+        "study_consent_at",
+        "target_intent_confirmed_at",
+        "completion_event_contract_version",
+        "completion_event_at",
+        "completion_consent_version",
+        "completion_consented_at",
+        "completion_primary_target_confirmed",
+        "completion_complete_attempt_confirmed",
+        "completion_event_sha256",
+        "precommitment_event_sha256",
+        "score_first_exposed_at",
+        "score_exposure_disposition",
+        "feasible_set_sha256",
+        "feasible_option_count",
+        "assignment_probability_numerator",
+        "assignment_probability_denominator",
+        "randomization_draw_index",
+        "randomization_audit_sha256",
+        "deletion_status",
+        "exact_coordinates_collected"
+      ],
+      "properties": {
+        "observation_contract_status": { "enum": ["valid", "legacy_unverified", "rejected"] },
+        "observation_contract_version": { "type": ["string", "null"], "enum": ["castingcompass.observation/2.0.0", null] },
+        "taxon_catalog_version": { "type": ["string", "null"], "enum": ["castingcompass.taxa/1.0.0", null] },
+        "target_taxon_id": { "const": "california-halibut" },
+        "recruitment_frame_id": { "type": ["string", "null"], "enum": ["california-halibut-site-window-recruitment-v1", null] },
+        "recruitment_source_id": {
+          "type": ["string", "null"],
+          "enum": [
+            "castingcompass-organic-product",
+            "direct-opt-in-research-invite",
+            "admin-approved-community-prospective",
+            null
+          ]
+        },
+        "recruitment_event_contract_version": { "type": ["string", "null"], "enum": ["castingcompass.recruitment-event/1.0.0", null] },
+        "recruitment_event_at": { "type": ["string", "null"], "format": "date-time" },
+        "recruitment_event_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "community_approval_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "complete_attempt": { "type": "boolean" },
+        "expanded_estimate": { "type": "boolean" },
+        "activation_manifest_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "cohort_id": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "prospective_assignment_issued": { "type": "boolean" },
+        "intended_cohort_role": { "enum": ["primary", "secondary", null] },
+        "intended_source_role": { "enum": ["prospective-first-party", "score-visible-first-party", null] },
+        "intended_cohort_id": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "intended_selection_method": { "enum": ["score_blind_precommitment", "safe_randomized", "organic_score_visible", null] },
+        "collection_source_role": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "collection_event_type": {
+          "type": ["string", "null"],
+          "enum": ["enrollment", "completion", "evidence_exclusion", "retrospective_submission", "legacy_context", null]
+        },
+        "collection_event_id": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "collection_event_at": { "type": ["string", "null"], "format": "date-time" },
+        "collection_event_type_counts": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["enrollment", "completion", "evidence_exclusion", "retrospective_submission", "legacy_context"],
+              "properties": {
+                "enrollment": { "type": "integer", "minimum": 0 },
+                "completion": { "type": "integer", "minimum": 0 },
+                "evidence_exclusion": { "type": "integer", "minimum": 0 },
+                "retrospective_submission": { "type": "integer", "minimum": 0 },
+                "legacy_context": { "type": "integer", "minimum": 0 }
+              }
+            },
+            { "type": "null" }
+          ]
+        },
+        "collection_terminal_event_id": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "collection_terminal_event_type": {
+          "type": ["string", "null"],
+          "enum": ["enrollment", "completion", "evidence_exclusion", "retrospective_submission", "legacy_context", null]
+        },
+        "collection_terminal_event_at": { "type": ["string", "null"], "format": "date-time" },
+        "collection_provenance_chain_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "collection_evidence_status": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "collection_cohort_id": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "collection_selection_method": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "collection_validation_protocol_id": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "collection_activated_at": { "type": ["string", "null"], "format": "date-time" },
+        "collection_activation_scoring_system_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "collection_exclusion_reason": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "incentive_policy_id": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "effort_segment_id": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "effort_unit": { "type": ["string", "null"], "enum": ["whole-trip-group-attempt", null] },
+        "attempt_count": { "type": ["integer", "null"], "enum": [1, null] },
+        "duration_milliseconds": { "type": ["integer", "null"], "minimum": 1 },
+        "angler_count": { "type": ["integer", "null"], "minimum": 1, "maximum": 12 },
+        "person_milliseconds": { "type": ["integer", "null"], "minimum": 1 },
+        "mode": { "enum": ["shore", "beach", "pier", "jetty"] },
+        "segment_start_at": { "type": "string", "format": "date-time" },
+        "segment_end_at": { "type": "string", "format": "date-time" },
+        "opportunity_window_id": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "window_start_at": { "type": ["string", "null"], "format": "date-time" },
+        "window_end_at": { "type": ["string", "null"], "format": "date-time" },
+        "opportunity_contract_version": { "type": ["string", "null"], "enum": ["castingcompass.opportunity/2.0.0", null] },
+        "scoring_system_kind": { "type": ["string", "null"], "enum": ["heuristic-configuration", "trained-model", null] },
+        "scoring_system_version": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "scoring_system_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "snapshot_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "site_catalog_sha256": { "$ref": "#/$defs/sha256" },
+        "impression_attestation_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "score_exposure_attestation_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "forecast_impression_id": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "impression_or_assignment_at": { "type": ["string", "null"], "format": "date-time" },
+        "selection_design": { "enum": ["prospective-precommitted-without-score", "prospective-safely-randomized", "prospective-score-visible-self-selected", "retrospective-or-context"] },
+        "score_influenced_choice": { "type": ["boolean", "null"] },
+        "study_consent_version": { "oneOf": [{ "$ref": "#/$defs/stableId" }, { "type": "null" }] },
+        "study_consent_at": { "type": ["string", "null"], "format": "date-time" },
+        "target_intent_confirmed_at": { "type": ["string", "null"], "format": "date-time" },
+        "completion_event_contract_version": { "type": ["string", "null"], "enum": ["castingcompass.validation-completion-event/1.0.0", null] },
+        "completion_event_at": { "type": ["string", "null"], "format": "date-time" },
+        "completion_consent_version": { "type": ["string", "null"], "enum": ["castingcompass.trip-validation-consent/1.0.0", null] },
+        "completion_consented_at": { "type": ["string", "null"], "format": "date-time" },
+        "completion_primary_target_confirmed": { "type": ["boolean", "null"] },
+        "completion_complete_attempt_confirmed": { "type": ["boolean", "null"] },
+        "completion_event_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "precommitment_event_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "score_first_exposed_at": { "type": ["string", "null"], "format": "date-time" },
+        "score_exposure_disposition": {
+          "enum": [
+            "never-exposed-through-completion",
+            "exposed-after-assignment-before-segment",
+            "already-exposed-before-assignment",
+            "not-applicable"
+          ]
+        },
+        "feasible_set_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "feasible_option_count": { "type": ["integer", "null"], "minimum": 2 },
+        "assignment_probability_numerator": { "type": ["integer", "null"], "minimum": 1 },
+        "assignment_probability_denominator": { "type": ["integer", "null"], "minimum": 2 },
+        "randomization_draw_index": { "type": ["integer", "null"], "minimum": 0 },
+        "randomization_audit_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "deletion_status": { "enum": ["active", "withdrawn", "deleted"] },
+        "exact_coordinates_collected": { "const": false }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "recruitment_source_id": { "const": "admin-approved-community-prospective" } },
+            "required": ["recruitment_source_id"]
+          },
+          "then": {
+            "properties": {
+              "recruitment_frame_id": { "const": "california-halibut-site-window-recruitment-v1" },
+              "recruitment_event_at": { "type": "string", "format": "date-time" },
+              "recruitment_event_sha256": { "$ref": "#/$defs/sha256" },
+              "community_approval_sha256": { "$ref": "#/$defs/sha256" }
+            }
+          },
+          "else": {
+            "if": {
+              "properties": {
+                "recruitment_source_id": {
+                  "enum": ["castingcompass-organic-product", "direct-opt-in-research-invite"]
+                }
+              },
+              "required": ["recruitment_source_id"]
+            },
+            "then": {
+              "properties": {
+                "recruitment_frame_id": { "const": "california-halibut-site-window-recruitment-v1" },
+                "recruitment_event_at": { "type": "string", "format": "date-time" },
+                "recruitment_event_sha256": { "$ref": "#/$defs/sha256" },
+                "community_approval_sha256": { "type": "null" }
+              }
+            },
+            "else": {
+              "properties": {
+                "recruitment_frame_id": { "type": "null" },
+                "recruitment_event_at": { "type": "null" },
+                "recruitment_event_sha256": { "type": "null" },
+                "community_approval_sha256": { "type": "null" }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "selection_design": { "const": "prospective-precommitted-without-score" } }, "required": ["selection_design"] },
+          "then": {
+            "properties": {
+              "precommitment_event_sha256": { "$ref": "#/$defs/sha256" }
+            }
+          },
+          "else": {
+            "properties": {
+              "precommitment_event_sha256": { "type": "null" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "selection_design": { "const": "prospective-safely-randomized" } }, "required": ["selection_design"] },
+          "then": {
+            "properties": {
+              "feasible_set_sha256": { "$ref": "#/$defs/sha256" },
+              "feasible_option_count": { "type": "integer", "minimum": 2 },
+              "assignment_probability_numerator": { "const": 1 },
+              "assignment_probability_denominator": { "type": "integer", "minimum": 2 },
+              "randomization_draw_index": { "type": "integer", "minimum": 0 },
+              "randomization_audit_sha256": { "$ref": "#/$defs/sha256" }
+            }
+          },
+          "else": {
+            "properties": {
+              "feasible_set_sha256": { "type": "null" },
+              "feasible_option_count": { "type": "null" },
+              "assignment_probability_numerator": { "type": "null" },
+              "assignment_probability_denominator": { "type": "null" },
+              "randomization_draw_index": { "type": "null" },
+              "randomization_audit_sha256": { "type": "null" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "collection_source_role": { "enum": ["prospective_primary", "prospective_secondary"] }
+            },
+            "required": ["collection_source_role"]
+          },
+          "then": {
+            "properties": {
+              "collection_event_type": { "const": "completion" },
+              "collection_event_id": { "$ref": "#/$defs/stableId" },
+              "collection_event_at": { "type": "string", "format": "date-time" },
+              "collection_event_type_counts": {
+                "const": {
+                  "enrollment": 1,
+                  "completion": 1,
+                  "evidence_exclusion": 0,
+                  "retrospective_submission": 0,
+                  "legacy_context": 0
+                }
+              },
+              "collection_terminal_event_id": { "$ref": "#/$defs/stableId" },
+              "collection_terminal_event_type": { "const": "completion" },
+              "collection_terminal_event_at": { "type": "string", "format": "date-time" },
+              "collection_provenance_chain_sha256": { "$ref": "#/$defs/sha256" },
+              "collection_validation_protocol_id": { "const": "california-halibut-site-window-v1" },
+              "collection_exclusion_reason": { "type": "null" },
+              "forecast_impression_id": { "$ref": "#/$defs/stableId" }
+            }
+          }
+        }
+      ]
+    },
+    "assignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assignment_id",
+        "source_record_sha256",
+        "label_free_row_sha256",
+        "candidate_prediction_sha256",
+        "participant_group_id",
+        "cohort_role",
+        "source_role",
+        "selection_design",
+        "site_id",
+        "geographic_panel",
+        "temporal_block",
+        "split",
+        "opportunity_score",
+        "evidence"
+      ],
+      "properties": {
+        "assignment_id": { "$ref": "#/$defs/assignmentId" },
+        "source_record_sha256": { "$ref": "#/$defs/sha256" },
+        "label_free_row_sha256": { "$ref": "#/$defs/sha256" },
+        "candidate_prediction_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "participant_group_id": { "oneOf": [{ "$ref": "#/$defs/participantGroup" }, { "type": "null" }] },
+        "cohort_role": { "enum": ["primary", "secondary", "exploratory", "quarantined"] },
+        "source_role": { "enum": ["prospective-first-party", "score-visible-first-party", "retrospective-first-party", "official-context"] },
+        "selection_design": { "enum": ["prospective-precommitted-without-score", "prospective-safely-randomized", "prospective-score-visible-self-selected", "retrospective-or-context"] },
+        "site_id": { "$ref": "#/$defs/siteId" },
+        "geographic_panel": { "$ref": "#/$defs/panelId" },
+        "temporal_block": { "$ref": "#/$defs/blockId" },
+        "split": { "enum": ["baseline-development", "locked-test", "observational-secondary", "exploratory", "quarantined"] },
+        "opportunity_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "evidence": { "$ref": "#/$defs/evidence" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence": {
+                "type": "object",
+                "properties": { "prospective_assignment_issued": { "const": true } },
+                "required": ["prospective_assignment_issued"]
+              }
+            },
+            "required": ["evidence"]
+          },
+          "then": { "properties": { "candidate_prediction_sha256": { "$ref": "#/$defs/sha256" } } },
+          "else": {
+            "properties": {
+              "candidate_prediction_sha256": { "type": "null" },
+              "evidence": {
+                "type": "object",
+                "properties": {
+                  "completion_event_contract_version": { "type": "null" },
+                  "completion_event_at": { "type": "null" },
+                  "completion_consent_version": { "type": "null" },
+                  "completion_consented_at": { "type": "null" },
+                  "completion_primary_target_confirmed": { "type": "null" },
+                  "completion_complete_attempt_confirmed": { "type": "null" },
+                  "completion_event_sha256": { "type": "null" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source_role": { "enum": ["prospective-first-party", "score-visible-first-party"] }
+            },
+            "required": ["source_role"]
+          },
+          "then": {
+            "properties": {
+              "evidence": {
+                "type": "object",
+                "properties": {
+                  "recruitment_frame_id": { "const": "california-halibut-site-window-recruitment-v1" },
+                  "recruitment_source_id": {
+                    "enum": [
+                      "castingcompass-organic-product",
+                      "direct-opt-in-research-invite",
+                      "admin-approved-community-prospective"
+                    ]
+                  },
+                  "recruitment_event_at": { "type": "string", "format": "date-time" },
+                  "recruitment_event_sha256": { "$ref": "#/$defs/sha256" }
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "evidence": {
+                "type": "object",
+                "properties": {
+                  "recruitment_frame_id": { "type": "null" },
+                  "recruitment_source_id": { "type": "null" },
+                  "recruitment_event_at": { "type": "null" },
+                  "recruitment_event_sha256": { "type": "null" },
+                  "community_approval_sha256": { "type": "null" }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "aggregateCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total_assignments", "primary", "secondary", "exploratory", "quarantined"],
+      "properties": {
+        "total_assignments": { "type": "integer", "minimum": 0 },
+        "primary": { "type": "integer", "minimum": 0 },
+        "secondary": { "type": "integer", "minimum": 0 },
+        "exploratory": { "type": "integer", "minimum": 0 },
+        "quarantined": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["participant_ids_pseudonymous", "forbidden_fields_absent", "exact_coordinates_absent", "deletion_reconciled_at"],
+      "properties": {
+        "participant_ids_pseudonymous": { "const": true },
+        "forbidden_fields_absent": { "const": true },
+        "exact_coordinates_absent": { "const": true },
+        "deletion_reconciled_at": { "type": ["string", "null"], "format": "date-time" }
+      }
+    }
+  }
+}

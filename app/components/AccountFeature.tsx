@@ -5,11 +5,17 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { CloseIcon } from "./icons";
 import { GearCatalogFields } from "./GearCatalogFields";
 import { SiteCombobox } from "./SiteCombobox";
+import {
+  TurnstileChallenge,
+  type TurnstileAction,
+  type TurnstileChallengeState,
+} from "./TurnstileChallenge";
 import type { FishingSite } from "../types";
 
 export interface AccountUser {
   id: string;
   email: string;
+  ageEligible: boolean;
   legalAccepted: boolean;
 }
 
@@ -51,6 +57,15 @@ interface ProfileTrip {
   other_catch_count: number | null;
   other_species: string | null;
   observations_json: string | null;
+  observation_contract_version: string | null;
+  taxon_catalog_version: string | null;
+  target_taxon_id: string;
+  contract_status: "valid" | "legacy_unverified" | "rejected" | null;
+  taxon_observations_json: string | null;
+  outcome_class: "target_encountered" | "non_target_only" | "no_fish" | null;
+  target_encounter_count: number | null;
+  any_fish_encounter_count: number | null;
+  target_identification_confidence: string | null;
   ai_review_status: string | null;
   ai_review_json: string | null;
   ai_review_model: string | null;
@@ -76,6 +91,7 @@ const EMPTY_GEAR = { name: "", rod: "", reel: "", baitLure: "", rig: "" };
 
 interface ProfileTripEditFields {
   siteId: string;
+  mode: string;
   gearProfileId: string;
   startedAt: string;
   endedAt: string;
@@ -100,6 +116,70 @@ interface ProfileTripEditFields {
 }
 
 const PROFILE_TRIP_DRAFT_PREFIX = "castingcompass.profile-trip-draft.v1.";
+const ACCOUNT_STORAGE_KEYS = new Set([
+  "castingcompass.active-trip.v1",
+  "castingcompass.reporter-key.v1",
+  "contourcast.active-trip.v1",
+  "contourcast.reporter-key.v1",
+]);
+const ACCOUNT_STORAGE_PREFIXES = [
+  "castingcompass.trip-draft.v1.",
+  "castingcompass.profile-trip-draft.v1.",
+  "contourcast.trip-draft.v1.",
+  "contourcast.profile-trip-draft.v1.",
+];
+
+type DeletionStatus = "completed" | "processing" | "needs_attention";
+
+interface DeletionDetails {
+  status: DeletionStatus;
+  scope: "account" | "trip";
+  requestedAt?: string;
+  completedAt?: string;
+  objectsTotal: number;
+  objectsDeleted: number;
+}
+
+function clearCastingCompassAccountStorage() {
+  let cleared = true;
+  for (const storageName of ["localStorage", "sessionStorage"] as const) {
+    try {
+      const storage = window[storageName];
+      const keys = Array.from({ length: storage.length }, (_, index) => storage.key(index)).filter((key): key is string => Boolean(key));
+      for (const key of keys) {
+        if (ACCOUNT_STORAGE_KEYS.has(key) || ACCOUNT_STORAGE_PREFIXES.some((prefix) => key.startsWith(prefix))) {
+          storage.removeItem(key);
+        }
+      }
+    } catch {
+      // A browser can block storage access; server-side deletion must still remain accepted.
+      cleared = false;
+    }
+  }
+  return cleared;
+}
+
+function deletionDetailsFromResponse(body: Record<string, unknown>): DeletionDetails {
+  const nested = body.deletion && typeof body.deletion === "object"
+    ? body.deletion as Record<string, unknown>
+    : body;
+  const reportedStatus = nested.status;
+  if (reportedStatus !== "completed" && reportedStatus !== "processing" && reportedStatus !== "needs_attention") {
+    throw new Error("Deletion status could not be verified.");
+  }
+  if (nested.scope !== "account" && nested.scope !== "trip") {
+    throw new Error("Deletion scope could not be verified.");
+  }
+  const status: DeletionStatus = reportedStatus;
+  return {
+    status,
+    scope: nested.scope,
+    requestedAt: typeof nested.requestedAt === "string" ? nested.requestedAt : undefined,
+    completedAt: typeof nested.completedAt === "string" ? nested.completedAt : undefined,
+    objectsTotal: Number.isFinite(Number(nested.objectsTotal)) ? Math.max(0, Number(nested.objectsTotal)) : 0,
+    objectsDeleted: Number.isFinite(Number(nested.objectsDeleted)) ? Math.max(0, Number(nested.objectsDeleted)) : 0,
+  };
+}
 
 function localDateTimeValue(value: string | null) {
   const date = value ? new Date(value) : new Date();
@@ -116,6 +196,7 @@ function editFieldsForTrip(trip: ProfileTrip): ProfileTripEditFields {
   }
   return {
     siteId: trip.site_id,
+    mode: trip.mode,
     gearProfileId: trip.gear_profile_id ?? "",
     startedAt: localDateTimeValue(trip.started_at),
     endedAt: localDateTimeValue(trip.ended_at),
@@ -145,8 +226,8 @@ function tripReviewLabel(trip: ProfileTrip) {
     try {
       const review = trip.ai_review_json ? JSON.parse(trip.ai_review_json) as { discussion?: { publish?: boolean } } : null;
       return review?.discussion?.publish
-        ? "Privacy review complete · summary posted"
-        : "Privacy review complete · no public summary needed";
+        ? "Discussion draft prepared · public summaries require separate human approval"
+        : "Automated review complete · no public draft proposed";
     } catch {
       return "Privacy review complete";
     }
@@ -213,7 +294,9 @@ export function useAccount(): AccountController {
       return false;
     }
     if (!user.legalAccepted) {
-      openAccount("Confirm your age eligibility and accept the current legal documents before saving locations.");
+      openAccount(user.ageEligible
+        ? "Accept the current legal documents before saving locations."
+        : "Account features are paused. Open your account for privacy support or deletion options.");
       return false;
     }
     const wasSaved = savedSiteIds.has(siteId);
@@ -244,7 +327,16 @@ export function useAccount(): AccountController {
   };
 }
 
-type AccountMode = "login" | "signup" | "verify" | "recover" | "reset";
+type AccountMode = "login" | "signup" | "signupDetails" | "verify" | "recover" | "reset";
+
+function turnstileActionForMode(mode: AccountMode): TurnstileAction {
+  if (mode === "signup") return "signup_eligibility";
+  if (mode === "signupDetails") return "signup_request";
+  if (mode === "verify") return "signup_verify";
+  if (mode === "recover") return "password_request";
+  if (mode === "reset") return "password_reset";
+  return "login";
+}
 
 export function AccountModal({
   account,
@@ -262,15 +354,54 @@ export function AccountModal({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [challengeId, setChallengeId] = useState("");
+  const [eligibilityProof, setEligibilityProof] = useState("");
+  const [signupAvailable, setSignupAvailable] = useState<boolean | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileState, setTurnstileState] = useState<TurnstileChallengeState>("loading");
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+  const [resendTurnstileToken, setResendTurnstileToken] = useState("");
+  const [resendTurnstileState, setResendTurnstileState] = useState<TurnstileChallengeState>("loading");
+  const [resendTurnstileResetKey, setResendTurnstileResetKey] = useState(0);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [editingTrip, setEditingTrip] = useState<ProfileTrip | null>(null);
   const [editFields, setEditFields] = useState<ProfileTripEditFields | null>(null);
   const [profileActionBusy, setProfileActionBusy] = useState(false);
   const [profileActionError, setProfileActionError] = useState("");
+  const [profileActionNotice, setProfileActionNotice] = useState("");
+  const [deletionDetails, setDeletionDetails] = useState<DeletionDetails | null>(null);
+  const [browserAccountStorageCleared, setBrowserAccountStorageCleared] = useState<boolean | null>(null);
+  const [deletionStatusAction, setDeletionStatusAction] = useState<"checking" | "dismissing" | null>(null);
+  const [deletionStatusError, setDeletionStatusError] = useState("");
   const [gearDraft, setGearDraft] = useState(EMPTY_GEAR);
   const reviewRetryRequestedRef = useRef(false);
+  const deletionStatusCheckedRef = useRef(false);
+
+  const resetTurnstile = useCallback(() => {
+    setTurnstileToken("");
+    setTurnstileState("loading");
+    setTurnstileResetKey((value) => value + 1);
+  }, []);
+  const resetResendTurnstile = useCallback(() => {
+    setResendTurnstileToken("");
+    setResendTurnstileState("loading");
+    setResendTurnstileResetKey((value) => value + 1);
+  }, []);
+  const changeMode = useCallback((nextMode: AccountMode) => {
+    resetTurnstile();
+    resetResendTurnstile();
+    setMode(nextMode);
+  }, [resetResendTurnstile, resetTurnstile]);
+  const closeAccount = useCallback(() => {
+    resetTurnstile();
+    resetResendTurnstile();
+    account.closeAccount();
+  }, [account, resetResendTurnstile, resetTurnstile]);
+  const turnstileCanSubmit = turnstileState === "disabled" ||
+    (turnstileState === "verified" && Boolean(turnstileToken));
+  const resendTurnstileCanSubmit = resendTurnstileState === "disabled" ||
+    (resendTurnstileState === "verified" && Boolean(resendTurnstileToken));
 
   const loadProfile = useCallback(async () => {
     setProfileLoading(true);
@@ -296,6 +427,19 @@ export function AccountModal({
       window.clearTimeout(timer);
     };
   }, [account.modalOpen, account.user, loadProfile, standalone]);
+
+  useEffect(() => {
+    const surfaceVisible = standalone || account.modalOpen;
+    if (!surfaceVisible || account.user || mode !== "signup") return;
+    const controller = new AbortController();
+    fetch("/api/auth/signup/eligibility", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        const body = await response.json().catch(() => ({})) as { available?: boolean };
+        setSignupAvailable(response.ok && body.available === true);
+      })
+      .catch(() => setSignupAvailable(false));
+    return () => controller.abort();
+  }, [account.modalOpen, account.user, mode, standalone]);
 
   useEffect(() => {
     if (!account.user?.legalAccepted || reviewRetryRequestedRef.current || !profile?.trips.some((trip) => !trip.ai_review_status || trip.ai_review_status === "retry")) return;
@@ -327,6 +471,27 @@ export function AccountModal({
     return () => window.clearInterval(timer);
   }, [resendCooldown]);
 
+  useEffect(() => {
+    const surfaceVisible = standalone || account.modalOpen;
+    if (!surfaceVisible || account.loading || deletionDetails || deletionStatusCheckedRef.current) return;
+    deletionStatusCheckedRef.current = true;
+    const controller = new AbortController();
+    fetch("/api/privacy/deletion-status", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const body = await response.json().catch(() => ({})) as Record<string, unknown>;
+        const resumedDeletionDetails = deletionDetailsFromResponse(body);
+        if (resumedDeletionDetails.scope === "account") {
+          setBrowserAccountStorageCleared(clearCastingCompassAccountStorage());
+        }
+        setDeletionDetails(resumedDeletionDetails);
+      })
+      .catch(() => {
+        // No receipt, an expired receipt, or a transient error should leave the ordinary sign-in screen unchanged.
+      });
+    return () => controller.abort();
+  }, [account.loading, account.modalOpen, account.user, deletionDetails, standalone]);
+
   if (!account.modalOpen && !standalone) return null;
   if (standalone && account.loading) {
     return <main className="profile-page-shell"><p className="profile-page-loading">Loading your fishing profile…</p></main>;
@@ -334,12 +499,16 @@ export function AccountModal({
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!turnstileCanSubmit) {
+      setError("Complete the security verification before continuing.");
+      return;
+    }
     setBusy(true);
     setError("");
     setNotice("");
     const form = new FormData(event.currentTarget);
     try {
-      const endpoint = mode === "signup"
+      const endpoint = mode === "signupDetails"
         ? "/api/auth/signup/request"
         : mode === "verify"
           ? "/api/auth/signup/verify"
@@ -349,18 +518,21 @@ export function AccountModal({
               ? "/api/auth/password/reset"
               : "/api/auth/login";
       const payload = mode === "verify"
-        ? { challengeId, code: form.get("code") }
+        ? { challengeId, code: form.get("code"), turnstileToken }
         : mode === "reset"
-          ? { challengeId, code: form.get("code"), password: form.get("password") }
-          : mode === "signup"
+          ? { challengeId, code: form.get("code"), password: form.get("password"), turnstileToken }
+          : mode === "signupDetails"
             ? {
+                eligibilityProof,
                 email: form.get("email"),
                 password: form.get("password"),
-                birthDate: form.get("birthDate"),
-                acceptTerms: form.get("acceptTerms") === "on",
-                acceptPrivacy: form.get("acceptPrivacy") === "on",
+                termsAccepted: form.get("termsAccepted") === "on",
+                privacyAccepted: form.get("privacyAccepted") === "on",
+                turnstileToken,
               }
-            : { email: form.get("email"), password: form.get("password") };
+            : mode === "recover"
+              ? { email: form.get("email"), turnstileToken }
+              : { email: form.get("email"), password: form.get("password"), turnstileToken };
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -368,30 +540,72 @@ export function AccountModal({
       });
       const body = await response.json() as { challengeId?: string; error?: { message?: string } };
       if (!response.ok) throw new Error(body.error?.message ?? "The account request failed.");
-      if ((mode === "signup" || mode === "recover") && body.challengeId) {
+      if ((mode === "signupDetails" || mode === "recover") && body.challengeId) {
         setChallengeId(body.challengeId);
         setResendCooldown(60);
-        setMode(mode === "signup" ? "verify" : "reset");
+        changeMode(mode === "signupDetails" ? "verify" : "reset");
         return;
       }
       await account.refresh();
-      account.closeAccount();
+      closeAccount();
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "The account request failed.");
     } finally {
+      resetTurnstile();
+      setBusy(false);
+    }
+  };
+
+  const submitSignupEligibility = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!turnstileCanSubmit) {
+      setError("Complete the security verification before continuing.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setNotice("");
+    const form = new FormData(event.currentTarget);
+    try {
+      const response = await fetch("/api/auth/signup/eligibility", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ birthDate: form.get("birthDate"), turnstileToken }),
+      });
+      const body = await response.json().catch(() => ({})) as { eligibilityProof?: string };
+      if (!response.ok || !body.eligibilityProof) {
+        if (response.status === 403) setSignupAvailable(false);
+        if (response.status === 503) {
+          throw new Error("Security verification is temporarily unavailable. Try again shortly.");
+        }
+        throw new Error("Account signup is not available with the information provided.");
+      }
+      setEligibilityProof(body.eligibilityProof);
+      changeMode("signupDetails");
+    } catch (eligibilityError) {
+      setEligibilityProof("");
+      setError(eligibilityError instanceof Error
+        ? eligibilityError.message
+        : "Account signup is not available with the information provided.");
+    } finally {
+      resetTurnstile();
       setBusy(false);
     }
   };
 
   const resendCode = async () => {
     if (!challengeId || resendCooldown > 0 || busy) return;
+    if (!resendTurnstileCanSubmit) {
+      setError("Complete the resend security verification before requesting another code.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
       const response = await fetch("/api/auth/challenge/resend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ challengeId }),
+        body: JSON.stringify({ challengeId, turnstileToken: resendTurnstileToken }),
       });
       const body = await response.json() as { retryAfterSeconds?: number; error?: { message?: string } };
       if (!response.ok) throw new Error(body.error?.message ?? "A new code could not be sent.");
@@ -400,11 +614,12 @@ export function AccountModal({
     } catch (resendError) {
       setError(resendError instanceof Error ? resendError.message : "A new code could not be sent.");
     } finally {
+      resetResendTurnstile();
       setBusy(false);
     }
   };
 
-  const submitEligibility = async (event: FormEvent<HTMLFormElement>) => {
+  const submitLegalAcceptance = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setBusy(true);
     setError("");
@@ -414,16 +629,15 @@ export function AccountModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          birthDate: form.get("birthDate"),
-          acceptTerms: form.get("acceptTerms") === "on",
-          acceptPrivacy: form.get("acceptPrivacy") === "on",
+          termsAccepted: form.get("termsAccepted") === "on",
+          privacyAccepted: form.get("privacyAccepted") === "on",
         }),
       });
       const body = await response.json() as { error?: { message?: string } };
-      if (!response.ok) throw new Error(body.error?.message ?? "Eligibility could not be confirmed.");
+      if (!response.ok) throw new Error(body.error?.message ?? "Legal acceptance could not be saved.");
       await account.refresh();
-    } catch (eligibilityError) {
-      setError(eligibilityError instanceof Error ? eligibilityError.message : "Eligibility could not be confirmed.");
+    } catch (acceptanceError) {
+      setError(acceptanceError instanceof Error ? acceptanceError.message : "Legal acceptance could not be saved.");
     } finally {
       setBusy(false);
     }
@@ -441,14 +655,57 @@ export function AccountModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: form.get("password"), confirmation: form.get("confirmation") }),
       });
-      const body = await response.json() as { error?: { message?: string } };
+      const body = await response.json() as Record<string, unknown> & { error?: { message?: string } };
       if (!response.ok) throw new Error(body.error?.message ?? "The account could not be deleted.");
+      const nextDeletionDetails = deletionDetailsFromResponse(body);
+      const responseMatchesStatus = response.status === 200
+        ? nextDeletionDetails.status === "completed"
+        : response.status === 202 && nextDeletionDetails.status !== "completed";
+      if (body.deleted !== true || nextDeletionDetails.scope !== "account" || !responseMatchesStatus) {
+        throw new Error("The deletion response could not be verified. Sign-in access may already be removed; contact support before retrying.");
+      }
+      setBrowserAccountStorageCleared(clearCastingCompassAccountStorage());
+      setDeletionDetails(nextDeletionDetails);
       await account.refresh();
-      window.location.assign("/");
     } catch (deleteError) {
       setProfileActionError(deleteError instanceof Error ? deleteError.message : "The account could not be deleted.");
     } finally {
       setProfileActionBusy(false);
+    }
+  };
+
+  const checkDeletionStatus = async () => {
+    setDeletionStatusAction("checking");
+    setDeletionStatusError("");
+    try {
+      const response = await fetch("/api/privacy/deletion-status", { cache: "no-store" });
+      const body = await response.json().catch(() => ({})) as Record<string, unknown> & { error?: { message?: string } };
+      if (!response.ok) throw new Error(body.error?.message ?? "Deletion status is temporarily unavailable.");
+      const nextDeletionDetails = deletionDetailsFromResponse(body);
+      if (deletionDetails && nextDeletionDetails.scope !== deletionDetails.scope) {
+        throw new Error("This receipt does not match the deletion currently shown.");
+      }
+      setDeletionDetails(nextDeletionDetails);
+    } catch (statusError) {
+      setDeletionStatusError(statusError instanceof Error ? statusError.message : "Deletion status is temporarily unavailable.");
+    } finally {
+      setDeletionStatusAction(null);
+    }
+  };
+
+  const dismissDeletionStatus = async () => {
+    setDeletionStatusAction("dismissing");
+    setDeletionStatusError("");
+    try {
+      const response = await fetch("/api/privacy/deletion-status", { method: "DELETE" });
+      if (!response.ok) throw new Error("The deletion-status receipt could not be dismissed.");
+      deletionStatusCheckedRef.current = true;
+      setDeletionDetails(null);
+      setBrowserAccountStorageCleared(null);
+    } catch (statusError) {
+      setDeletionStatusError(statusError instanceof Error ? statusError.message : "The deletion-status receipt could not be dismissed.");
+    } finally {
+      setDeletionStatusAction(null);
     }
   };
 
@@ -462,6 +719,7 @@ export function AccountModal({
       window.localStorage.removeItem(draftKey);
     }
     setProfileActionError("");
+    setProfileActionNotice("");
     setEditingTrip(trip);
     setEditFields(nextFields);
   };
@@ -481,6 +739,7 @@ export function AccountModal({
     }
     setProfileActionBusy(true);
     setProfileActionError("");
+    setProfileActionNotice("");
     try {
       const response = await fetch(`/api/profile/trips/${encodeURIComponent(editingTrip.id)}`, {
         method: "PATCH",
@@ -491,11 +750,18 @@ export function AccountModal({
           endedAt: new Date(editFields.endedAt).toISOString(),
         }),
       });
-      const body = await response.json() as { error?: { message?: string } };
+      const body = await response.json() as {
+        error?: { message?: string };
+        validationEvidenceExcluded?: boolean;
+      };
       if (!response.ok) throw new Error(body.error?.message ?? "The trip log could not be updated.");
+      if (body.validationEvidenceExcluded !== true) {
+        throw new Error("The trip log changed, but its validation-evidence exclusion could not be verified. Refresh before editing again.");
+      }
       window.localStorage.removeItem(`${PROFILE_TRIP_DRAFT_PREFIX}${editingTrip.id}`);
       closeTripEdit();
       await loadProfile();
+      setProfileActionNotice("Saved. Because this completed report was edited, it remains context-only and cannot enter prospective validation evidence.");
     } catch (editError) {
       setProfileActionError(editError instanceof Error ? editError.message : "The trip log could not be updated.");
     } finally {
@@ -509,10 +775,18 @@ export function AccountModal({
     setProfileActionError("");
     try {
       const response = await fetch(`/api/profile/trips/${encodeURIComponent(trip.id)}`, { method: "DELETE" });
-      const body = await response.json() as { error?: { message?: string } };
+      const body = await response.json() as Record<string, unknown> & { error?: { message?: string } };
       if (!response.ok) throw new Error(body.error?.message ?? "The trip log could not be removed.");
+      const nextDeletionDetails = deletionDetailsFromResponse(body);
+      const responseMatchesStatus = response.status === 200
+        ? nextDeletionDetails.status === "completed"
+        : response.status === 202 && nextDeletionDetails.status !== "completed";
+      if (body.deleted !== true || nextDeletionDetails.scope !== "trip" || !responseMatchesStatus) {
+        throw new Error("The trip-deletion response could not be verified. The trip may already be removed; contact support before retrying.");
+      }
       window.localStorage.removeItem(`${PROFILE_TRIP_DRAFT_PREFIX}${trip.id}`);
       await loadProfile();
+      setDeletionDetails(nextDeletionDetails);
     } catch (deleteError) {
       setProfileActionError(deleteError instanceof Error ? deleteError.message : "The trip log could not be removed.");
     } finally {
@@ -557,26 +831,90 @@ export function AccountModal({
 
   return (
     <div className={standalone ? "profile-page-shell" : "account-modal-layer"} role="presentation" onClick={(event) => {
-      if (!standalone && event.target === event.currentTarget) account.closeAccount();
+      if (!standalone && event.target === event.currentTarget) closeAccount();
     }}>
       <section className={`account-modal${standalone ? " account-profile-page" : ""}`} role={standalone ? "main" : "dialog"} aria-modal={standalone ? undefined : "true"} aria-labelledby="account-title">
         {standalone ? (
           <Link className="sheet-close" href="/" aria-label="Back to forecast"><CloseIcon /></Link>
         ) : (
-          <button className="sheet-close" type="button" onClick={account.closeAccount} aria-label="Close account"><CloseIcon /></button>
+          <button className="sheet-close" type="button" onClick={closeAccount} aria-label="Close account"><CloseIcon /></button>
         )}
-        {account.user && !account.user.legalAccepted ? (
+        {deletionDetails ? (
+          <>
+            <span className="eyebrow"><span /> Privacy request</span>
+            <h2 id="account-title">{deletionDetails.scope === "account"
+              ? <>Account access<br />removed.</>
+              : <>Trip log<br />removed.</>}</h2>
+            <div aria-live="polite">
+              {deletionDetails.status === "completed" ? (
+                <p>{deletionDetails.scope === "account"
+                  ? "Your account records and any stored trip-photo objects have been removed from the active service."
+                  : "The trip log and any stored photo object have been removed from the active service."}</p>
+              ) : deletionDetails.status === "needs_attention" ? (
+                <p>{deletionDetails.scope === "account"
+                  ? "Your account records have been removed from the active service. Stored trip-photo cleanup is delayed and has been flagged for operator attention."
+                  : "The trip log has been removed. Stored-photo cleanup is delayed and has been flagged for operator attention."}</p>
+              ) : (
+                <p>{deletionDetails.scope === "account"
+                  ? "Your account records have been removed from the active service. Stored trip-photo cleanup is continuing in the background."
+                  : "The trip log has been removed. Stored-photo cleanup is continuing in the background."}</p>
+              )}
+              {deletionDetails.objectsTotal > 0 ? (
+                <p>{Math.min(deletionDetails.objectsDeleted, deletionDetails.objectsTotal)} of {deletionDetails.objectsTotal} stored photo objects removed.</p>
+              ) : null}
+            </div>
+            {deletionDetails.status !== "completed" ? (
+              <button className="account-secondary" type="button" disabled={deletionStatusAction !== null} onClick={() => void checkDeletionStatus()}>
+                {deletionStatusAction === "checking" ? "Checking…" : "Check deletion status"}
+              </button>
+            ) : null}
+            {deletionStatusError ? <p className="account-error" role="alert">{deletionStatusError}</p> : null}
+            {deletionDetails.scope === "account" ? <p><small>{browserAccountStorageCleared === false
+              ? "This browser blocked access to local storage, so CastingCompass could not verify removal of its stored trip drafts and anonymous reporting identifier. Clear site data in your browser settings."
+              : "CastingCompass cleared its browser-stored trip drafts and anonymous reporting identifier. A short-lived, secure status receipt lets this page check any remaining cleanup without restoring account access."}</small></p> : null}
+            <button className="account-primary" type="button" disabled={deletionStatusAction !== null} onClick={() => deletionDetails.scope === "account" ? window.location.assign("/") : void dismissDeletionStatus()}>{deletionDetails.scope === "account" ? "Return to forecast" : deletionStatusAction === "dismissing" ? "Returning…" : "Return to profile"}</button>
+            {deletionDetails.scope === "account" ? <button className="account-text-button" type="button" disabled={deletionStatusAction !== null} onClick={() => void dismissDeletionStatus()}>{deletionStatusAction === "dismissing" ? "Dismissing…" : "Dismiss status and continue"}</button> : null}
+            <small>Dismissing clears this browser’s status receipt. It does not cancel any remaining cleanup or remove the server-side deletion record.</small>
+          </>
+        ) : account.user && !account.user.ageEligible ? (
           <>
             <span className="eyebrow"><span /> Account update</span>
-            <h2 id="account-title">Confirm your<br />eligibility.</h2>
-            <p>CastingCompass accounts are for people age 13 or older. Your birth date is checked once and is not stored.</p>
-            <form onSubmit={submitEligibility}>
-              <label>Birth date<input name="birthDate" type="date" autoComplete="bday" required /></label>
-              <label className="account-consent"><input name="acceptTerms" type="checkbox" required /><span>I agree to the <Link href="/terms" target="_blank">Terms of Service</Link>.</span></label>
-              <label className="account-consent"><input name="acceptPrivacy" type="checkbox" required /><span>I acknowledge the <Link href="/privacy" target="_blank">Privacy Policy</Link>, including the use of service providers and automated review.</span></label>
+            <h2 id="account-title">Account features<br />paused.</h2>
+            <p>This older account has no retained age-eligibility confirmation. CastingCompass will not ask for a birth date alongside an existing account or silently mark it eligible.</p>
+            <p>Email <a href="mailto:bzeng0000@gmail.com">bzeng0000@gmail.com</a> for privacy support. You can also permanently delete the account below with its password.</p>
+            <a className="account-secondary" href="/api/profile/export" download>Download my account records (JSON)</a>
+            <details className="account-delete-details">
+              <summary>Delete account</summary>
+              <form onSubmit={deleteAccount}>
+                <label>Password<input name="password" type="password" autoComplete="current-password" minLength={10} maxLength={128} required /></label>
+                <label>Type DELETE<input name="confirmation" type="text" autoComplete="off" pattern="DELETE" required /></label>
+                <button type="submit" className="account-danger" disabled={profileActionBusy}>{profileActionBusy ? "Deleting…" : "Permanently delete account"}</button>
+              </form>
+            </details>
+            {profileActionError ? <p className="account-error" role="alert">{profileActionError}</p> : null}
+            <button className="account-text-button" type="button" onClick={() => void account.signOut()}>Sign out</button>
+          </>
+        ) : account.user && !account.user.legalAccepted ? (
+          <>
+            <span className="eyebrow"><span /> Account update</span>
+            <h2 id="account-title">Review the<br />current terms.</h2>
+            <p>Your existing age-eligibility confirmation remains in place. Review and accept the current legal documents to resume account features; no birth date is requested again.</p>
+            <form onSubmit={submitLegalAcceptance}>
+              <label className="account-consent"><input name="termsAccepted" type="checkbox" required /><span>I agree to the <Link href="/terms" target="_blank">Terms of Service</Link>.</span></label>
+              <label className="account-consent"><input name="privacyAccepted" type="checkbox" required /><span>I acknowledge the <Link href="/privacy" target="_blank">Privacy Policy</Link>, including the use of service providers and automated review.</span></label>
               {error ? <p className="account-error" role="alert">{error}</p> : null}
-              <button className="account-primary" type="submit" disabled={busy}>{busy ? "Saving…" : "Confirm and continue"}</button>
+              <button className="account-primary" type="submit" disabled={busy}>{busy ? "Saving…" : "Accept and continue"}</button>
             </form>
+            <a className="account-secondary" href="/api/profile/export" download>Download my account records (JSON)</a>
+            <details className="account-delete-details">
+              <summary>Delete account</summary>
+              <form onSubmit={deleteAccount}>
+                <label>Password<input name="password" type="password" autoComplete="current-password" minLength={10} maxLength={128} required /></label>
+                <label>Type DELETE<input name="confirmation" type="text" autoComplete="off" pattern="DELETE" required /></label>
+                <button type="submit" className="account-danger" disabled={profileActionBusy}>{profileActionBusy ? "Deleting…" : "Permanently delete account"}</button>
+              </form>
+            </details>
+            {profileActionError ? <p className="account-error" role="alert">{profileActionError}</p> : null}
             <button className="account-text-button" type="button" onClick={() => void account.signOut()}>Sign out</button>
           </>
         ) : account.user ? (
@@ -604,7 +942,7 @@ export function AccountModal({
                             window.location.assign(`/?site=${encodeURIComponent(saved.site_id)}`);
                             return;
                           }
-                          account.closeAccount();
+                          closeAccount();
                           onOpenSite?.(saved.site_id);
                         }}
                       >
@@ -636,11 +974,20 @@ export function AccountModal({
                 <div className="profile-list">
                   {profile.trips.map((trip) => {
                     const site = sites.find((candidate) => candidate.id === trip.site_id);
-                    const encounters = Number(trip.halibut_encounters ?? 0);
+                    const targetEncounters = Number(trip.target_encounter_count ?? trip.halibut_encounters ?? 0);
+                    const anyFishEncounters = Number(trip.any_fish_encounter_count ?? 0);
+                    const nonTargetEncounters = Math.max(0, anyFishEncounters - targetEncounters);
+                    const resultLabel = trip.contract_status !== "valid"
+                      ? "Legacy report · not a structured v2 observation"
+                      : trip.outcome_class === "target_encountered"
+                        ? `${targetEncounters} California halibut encounter${targetEncounters === 1 ? "" : "s"}`
+                        : trip.outcome_class === "non_target_only"
+                          ? `0 California halibut · ${nonTargetEncounters} unresolved non-target fish`
+                          : "No fish encountered";
                     return (
                       <article className="profile-trip" key={trip.id}>
                         <div><strong>{site?.name ?? trip.site_id}</strong><span>{new Date(trip.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></div>
-                        <p>{encounters > 0 ? `${encounters} halibut encounter${encounters === 1 ? "" : "s"}` : "Skunk logged"} · {Number(trip.angler_hours ?? 0).toFixed(1)} angler-hours</p>
+                        <p>{resultLabel} · {Number(trip.angler_hours ?? 0).toFixed(1)} angler-hours</p>
                         <small>{tripReviewLabel(trip)}</small>
                         {trip.moderation_status === "pending" ? (
                           <div className="profile-trip-actions">
@@ -653,7 +1000,8 @@ export function AccountModal({
                   })}
                 </div>
               ) : <p>No completed trip logs are attached to this account yet.</p>}
-              <small className="profile-review-note">Trip data is saved immediately. Notes are automatically checked for privacy and usefulness; a safe summary usually appears on the location board within about a minute. Pending reports remain editable during the beta.</small>
+              <small className="profile-review-note">Trip data is saved immediately. Automated review may prepare a discussion draft, but nothing is posted without human approval. Pending reports remain editable during the beta. After any edit, the revised report remains useful as descriptive context but cannot re-enter prospective validation evidence.</small>
+              {profileActionNotice && !editingTrip ? <p role="status">{profileActionNotice}</p> : null}
               {profileActionError && !editingTrip ? <p className="account-error" role="alert">{profileActionError}</p> : null}
             </section>
             {editingTrip && editFields ? (
@@ -665,7 +1013,7 @@ export function AccountModal({
                   <div><span>Pending trip</span><h3 id="profile-trip-editor-title">Edit trip log</h3></div>
                   <button type="button" onClick={closeTripEdit}>Close</button>
                 </div>
-                <p className="profile-trip-editor-note">Your saved report is loaded below. Any unfinished edits on this device are restored automatically.</p>
+                <p className="profile-trip-editor-note">Your saved report is loaded below. Any unfinished edits on this device are restored automatically. Saving any edit permanently keeps this report out of prospective validation evidence; the revised report remains usable as descriptive context.</p>
                 <SiteCombobox
                   sites={sites}
                   value={editFields.siteId}
@@ -675,6 +1023,11 @@ export function AccountModal({
                   <label>Start<input type="datetime-local" value={editFields.startedAt} onChange={(event) => setEditFields((current) => current ? { ...current, startedAt: event.target.value } : current)} required /></label>
                   <label>Finish<input type="datetime-local" value={editFields.endedAt} onChange={(event) => setEditFields((current) => current ? { ...current, endedAt: event.target.value } : current)} required /></label>
                   <label>Anglers<input type="number" min="1" max="12" value={editFields.anglerCount} onChange={(event) => setEditFields((current) => current ? { ...current, anglerCount: Number(event.target.value) } : current)} required /></label>
+                  <label>Fishing mode
+                    <select value={editFields.mode} onChange={(event) => setEditFields((current) => current ? { ...current, mode: event.target.value } : current)}>
+                      <option value="shore">Shore</option><option value="beach">Beach</option><option value="pier">Pier</option><option value="jetty">Jetty</option><option value="kayak">Kayak</option><option value="boat">Boat</option><option value="other">Other</option>
+                    </select>
+                  </label>
                   <label>Fishing method
                     <select value={editFields.fishingMethod} onChange={(event) => setEditFields((current) => current ? { ...current, fishingMethod: event.target.value } : current)}>
                       <option value="bait">Bait</option><option value="artificial-lure">Artificial lure</option><option value="both">Bait + lure</option><option value="other">Other</option>
@@ -683,6 +1036,10 @@ export function AccountModal({
                   <label>Kept<input type="number" min="0" max="25" value={editFields.keeperCount} onChange={(event) => setEditFields((current) => current ? { ...current, keeperCount: Number(event.target.value) } : current)} required /></label>
                   <label>Short / released<input type="number" min="0" max="25" value={editFields.shortReleasedCount} onChange={(event) => setEditFields((current) => current ? { ...current, shortReleasedCount: Number(event.target.value) } : current)} required /></label>
                 </div>
+                <small>{editingTrip.contract_status === "valid"
+                  ? "California halibut is the fixed observation target. Saving recomputes the structured validation outcome; other-fish counts remain unresolved unless reviewed against stronger identification evidence. A valid contract does not by itself admit the report to model training."
+                  : "This legacy report remains outside the structured v2 observation set after ordinary edits. CastingCompass does not silently convert older counts into a validated structured observation."}</small>
+                <small>Changing the location, start, finish, or fishing mode clears the report’s saved forecast and model attribution instead of pairing the result with a forecast it no longer matches.</small>
                 <fieldset className="profile-trip-editor-section">
                   <legend>Gear used</legend>
                   <p>Add what you remember. Partial setups are still useful.</p>
@@ -717,7 +1074,7 @@ export function AccountModal({
                 </fieldset>
                 <fieldset className="profile-trip-editor-section">
                   <legend>What the water was actually like</legend>
-                  <p>These observations let the forecast learn when theoretically good water is difficult to fish.</p>
+                  <p>These observations document when theoretically good water was difficult to fish. Any later model use requires the separate validation protocol.</p>
                   <div className="profile-trip-editor-grid">
                     <label>Shorebreak<select value={editFields.shorebreak} onChange={(event) => setEditFields((current) => current ? { ...current, shorebreak: event.target.value } : current)}><option value="">Not noted</option><option value="calm">Calm</option><option value="manageable">Manageable</option><option value="difficult">Difficult</option><option value="unfishable">Unfishable</option></select></label>
                     <label>Water reached<select value={editFields.wadingDepth} onChange={(event) => setEditFields((current) => current ? { ...current, wadingDepth: event.target.value } : current)}><option value="">Not noted</option><option value="ankle">Ankle</option><option value="knee">Knee</option><option value="thigh">Thigh</option><option value="waist-plus">Waist or higher</option><option value="did-not-wade">Did not wade</option></select></label>
@@ -731,7 +1088,7 @@ export function AccountModal({
                   <label>Fishability notes<textarea rows={3} maxLength={500} value={editFields.fishabilityNotes} onChange={(event) => setEditFields((current) => current ? { ...current, fishabilityNotes: event.target.value } : current)} placeholder="Steep beach, thigh-high wash, weeds, snags…" /></label>
                 </fieldset>
                 <label>Notes<textarea rows={4} maxLength={1000} value={editFields.notes} onChange={(event) => setEditFields((current) => current ? { ...current, notes: event.target.value } : current)} /></label>
-                <small>Changed notes are checked again for privacy and relevance. A safe anonymous summary may update the location discussion; raw notes and identity stay private.</small>
+                <small>Changed notes are checked again for privacy and relevance. A revised discussion draft still requires human approval before publication.</small>
                 <small>Your edits are saved in this browser as you type.</small>
                 {profileActionError ? <p className="account-error" role="alert">{profileActionError}</p> : null}
                 <button className="account-primary" type="submit" disabled={profileActionBusy}>{profileActionBusy ? "Saving…" : "Save trip changes"}</button>
@@ -740,15 +1097,17 @@ export function AccountModal({
             ) : null}
             <section className="profile-section profile-privacy-section">
               <h3>Privacy and account controls</h3>
-              <p>Download a copy of your account data, or permanently delete the account and its linked reports.</p>
+              <p>Download a machine-readable copy of your account records, or permanently remove account access and linked data from the active service.</p>
               <div className="profile-privacy-links">
-                <a className="account-secondary" href="/api/profile/export" download>Download my data</a>
+                <a className="account-secondary" href="/api/profile/export" download>Download my account records (JSON)</a>
                 <Link href="/privacy">Privacy Policy</Link>
                 <Link href="/terms">Terms of Service</Link>
                 <Link href="/ai-disclosure">AI and forecast disclosure</Link>
               </div>
+              <small>The JSON export includes account and consent records, saved locations, gear presets, full trip records, related discussion posts, and a photo manifest. A valid observation contract means a report is internally structured, not that it has been admitted to model training. Authenticated photo links appear only for files that are available; photo files are separate downloads and are not inside the JSON file.</small>
               <details className="account-delete-details">
                 <summary>Delete account</summary>
+                <p>Account access and database records are removed first. If stored photo objects need background cleanup, you will receive a secure receipt and can check progress here.</p>
                 <form onSubmit={deleteAccount}>
                   <label>Password<input name="password" type="password" autoComplete="current-password" minLength={10} maxLength={128} required /></label>
                   <label>Type DELETE<input name="confirmation" type="text" autoComplete="off" pattern="DELETE" required /></label>
@@ -763,38 +1122,79 @@ export function AccountModal({
             <span className="eyebrow"><span /> CastingCompass beta</span>
             <h2 id="account-title">{
               mode === "login" ? "Welcome back."
-                : mode === "signup" ? "Create an account."
+                : mode === "signup" || mode === "signupDetails" ? "Create an account."
                   : mode === "verify" ? "Check your email."
                     : mode === "recover" ? "Reset your password."
                       : "Enter your reset code."
             }</h2>
-            <p>{account.modalMessage || "Save locations and contribute trip reports to improve the forecast."}</p>
+            <p>{mode === "signup"
+              ? "Before we collect account details, enter your birth date. It is used only to decide whether signup is available and is not stored."
+              : mode === "signupDetails"
+                ? "Eligibility confirmed. Now enter your account details and review the legal documents."
+                : account.modalMessage || "Save locations and contribute trip reports to improve the forecast."}</p>
             {mode === "login" || mode === "signup" ? (
               <div className="account-tabs" role="tablist" aria-label="Account action">
-                <button type="button" className={mode === "login" ? "active" : ""} onClick={() => { setMode("login"); setError(""); }}>Sign in</button>
-                <button type="button" className={mode === "signup" ? "active" : ""} onClick={() => { setMode("signup"); setError(""); }}>Create account</button>
+                <button type="button" className={mode === "login" ? "active" : ""} onClick={() => { changeMode("login"); setEligibilityProof(""); setError(""); }}>Sign in</button>
+                <button type="button" className={mode === "signup" ? "active" : ""} onClick={() => { changeMode("signup"); setSignupAvailable(null); setEligibilityProof(""); setError(""); }}>Create account</button>
               </div>
             ) : null}
-            <form onSubmit={submit}>
-              {mode !== "verify" && mode !== "reset" ? <label>Email<input name="email" type="email" autoComplete="email" required maxLength={254} /></label> : null}
-              {mode === "login" || mode === "signup" || mode === "reset" ? <label>{mode === "reset" ? "New password" : "Password"}<input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={10} maxLength={128} /></label> : null}
-              {mode === "signup" ? <label>Birth date<input name="birthDate" type="date" autoComplete="bday" required /></label> : null}
-              {mode === "signup" ? <label className="account-consent"><input name="acceptTerms" type="checkbox" required /><span>I am 13 or older and agree to the <Link href="/terms" target="_blank">Terms of Service</Link>.</span></label> : null}
-              {mode === "signup" ? <label className="account-consent"><input name="acceptPrivacy" type="checkbox" required /><span>I acknowledge the <Link href="/privacy" target="_blank">Privacy Policy</Link> and <Link href="/ai-disclosure" target="_blank">AI disclosure</Link>.</span></label> : null}
-              {mode === "verify" || mode === "reset" ? <label>Six-digit email code<input name="code" type="text" inputMode="numeric" autoComplete="one-time-code" required minLength={6} maxLength={6} pattern="[0-9]{6}" /></label> : null}
-              {mode === "signup" ? <small>Use at least 10 characters. We’ll email a six-digit code before creating the account.</small> : null}
-              {mode === "verify" || mode === "reset" ? <small>The code expires after 15 minutes and can be tried six times.</small> : null}
-              {error ? <p className="account-error" role="alert">{error}</p> : null}
-              {notice ? <p className="account-notice" role="status">{notice}</p> : null}
-              <button className="account-primary" type="submit" disabled={busy}>{busy ? "Please wait…" : mode === "login" ? "Sign in" : mode === "signup" ? "Email verification code" : mode === "verify" ? "Verify and create account" : mode === "recover" ? "Email reset code" : "Set new password"}</button>
-            </form>
+            {mode === "signup" && signupAvailable === true ? (
+              <form aria-label="Age eligibility" onSubmit={submitSignupEligibility}>
+                <label>Birth date<input name="birthDate" type="date" autoComplete="bday" required /></label>
+                <small>The entered date is not retained. The service keeps only a short-lived eligibility result without your birth date, email, or account details.</small>
+                <TurnstileChallenge
+                  action={turnstileActionForMode(mode)}
+                  resetKey={turnstileResetKey}
+                  onTokenChange={setTurnstileToken}
+                  onStateChange={setTurnstileState}
+                />
+                {error ? <p className="account-error" role="alert">{error}</p> : null}
+                <button className="account-primary" type="submit" disabled={busy || !turnstileCanSubmit}>{busy ? "Checking…" : "Continue"}</button>
+              </form>
+            ) : mode === "signup" ? (
+              <p className={signupAvailable === false ? "account-error" : "account-notice"} role="status">
+                {signupAvailable === false
+                  ? "Account signup is not available from this browser right now."
+                  : "Checking whether account signup is available…"}
+              </p>
+            ) : (
+              <form onSubmit={submit}>
+                {mode !== "verify" && mode !== "reset" ? <label>Email<input name="email" type="email" autoComplete="email" required maxLength={254} /></label> : null}
+                {mode === "login" || mode === "signupDetails" || mode === "reset" ? <label>{mode === "reset" ? "New password" : "Password"}<input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={10} maxLength={128} /></label> : null}
+                {mode === "signupDetails" ? <label className="account-consent"><input name="termsAccepted" type="checkbox" required /><span>I agree to the <Link href="/terms" target="_blank">Terms of Service</Link>.</span></label> : null}
+                {mode === "signupDetails" ? <label className="account-consent"><input name="privacyAccepted" type="checkbox" required /><span>I acknowledge the <Link href="/privacy" target="_blank">Privacy Policy</Link> and <Link href="/ai-disclosure" target="_blank">AI disclosure</Link>.</span></label> : null}
+                {mode === "verify" || mode === "reset" ? <label>Six-digit email code<input name="code" type="text" inputMode="numeric" autoComplete="one-time-code" required minLength={6} maxLength={6} pattern="[0-9]{6}" /></label> : null}
+                {mode === "signupDetails" ? <small>Use at least 10 characters. We’ll email a six-digit code before creating the account.</small> : null}
+                {mode === "verify" || mode === "reset" ? <small>The code expires after 15 minutes and can be tried six times.</small> : null}
+                <TurnstileChallenge
+                  action={turnstileActionForMode(mode)}
+                  resetKey={turnstileResetKey}
+                  onTokenChange={setTurnstileToken}
+                  onStateChange={setTurnstileState}
+                />
+                {error ? <p className="account-error" role="alert">{error}</p> : null}
+                {notice ? <p className="account-notice" role="status">{notice}</p> : null}
+                <button className="account-primary" type="submit" disabled={busy || !turnstileCanSubmit}>{busy ? "Please wait…" : mode === "login" ? "Sign in" : mode === "signupDetails" ? "Email verification code" : mode === "verify" ? "Verify and create account" : mode === "recover" ? "Email reset code" : "Set new password"}</button>
+              </form>
+            )}
             {mode === "verify" || mode === "reset" ? (
-              <button className="account-text-button" type="button" disabled={busy || resendCooldown > 0} onClick={() => void resendCode()}>
-                {resendCooldown > 0 ? `Send another code in ${resendCooldown}s` : "Send another code"}
-              </button>
+              <div className="account-resend">
+                {resendCooldown <= 0 ? (
+                  <TurnstileChallenge
+                    action="challenge_resend"
+                    resetKey={resendTurnstileResetKey}
+                    onTokenChange={setResendTurnstileToken}
+                    onStateChange={setResendTurnstileState}
+                  />
+                ) : null}
+                <button className="account-text-button" type="button" disabled={busy || resendCooldown > 0 || !resendTurnstileCanSubmit} onClick={() => void resendCode()}>
+                  {resendCooldown > 0 ? `Send another code in ${resendCooldown}s` : "Send another code"}
+                </button>
+              </div>
             ) : null}
-            {mode === "login" ? <button className="account-text-button" type="button" onClick={() => { setMode("recover"); setError(""); }}>Forgot password?</button> : null}
-            {mode === "recover" || mode === "verify" || mode === "reset" ? <button className="account-text-button" type="button" onClick={() => { setMode("login"); setError(""); setChallengeId(""); }}>Back to sign in</button> : null}
+            {mode === "login" ? <button className="account-text-button" type="button" onClick={() => { changeMode("recover"); setError(""); }}>Forgot password?</button> : null}
+            {mode === "signupDetails" ? <button className="account-text-button" type="button" onClick={() => { changeMode("signup"); setSignupAvailable(null); setEligibilityProof(""); setError(""); }}>Start age check again</button> : null}
+            {mode === "recover" || mode === "verify" || mode === "reset" ? <button className="account-text-button" type="button" onClick={() => { changeMode("login"); setEligibilityProof(""); setError(""); setChallengeId(""); }}>Back to sign in</button> : null}
             <p className="account-legal-links"><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link><Link href="/ai-disclosure">AI disclosure</Link></p>
           </>
         )}

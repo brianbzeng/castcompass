@@ -1,0 +1,240 @@
+{
+  "schema_version": "castingcompass.validation-feasibility-pilot/2.0.0",
+  "protocol_id": "california-halibut-collection-feasibility-v2",
+  "protocol_version": "2.0.0",
+  "status": "frozen-local-not-activated",
+  "based_on_commit": "50bd3c5a5ad5a0dc297f32b52f30b8a9e384f7f7",
+  "frozen_at": "2026-07-17",
+  "supersedes_for_activation": "california-halibut-site-window-v1",
+  "hash_anchor": {
+    "method": "containing-git-commit",
+    "self_referential_hash": false
+  },
+  "purpose_and_claim_boundary": {
+    "study_type": "prospective-operational-feasibility-pilot",
+    "question": "Can CastingCompass prospectively collect a sufficiently complete, reconciled, privacy-minimized, and source-labeled set of California-halibut-targeted attempts to justify designing a separate confirmatory ranking study?",
+    "supported_output": "collection-feasibility-and-bias-diagnostics-only",
+    "candidate_performance_evaluation_allowed": false,
+    "candidate_baseline_comparison_allowed": false,
+    "model_promotion_allowed": false,
+    "probability_calibration_allowed": false,
+    "causal_claim_allowed": false,
+    "pilot_rows_eligible_for_future_confirmatory_testing": false,
+    "prohibited_claims": [
+      "the opportunity score predicts a catch probability",
+      "the opportunity score is accurate or validated",
+      "the opportunity score beats a baseline",
+      "using CastingCompass causes better fishing outcomes",
+      "a pilot feasibility pass authorizes model promotion",
+      "a missing target encounter establishes biological absence"
+    ]
+  },
+  "activation": {
+    "activation_contract_version": "castingcompass.validation-feasibility-activation/2.0.0",
+    "must_precede_first_eligible_row": true,
+    "backdating_prohibited": true,
+    "pre_activation_rows_role": "product-observational-only",
+    "external_timestamped_preregistration_provider": "osf-registration",
+    "public_or_embargoed_read_only_registration_required": true,
+    "registration_receipt_and_artifact_hash_required": true,
+    "immutable_release_commit_required": true,
+    "worker_version_required": true,
+    "exact_start_and_end_required": true,
+    "minimum_duration_days": 90,
+    "maximum_duration_days": 365,
+    "legal_privacy_and_data_steward_approval_required": true,
+    "runtime_capture_acceptance_required": true,
+    "per_event_external_transparency_log_required": false,
+    "independent_publication_service_required": false,
+    "missing_or_late_activation_action": "do-not-activate-and-freeze-a-new-version"
+  },
+  "population": {
+    "target_taxon_id": "california-halibut",
+    "taxon_catalog_version": "castingcompass.taxa/1.0.0",
+    "observation_contract_version": "castingcompass.observation/2.0.0",
+    "unit_of_collection": "one-complete-unexpanded-targeted-effort-segment-at-one-curated-site",
+    "allowed_modes": [
+      "shore",
+      "beach",
+      "pier",
+      "jetty"
+    ],
+    "curated_site_catalog_path": "public/data/sites.json",
+    "curated_site_catalog_sha256": "b0378742f40cca598c57d845fb683ab9b36068cdd69de541aeb3e45d93c31860",
+    "exact_coordinates_required": false,
+    "photo_required": false,
+    "complete_attempts_including_non_encounters_required": true,
+    "past_reports_eligible": false
+  },
+  "recruitment": {
+    "frame_id": "california-halibut-feasibility-recruitment-v2",
+    "allowed_source_ids": [
+      "castingcompass-organic-product",
+      "direct-opt-in-research-invite",
+      "admin-approved-community-prospective"
+    ],
+    "first_pre_outcome_source_event_wins": true,
+    "community_admin_approval_required": true,
+    "outcome_dependent_recruitment_allowed": false,
+    "outcome_dependent_incentive_allowed": false,
+    "safe_cancellation_retained": true,
+    "source_separated_reporting_required": true
+  },
+  "collection": {
+    "server_start_event_required": true,
+    "server_completion_event_required": true,
+    "trusted_server_clock_required": true,
+    "required_fields": [
+      "participant_group_id",
+      "target_taxon_id",
+      "site_id",
+      "mode",
+      "segment_start_at",
+      "segment_end_at",
+      "angler_count",
+      "effort_minutes",
+      "target_encountered",
+      "target_encounter_count",
+      "target_retained_count",
+      "target_released_count",
+      "identification_confidence",
+      "score_influenced_choice",
+      "selection_method",
+      "recruitment_source_id",
+      "study_consent_version",
+      "study_consent_at",
+      "scoring_system_kind",
+      "scoring_system_version",
+      "scoring_system_sha256",
+      "opportunity_score",
+      "opportunity_window_id",
+      "snapshot_sha256",
+      "source_record_sha256"
+    ],
+    "score_identity_captured_before_outcome": true,
+    "score_influenced_choice_captured": true,
+    "selection_method_captured": true,
+    "all_started_attempts_reconciled": true,
+    "cancellation_not_encoded_as_non_encounter": true,
+    "edits_are_append_only_corrections": true,
+    "source_record_contract_validation_required": true
+  },
+  "integrity": {
+    "append_only_event_ledger_required": true,
+    "database_unique_event_ids_required": true,
+    "server_generated_event_ids_required": true,
+    "daily_encrypted_snapshot_required": true,
+    "daily_snapshot_checksum_required": true,
+    "snapshot_retention_days": 730,
+    "restore_test_before_activation_required": true,
+    "operator_audit_log_required": true,
+    "outcome_mutation_prohibited": true,
+    "external_per_event_log_proof_claimed": false
+  },
+  "privacy": {
+    "participant_token": {
+      "privacy_safe": true,
+      "stable_across_sessions": true,
+      "deletion_linked": true,
+      "raw_account_id_exported": false
+    },
+    "prohibited_fields": [
+      "email",
+      "raw_account_id",
+      "precise_coordinates",
+      "raw_notes",
+      "photo_bytes",
+      "device_advertising_id",
+      "ip_address",
+      "user_agent"
+    ],
+    "optional_free_text_allowed": false,
+    "optional_photo_allowed": false,
+    "account_export_supported": true,
+    "withdrawal_supported": true,
+    "account_deletion_supported": true,
+    "deletion_reconciliation_required": true,
+    "raw_rows_public": false,
+    "minimum_cell_size_for_public_counts": 10,
+    "maximum_private_retention_days_after_pilot_close": 730
+  },
+  "feasibility_endpoints": {
+    "primary_endpoint": "complete-eligible-attempts-divided-by-started-attempts-excluding-safe-cancellations",
+    "secondary_endpoints": [
+      "required-field-missingness",
+      "started-attempt-reconciliation-rate",
+      "unique-participant-group-count",
+      "participant-concentration",
+      "target-encounter-and-non-encounter-support",
+      "geography-mode-season-and-recruitment-source-support",
+      "withdrawal-and-deletion-reconciliation",
+      "snapshot-and-restore-success"
+    ],
+    "candidate_score_outcome_association_computed": false,
+    "candidate_score_outcome_association_published": false,
+    "outcomes_by_score_stratum_published": false
+  },
+  "exit_rule": {
+    "stop_rule": "activation-manifest-fixed-end",
+    "early_success_stop_allowed": false,
+    "outcome_adaptive_stop_allowed": false,
+    "operational_planning_target_complete_attempts": 100,
+    "feasibility_gates": {
+      "minimum_complete_attempts": 100,
+      "minimum_unique_participant_groups": 50,
+      "minimum_target_encounters": 10,
+      "minimum_non_encounters": 50,
+      "minimum_completion_rate": 0.8,
+      "minimum_reconciliation_rate": 1,
+      "maximum_required_field_missingness": 0.02,
+      "maximum_single_participant_share": 0.1,
+      "minimum_geographic_panels_with_attempts": 3,
+      "minimum_recruitment_sources_with_attempts": 2
+    },
+    "unmet_gate_result": "collection-feasibility-not-demonstrated",
+    "all_eligible_rows_retained": true
+  },
+  "reporting": {
+    "negative_and_inconclusive_results_required": true,
+    "every_feasibility_endpoint_required": true,
+    "support_by_source_and_selection_required": true,
+    "deviations_with_timestamps_required": true,
+    "privacy_removals_required": true,
+    "model_accuracy_language_prohibited": true,
+    "probability_language_prohibited": true,
+    "raw_rows_published": false
+  },
+  "confirmatory_handoff": {
+    "separate_protocol_and_activation_required": true,
+    "pilot_rows_excluded": true,
+    "pilot_candidate_performance_results_available_to_designers": false,
+    "permitted_pilot_inputs": [
+      "completion-rate",
+      "missingness",
+      "reconciliation-rate",
+      "participant-support-and-concentration",
+      "encounter-prevalence-without-score-stratification",
+      "geography-mode-season-and-source-support",
+      "privacy-removal-rate"
+    ],
+    "required_confirmatory_elements": [
+      "fixed-candidate-and-baselines",
+      "source-separated-development-and-locked-test-data",
+      "geographic-and-temporal-holdouts",
+      "participant-clustered-uncertainty",
+      "precommitted-complete-attempt-inclusion",
+      "score-influence-stratification",
+      "minimum-positive-negative-and-participant-support",
+      "negative-and-inconclusive-reporting",
+      "promotion-drift-and-rollback-gates",
+      "separate-timestamped-preregistration-before-confirmatory-enrollment"
+    ],
+    "promotion_before_confirmatory_pass_allowed": false
+  },
+  "change_control": {
+    "frozen_artifact_edited_in_place": false,
+    "semantic_change_requires_new_version": true,
+    "activation_manifest_can_change_protocol_semantics": false,
+    "post_outcome_change_can_reclassify_pilot_rows_as_confirmatory": false
+  }
+}

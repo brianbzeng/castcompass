@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
 from typing import Any, Dict, Mapping, Sequence, Tuple
 
@@ -25,9 +27,15 @@ from .deep_model import (
     require_torch,
     torch,
 )
-from .metadata import build_run_record, sha256_file, write_json
+from .metadata import build_run_record, sha256_file, verify_run_record_integrity, write_json
 from .patches import load_patch_corpus
 from .splits import spatial_block_folds
+
+from shared.species_contract import (
+    MODEL_RUN_CONTRACT_VERSION,
+    TAXON_CATALOG_VERSION,
+    target_scope,
+)
 
 
 PROBE_CLASS_NAMES: Tuple[str, ...] = (
@@ -35,6 +43,70 @@ PROBE_CLASS_NAMES: Tuple[str, ...] = (
     "mixed_or_rugose_rock",
     "mobile_coarse_sediment",
 )
+SHA256_PATTERN = re.compile(r"^[a-f0-9]{64}$")
+
+
+def _validate_target_agnostic_checkpoint(
+    checkpoint: Any,
+    *,
+    expected_corpus_sha256: str,
+) -> Mapping[str, Any]:
+    """Validate immutable checkpoint identity before reading config or weights."""
+
+    if not isinstance(checkpoint, Mapping):
+        raise ValueError("checkpoint must be a mapping")
+    required_identity_fields = {
+        "model_run_contract_version",
+        "observation_contract_version",
+        "taxon_catalog_version",
+        "target_taxon_id",
+        "target_scope",
+        "experiment_version",
+        "model_version",
+        "corpus_sha256",
+    }
+    missing = required_identity_fields - set(checkpoint)
+    if missing:
+        raise ValueError(f"checkpoint is missing identity fields: {sorted(missing)}")
+    if checkpoint.get("model_run_contract_version") != MODEL_RUN_CONTRACT_VERSION:
+        raise ValueError("checkpoint model-run contract version is unsupported")
+    if checkpoint.get("taxon_catalog_version") != TAXON_CATALOG_VERSION:
+        raise ValueError("checkpoint taxon catalog version is unsupported")
+    if checkpoint.get("observation_contract_version") is not None:
+        raise ValueError("target-agnostic checkpoint must disclaim the observation contract")
+    if checkpoint.get("target_taxon_id") is not None:
+        raise ValueError("target-agnostic checkpoint cannot declare a target taxon")
+    if checkpoint.get("target_scope") != target_scope(None):
+        raise ValueError("checkpoint must declare the exact target-agnostic scope")
+    for field, prefix in (
+        ("experiment_version", "exp-target-agnostic-"),
+        ("model_version", "model-target-agnostic-"),
+    ):
+        value = checkpoint.get(field)
+        digest = value.removeprefix(prefix) if isinstance(value, str) else ""
+        if not isinstance(value, str) or not value.startswith(prefix) or SHA256_PATTERN.fullmatch(digest) is None:
+            raise ValueError(f"checkpoint {field} must be {prefix}<sha256>")
+    corpus_sha256 = checkpoint.get("corpus_sha256")
+    if (
+        not isinstance(corpus_sha256, str)
+        or SHA256_PATTERN.fullmatch(corpus_sha256) is None
+        or corpus_sha256 != expected_corpus_sha256
+    ):
+        raise ValueError("checkpoint was not trained from the supplied corpus")
+    return checkpoint
+
+
+def _load_target_agnostic_checkpoint(
+    checkpoint_path: Path,
+    *,
+    expected_corpus_sha256: str,
+) -> Mapping[str, Any]:
+    require_torch()
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+    return _validate_target_agnostic_checkpoint(
+        checkpoint,
+        expected_corpus_sha256=expected_corpus_sha256,
+    )
 
 
 def decode_substrate_probe_target(raw_values: Sequence[int]) -> np.ndarray:
@@ -137,7 +209,7 @@ def summarize_multiscale_patches(
 def _load_encoder_embeddings(
     patches: np.ndarray,
     channel_names: Sequence[str],
-    checkpoint_path: Path,
+    checkpoint: Mapping[str, Any],
     *,
     device: str,
     batch_size: int,
@@ -145,7 +217,6 @@ def _load_encoder_embeddings(
     seed: int,
 ) -> np.ndarray:
     require_torch()
-    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     config = checkpoint["config"]
     if tuple(config["channel_names"]) != tuple(channel_names):
         raise ValueError("checkpoint channel order does not match the probe corpus")
@@ -283,6 +354,11 @@ def run_frozen_seafloor_probe(
 
     require_torch()
     patches, x, y, channel_names, corpus_metadata = load_patch_corpus(corpus_path)
+    corpus_sha256 = sha256_file(corpus_path)
+    checkpoint = _load_target_agnostic_checkpoint(
+        checkpoint_path,
+        expected_corpus_sha256=corpus_sha256,
+    )
     raw_labels, label_metadata = sample_seafloor_character_labels(
         label_raster_path,
         x,
@@ -310,13 +386,10 @@ def run_frozen_seafloor_probe(
     if len(np.unique(labels[test_indices])) != len(PROBE_CLASS_NAMES):
         raise ValueError("held-out geography does not contain every probe class")
 
-    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    if checkpoint.get("corpus_sha256") != sha256_file(corpus_path):
-        raise ValueError("checkpoint was not trained from the supplied corpus")
     pretrained = _load_encoder_embeddings(
         patches,
         channel_names,
-        checkpoint_path,
+        checkpoint,
         device=device,
         batch_size=batch_size,
         random_encoder=False,
@@ -325,7 +398,7 @@ def run_frozen_seafloor_probe(
     random_embeddings = _load_encoder_embeddings(
         patches,
         channel_names,
-        checkpoint_path,
+        checkpoint,
         device=device,
         batch_size=batch_size,
         random_encoder=True,
@@ -367,7 +440,43 @@ def run_frozen_seafloor_probe(
     )
     output_dir.mkdir(parents=True, exist_ok=True)
     metrics_path = output_dir / "seafloor_probe_metrics.json"
+    prediction_path = output_dir / "seafloor_probe_predictions.npz"
+    claim_boundary = (
+        "The USGS character map was itself derived from bathymetry, backscatter, and "
+        "interpreter/video evidence. This probe measures transferable seafloor-character "
+        "signal, not independence from the source variables and not fishing accuracy."
+    )
+    config = {
+        "validation_fold": validation_fold,
+        "split_regions": split_regions,
+        "batch_size": batch_size,
+        "device": device,
+        "bootstrap_samples": bootstrap_samples,
+        "seed": seed,
+        "target": "decoded_usgs_substrate_3class",
+    }
+    run_record = build_run_record(
+        command="probe-seafloor-character",
+        target_taxon_id=None,
+        config=config,
+        input_paths=(corpus_path, checkpoint_path, label_raster_path),
+        dataset_kind="official_seafloor_character_probe",
+        status="completed",
+        metrics={
+            "metrics_artifact": str(metrics_path.resolve()),
+            "predictions_artifact": str(prediction_path.resolve()),
+            "pretrained_macro_f1": metrics["pretrained_frozen_encoder"]["macro_f1"],
+        },
+        notes=claim_boundary,
+    )
     result_payload: Dict[str, Any] = {
+        "model_run_contract_version": MODEL_RUN_CONTRACT_VERSION,
+        "observation_contract_version": None,
+        "taxon_catalog_version": TAXON_CATALOG_VERSION,
+        "target_taxon_id": None,
+        "target_scope": target_scope(None),
+        "experiment_version": run_record["experiment_version"],
+        "model_version": run_record["model_version"],
         "status": "completed",
         "probe_target": {
             "name": "decoded_usgs_substrate_3class",
@@ -400,16 +509,30 @@ def run_frozen_seafloor_probe(
             "classical_structure_feature_count": len(structure_names),
             "depth_only_feature_count": len(depth_names),
         },
-        "claim_boundary": (
-            "The USGS character map was itself derived from bathymetry, backscatter, and "
-            "interpreter/video evidence. This probe measures transferable seafloor-character "
-            "signal, not independence from the source variables and not fishing accuracy."
-        ),
+        "claim_boundary": claim_boundary,
     }
     write_json(metrics_path, result_payload)
-    prediction_path = output_dir / "seafloor_probe_predictions.npz"
     np.savez_compressed(
         prediction_path,
+        contract_identity_json=json.dumps(
+            {
+                "model_run_contract_version": MODEL_RUN_CONTRACT_VERSION,
+                "observation_contract_version": None,
+                "taxon_catalog_version": TAXON_CATALOG_VERSION,
+                "target_scope": target_scope(None),
+                "target_taxon_id": None,
+                "experiment_version": run_record["experiment_version"],
+                "model_version": run_record["model_version"],
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ),
+        model_run_contract_version=MODEL_RUN_CONTRACT_VERSION,
+        taxon_catalog_version=TAXON_CATALOG_VERSION,
+        target_scope_kind="target-agnostic",
+        target_taxon_id="",
+        experiment_version=run_record["experiment_version"],
+        model_version=run_record["model_version"],
         corpus_indices=test_indices,
         x=x[test_indices],
         y=y[test_indices],
@@ -417,27 +540,15 @@ def run_frozen_seafloor_probe(
         **{f"prediction__{name}": value for name, value in predictions.items()},
         **{f"probability__{name}": value for name, value in probabilities.items()},
     )
-    config = {
-        "validation_fold": validation_fold,
-        "split_regions": split_regions,
-        "batch_size": batch_size,
-        "device": device,
-        "bootstrap_samples": bootstrap_samples,
-        "seed": seed,
-        "target": "decoded_usgs_substrate_3class",
-    }
-    run_record = build_run_record(
-        command="probe-seafloor-character",
-        config=config,
-        input_paths=(corpus_path, checkpoint_path, label_raster_path),
-        dataset_kind="official_seafloor_character_probe",
-        status="completed",
-        metrics={
-            "metrics_artifact": str(metrics_path.resolve()),
-            "predictions_artifact": str(prediction_path.resolve()),
-            "pretrained_macro_f1": metrics["pretrained_frozen_encoder"]["macro_f1"],
+    run_record["metrics"]["metrics_sha256"] = sha256_file(metrics_path)
+    run_record["metrics"]["predictions_sha256"] = sha256_file(prediction_path)
+    verify_run_record_integrity(
+        run_record,
+        rehash_inputs=True,
+        artifact_paths={
+            "metrics_sha256": metrics_path,
+            "predictions_sha256": prediction_path,
         },
-        notes=result_payload["claim_boundary"],
     )
     write_json(output_dir / "run_metadata.json", run_record)
     return {

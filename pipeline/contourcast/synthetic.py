@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Mapping
 
@@ -11,6 +12,12 @@ import pandas as pd
 from .geo import GeoGrid
 from .ingest import save_grid
 from .terrain import derive_terrain_channels, save_terrain_stack
+
+from shared.species_contract import (
+    OBSERVATION_CONTRACT_VERSION,
+    SYNTHETIC_TARGET_TAXON_ID,
+    TAXON_CATALOG_VERSION,
+)
 
 
 def generate_synthetic_fixture(
@@ -81,17 +88,60 @@ def generate_synthetic_fixture(
     occurrence = (catch_count > 0).astype(int)
     cpue = catch_count / effort_hours
 
+    observed_at = pd.date_range("2024-01-01", periods=observations, freq="12h", tz="UTC")
+    taxon_observations = []
+    for count in catch_count:
+        positive = int(count) > 0
+        taxon_observations.append(
+            json.dumps(
+                [
+                    {
+                        "taxon_id": SYNTHETIC_TARGET_TAXON_ID,
+                        "encounter_count": int(count),
+                        "retained_count": 0,
+                        "released_count": int(count),
+                        "disposition_unknown_count": 0,
+                        "identification_confidence": "verified" if positive else "not_observed",
+                        "identification_basis": "synthetic-fixture" if positive else "not-observed",
+                    }
+                ],
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        )
     frame = pd.DataFrame(
         {
+            "observation_contract_version": OBSERVATION_CONTRACT_VERSION,
+            "taxon_catalog_version": TAXON_CATALOG_VERSION,
+            "contract_status": "valid",
+            "observation_id": [f"synthetic-{index:05d}" for index in range(observations)],
             "event_id": [f"synthetic-{index:05d}" for index in range(observations)],
-            "observed_at": pd.date_range("2024-01-01", periods=observations, freq="12h"),
-            "species": "synthetic_target",
+            "effort_segment_id": [f"synthetic-effort-{index:05d}" for index in range(observations)],
+            "observed_at": observed_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "observed_end_at": (
+                observed_at + pd.to_timedelta(effort_hours, unit="h")
+            ).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "temporal_precision": "exact",
+            "primary_target_taxon_id": SYNTHETIC_TARGET_TAXON_ID,
+            "species": SYNTHETIC_TARGET_TAXON_ID,
             "catch_count": catch_count,
+            "target_encounter_count": catch_count,
+            "any_fish_encounter_count": catch_count,
             "effort_hours": effort_hours,
+            "target_effort_unit": "trip-hours",
+            "fishing_mode": "synthetic-mode",
+            "sample_weight": 1.0,
+            "outcome_class": np.where(catch_count > 0, "target_encountered", "no_fish"),
+            "source_data_kind": "synthetic-fixture",
+            "source_complete_attempt": True,
+            "source_expanded_estimate": False,
+            "taxon_observations_json": taxon_observations,
             "x": x,
             "y": y,
             "crs": grid.crs,
-            "area_id": "synthetic_bay",
+            "area_id": np.nan,
+            "spatial_support_id": [f"synthetic-point-{index:05d}" for index in range(observations)],
+            "spatial_support_kind": "point",
             "spatial_resolution": "point",
             "source_id": "synthetic_fixture",
             "occurrence": occurrence,

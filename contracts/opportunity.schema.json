@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "castingcompass.opportunity/2.0.0",
+  "title": "CastingCompass emitted opportunity window 2.0.0",
+  "description": "Structural union for exactly one compact static or normalized API opportunity window. Semantic validation is additionally required for environment eligibility, temporal ordering, scoring-version equality, and trained-model identity.",
+  "oneOf": [
+    {
+      "title": "Compact static snapshot window",
+      "type": "object",
+      "required": [
+        "id", "species", "target_taxon_id", "taxon_catalog_version",
+        "observation_contract_version", "model_run_contract_version",
+        "opportunity_contract_version", "scoring_system_kind",
+        "scoring_system_sha256", "siteId", "start", "end", "score",
+        "modelVersion", "confidence"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/stableId" },
+        "species": { "$ref": "#/$defs/modelEligibleTaxonId" },
+        "target_taxon_id": { "$ref": "#/$defs/modelEligibleTaxonId" },
+        "taxon_catalog_version": { "const": "castingcompass.taxa/1.0.0" },
+        "observation_contract_version": { "const": "castingcompass.observation/2.0.0" },
+        "model_run_contract_version": { "const": "castingcompass.model-run/2.0.0" },
+        "opportunity_contract_version": { "const": "castingcompass.opportunity/2.0.0" },
+        "scoring_system_kind": { "enum": ["heuristic-configuration", "trained-model"] },
+        "scoring_system_sha256": { "$ref": "#/$defs/sha256" },
+        "siteId": { "$ref": "#/$defs/stableId" },
+        "start": { "type": "string", "format": "date-time" },
+        "end": { "type": "string", "format": "date-time" },
+        "score": { "type": "number", "minimum": 0, "maximum": 100 },
+        "modelVersion": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "confidence": { "enum": ["low", "medium", "high"] }
+      },
+      "allOf": [{ "$ref": "#/$defs/targetPair" }],
+      "propertyNames": {
+        "not": {
+          "enum": ["site", "start_time", "end_time", "opportunity_score", "model_version", "scoring_system_version"]
+        }
+      },
+      "additionalProperties": true
+    },
+    {
+      "title": "Normalized API window",
+      "type": "object",
+      "required": [
+        "id", "species", "target_taxon_id", "taxon_catalog_version",
+        "observation_contract_version", "model_run_contract_version",
+        "opportunity_contract_version", "scoring_system_kind",
+        "scoring_system_version", "scoring_system_sha256", "site",
+        "start_time", "end_time", "opportunity_score", "model_version",
+        "confidence"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/stableId" },
+        "species": { "$ref": "#/$defs/modelEligibleTaxonId" },
+        "target_taxon_id": { "$ref": "#/$defs/modelEligibleTaxonId" },
+        "taxon_catalog_version": { "const": "castingcompass.taxa/1.0.0" },
+        "observation_contract_version": { "const": "castingcompass.observation/2.0.0" },
+        "model_run_contract_version": { "const": "castingcompass.model-run/2.0.0" },
+        "opportunity_contract_version": { "const": "castingcompass.opportunity/2.0.0" },
+        "scoring_system_kind": { "enum": ["heuristic-configuration", "trained-model"] },
+        "scoring_system_version": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "scoring_system_sha256": { "$ref": "#/$defs/sha256" },
+        "site": {
+          "type": "object",
+          "required": ["id"],
+          "properties": { "id": { "$ref": "#/$defs/stableId" } },
+          "additionalProperties": true
+        },
+        "start_time": { "type": "string", "format": "date-time" },
+        "end_time": { "type": "string", "format": "date-time" },
+        "opportunity_score": { "type": "number", "minimum": 0, "maximum": 100 },
+        "model_version": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "confidence": {
+          "type": "object",
+          "required": ["level"],
+          "properties": { "level": { "enum": ["low", "medium", "high"] } },
+          "additionalProperties": true
+        }
+      },
+      "allOf": [{ "$ref": "#/$defs/targetPair" }],
+      "propertyNames": {
+        "not": { "enum": ["siteId", "start", "end", "score", "modelVersion"] }
+      },
+      "additionalProperties": true
+    }
+  ],
+  "$defs": {
+    "stableId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "modelEligibleTaxonId": {
+      "enum": ["california-halibut", "synthetic-target"]
+    },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "targetPair": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["species", "target_taxon_id"],
+          "properties": {
+            "species": { "const": "california-halibut" },
+            "target_taxon_id": { "const": "california-halibut" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["species", "target_taxon_id"],
+          "properties": {
+            "species": { "const": "synthetic-target" },
+            "target_taxon_id": { "const": "synthetic-target" }
+          }
+        }
+      ]
+    }
+  }
+}

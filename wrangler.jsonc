@@ -8,6 +8,15 @@
   "triggers": {
     "crons": ["*/5 * * * *"]
   },
+  "vars": {
+    "PUBLIC_DISCUSSIONS_ENABLED": "false",
+    "TRIP_PHOTO_UPLOADS_ENABLED": "false",
+    "TURNSTILE_ENABLED": "false",
+    "RELEASE_MAINTENANCE_MODE": "false"
+  },
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA"
+  },
   "routes": [
     {
       "pattern": "castingcompass.com",

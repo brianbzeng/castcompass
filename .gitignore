@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+/test-results/
 .pytest_cache/
 **/.pytest_cache/
 .ruff_cache/
@@ -54,3 +55,4 @@ next-env.d.ts
 /mlruns/
 /data/raw/
 /data/processed/
+.validation-private/

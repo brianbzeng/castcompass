@@ -6,6 +6,12 @@ import type { FishingSite } from "../types";
 export const metadata: Metadata = {
   title: "Fishing profile",
   description: "Manage saved fishing locations, trip logs, and gear presets.",
+  alternates: { canonical: "https://castingcompass.com/profile" },
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+  },
 };
 
 export default function ProfileRoute() {

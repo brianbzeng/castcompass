@@ -5,17 +5,37 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from shared.species_contract import (
+    MODEL_RUN_CONTRACT_VERSION,
+    OBSERVATION_CONTRACT_VERSION,
+    OPPORTUNITY_CONTRACT_VERSION,
+    PRODUCTION_TARGET_TAXON_ID,
+    TAXON_CATALOG_VERSION,
+)
 
-from .models import HealthResponse, OpportunityResponse, SiteDetail, SiteSummary
+from .models import (
+    HealthResponse,
+    OpportunityResponse,
+    SiteDetail,
+    SiteSummary,
+)
 from .repository import DataUnavailableError, Repository, build_repository, utc_now
 
 API_VERSION = "0.1.0"
 LOGGER = logging.getLogger(__name__)
 
 repository = build_repository()
+
+
+def _attribute_data_source(response: Response, source: str) -> None:
+    response.headers["X-CastingCompass-Data-Source"] = source
+
+
+def _combined_data_source(*sources: str) -> str:
+    return "+".join(dict.fromkeys(source for source in sources if source)) or "unknown"
 
 
 def _origins() -> list[str]:
@@ -63,7 +83,6 @@ async def cache_headers(request: Request, call_next):
             response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=600"
         elif request.url.path.startswith("/v1/sites"):
             response.headers["Cache-Control"] = "public, max-age=3600, stale-while-revalidate=86400"
-        response.headers["X-CastingCompass-Data-Source"] = getattr(repository, "source", "unknown")
     return response
 
 
@@ -82,40 +101,52 @@ async def unavailable_handler(_: Request, exc: DataUnavailableError):
 
 
 @app.get("/health", response_model=HealthResponse, tags=["operations"])
-def health(repo: RepositoryDependency) -> HealthResponse:
+def health(response: Response, repo: RepositoryDependency) -> HealthResponse:
     try:
-        repo.list_sites()
+        _, source = repo.list_sites()
         status = "ok"
     except Exception:
+        source = "unavailable"
         status = "degraded"
+    _attribute_data_source(response, source)
     return HealthResponse(
         status=status,
         version=API_VERSION,
-        repository=getattr(repo, "source", "unknown"),
+        repository=source,
         checked_at=utc_now(),
     )
 
 
 @app.get("/v1/sites", response_model=list[SiteSummary], tags=["sites"])
-def list_sites(repo: RepositoryDependency) -> list[SiteSummary]:
+def list_sites(response: Response, repo: RepositoryDependency) -> list[SiteSummary]:
     """Return public, reachable fishing sites and the metadata needed to draw map markers."""
-    return [SiteSummary.model_validate(site.model_dump()) for site in repo.list_sites()]
+    sites, source = repo.list_sites()
+    _attribute_data_source(response, source)
+    return [SiteSummary.model_validate(site.model_dump()) for site in sites]
 
 
 @app.get("/v1/sites/{site_id}", response_model=SiteDetail, tags=["sites"])
-def get_site(site_id: str, repo: RepositoryDependency) -> SiteDetail:
+def get_site(site_id: str, response: Response, repo: RepositoryDependency) -> SiteDetail:
     """Return access notes, structure context, official links, and available freshness metadata."""
-    site = repo.get_site(site_id)
+    site, source = repo.get_site(site_id)
     if site is None:
+        _attribute_data_source(response, source)
         raise HTTPException(status_code=404, detail=f"Unknown fishing site: {site_id}")
     now = utc_now()
     try:
-        windows, _ = repo.list_opportunities("california-halibut", now, now + timedelta(hours=72))
+        windows, _, _, opportunity_source = repo.list_opportunities(
+            "california-halibut", now, now + timedelta(hours=72)
+        )
         next_window = next((window for window in windows if window.site.id == site_id), None)
     except DataUnavailableError:
         next_window = None
     if next_window is None:
+        _attribute_data_source(response, source)
         return site
+    _attribute_data_source(
+        response,
+        _combined_data_source(source, opportunity_source),
+    )
     return site.model_copy(
         update={
             "current_conditions": next_window.conditions,
@@ -129,6 +160,14 @@ def get_site(site_id: str, repo: RepositoryDependency) -> SiteDetail:
                 "confidence": next_window.confidence.model_dump(),
                 "status": next_window.status,
                 "model_version": next_window.model_version,
+                "target_taxon_id": next_window.target_taxon_id,
+                "taxon_catalog_version": next_window.taxon_catalog_version,
+                "observation_contract_version": next_window.observation_contract_version,
+                "model_run_contract_version": next_window.model_run_contract_version,
+                "opportunity_contract_version": next_window.opportunity_contract_version,
+                "scoring_system_kind": next_window.scoring_system_kind,
+                "scoring_system_version": next_window.scoring_system_version,
+                "scoring_system_sha256": next_window.scoring_system_sha256,
             },
         }
     )
@@ -136,6 +175,7 @@ def get_site(site_id: str, repo: RepositoryDependency) -> SiteDetail:
 
 @app.get("/v1/opportunities", response_model=OpportunityResponse, tags=["opportunities"])
 def list_opportunities(
+    response: Response,
     repo: RepositoryDependency,
     species: Annotated[
         str,
@@ -154,13 +194,24 @@ def list_opportunities(
     else:
         requested_from = requested_from.astimezone(timezone.utc)
     through = requested_from + timedelta(hours=hours)
-    windows, generated_at = repo.list_opportunities(species, requested_from, through)
+    windows, generated_at, identity, source = repo.list_opportunities(
+        species, requested_from, through
+    )
+    _attribute_data_source(response, source)
     return OpportunityResponse(
         species=species,
+        target_taxon_id=PRODUCTION_TARGET_TAXON_ID,
+        taxon_catalog_version=TAXON_CATALOG_VERSION,
+        observation_contract_version=OBSERVATION_CONTRACT_VERSION,
+        model_run_contract_version=MODEL_RUN_CONTRACT_VERSION,
+        opportunity_contract_version=OPPORTUNITY_CONTRACT_VERSION,
+        scoring_system_kind=identity["scoring_system_kind"],
+        scoring_system_version=identity["scoring_system_version"],
+        scoring_system_sha256=identity["scoring_system_sha256"],
         from_time=requested_from,
         through=through,
         hours=hours,
         generated_at=generated_at,
-        repository=getattr(repo, "source", "unknown"),
+        repository=source,
         windows=windows,
     )

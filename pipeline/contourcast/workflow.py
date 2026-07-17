@@ -10,11 +10,19 @@ import numpy as np
 from .evaluation import evaluate_ablations
 from .geo import validate_observation_extent
 from .ingest import load_model_observations
-from .metadata import build_run_record, write_json
+from .metadata import build_run_record, sha256_file, verify_run_record_integrity, write_json
 from .patches import extract_patches, summarize_patches
 from .splits import spatial_block_folds
 from .synthetic import generate_synthetic_fixture
 from .terrain import load_terrain_stack
+
+from shared.species_contract import (
+    MODEL_RUN_CONTRACT_VERSION,
+    OBSERVATION_CONTRACT_VERSION,
+    SYNTHETIC_TARGET_TAXON_ID,
+    TAXON_CATALOG_VERSION,
+    target_scope,
+)
 
 
 def run_baseline_workflow(
@@ -23,13 +31,18 @@ def run_baseline_workflow(
     output_dir: Path,
     *,
     dataset_kind: str,
+    target_taxon_id: str,
     patch_size: int = 17,
     n_splits: int = 5,
     buffer_m: float = 250.0,
     random_state: int = 42,
 ) -> Mapping[str, Any]:
     channels, grid, derivation = load_terrain_stack(terrain_path)
-    observations = load_model_observations(observations_path, grid.crs)
+    observations = load_model_observations(
+        observations_path,
+        grid.crs,
+        expected_target_taxon_id=target_taxon_id,
+    )
     validate_observation_extent(grid, observations["x"], observations["y"])
     patches = extract_patches(
         channels,
@@ -56,8 +69,39 @@ def run_baseline_workflow(
         folds,
         random_state=random_state,
     )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    metrics_path = output_dir / "baseline_metrics.json"
+    config = {
+        "target_taxon_id": target_taxon_id,
+        "patch_size": patch_size,
+        "n_splits": n_splits,
+        "buffer_m": buffer_m,
+        "random_state": random_state,
+        "terrain_channels": derivation["channels"],
+    }
+    run_record = build_run_record(
+        command="baseline-evaluation",
+        target_taxon_id=target_taxon_id,
+        config=config,
+        input_paths=(terrain_path, observations_path),
+        dataset_kind=dataset_kind,
+        status="completed",
+        metrics={"metrics_artifact": str(metrics_path.resolve())},
+        notes=(
+            "pipeline smoke-test metrics only; not evidence of real-world skill or habitat performance"
+            if dataset_kind == "synthetic_fixture"
+            else "measured on the supplied dataset under the recorded blocked evaluation"
+        ),
+    )
     results: Dict[str, Any] = {
-        "schema_version": "1.0",
+        "schema_version": MODEL_RUN_CONTRACT_VERSION,
+        "model_run_contract_version": MODEL_RUN_CONTRACT_VERSION,
+        "observation_contract_version": OBSERVATION_CONTRACT_VERSION,
+        "taxon_catalog_version": TAXON_CATALOG_VERSION,
+        "target_taxon_id": target_taxon_id,
+        "target_scope": target_scope(target_taxon_id),
+        "experiment_version": run_record["experiment_version"],
+        "model_version": run_record["model_version"],
         "status": "completed",
         "dataset_kind": dataset_kind,
         "result_scope": (
@@ -71,24 +115,12 @@ def run_baseline_workflow(
         "terrain_derivation": dict(derivation),
         **evaluation,
     }
-    output_dir.mkdir(parents=True, exist_ok=True)
-    metrics_path = output_dir / "baseline_metrics.json"
     write_json(metrics_path, results)
-    config = {
-        "patch_size": patch_size,
-        "n_splits": n_splits,
-        "buffer_m": buffer_m,
-        "random_state": random_state,
-        "terrain_channels": derivation["channels"],
-    }
-    run_record = build_run_record(
-        command="baseline-evaluation",
-        config=config,
-        input_paths=(terrain_path, observations_path),
-        dataset_kind=dataset_kind,
-        status="completed",
-        metrics={"metrics_artifact": str(metrics_path.resolve())},
-        notes=results["result_scope"],
+    run_record["metrics"]["metrics_sha256"] = sha256_file(metrics_path)
+    verify_run_record_integrity(
+        run_record,
+        rehash_inputs=True,
+        artifact_paths={"metrics_sha256": metrics_path},
     )
     write_json(output_dir / "run_metadata.json", run_record)
     return {
@@ -112,6 +144,7 @@ def run_smoke_workflow(
         paths["observations"],
         output_dir / "evaluation",
         dataset_kind="synthetic_fixture",
+        target_taxon_id=SYNTHETIC_TARGET_TAXON_ID,
         patch_size=17,
         n_splits=4,
         buffer_m=150.0,

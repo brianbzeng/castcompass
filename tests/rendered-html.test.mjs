@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, readdir, stat } from "node:fs/promises";
 import test from "node:test";
 import { gzipSync } from "node:zlib";
 
@@ -42,9 +42,10 @@ test("server-renders the CastingCompass product shell", async () => {
 });
 
 test("ships install and offline assets", async () => {
-  const [manifest, serviceWorker] = await Promise.all([
+  const [manifest, serviceWorker, headerIcon] = await Promise.all([
     readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8"),
     readFile(new URL("../public/sw.js", import.meta.url), "utf8"),
+    stat(new URL("../public/icons/icon-192.png", import.meta.url)),
     access(new URL("../public/icons/icon-192.png", import.meta.url)),
     access(new URL("../public/icons/icon-512.png", import.meta.url)),
   ]);
@@ -57,6 +58,33 @@ test("ships install and offline assets", async () => {
   assert.match(serviceWorker, /\/data\/community-pulse\.json/);
   assert.match(serviceWorker, /\/topography-contours-v2\.webp/);
   assert.match(serviceWorker, /caches\.match/);
+  assert.ok(headerIcon.size < 50_000, `header icon is ${headerIcon.size} bytes`);
+});
+
+test("avoids third-party font requests and oversized header-icon references", async () => {
+  const response = await render();
+  const html = await response.text();
+  const assetNames = await readdir(new URL("../dist/client/assets/", import.meta.url));
+  const builtCss = (
+    await Promise.all(
+      assetNames
+        .filter((name) => name.endsWith(".css"))
+        .map((name) => readFile(new URL(`../dist/client/assets/${name}`, import.meta.url), "utf8")),
+    )
+  ).join("\n");
+  const [layout, sourceCss] = await Promise.all([
+    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.doesNotMatch(html, /fonts\.(?:googleapis|gstatic)\.com/i);
+  assert.doesNotMatch(html, /<link[^>]+rel="preload"[^>]+as="font"/i);
+  assert.doesNotMatch(builtCss, /fonts\.(?:googleapis|gstatic)\.com|@font-face/i);
+  assert.doesNotMatch(layout, /next\/font\/google|castingcompass-icon\.png/);
+  assert.match(layout, /\/icons\/icon-192\.png/);
+  assert.match(layout, /\/icons\/icon-512\.png/);
+  assert.match(sourceCss, /url\("\/icons\/icon-192\.png"\)/);
+  assert.doesNotMatch(sourceCss, /url\("\/castingcompass-icon\.png"\)/);
 });
 
 test("keeps the score framed as a relative ranking", async () => {

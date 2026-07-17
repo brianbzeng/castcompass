@@ -1,9 +1,28 @@
 import type { Metadata } from "next";
 import { LegalPage, LegalSection } from "../components/LegalPage";
 
+const PAGE_URL = "https://castingcompass.com/terms";
+const PAGE_TITLE = "Terms of Service · CastingCompass";
+const PAGE_DESCRIPTION = "Terms governing use of the CastingCompass fishing opportunity planner and account features.";
+
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Terms governing use of CastingCompass.",
+  description: PAGE_DESCRIPTION,
+  alternates: { canonical: PAGE_URL },
+  openGraph: {
+    title: PAGE_TITLE,
+    description: PAGE_DESCRIPTION,
+    type: "website",
+    url: PAGE_URL,
+    siteName: "CastingCompass",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "CastingCompass — California Halibut Opportunity Planner" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: PAGE_TITLE,
+    description: PAGE_DESCRIPTION,
+    images: [{ url: "/og.png", alt: "CastingCompass — California Halibut Opportunity Planner" }],
+  },
 };
 
 export default function TermsPage() {
@@ -31,17 +50,17 @@ export default function TermsPage() {
 
       <LegalSection title="4. Accounts and security">
         <p>Provide accurate account information, keep your password private, and notify us if you suspect unauthorized access. You are responsible for activity through your account. Email verification confirms control of an address but does not verify identity.</p>
-        <p>You may download your account data or permanently delete your account from the Profile page. Deletion removes saved locations, gear presets, linked trip reports, stored trip photos, and linked public discussion summaries from active service systems, subject to short-lived backups, security logs, legal obligations, and technical limitations.</p>
+        <p>You may download your account records or permanently delete your account from the Profile page. An accepted deletion request immediately removes account access, saved locations, gear presets, linked trip reports, and linked public discussion summaries from the active database. Stored trip-photo objects may require background cleanup; a secure deletion receipt reports whether that cleanup is completed, processing, or needs operator attention. Limited backup copies, security logs, pseudonymous deletion records, and information required by law may remain for their stated operational or legal retention periods.</p>
       </LegalSection>
 
       <LegalSection title="5. Trip reports, photos, and community summaries">
-        <p>You keep ownership of content you submit. You grant CastingCompass a worldwide, non-exclusive, royalty-free license to host, store, reproduce, transform, analyze, and use that content to operate, secure, evaluate, research, and improve the service and its forecasting systems. This license lasts while the content is retained and includes creating de-identified or aggregated datasets and anonymous public summaries.</p>
+        <p>You keep ownership of content you submit. You grant CastingCompass a worldwide, non-exclusive, royalty-free license to host, store, reproduce, transform, analyze, and use that content to operate, secure, evaluate, research, and improve the service and its forecasting systems. This license lasts while the content is retained and includes creating de-identified or aggregated datasets and, after human approval, pseudonymous public summaries.</p>
         <p>You represent that you have the right to submit the content and that it does not violate privacy, intellectual-property, publicity, safety, or other rights. Do not submit private contact information, exact sensitive habitat locations, faces of people without permission, unlawful activity, abusive content, or misleading reports.</p>
-        <p>Trip notes may be automatically reviewed for privacy, safety, relevance, and usefulness. A shortened anonymous summary may appear on a location discussion page. Raw notes, account identity, uploaded photos, and exact device location are not published by that feature. Automated review can make mistakes, and we may edit, withhold, or remove content.</p>
+        <p>Trip notes may be automatically reviewed for privacy, safety, relevance, and usefulness. Automated review may prepare a shortened pseudonymous draft, but it cannot publish or approve that draft. A human moderator must approve a draft before it can appear on a location discussion page. Automated and human review can make mistakes, and we may edit, withhold, or remove content.</p>
       </LegalSection>
 
       <LegalSection title="6. Automated systems and AI">
-        <p>CastingCompass uses automated rules and models to rank fishing options, and a third-party language model may normalize gear information and review trip notes before an anonymous summary is posted. The live score is currently a hybrid planning model, not a fully trained catch-probability model. See the AI and Forecast Disclosure for details.</p>
+        <p>CastingCompass uses automated rules and models to rank fishing options, and a third-party language model may normalize gear information and prepare a possible discussion draft. The model cannot publish the draft; human approval is required. The live score is currently a hybrid planning model, not a fully trained catch-probability model. See the AI and Forecast Disclosure for details.</p>
         <p>You may not use the service to generate or submit deceptive, unlawful, dangerous, or privacy-invasive content, or to probe, scrape, reverse engineer, overload, evade safeguards, or extract non-public data from the service.</p>
       </LegalSection>
 

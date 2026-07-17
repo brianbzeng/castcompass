@@ -34,6 +34,11 @@ import type {
   TimeFilter,
   TripReportRequest,
 } from "../types";
+import {
+  applyCurrentFreshness,
+  hasLiveForecastInputs,
+  sourceStatusTone,
+} from "../lib/forecast-freshness";
 
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
 const ContourMap = lazy(() => import("./ContourMap").then((module) => ({ default: module.ContourMap })));
@@ -262,20 +267,26 @@ async function loadForecastData() {
       );
       if (!response.ok) throw new Error(`API returned ${response.status}`);
       const apiSnapshot = (await response.json()) as ApiOpportunityResponse;
+      const snapshot = applyCurrentFreshness(normalizeApiSnapshot(apiSnapshot));
       return {
         sites: staticSites,
-        snapshot: normalizeApiSnapshot(apiSnapshot),
+        snapshot,
         community,
-        state: "live" as const,
+        state: hasLiveForecastInputs(snapshot)
+          ? "live" as const
+          : "cached" as const,
       };
     } catch {
       const response = await fetch("/data/opportunities.json");
       if (!response.ok) throw new Error("API and snapshot unavailable");
+      const snapshot = applyCurrentFreshness((await response.json()) as OpportunitySnapshot);
       return {
         sites: staticSites,
-        snapshot: (await response.json()) as OpportunitySnapshot,
+        snapshot,
         community,
-        state: "cached" as const,
+        state: hasLiveForecastInputs(snapshot)
+          ? "live" as const
+          : "cached" as const,
       };
     }
   }
@@ -288,8 +299,9 @@ async function loadForecastData() {
     }),
     communityPromise,
   ]);
-  const state = staticSnapshot.sources.some((source) => source.status.startsWith("fresh")) ? "live" : "cached";
-  return { sites: staticSites, snapshot: staticSnapshot, community, state: state as "live" | "cached" };
+  const currentSnapshot = applyCurrentFreshness(staticSnapshot);
+  const state = hasLiveForecastInputs(currentSnapshot) ? "live" : "cached";
+  return { sites: staticSites, snapshot: currentSnapshot, community, state: state as "live" | "cached" };
 }
 
 function fallbackSnapshot(): OpportunitySnapshot {
@@ -1030,11 +1042,7 @@ function OpportunityDayChart({
 }
 
 function SourceStatus({ source }: { source: SourceFreshness }) {
-  const statusTone = source.status.startsWith("fresh")
-    ? "fresh"
-    : source.status.startsWith("aging") || source.status.startsWith("provisional") || source.status.startsWith("demo")
-      ? "aging"
-      : "stale";
+  const statusTone = sourceStatusTone(source.status);
   const statusLabel = source.status.split(";")[0];
   return (
     <div className="source-row">
@@ -1399,7 +1407,7 @@ export function OpportunityApp() {
 
   const openTripReport = useCallback((mode: "start" | "past", siteId?: string, window?: OpportunityWindow) => {
     if (!account.user) {
-      account.openAccount("Sign in before submitting a trip report. Complete trips and skunks are tied to an account so the training data can be checked without making it public.");
+      account.openAccount("Sign in before submitting a trip report. Complete trips and skunks are tied to an account so reports can be reviewed privately before any separate decision about model evidence.");
       return;
     }
     tripReportRequestKey.current += 1;
@@ -1747,7 +1755,7 @@ export function OpportunityApp() {
         snapshot={snapshot}
         request={tripReportRequest}
         canSubmit={Boolean(account.user?.legalAccepted)}
-        onRequireLogin={() => account.openAccount("Sign in before submitting a trip report. Complete trips and skunks are tied to an account so the training data can be checked without making it public.")}
+        onRequireLogin={() => account.openAccount("Sign in before submitting a trip report. Complete trips and skunks are tied to an account so reports can be reviewed privately before any separate decision about model evidence.")}
       />
 
       <section className="source-section" id="sources">
@@ -2034,11 +2042,7 @@ export function OpportunityApp() {
             <div className="detail-freshness">
               <h3>Latest conditions</h3>
               {(selectedWindow.sources ?? snapshot.sources).slice(0, 6).map((source) => {
-                const tone = source.status.startsWith("fresh")
-                  ? "fresh"
-                  : source.status.includes("excluded") || source.status.includes("not integrated")
-                    ? "stale"
-                    : "aging";
+                const tone = sourceStatusTone(source.status);
                 const label = <><i className={tone} /> {source.name.replace("NOAA ", "")}{source.url ? " ↗" : ""}</>;
                 return source.url ? (
                   <a key={source.name} href={source.url} target="_blank" rel="noreferrer" title={source.detail}>{label}</a>
@@ -2085,7 +2089,7 @@ export function OpportunityApp() {
               )}
               {discussionPosts.length ? (
                 <div className="location-discussion-feed">
-                  <h4>Recent CastingCompass trip notes</h4>
+                  <h4>Human-reviewed CastingCompass trip notes</h4>
                   {discussionPosts.map((post) => (
                     <article key={post.id}>
                       <p>{post.summary}</p>
@@ -2096,10 +2100,10 @@ export function OpportunityApp() {
                   ))}
                 </div>
               ) : (
-                <p className="location-discussion-empty">No privacy-reviewed CastingCompass trip notes have been posted for this location yet. Useful notes usually appear within about a minute after submission.</p>
+                <p className="location-discussion-empty">No human-approved CastingCompass trip summaries have been posted for this location yet.</p>
               )}
               <small>
-                Static summaries do not change the score. Notes are checked for privacy and relevance before an anonymous summary is posted; raw notes, identity, photos, and exact coordinates remain private.
+                Static summaries do not change the score. Automated review can prepare a draft, but a human moderator must approve it before publication.
               </small>
             </div>
 

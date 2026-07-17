@@ -4,7 +4,7 @@
 bathymetry self-supervised pretraining implemented; catch heads remain
 untrained; no catch performance measured.
 
-**Version:** 0.2.0
+**Version:** 0.3.0
 
 ## Model purpose
 
@@ -80,13 +80,31 @@ created merely by importing the code.
 - Report each fold, the aggregate mean and spread, sample counts, class balance,
   and rows removed by the buffer.
 
-Primary occurrence metrics are Brier score and log loss because the product
-consumes probabilities. Secondary metrics are ROC AUC, average precision, and
-10-bin expected calibration error. Positive-catch CPUE is reported with MAE and
-RMSE. Opportunity ranking is evaluated with Spearman rank correlation and
-NDCG@10, including deterministic percentile-bootstrap 95% intervals within
-each geographic fold. Folds containing one occurrence class or no rank
-variation return null for the affected metrics rather than inventing values.
+For a future target-specific occurrence model that explicitly emits
+probabilities, primary occurrence metrics are Brier score and log loss;
+secondary metrics are ROC AUC, average precision, and 10-bin expected
+calibration error. Those probability metrics do **not** apply to the current
+heuristic 0–100 percentile, which is an ordinal rank and does not claim
+calibration. Positive-catch CPUE is reported with MAE and RMSE. Opportunity
+ranking is evaluated with Spearman rank correlation and NDCG@10 only when the
+candidate set and sampling support make those metrics identifiable. Folds
+containing one occurrence class or no rank variation return null for the
+affected metrics rather than inventing values.
+
+The historical v1 first-party site × two-hour-window design is separate from
+the point-terrain benchmark above. `docs/VALIDATION-PROTOCOL.md` and
+`validation/protocols/california-halibut-site-window-v1.json` preserve its
+prospective cohort, holdouts, baseline selection, clustered uncertainty, and
+ordinal claim boundary, but v1 must not activate because its external proof and
+independent-publication services do not exist.
+
+`docs/VALIDATION-SUCCESSOR.md` instead freezes a prospective collection-
+feasibility pilot. It can report completeness, missingness, source/support,
+concentration, privacy reconciliation, and unstratified encounter prevalence.
+It is prohibited from computing score/outcome association, comparing a
+candidate with a baseline, calibrating probability, or promoting a model. Pilot
+rows can never enter a future confirmatory test. Site-supported trip rows are
+never converted to point labels.
 
 ## Required ablations
 
@@ -106,15 +124,46 @@ they must not be slipped into the terrain-only benchmark.
 
 ## Version and promotion contract
 
-Each run writes:
+`contracts/model-run.schema.json` freezes the structural
+`castingcompass.model-run/2.0.0` envelope. Content identity is enforced
+separately by `verify_run_record_integrity`; schema validation alone is not an
+integrity or promotion check. Each actual `run_metadata.json` writes:
 
-- immutable input file paths, byte sizes, and SHA-256 hashes;
+- resolved input file paths, byte sizes, and SHA-256 hashes;
 - full configuration and dataset kind;
 - Git revision and Python/platform runtime;
-- a content-derived `experiment_version`;
-- a content-derived `model_version`;
+- the taxon-catalog and, for labeled runs, observation-contract versions;
+- either a named `target_scope` and matching `target_taxon_id`, or explicit
+  `target-agnostic` / `null` scope for approved unlabeled terrain and seafloor
+  pretraining/probe runs;
+- content-derived `experiment_version` and `model_version` values with the
+  target slug and a full 64-character SHA-256 digest;
 - status (`unrun`, `running`, `completed`, or `failed`);
 - metrics artifact location and an explicit note describing result scope.
+
+The version seed includes command, dataset kind, contract versions, target
+scope, configuration, input digests, and a clean commit or content-derived dirty
+source-state identifier. Changing any of that material changes the resulting
+identifier. Final model/checkpoint bytes retain separate SHA-256 artifact hashes
+that promotion checks rehash. A target-specific run cannot use an
+unknown, unresolved, mixed, or generic target. `synthetic-target` is limited to
+synthetic tests; labeled production runs are currently limited to
+`california-halibut`. Existing terrain-only self-supervised work remains
+truthfully target-agnostic rather than being relabeled as halibut work.
+
+Completed checkpoint and metrics artifacts repeat the same target scope and
+model version. Loaders fail closed on missing/mismatched target or contract
+identity. `legacy_unverified` observations are ineligible for fitting,
+evaluation, calibration, and promotion.
+
+`contracts/opportunity.schema.json` freezes compact emitted window identity at
+`castingcompass.opportunity/2.0.0`. Every public window carries the target and
+all contract versions plus the scoring-system kind, version, and SHA-256. The
+current public hybrid score is explicitly `heuristic-configuration`, not a
+trained model. Its displayed score remains a relative 0–100 opportunity rank
+and `calibrated_probability` is not claimed. A future `trained-model` window
+must name a target-specific model-run version and pass the same equality checks
+through the static snapshot and API path.
 
 A model is eligible for a future `candidate` stage only after:
 
@@ -127,6 +176,16 @@ A model is eligible for a future `candidate` stage only after:
    tested.
 
 No automatic production promotion is implemented.
+
+No run may claim evidence under historical v1 or the v2 feasibility pilot. V1
+is not activatable, and v2 intentionally produces no candidate-performance
+result. A future model-validation run needs a separate externally timestamped
+confirmatory protocol, fixed candidate and baselines, source-separated
+development and locked test inputs, geographic/time holdouts, participant-
+clustered uncertainty, minimum support, and promotion/drift/rollback gates.
+That protocol and every hashed input must be sealed and deployed before its
+first eligible row; locked-test outcomes cannot influence baseline selection,
+feature work, or candidate configuration.
 
 ## Limitations and risks
 

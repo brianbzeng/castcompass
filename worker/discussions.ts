@@ -1,14 +1,8 @@
-import type { CuratedSite, D1DatabaseLike, TripRow } from "./trips";
+import type { CuratedSite, D1DatabaseLike } from "./trips";
 
 interface DiscussionEnv {
   DB?: D1DatabaseLike;
-}
-
-export interface PublicDiscussionDraft {
-  publish: boolean;
-  summary: string;
-  gearSummary?: string | null;
-  techniqueTags?: string[];
+  PUBLIC_DISCUSSIONS_ENABLED?: string;
 }
 
 const initializedDatabases = new WeakMap<object, Promise<void>>();
@@ -24,6 +18,9 @@ const CREATE_DISCUSSIONS_SQL = `CREATE TABLE IF NOT EXISTS site_discussion_posts
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   review_model TEXT,
+  approved_at TEXT,
+  approved_by TEXT,
+  source_ai_reviewed_at TEXT,
   FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
 )`;
 
@@ -53,78 +50,38 @@ export async function handleDiscussionRequest(
   if (request.method !== "GET") {
     return jsonResponse({ error: { code: "method_not_allowed", message: "Use GET for this endpoint." } }, 405, { Allow: "GET" });
   }
-  if (!env.DB) return jsonResponse({ posts: [] });
   const siteId = match[1];
   if (!curatedSites.some((site) => site.id === siteId)) {
     return jsonResponse({ error: { code: "invalid_site", message: "Choose a current CastingCompass location." } }, 404);
   }
+  if (!env.DB || !publicDiscussionsEnabled(env)) return jsonResponse({ posts: [] });
   await initialize(env.DB);
-  const rows = await env.DB.prepare(`SELECT id, site_id, summary, gear_summary, technique_tags_json,
-      observed_at, created_at
-    FROM site_discussion_posts
-    WHERE site_id = ?
-    ORDER BY observed_at DESC
+  const rows = await env.DB.prepare(`SELECT post.id AS id, post.site_id AS site_id,
+      post.summary AS summary, post.gear_summary AS gear_summary,
+      post.technique_tags_json AS technique_tags_json,
+      substr(post.observed_at, 1, 10) AS observed_date,
+      post.approved_at AS approved_at
+    FROM site_discussion_posts AS post
+    INNER JOIN trips AS trip ON trip.id = post.trip_id
+    WHERE post.site_id = ?
+      AND post.site_id = trip.site_id
+      AND length(trim(post.approved_at)) > 0
+      AND length(trim(post.approved_by)) > 0
+      AND length(trim(post.source_ai_reviewed_at)) > 0
+      AND post.source_ai_reviewed_at = trip.ai_reviewed_at
+      AND trip.status = 'completed'
+      AND trip.consent = 1
+      AND trip.moderation_status = 'approved'
+      AND trip.ai_review_status = 'reviewed'
+    ORDER BY post.observed_at DESC
     LIMIT 12`)
     .bind(siteId)
     .all<DiscussionRow>();
   return jsonResponse({
-    posts: (rows.results ?? []).map((row) => ({
-      id: row.id,
-      siteId: row.site_id,
-      summary: row.summary,
-      gearSummary: row.gear_summary,
-      techniqueTags: safeTags(row.technique_tags_json),
-      observedAt: row.observed_at,
-      postedAt: row.created_at,
-    })),
-  }, 200, { "Cache-Control": "public, max-age=10, s-maxage=20" });
-}
-
-export async function publishTripDiscussion(
-  env: DiscussionEnv,
-  trip: TripRow,
-  draft: PublicDiscussionDraft,
-  model: string,
-) {
-  if (!env.DB) return;
-  await initialize(env.DB);
-  if (!draft.publish || !trip.notes?.trim()) {
-    await env.DB.prepare("DELETE FROM site_discussion_posts WHERE trip_id = ?").bind(trip.id).run();
-    return;
-  }
-  const summary = sanitizePublicText(draft.summary, 420);
-  if (!summary) return;
-  const gearSummary = sanitizePublicText(draft.gearSummary ?? "", 220) || null;
-  const techniqueTags = (draft.techniqueTags ?? [])
-    .filter((tag) => typeof tag === "string")
-    .map((tag) => sanitizePublicText(tag, 42))
-    .filter(Boolean)
-    .slice(0, 6);
-  const timestamp = new Date().toISOString();
-  await env.DB.prepare(`INSERT INTO site_discussion_posts
-      (id, trip_id, site_id, summary, gear_summary, technique_tags_json, observed_at, created_at, updated_at, review_model)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(trip_id) DO UPDATE SET
-      site_id = excluded.site_id,
-      summary = excluded.summary,
-      gear_summary = excluded.gear_summary,
-      technique_tags_json = excluded.technique_tags_json,
-      observed_at = excluded.observed_at,
-      updated_at = excluded.updated_at,
-      review_model = excluded.review_model`)
-    .bind(
-      `discussion_${crypto.randomUUID()}`,
-      trip.id,
-      trip.site_id,
-      summary,
-      gearSummary,
-      JSON.stringify(techniqueTags),
-      trip.ended_at ?? trip.started_at,
-      timestamp,
-      timestamp,
-      model,
-    )
-    .run();
+    posts: (rows.results ?? [])
+      .map(publicDiscussionForRow)
+      .filter((post): post is NonNullable<typeof post> => post !== null),
+  });
 }
 
 interface DiscussionRow {
@@ -133,8 +90,30 @@ interface DiscussionRow {
   summary: string;
   gear_summary: string | null;
   technique_tags_json: string | null;
-  observed_at: string;
-  created_at: string;
+  observed_date: string;
+  approved_at: string;
+}
+
+function publicDiscussionForRow(row: DiscussionRow) {
+  const rawTechniqueTags = safeTags(row.technique_tags_json);
+  const rawCandidate = [row.summary, row.gear_summary, ...rawTechniqueTags].filter(Boolean).join(" ");
+  if (containsSensitivePublicText(rawCandidate)) return null;
+  const summary = sanitizePublicText(row.summary, 420);
+  const gearSummary = sanitizePublicText(row.gear_summary ?? "", 220) || null;
+  const techniqueTags = rawTechniqueTags
+    .map((tag) => sanitizePublicText(tag, 42))
+    .filter(Boolean)
+    .slice(0, 6);
+  if (!summary) return null;
+  return {
+    id: row.id,
+    siteId: row.site_id,
+    summary,
+    gearSummary,
+    techniqueTags,
+    observedAt: `${row.observed_date}T12:00:00.000Z`,
+    postedAt: row.approved_at,
+  };
 }
 
 function safeTags(value: string | null) {
@@ -145,6 +124,27 @@ function safeTags(value: string | null) {
   } catch {
     return [];
   }
+}
+
+function publicDiscussionsEnabled(env: DiscussionEnv) {
+  return env.PUBLIC_DISCUSSIONS_ENABLED?.trim().toLowerCase() === "true";
+}
+
+function containsSensitivePublicText(value: string) {
+  return [
+    /https?:\/\/\S+/i,
+    /[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/,
+    /\b[\w.+-]+\s*(?:\[at\]|\(at\)|\sat\s)\s*[\w.-]+\s*(?:\[dot\]|\(dot\)|\sdot\s)\s*[A-Za-z]{2,}\b/i,
+    /\+\d{1,3}(?:[\s().-]*\d){7,14}\b/,
+    /(?:\+?\d{1,3}[-.\s]?)?(?:\(\d{2,4}\)|\d{2,4})[-.\s]?\d{3,4}[-.\s]?\d{3,4}/,
+    /(?:^|\s)@[^\s@]{2,}/u,
+    /\b-?\d{1,3}\.\d{4,}\s*[,/]\s*-?\d{1,3}\.\d{4,}\b/,
+    /\b\d{1,3}°\s*\d{1,2}['′]\s*\d{1,2}(?:\.\d+)?["″]?\s*[NSEW]\b/i,
+    /\b[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}\b/i,
+    /\b\d{1,6}\s+[A-Za-z0-9.' -]{1,40}\s+(?:street|st|avenue|ave|road|rd|drive|dr|lane|ln|court|ct|boulevard|blvd|way)\b/i,
+    /\b(?:gate|door|access|lock)\s*(?:code|pin)\s*[:#-]?\s*[A-Za-z0-9-]{3,}\b/i,
+    /\b(?:ignore|disregard|override)\b.{0,40}\b(?:instructions|prompt|system|moderation)\b/i,
+  ].some((pattern) => pattern.test(value));
 }
 
 function sanitizePublicText(value: string, maximum: number) {

@@ -19,7 +19,7 @@ from .deep_model import (
     train_ssl_epoch,
 )
 from .geo import GeoGrid, verify_projected_crs
-from .metadata import build_run_record, sha256_file, write_json
+from .metadata import build_run_record, sha256_file, verify_run_record_integrity, write_json
 from .patches import (
     extract_multiscale_patches,
     load_patch_corpus,
@@ -29,6 +29,12 @@ from .patches import (
 from .splits import spatial_block_folds
 from .sources import get_source_manifest
 from .structure import STRUCTURE_CHANNELS, derive_structure_channels, load_feature_stack
+
+from shared.species_contract import (
+    MODEL_RUN_CONTRACT_VERSION,
+    TAXON_CATALOG_VERSION,
+    target_scope,
+)
 
 
 def build_pretraining_corpus(
@@ -534,8 +540,33 @@ def run_bathymetry_pretraining(
         "channel_names": list(channel_names),
         "scales": int(patches.shape[1]),
     }
+    metrics_path = output_dir / "pretraining_metrics.json"
+    claim_boundary = (
+        "NT-Xent demonstrates optimization on unlabeled terrain views only. It is not a "
+        "catch-accuracy metric and does not make the live Opportunity Score more accurate."
+    )
+    run_record = build_run_record(
+        command="pretrain-bathymetry",
+        target_taxon_id=None,
+        config=config,
+        input_paths=(corpus_path,),
+        dataset_kind="official_unlabeled_bathymetry",
+        status="completed",
+        metrics={
+            "metrics_artifact": str(metrics_path.resolve()),
+            "best_validation_nt_xent": best_validation,
+        },
+        notes=claim_boundary,
+    )
     torch.save(
         {
+            "model_run_contract_version": MODEL_RUN_CONTRACT_VERSION,
+            "observation_contract_version": None,
+            "taxon_catalog_version": TAXON_CATALOG_VERSION,
+            "target_taxon_id": None,
+            "target_scope": target_scope(None),
+            "experiment_version": run_record["experiment_version"],
+            "model_version": run_record["model_version"],
             "state_dict": best_state,
             "config": config,
             "normalization": {"median": median.tolist(), "iqr": scale.tolist()},
@@ -545,32 +576,32 @@ def run_bathymetry_pretraining(
         },
         checkpoint_path,
     )
-    metrics_path = output_dir / "pretraining_metrics.json"
+    run_record["metrics"]["checkpoint_sha256"] = sha256_file(checkpoint_path)
     metrics = {
+        "model_run_contract_version": MODEL_RUN_CONTRACT_VERSION,
+        "observation_contract_version": None,
+        "taxon_catalog_version": TAXON_CATALOG_VERSION,
+        "target_taxon_id": None,
+        "target_scope": target_scope(None),
+        "experiment_version": run_record["experiment_version"],
+        "model_version": run_record["model_version"],
         "status": "completed",
         "stage": "self_supervised_pretraining",
         "train_patches": int(len(fold.train_indices)),
         "validation_patches": int(len(fold.test_indices)),
         "best_validation_nt_xent": best_validation,
         "history": history,
-        "claim_boundary": (
-            "NT-Xent demonstrates optimization on unlabeled terrain views only. It is not a "
-            "catch-accuracy metric and does not make the live Opportunity Score more accurate."
-        ),
+        "claim_boundary": claim_boundary,
     }
     write_json(metrics_path, metrics)
-    run_record = build_run_record(
-        command="pretrain-bathymetry",
-        config=config,
-        input_paths=(corpus_path,),
-        dataset_kind="official_unlabeled_bathymetry",
-        status="completed",
-        metrics={
-            "metrics_artifact": str(metrics_path.resolve()),
-            "checkpoint_sha256": sha256_file(checkpoint_path),
-            "best_validation_nt_xent": best_validation,
+    run_record["metrics"]["metrics_sha256"] = sha256_file(metrics_path)
+    verify_run_record_integrity(
+        run_record,
+        rehash_inputs=True,
+        artifact_paths={
+            "checkpoint_sha256": checkpoint_path,
+            "metrics_sha256": metrics_path,
         },
-        notes=metrics["claim_boundary"],
     )
     write_json(output_dir / "run_metadata.json", run_record)
     return {

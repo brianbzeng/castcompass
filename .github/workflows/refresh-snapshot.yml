@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: castingcompass-snapshot
@@ -15,24 +16,54 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: .
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.12"
-      - run: python scripts/generate_snapshot.py
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Generate opportunity snapshot
+        run: python scripts/generate_snapshot.py
+      - name: Bind opportunity attestation index
+        run: python scripts/generate_opportunity_attestations.py
       - name: Validate generated data
         run: |
           python -m json.tool data/sites.json >/dev/null
           python -m json.tool public/data/sites.json >/dev/null
           python -m json.tool public/data/opportunities.json >/dev/null
-      - name: Commit a changed snapshot
+          python -m json.tool public/data/opportunity-attestations.json >/dev/null
+          node --test tests/data-contract.test.mjs
+      - name: Open or update a snapshot review PR
+        env:
+          BRANCH: automation/refresh-public-forecast-snapshot
+          GH_TOKEN: ${{ github.token }}
         run: |
           if git diff --quiet -- public/data; then
             exit 0
           fi
           git config user.name "castingcompass-bot"
           git config user.email "actions@users.noreply.github.com"
+          git switch -C "$BRANCH"
           git add public/data
           git commit -m "data: refresh 72-hour opportunity snapshot"
-          git push
+          git fetch origin "refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" || true
+          git push --force-with-lease origin "HEAD:refs/heads/$BRANCH"
+          OPEN_PR="$(gh pr list --head "$BRANCH" --state open \
+            --json number,isCrossRepository \
+            --jq '[.[] | select(.isCrossRepository == false)][0].number // ""')"
+          if [ -n "$OPEN_PR" ]; then
+            gh pr edit "$OPEN_PR" \
+              --title "data: refresh 72-hour opportunity snapshot" \
+              --body "Automated public-data refresh. Review source freshness and CI before merging."
+          else
+            gh pr create \
+              --base "${{ github.event.repository.default_branch }}" \
+              --head "$BRANCH" \
+              --title "data: refresh 72-hour opportunity snapshot" \
+              --body "Automated public-data refresh. Review source freshness and CI before merging."
+          fi

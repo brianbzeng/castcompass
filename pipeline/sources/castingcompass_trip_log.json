@@ -1,0 +1,39 @@
+{
+  "manifest_version": "1.0",
+  "source_id": "castingcompass-trip-log",
+  "title": "CastingCompass consented first-party trip log",
+  "steward": "CastingCompass",
+  "official_landing_page": "https://castingcompass.com/privacy",
+  "access": {
+    "mode": "private_deidentified_validation_export",
+    "reason": "Trip evidence is private first-party data. Only a minimized, consented, deletion-checked validation envelope may leave the production data store.",
+    "instructions": [
+      "Export only records admitted by the frozen validation protocol; a structurally valid trip is not automatically model or evaluation evidence.",
+      "Derive participant_group_id with the approved privacy-safe procedure and never export an account ID, email address, reporter key or reporter-key hash.",
+      "Exclude notes, photos, precise coordinates and other free text from the validation envelope.",
+      "Preserve authoritative site-window scoring identity, pre-outcome selection and score-influence context, consent state, evidence status and deletion lineage.",
+      "Keep retrospective, preactivation, score-visible, context-only and unverified records outside the primary benchmark."
+    ],
+    "ingestion_command": "python -m pipeline.contourcast.cli seal-validation-splits --protocol validation/protocols/california-halibut-site-window-v1.json --label-free-evidence PRIVATE_LABEL_FREE_EVIDENCE.jsonl --opportunity-ledger PRIVATE_OPPORTUNITY_LEDGER.json --predictions PRIVATE_CANDIDATE_PREDICTIONS.json --manifest-chain PRIVATE_ACTIVATION.json --output PRIVATE_SPLIT_MANIFEST.json"
+  },
+  "permissions": {
+    "training": "protocol_and_consent_gated",
+    "validation": "protocol_and_consent_gated",
+    "public_reporting": "aggregate_only",
+    "context_only": "explicitly_separate"
+  },
+  "privacy": {
+    "precise_coordinates_permitted": false,
+    "free_text_permitted": false,
+    "photos_permitted": false,
+    "direct_identifiers_permitted": false,
+    "raw_reporter_tokens_permitted": false,
+    "deletion_lineage_required": true
+  },
+  "limitations": [
+    "Self-selected and score-influenced trips are subject to selection bias and are not primary validation evidence.",
+    "A no-catch trip is a target non-encounter during declared effort, not proof that California halibut were biologically absent.",
+    "Curated site support can substantiate only site-by-time-window ranking claims, never precise casting-zone claims.",
+    "Evidence remains subject to consent withdrawal, account deletion and validation-protocol admission rules."
+  ]
+}

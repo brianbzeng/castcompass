@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "castingcompass.taxa/1.0.0",
+  "title": "CastingCompass canonical taxon catalog 1.0.0",
+  "description": "Exact closed launch catalog. Any taxon, eligibility, or environment change requires a new catalog version.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_path",
+    "contract_version",
+    "catalog_version",
+    "catalog_id",
+    "description",
+    "taxa",
+    "prohibited_production_target_terms"
+  ],
+  "properties": {
+    "schema_path": { "const": "contracts/taxa.schema.json" },
+    "contract_version": { "const": "castingcompass.taxa/1.0.0" },
+    "catalog_version": { "const": "castingcompass.taxa/1.0.0" },
+    "catalog_id": { "const": "castingcompass-canonical-taxa" },
+    "description": { "type": "string", "minLength": 1 },
+    "taxa": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        { "$ref": "#/$defs/californiaHalibut" },
+        { "$ref": "#/$defs/unresolvedFish" },
+        { "$ref": "#/$defs/syntheticTarget" }
+      ],
+      "items": false
+    },
+    "prohibited_production_target_terms": {
+      "const": [
+        "fish",
+        "generic-rockfish",
+        "rockfish",
+        "unknown",
+        "unknown-fish",
+        "unresolved-fish"
+      ]
+    }
+  },
+  "$defs": {
+    "californiaHalibut": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taxon_id", "kind", "common_name", "scientific_name", "taxonomic_rank",
+        "observation_eligible", "model_eligible", "production_observation_eligible", "environments"
+      ],
+      "properties": {
+        "taxon_id": { "const": "california-halibut" },
+        "kind": { "const": "taxon" },
+        "common_name": { "const": "California halibut" },
+        "scientific_name": { "const": "Paralichthys californicus" },
+        "taxonomic_rank": { "const": "species" },
+        "observation_eligible": { "const": true },
+        "model_eligible": { "const": true },
+        "production_observation_eligible": { "const": true },
+        "environments": { "const": ["production", "test"] }
+      }
+    },
+    "unresolvedFish": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taxon_id", "kind", "common_name", "scientific_name", "taxonomic_rank",
+        "observation_eligible", "model_eligible", "production_observation_eligible", "environments"
+      ],
+      "properties": {
+        "taxon_id": { "const": "unresolved-fish" },
+        "kind": { "const": "unresolved-observation-bucket" },
+        "common_name": { "const": "Unresolved fish" },
+        "scientific_name": { "const": null },
+        "taxonomic_rank": { "const": "unresolved" },
+        "observation_eligible": { "const": true },
+        "model_eligible": { "const": false },
+        "production_observation_eligible": { "const": true },
+        "environments": { "const": ["production", "test"] }
+      }
+    },
+    "syntheticTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taxon_id", "kind", "common_name", "scientific_name", "taxonomic_rank",
+        "observation_eligible", "model_eligible", "production_observation_eligible", "environments"
+      ],
+      "properties": {
+        "taxon_id": { "const": "synthetic-target" },
+        "kind": { "const": "synthetic-fixture" },
+        "common_name": { "const": "Synthetic target" },
+        "scientific_name": { "const": null },
+        "taxonomic_rank": { "const": "synthetic" },
+        "observation_eligible": { "const": true },
+        "model_eligible": { "const": true },
+        "production_observation_eligible": { "const": false },
+        "environments": { "const": ["test"] }
+      }
+    }
+  }
+}

@@ -8,15 +8,27 @@
   "scripts": {
     "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev",
     "build": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build",
-    "build:cloudflare": "CASTINGCOMPASS_CLOUDFLARE_BUILD=1 NEXT_PUBLIC_PHOTO_UPLOADS=false npm run build",
-    "deploy:cloudflare": "wrangler d1 migrations apply contourcast-trips --remote --config wrangler.jsonc && wrangler deploy --config wrangler.jsonc",
-    "release:cloudflare": "npm run build:cloudflare && npm run deploy:cloudflare",
+    "build:cloudflare": "CASTINGCOMPASS_CLOUDFLARE_BUILD=1 NEXT_PUBLIC_PHOTO_UPLOADS=false NEXT_PUBLIC_API_URL= npm run build",
+    "verify:release-checkout": "node scripts/verify-release-checkout.mjs --root . --expected-commit \"$RELEASE_COMMIT\"",
+    "deploy:cloudflare": "npm run release:cloudflare",
+    "deploy:cloudflare:worker-only": "npm run release:cloudflare",
+    "preflight:cloudflare:remote": "node scripts/integrated-release.mjs preflight",
+    "reconcile:cloudflare:0007": "node scripts/integrated-release.mjs reconcile-0007",
+    "migrate:cloudflare:remote": "node scripts/integrated-release.mjs apply --migration \"$RELEASE_MIGRATION\"",
+    "postflight:cloudflare:remote": "node scripts/integrated-release.mjs postflight",
+    "verify:release-maintenance": "node scripts/verify-release-maintenance.mjs",
+    "release:cloudflare": "npm run verify:release-checkout && npm run build:cloudflare && wrangler deploy --config wrangler.jsonc",
+    "release:cloudflare:maintenance": "npm run verify:release-checkout && npm run build:cloudflare && wrangler deploy --config wrangler.jsonc --var PUBLIC_DISCUSSIONS_ENABLED:false --var TRIP_PHOTO_UPLOADS_ENABLED:false --var TURNSTILE_ENABLED:false --var RELEASE_MAINTENANCE_MODE:true",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
-    "test": "npm run build && node --test tests/*.test.mjs",
+    "test": "npm run build:cloudflare && node --test tests/*.test.mjs",
     "test:mobile": "playwright test tests/mobile-viewport.spec.ts",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit",
-    "data:refresh": "python3 scripts/generate_snapshot.py",
+    "security": "npm run security:secrets",
+    "security:secrets": "node scripts/check-secrets.mjs",
+    "verify:discussion-safety": "node scripts/verify-discussion-safety.mjs",
+    "verify:validation-successor": "node scripts/verify-validation-successor.mjs",
+    "data:refresh": "PYTHONPATH=. python3 scripts/generate_snapshot.py && PYTHONPATH=. python3 scripts/generate_opportunity_attestations.py",
     "api:test": "python3 -m pytest services/api/tests -q"
   },
   "dependencies": {
@@ -27,7 +39,7 @@
     "react-dom": "19.2.6"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.37.1",
+    "@cloudflare/vite-plugin": "1.45.0",
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
@@ -35,6 +47,8 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^2.1.1",
     "drizzle-kit": "^0.31.10",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
@@ -42,8 +56,8 @@
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
     "vinext": "0.0.50",
-    "vite": "8.0.13",
-    "wrangler": "4.92.0"
+    "vite": "8.1.5",
+    "wrangler": "4.111.0"
   },
   "overrides": {
     "postcss": "8.5.14"

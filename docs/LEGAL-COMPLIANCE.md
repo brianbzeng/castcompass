@@ -1,6 +1,6 @@
 # CastingCompass legal and product compliance register
 
-Last reviewed: 2026-07-15
+Last reviewed: 2026-07-16
 
 This is an engineering and product checklist, not legal advice. The public Terms and Privacy Policy are a practical launch baseline. A California attorney should review them before paid subscriptions, advertising, native-app distribution, SMS, large-scale marketing, or material growth.
 
@@ -9,13 +9,13 @@ This is an engineering and product checklist, not legal advice. The public Terms
 | Surface | Data or risk | Current control |
 | --- | --- | --- |
 | Public forecast | Environmental and fishing guidance can be wrong or stale | Relative score language, source freshness, prominent work-in-progress notice, safety reminder, official-source links, Terms disclaimer |
-| Account signup | Email, password, age eligibility | Neutral birth-date screen; date is evaluated server-side and never stored; accounts blocked under 13; password is salted and hashed; email challenge required |
+| Account signup | Email, password, age eligibility | Age-only first screen; birth date is evaluated separately and never retained; a short-lived one-use eligibility proof or bounded ineligibility marker contains no birth date, age, email, or account details; credentials and legal acceptance are collected only after eligibility; password is salted and hashed; email challenge required |
 | Legal acceptance | Terms and Privacy agreement | Affirmative unchecked boxes; accepted versions and timestamps stored; existing accounts must accept material versions before account features resume |
 | Browser location | Potential precise location | Optional pre-prompt; coordinate stays in the browser tab and is used only for nearby sorting/radius; no account or trip persistence |
 | Trip report | Time, site, catches, gear, notes, fishability, optional photo | Clear consent; user ownership representation; private-by-default raw data; metadata-stripped photo; pending edit/delete; public output limited to an anonymous reviewed summary |
 | Automated review | Trip payload sent to Xiaomi MiMo | No email, account ID, device location, photo, or exact private coordinate in the review payload; separate AI disclosure; correction/removal contact |
 | Email | Verification, recovery, welcome | Transactional only; Resend is the delivery provider; no marketing list or SMS |
-| Storage | D1 account/trip records and optional R2 photos | Secure session cookies, same-origin mutation checks, rate limits, data export, account deletion, scheduled cleanup of expired auth records |
+| Storage | D1 account/trip records and optional R2 photos | Secure session cookies, same-origin mutation checks, rate limits, comprehensive JSON export plus separate authenticated photo downloads, durable deletion jobs, secure status receipts, scheduled retry of object cleanup, and pseudonymous deletion tombstones |
 
 ## Current legal baseline
 
@@ -23,7 +23,7 @@ This is an engineering and product checklist, not legal advice. The public Terms
 
 - Accounts are limited to users age 13 or older.
 - The age screen is neutral and does not suggest the qualifying answer.
-- Birth dates are not retained.
+- Birth dates are evaluated against the `America/Los_Angeles` calendar and are not retained. Eligibility proofs can be used for 10 minutes and are removed after an operational buffer of about 24 hours; a first-party ineligibility marker may remain for up to 24 hours. Neither artifact contains the entered date, age, email, or account details.
 - The Privacy Policy provides a parent/guardian contact and deletion process.
 - If the product is later directed to children or knowingly collects under-13 data, stop and implement a COPPA parental-consent program before collection.
 
@@ -129,6 +129,19 @@ Primary reference: FTC CAN-SPAM compliance guide: <https://www.ftc.gov/business-
 - Increment `LEGAL_VERSION` for material Terms or Privacy changes and require renewed acceptance.
 - Run a quarterly check for broken legal links, inaccurate data-flow statements, expired vendor terms, and unimplemented deletion paths.
 - Keep a private incident log. Define a security-incident and data-breach response plan before collecting materially more user data.
+- Before any D1 restore, preserve the current deletion ledger, restore the backup in isolation, replay all deletion tombstones and unresolved object tasks, audit row/object counts, and only then allow the restored database to receive traffic.
+
+## Privacy durability release gate
+
+The repository implementation is a local release candidate, not evidence that the production migration, Cloudflare bindings, backup policy, or restore procedure has been completed. Do not describe durable deletion as live until all of the following have been verified against the production account:
+
+- Apply the privacy migration through the guarded immutable release workflow and verify the expected age-proof, deletion-job, deletion-task, and tombstone tables.
+- Confirm the age endpoint receives only a birth date, creates no email challenge or account for an ineligible or invalid date, and never stores the entered birth date.
+- Confirm eligibility proofs cannot be used after 10 minutes and are removed after an operational buffer of about 24 hours, the ineligibility marker expires within 24 hours, and neither artifact contains the entered date, age, email, or account details.
+- Confirm account deletion removes active D1 access and linked public rows before returning success, issues a 30-day secure status receipt when cleanup remains, retries R2 deletion, and retains unresolved cleanup jobs until resolved.
+- Retain pseudonymous completed-deletion tombstones for 90 days. Document the production backup-retention window and prove through an isolated restore drill that the current deletion ledger is replayed before restored data can receive traffic.
+- Verify exports against populated fixtures: account and consent records, saved locations, gear presets, full trip fields, discussion linkage, photo manifest, and successful authenticated download of each photo file that the export says is available.
+- Review and document Cloudflare, Resend, and Xiaomi MiMo deletion and log-retention terms. Complete counsel review of the updated Terms, Privacy Policy, age gate, backup language, and user-request workflow.
 
 ## Open items for counsel
 

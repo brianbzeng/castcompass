@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 from bisect import bisect_left, bisect_right
+import hashlib
 import json
 import math
 import re
@@ -23,12 +24,48 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from shared.species_contract import (
+    MODEL_RUN_CONTRACT_VERSION,
+    OBSERVATION_CONTRACT_VERSION,
+    OPPORTUNITY_CONTRACT_VERSION,
+    PRODUCTION_TARGET_TAXON_ID,
+    TAXON_CATALOG_VERSION,
+    validate_contract_assets,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SITES_PATH = ROOT / "data" / "sites.json"
 PUBLIC_DATA = ROOT / "public" / "data"
 USER_AGENT = "CastingCompass/0.1 (public-data demo; contact: bzeng0000@gmail.com)"
 PACIFIC = ZoneInfo("America/Los_Angeles")
+
+SCORING_SYSTEM_KIND = "heuristic-configuration"
+SCORING_CONFIGURATION = {
+    "configuration_version": "castingcompass-hybrid-demo/0.6.0",
+    "target_taxon_id": PRODUCTION_TARGET_TAXON_ID,
+    "components": {
+        "habitat": 0.44,
+        "seasonality": 0.16,
+        "dynamic": 0.20,
+        "fishability": 0.20,
+    },
+    "access_adjustment_scale": 0.25,
+    "score_semantics": "relative-opportunity-0-100-not-calibrated-probability",
+}
+
+
+def scoring_system_identity() -> tuple[str, str]:
+    """Hash the declared configuration and exact scoring source code."""
+
+    code_sha256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    material = json.dumps(
+        {"configuration": SCORING_CONFIGURATION, "code_sha256": code_sha256},
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    digest = hashlib.sha256(material).hexdigest()
+    return f"heuristic-{PRODUCTION_TARGET_TAXON_ID}-{digest}", digest
 
 WEATHER_ANCHORS = {
     "point-reyes": (38.04, -122.96),
@@ -1029,6 +1066,8 @@ def source_status(results: list[dict[str, Any]]) -> str:
 
 
 def main() -> None:
+    validate_contract_assets()
+    scoring_system_version, scoring_system_sha256 = scoring_system_identity()
     parser = argparse.ArgumentParser()
     parser.add_argument("--as-of", help="UTC ISO timestamp used to anchor the 72-hour snapshot")
     args = parser.parse_args()
@@ -1139,11 +1178,11 @@ def main() -> None:
                 access_pressure_pct,
             )
             raw_score = (
-                (0.44 * habitat)
-                + (0.16 * seasonality)
-                + (0.20 * dynamic)
-                + (0.20 * fishability)
-                + (access_adjustment * 0.25)
+                (SCORING_CONFIGURATION["components"]["habitat"] * habitat)
+                + (SCORING_CONFIGURATION["components"]["seasonality"] * seasonality)
+                + (SCORING_CONFIGURATION["components"]["dynamic"] * dynamic)
+                + (SCORING_CONFIGURATION["components"]["fishability"] * fishability)
+                + (access_adjustment * SCORING_CONFIGURATION["access_adjustment_scale"])
             )
             available_primary = int(tide_change is not None) + int(wind_mph is not None)
             confidence = "medium" if available_primary == 2 else "low"
@@ -1179,6 +1218,15 @@ def main() -> None:
                 {
                     "id": f"{site['id']}--{window_start.strftime('%Y%m%dT%H%MZ')}",
                     "siteId": site["id"],
+                    "species": PRODUCTION_TARGET_TAXON_ID,
+                    "target_taxon_id": PRODUCTION_TARGET_TAXON_ID,
+                    "taxon_catalog_version": TAXON_CATALOG_VERSION,
+                    "observation_contract_version": OBSERVATION_CONTRACT_VERSION,
+                    "model_run_contract_version": MODEL_RUN_CONTRACT_VERSION,
+                    "opportunity_contract_version": OPPORTUNITY_CONTRACT_VERSION,
+                    "scoring_system_kind": SCORING_SYSTEM_KIND,
+                    "scoring_system_sha256": scoring_system_sha256,
+                    "modelVersion": scoring_system_version,
                     "start": isoformat(window_start),
                     "end": isoformat(window_end),
                     "score": 0,
@@ -1187,7 +1235,6 @@ def main() -> None:
                     "dynamicScore": dynamic,
                     "fishabilityScore": fishability,
                     "confidence": confidence,
-                    "rank": 0,
                     "explanationFactors": factor_text(
                         site,
                         seasonality,
@@ -1218,10 +1265,9 @@ def main() -> None:
     ordered = sorted(windows, key=lambda item: (-item["_rawScore"], item["start"], item["siteId"]))
     denominator = max(1, len(ordered) - 1)
     ascending_raw_scores = sorted(item["_rawScore"] for item in ordered)
-    for rank, item in enumerate(ordered, start=1):
-        item["rank"] = rank
+    for item in ordered:
         # Equal combined values receive the same empirical percentile even
-        # though rank remains deterministic for list ordering.
+        # though list ordering remains deterministic.
         lower_index = bisect_left(ascending_raw_scores, item["_rawScore"])
         upper_index = bisect_right(ascending_raw_scores, item["_rawScore"]) - 1
         tie_midpoint = (lower_index + upper_index) / 2
@@ -1301,13 +1347,21 @@ def main() -> None:
     ]
 
     payload = {
-        "schemaVersion": "1.0.0",
+        "schemaVersion": OPPORTUNITY_CONTRACT_VERSION,
+        "opportunity_contract_version": OPPORTUNITY_CONTRACT_VERSION,
+        "model_run_contract_version": MODEL_RUN_CONTRACT_VERSION,
+        "observation_contract_version": OBSERVATION_CONTRACT_VERSION,
+        "taxon_catalog_version": TAXON_CATALOG_VERSION,
+        "target_taxon_id": PRODUCTION_TARGET_TAXON_ID,
+        "scoring_system_kind": SCORING_SYSTEM_KIND,
+        "scoring_system_version": scoring_system_version,
+        "scoring_system_sha256": scoring_system_sha256,
         "generatedAt": retrieved_at,
         "validFrom": isoformat(start),
         "validThrough": isoformat(end),
-        "modelVersion": "castingcompass-hybrid-demo-0.6.0",
+        "modelVersion": scoring_system_version,
         "status": "demo-public-data-snapshot",
-        "species": "california-halibut",
+        "species": PRODUCTION_TARGET_TAXON_ID,
         "scoreDefinition": f"Before the fishability cap, a score of 80 ranks within the current comparison set above 80% of the {len(ordered):,} site/windows. Surf, wind, current, steep shorebreak, or expected crowding can cap the displayed score. It is not an 80% catch probability.",
         "notice": "Conditions are informational only. Check official access and CDFW rules. Bathymetry is not for navigation.",
         "sources": sources,

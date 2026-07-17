@@ -1,19 +1,21 @@
 # CastingCompass dataset card
 
-**Status:** data contract, multiscale structure pipeline, and reproducible
-full-survey official-data self-supervised pretraining implemented. Official
-rasters and weights are not bundled. No supervised catch-training dataset has
-been approved.
+**Status:** species-aware contract assets, multiscale structure pipeline, and
+reproducible full-survey official-data self-supervised pretraining implemented.
+The production species migration and any supervised catch-training dataset
+remain unapproved. Official rasters and weights are not bundled.
 
-**Version:** 0.2.0
+**Version:** 0.3.0
 
 ## Intended dataset
 
 CastingCompass is designed to join a bathymetric terrain grid with recreational
 fishing observations for Bay and coastal California research. The intended
-learning unit is a point-resolution fishing event with effort, a target species,
-an occurrence label, and catch per unit effort (CPUE). Aggregated survey
-estimates remain separate and must not be treated as exact-point labels.
+learning unit is one complete, targeted effort segment. It declares exactly one
+primary target, target-specific effort, temporal and spatial support, and
+structured observations for every encountered taxon. Aggregated survey
+estimates remain separate and must not be treated as effort segments or
+exact-point labels.
 
 This dataset is for exploratory habitat and product research. It is not a
 nautical chart, navigation aid, regulatory source, biological stock assessment,
@@ -62,23 +64,56 @@ explicitly **not for navigation**.
 
 ### Fishing observations
 
-Canonical fields are:
+The language-neutral source of truth is:
 
-| Field | Meaning |
-| --- | --- |
-| `event_id` | Stable source event/sample identifier |
-| `observed_at` | Observation time when released |
-| `species` | Target taxon/name from the source export |
-| `catch_count` | Nonnegative observed or documented count field |
-| `effort_hours` | Positive effort denominator |
-| `sample_weight` | Positive released sample-count/reliability weight; defaults to 1 when unavailable |
-| `occurrence` | `1` when canonical catch count is positive, otherwise `0` |
-| `cpue` | `catch_count / effort_hours` |
-| `x`, `y`, `crs` | Legitimately released projected point coordinates and CRS |
-| `area_id` | Source geography when only an aggregate area is released |
-| `spatial_resolution` | `point`, `area`, or source-specific resolution |
-| `source_id` | Manifest identifier |
-| `terrain_model_eligible` | True only for point/GPS/exact rows with both coordinates |
+- `contracts/taxa.json` and `contracts/taxa.schema.json` at
+  `castingcompass.taxa/1.0.0`;
+- `contracts/observation.schema.json` at
+  `castingcompass.observation/2.0.0`;
+- `shared/species-contract.ts` and `shared/species_contract.py` for matching
+  identity and catalog-eligibility helpers. TypeScript provides the reusable
+  semantic record validators; Python enforces the same observation semantics
+  at ingestion and again in the model loader.
+
+The JSON schemas are strict structural envelopes, not substitutes for semantic
+validation. Cross-field rules such as unique taxon IDs, count reconciliation,
+confidence/basis compatibility, temporal ordering, environment eligibility,
+and derived outcomes are exercised from one shared adversarial fixture corpus
+through both the TypeScript validator and the actual Python ingestion path.
+
+The closed launch catalog contains `california-halibut` as the only production
+model target, `unresolved-fish` as an observation-only bucket, and
+`synthetic-target` for tests only. `rockfish`, `unknown`, and other generic terms
+are not production targets. A future rockfish release must add defensible named
+species or an explicitly reviewed complex in a new catalog version.
+
+Every v2 record includes:
+
+- `contract_version`, `taxon_catalog_version`, stable observation and effort
+  segment IDs, and `contract_status: valid`;
+- one `primary_target_taxon_id` and positive `target_effort` with its unit and
+  fishing mode;
+- source assertions that the row is a complete attempt and not an expanded
+  estimate;
+- bounded or exact temporal support and honest point, site, or area spatial
+  support;
+- one unique `taxon_observations` entry per represented taxon, with encounter,
+  retained, released, and disposition-unknown counts that reconcile exactly;
+- an identification confidence and basis. Current unreviewed first-party named
+  catches are `self_reported` / `angler-report`, not verified. Unidentified fish
+  remain `unresolved-fish` / `unresolved`; and
+- one derived `outcome_class`: `target_encountered`, `non_target_only`, or
+  `no_fish`. Even `no_fish` records contain the primary-target row with zero
+  counts and `not_observed` / `not-observed` identity.
+
+The loader fails closed on missing or unknown versions, multiple or mismatched
+targets, unknown taxa, generic production targets, duplicate taxon rows,
+inconsistent counts or outcomes, catch-only inputs, expanded estimates,
+synthetic data in production, or a false confidence/basis pairing. Canonical
+site and area records can support descriptive analysis. Launch-v2 point records
+must use one of the explicitly approved projected CRSs. Only an exact-time point
+record whose CRS also exactly matches the expected model grid can become a
+terrain-model row.
 
 The importer never converts an area centroid, port, district, or survey stratum
 into a purported catch location. An area-only record may support aggregate
@@ -88,9 +123,22 @@ attention on individual patches is not ground-truthed hotspot evidence.
 
 Sample data and expanded survey estimates have different meanings. Expansion
 weights, strata, modes, uncertainty fields, and source documentation must be
-retained in the raw layer. The current canonical point pipeline is not a
-survey-weighted estimator; expanded estimates should not be mixed with raw
-events until that estimator is explicitly implemented and validated.
+retained in the raw layer. The v2 flattened modeling table sets `sample_weight`
+to `1.0` because each row is one complete effort segment; that value is not a
+survey expansion or reliability weight. Expanded estimates are rejected until
+a separate survey-weighted estimator is explicitly implemented and validated.
+
+### Legacy migration and eligibility
+
+The additive species migration records the observation/catalog versions,
+target taxon, structured taxon observations, outcome class, target/all-fish
+counts, and target-identification confidence. Historical trip rows did not
+collect the full v2 evidence. They are backfilled as `legacy_unverified`, remain
+available for account history and deletion, and are excluded from training,
+validation, and calibration. A `rejected` status records failed contract intake;
+neither status is a valid v2 observation payload. Production migration and
+aggregate post-migration audits must complete before collection is described as
+contract-v2 live.
 
 ## Derived terrain and structure channels
 
@@ -156,6 +204,23 @@ to ecological management areas. Before a reported experiment, region count and
 buffer distance should be chosen from sampling density and the intended product
 use, then fixed before inspecting test results.
 
+That scaffold applies to exact-point terrain experiments. First-party
+CastingCompass trips deliberately retain curated `site` support and cannot
+enter the point loader. Historical v1 preserves a fixed site-catalog SHA-256,
+46 sites assigned once to five named panels, and four absolute time blocks, but
+it is not activatable. The v2 successor uses the same curated site support only
+for a collection-feasibility pilot. Neither design invents a site centroid,
+weakens point-model eligibility, or treats a whole trip spanning multiple
+windows as a point label. Pre-freeze, pre-activation, past, and legacy rows
+remain product-observational only regardless of structural validity.
+
+Prospective rows additionally retain the frozen recruitment-frame ID, one of
+three allowed pre-outcome source IDs, recruitment event time/hash, and—only for
+admin-approved community recruitment—the prior approval hash. The validation
+analysis is a census of every eligible accepted row in the fixed interval; it
+cannot take a post-hoc or arrival-ordered subsample. Recruitment-source and
+selection-design mix are preserved for required stratified reporting.
+
 ## Known biases and limitations
 
 - CRFS/RecFIN measure fishing activity and observed catches, not complete fish
@@ -182,8 +247,16 @@ Every real-data run must preserve:
 - terrain configuration and fixed channel order;
 - observation eligibility counts and rejected-row reasons;
 - geographic split seed/count/buffer;
-- Git revision, Python runtime, input hashes, experiment version, and model
-  version from `run_metadata.json`.
+- for the v2 feasibility pilot, the externally registered protocol hash,
+  activation identity, immutable release/Worker/scoring identity, recruitment
+  source/event identity, site-catalog hash, exact interval, started-attempt
+  reconciliation, and encrypted snapshot checksum;
+- for a later confirmatory study, its separate preregistration, activation,
+  outcome-blind split identity, fixed candidate/baselines, and locked input
+  hashes required by that future protocol;
+- Git revision, Python runtime, input hashes, experiment version, model version,
+  target scope, catalog version, and observation contract version from
+  `run_metadata.json`.
 
 Run the synthetic plumbing check with:
 
@@ -193,6 +266,12 @@ python3 -m pipeline.contourcast.cli smoke --output-dir /tmp/contourcast-smoke
 
 Synthetic fixture metrics are labeled `synthetic_fixture` and are not real-data
 results.
+
+No study export may contain raw email, account ID, resettable reporter hash,
+notes, photos, IP address, user agent, or exact coordinates. V2 uses a privacy-
+safe deletion-linked participant group, append-only corrections, and daily
+encrypted checksummed snapshots. Deletion and withdrawal must be reconciled
+before a feasibility report. Candidate performance is not evaluated on v2.
 
 ## Current results
 

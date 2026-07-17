@@ -1,0 +1,473 @@
+{
+  "schema_version": "castingcompass.validation-export-mapping-vector/1.0.0",
+  "mapping_rule": {
+    "required_raw_event_type": "completion",
+    "required_raw_source_role": "prospective_secondary",
+    "required_raw_evidence_status": "secondary_pending_review",
+    "required_raw_cohort_id": "california-halibut-site-window-observational-secondary-v1",
+    "required_raw_selection_method": "organic_score_visible",
+    "required_validation_protocol_id": "california-halibut-site-window-v1",
+    "required_event_type_counts": {
+      "enrollment": 1,
+      "completion": 1,
+      "evidence_exclusion": 0,
+      "retrospective_submission": 0,
+      "legacy_context": 0
+    },
+    "provenance_event_projection_fields": [
+      "id",
+      "event_type",
+      "created_at",
+      "exclusion_reason"
+    ],
+    "provenance_event_sort": [
+      "created_at",
+      "event_type",
+      "id"
+    ],
+    "require_terminal_event_equals_completion": true,
+    "require_sealed_activation": true,
+    "require_no_exclusion_reason": true,
+    "require_immutable_event_ids": true,
+    "evaluator_mapping": {
+      "cohort_role": "secondary",
+      "source_role": "score-visible-first-party",
+      "selection_design": "prospective-score-visible-self-selected"
+    }
+  },
+  "required_signed_audit_fields": [
+    "collection_source_role",
+    "collection_evidence_status",
+    "collection_cohort_id",
+    "collection_selection_method",
+    "collection_validation_protocol_id",
+    "activation_manifest_sha256",
+    "collection_activated_at",
+    "collection_activation_scoring_system_sha256",
+    "collection_exclusion_reason",
+    "collection_event_type",
+    "collection_event_id",
+    "collection_event_at",
+    "collection_event_type_counts",
+    "collection_terminal_event_id",
+    "collection_terminal_event_type",
+    "collection_terminal_event_at",
+    "collection_provenance_chain_sha256",
+    "participant_group_id",
+    "recruitment_event_sha256",
+    "forecast_impression_id",
+    "assignment_id",
+    "source_record_sha256",
+    "effort_segment_id",
+    "completion_event_sha256",
+    "completion_event_at"
+  ],
+  "cases": [
+    {
+      "id": "exact-sealed-secondary",
+      "raw_collection": {
+        "event_type": "completion",
+        "source_role": "prospective_secondary",
+        "evidence_status": "secondary_pending_review",
+        "cohort_id": "california-halibut-site-window-observational-secondary-v1",
+        "selection_method": "organic_score_visible",
+        "validation_protocol_id": "california-halibut-site-window-v1",
+        "activation_manifest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "activated_at": "2026-07-31T23:59:00.000Z",
+        "activation_scoring_system_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "exclusion_reason": null,
+        "participant_group_id": "participant-ea33e7b618bfe4a00b9425f4322eb129ba778c4fbe6c42ad36c0c99e0c3608fd",
+        "recruitment_event_sha256": "a2e9bb18f1261584c6f1bda822bcd7ffaca20f8c0a392dd8d3ff70a1529f467c",
+        "forecast_impression_id": "impression_00000000-0000-4000-8000-000000000001",
+        "assignment_id": "assignment-cbd18763dac0e4643b345be943e0d15522472ac16d7cc4642d68544bff0529e1",
+        "source_record_sha256": "6288c12c769ad83e29955c3c9392d1dd06f8bdbd413b6289a5308306749baf18",
+        "effort_segment_id": "effort-d4e9e9dfb5268fecfb5ad5b8a3699ed5591ecc045a34ebe8ffeaa0649015eead",
+        "completion_event_at": "2026-08-01T11:31:00.125Z",
+        "completion_event_sha256": "df0b3fc4c541972bff00393e66278ac6f5151784988c72e3c6cbec15cf7f6aae",
+        "collection_event_id": "event-completion-1",
+        "collection_event_at": "2026-08-01T11:31:00.125Z",
+        "collection_event_type_counts": {
+          "enrollment": 1,
+          "completion": 1,
+          "evidence_exclusion": 0,
+          "retrospective_submission": 0,
+          "legacy_context": 0
+        },
+        "collection_terminal_event_id": "event-completion-1",
+        "collection_terminal_event_type": "completion",
+        "collection_terminal_event_at": "2026-08-01T11:31:00.125Z",
+        "collection_provenance_chain_sha256": "8fcc75e34ab6c859694684c11344f4cf977dde64d8367c9dc1c684a923b183eb",
+        "provenance_events": [
+          {
+            "id": "event-enrollment-1",
+            "event_type": "enrollment",
+            "created_at": "2026-08-01T10:00:00.000Z",
+            "exclusion_reason": null
+          },
+          {
+            "id": "event-completion-1",
+            "event_type": "completion",
+            "created_at": "2026-08-01T11:31:00.125Z",
+            "exclusion_reason": null
+          }
+        ]
+      },
+      "untrusted_client_evaluator_fields": null,
+      "expected_secondary_admission_allowed": true,
+      "promotion_bearing": false,
+      "expected_evaluator_mapping": {
+        "cohort_role": "secondary",
+        "source_role": "score-visible-first-party",
+        "selection_design": "prospective-score-visible-self-selected"
+      }
+    },
+    {
+      "id": "context-with-normalized-client-claims",
+      "raw_collection": {
+        "event_type": "completion",
+        "source_role": "context_only",
+        "evidence_status": "context_only",
+        "cohort_id": "predeployment-context",
+        "selection_method": "organic_unverified",
+        "validation_protocol_id": "california-halibut-site-window-v1",
+        "activation_manifest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "activated_at": "2026-07-31T23:59:00.000Z",
+        "activation_scoring_system_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "exclusion_reason": null,
+        "participant_group_id": "participant-ea33e7b618bfe4a00b9425f4322eb129ba778c4fbe6c42ad36c0c99e0c3608fd",
+        "recruitment_event_sha256": "a2e9bb18f1261584c6f1bda822bcd7ffaca20f8c0a392dd8d3ff70a1529f467c",
+        "forecast_impression_id": "impression_00000000-0000-4000-8000-000000000001",
+        "assignment_id": "assignment-cbd18763dac0e4643b345be943e0d15522472ac16d7cc4642d68544bff0529e1",
+        "source_record_sha256": "6288c12c769ad83e29955c3c9392d1dd06f8bdbd413b6289a5308306749baf18",
+        "effort_segment_id": "effort-d4e9e9dfb5268fecfb5ad5b8a3699ed5591ecc045a34ebe8ffeaa0649015eead",
+        "completion_event_at": "2026-08-01T11:31:00.125Z",
+        "completion_event_sha256": "df0b3fc4c541972bff00393e66278ac6f5151784988c72e3c6cbec15cf7f6aae",
+        "collection_event_id": "event-completion-1",
+        "collection_event_at": "2026-08-01T11:31:00.125Z",
+        "collection_event_type_counts": { "enrollment": 1, "completion": 1, "evidence_exclusion": 0, "retrospective_submission": 0, "legacy_context": 0 },
+        "collection_terminal_event_id": "event-completion-1",
+        "collection_terminal_event_type": "completion",
+        "collection_terminal_event_at": "2026-08-01T11:31:00.125Z",
+        "collection_provenance_chain_sha256": "8fcc75e34ab6c859694684c11344f4cf977dde64d8367c9dc1c684a923b183eb",
+        "provenance_events": [
+          { "id": "event-enrollment-1", "event_type": "enrollment", "created_at": "2026-08-01T10:00:00.000Z", "exclusion_reason": null },
+          { "id": "event-completion-1", "event_type": "completion", "created_at": "2026-08-01T11:31:00.125Z", "exclusion_reason": null }
+        ]
+      },
+      "untrusted_client_evaluator_fields": {
+        "cohort_role": "secondary",
+        "source_role": "score-visible-first-party",
+        "selection_design": "prospective-score-visible-self-selected"
+      },
+      "expected_secondary_admission_allowed": false,
+      "promotion_bearing": false,
+      "expected_evaluator_mapping": null
+    },
+    {
+      "id": "forged-preactivation-secondary",
+      "raw_collection": {
+        "event_type": "completion",
+        "source_role": "prospective_secondary",
+        "evidence_status": "secondary_pending_review",
+        "cohort_id": "california-halibut-site-window-observational-secondary-v1",
+        "selection_method": "organic_score_visible",
+        "validation_protocol_id": "california-halibut-site-window-v1",
+        "activation_manifest_sha256": null,
+        "activated_at": null,
+        "activation_scoring_system_sha256": null,
+        "exclusion_reason": null,
+        "participant_group_id": "participant-ea33e7b618bfe4a00b9425f4322eb129ba778c4fbe6c42ad36c0c99e0c3608fd",
+        "recruitment_event_sha256": "a2e9bb18f1261584c6f1bda822bcd7ffaca20f8c0a392dd8d3ff70a1529f467c",
+        "forecast_impression_id": "impression_00000000-0000-4000-8000-000000000001",
+        "assignment_id": "assignment-cbd18763dac0e4643b345be943e0d15522472ac16d7cc4642d68544bff0529e1",
+        "source_record_sha256": "6288c12c769ad83e29955c3c9392d1dd06f8bdbd413b6289a5308306749baf18",
+        "effort_segment_id": "effort-d4e9e9dfb5268fecfb5ad5b8a3699ed5591ecc045a34ebe8ffeaa0649015eead",
+        "completion_event_at": "2026-08-01T11:31:00.125Z",
+        "completion_event_sha256": "df0b3fc4c541972bff00393e66278ac6f5151784988c72e3c6cbec15cf7f6aae",
+        "collection_event_id": "event-completion-1",
+        "collection_event_at": "2026-08-01T11:31:00.125Z",
+        "collection_event_type_counts": { "enrollment": 1, "completion": 1, "evidence_exclusion": 0, "retrospective_submission": 0, "legacy_context": 0 },
+        "collection_terminal_event_id": "event-completion-1",
+        "collection_terminal_event_type": "completion",
+        "collection_terminal_event_at": "2026-08-01T11:31:00.125Z",
+        "collection_provenance_chain_sha256": "8fcc75e34ab6c859694684c11344f4cf977dde64d8367c9dc1c684a923b183eb",
+        "provenance_events": [
+          { "id": "event-enrollment-1", "event_type": "enrollment", "created_at": "2026-08-01T10:00:00.000Z", "exclusion_reason": null },
+          { "id": "event-completion-1", "event_type": "completion", "created_at": "2026-08-01T11:31:00.125Z", "exclusion_reason": null }
+        ]
+      },
+      "untrusted_client_evaluator_fields": null,
+      "expected_secondary_admission_allowed": false,
+      "promotion_bearing": false,
+      "expected_evaluator_mapping": null
+    },
+    {
+      "id": "missing-completion-event-identity",
+      "raw_collection": {
+        "event_type": "completion",
+        "source_role": "prospective_secondary",
+        "evidence_status": "secondary_pending_review",
+        "cohort_id": "california-halibut-site-window-observational-secondary-v1",
+        "selection_method": "organic_score_visible",
+        "validation_protocol_id": "california-halibut-site-window-v1",
+        "activation_manifest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "activated_at": "2026-07-31T23:59:00.000Z",
+        "activation_scoring_system_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "exclusion_reason": null,
+        "participant_group_id": "participant-ea33e7b618bfe4a00b9425f4322eb129ba778c4fbe6c42ad36c0c99e0c3608fd",
+        "recruitment_event_sha256": "a2e9bb18f1261584c6f1bda822bcd7ffaca20f8c0a392dd8d3ff70a1529f467c",
+        "forecast_impression_id": "impression_00000000-0000-4000-8000-000000000001",
+        "assignment_id": "assignment-cbd18763dac0e4643b345be943e0d15522472ac16d7cc4642d68544bff0529e1",
+        "source_record_sha256": "6288c12c769ad83e29955c3c9392d1dd06f8bdbd413b6289a5308306749baf18",
+        "effort_segment_id": "effort-d4e9e9dfb5268fecfb5ad5b8a3699ed5591ecc045a34ebe8ffeaa0649015eead",
+        "completion_event_at": "2026-08-01T11:31:00.125Z",
+        "completion_event_sha256": null,
+        "collection_event_id": "event-completion-1",
+        "collection_event_at": "2026-08-01T11:31:00.125Z",
+        "collection_event_type_counts": { "enrollment": 1, "completion": 1, "evidence_exclusion": 0, "retrospective_submission": 0, "legacy_context": 0 },
+        "collection_terminal_event_id": "event-completion-1",
+        "collection_terminal_event_type": "completion",
+        "collection_terminal_event_at": "2026-08-01T11:31:00.125Z",
+        "collection_provenance_chain_sha256": "8fcc75e34ab6c859694684c11344f4cf977dde64d8367c9dc1c684a923b183eb",
+        "provenance_events": [
+          { "id": "event-enrollment-1", "event_type": "enrollment", "created_at": "2026-08-01T10:00:00.000Z", "exclusion_reason": null },
+          { "id": "event-completion-1", "event_type": "completion", "created_at": "2026-08-01T11:31:00.125Z", "exclusion_reason": null }
+        ]
+      },
+      "untrusted_client_evaluator_fields": null,
+      "expected_secondary_admission_allowed": false,
+      "promotion_bearing": false,
+      "expected_evaluator_mapping": null
+    },
+    {
+      "id": "cloned-completion-after-exclusion",
+      "raw_collection": {
+        "event_type": "completion",
+        "source_role": "prospective_secondary",
+        "evidence_status": "secondary_pending_review",
+        "cohort_id": "california-halibut-site-window-observational-secondary-v1",
+        "selection_method": "organic_score_visible",
+        "validation_protocol_id": "california-halibut-site-window-v1",
+        "activation_manifest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "activated_at": "2026-07-31T23:59:00.000Z",
+        "activation_scoring_system_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "exclusion_reason": null,
+        "participant_group_id": "participant-ea33e7b618bfe4a00b9425f4322eb129ba778c4fbe6c42ad36c0c99e0c3608fd",
+        "recruitment_event_sha256": "a2e9bb18f1261584c6f1bda822bcd7ffaca20f8c0a392dd8d3ff70a1529f467c",
+        "forecast_impression_id": "impression_00000000-0000-4000-8000-000000000001",
+        "assignment_id": "assignment-cbd18763dac0e4643b345be943e0d15522472ac16d7cc4642d68544bff0529e1",
+        "source_record_sha256": "6288c12c769ad83e29955c3c9392d1dd06f8bdbd413b6289a5308306749baf18",
+        "effort_segment_id": "effort-d4e9e9dfb5268fecfb5ad5b8a3699ed5591ecc045a34ebe8ffeaa0649015eead",
+        "completion_event_at": "2026-08-01T11:31:00.125Z",
+        "completion_event_sha256": "df0b3fc4c541972bff00393e66278ac6f5151784988c72e3c6cbec15cf7f6aae",
+        "collection_event_id": "event-completion-1",
+        "collection_event_at": "2026-08-01T11:31:00.125Z",
+        "collection_event_type_counts": {
+          "enrollment": 1,
+          "completion": 1,
+          "evidence_exclusion": 1,
+          "retrospective_submission": 0,
+          "legacy_context": 0
+        },
+        "collection_terminal_event_id": "event-exclusion-1",
+        "collection_terminal_event_type": "evidence_exclusion",
+        "collection_terminal_event_at": "2026-08-01T12:00:00.000Z",
+        "collection_provenance_chain_sha256": "a3d235d90299a312588ab66c18a43eb7a98cfb0c318c27e45906e39b5fe0ed1e",
+        "provenance_events": [
+          {
+            "id": "event-enrollment-1",
+            "event_type": "enrollment",
+            "created_at": "2026-08-01T10:00:00.000Z",
+            "exclusion_reason": null
+          },
+          {
+            "id": "event-completion-1",
+            "event_type": "completion",
+            "created_at": "2026-08-01T11:31:00.125Z",
+            "exclusion_reason": null
+          },
+          {
+            "id": "event-exclusion-1",
+            "event_type": "evidence_exclusion",
+            "created_at": "2026-08-01T12:00:00.000Z",
+            "exclusion_reason": "post_completion_profile_edit"
+          }
+        ]
+      },
+      "untrusted_client_evaluator_fields": null,
+      "expected_secondary_admission_allowed": false,
+      "promotion_bearing": false,
+      "expected_evaluator_mapping": null
+    },
+    {
+      "id": "exclusion-row-cannot-promote",
+      "raw_collection": {
+        "event_type": "evidence_exclusion",
+        "source_role": "prospective_secondary",
+        "evidence_status": "secondary_pending_review",
+        "cohort_id": "california-halibut-site-window-observational-secondary-v1",
+        "selection_method": "organic_score_visible",
+        "validation_protocol_id": "california-halibut-site-window-v1",
+        "activation_manifest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "activated_at": "2026-07-31T23:59:00.000Z",
+        "activation_scoring_system_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "exclusion_reason": null,
+        "participant_group_id": "participant-ea33e7b618bfe4a00b9425f4322eb129ba778c4fbe6c42ad36c0c99e0c3608fd",
+        "recruitment_event_sha256": "a2e9bb18f1261584c6f1bda822bcd7ffaca20f8c0a392dd8d3ff70a1529f467c",
+        "forecast_impression_id": "impression_00000000-0000-4000-8000-000000000001",
+        "assignment_id": "assignment-cbd18763dac0e4643b345be943e0d15522472ac16d7cc4642d68544bff0529e1",
+        "source_record_sha256": "6288c12c769ad83e29955c3c9392d1dd06f8bdbd413b6289a5308306749baf18",
+        "effort_segment_id": "effort-d4e9e9dfb5268fecfb5ad5b8a3699ed5591ecc045a34ebe8ffeaa0649015eead",
+        "completion_event_at": "2026-08-01T11:31:00.125Z",
+        "completion_event_sha256": "df0b3fc4c541972bff00393e66278ac6f5151784988c72e3c6cbec15cf7f6aae",
+        "collection_event_id": "event-exclusion-1",
+        "collection_event_at": "2026-08-01T12:00:00.000Z",
+        "collection_event_type_counts": {
+          "enrollment": 1,
+          "completion": 1,
+          "evidence_exclusion": 1,
+          "retrospective_submission": 0,
+          "legacy_context": 0
+        },
+        "collection_terminal_event_id": "event-exclusion-1",
+        "collection_terminal_event_type": "evidence_exclusion",
+        "collection_terminal_event_at": "2026-08-01T12:00:00.000Z",
+        "collection_provenance_chain_sha256": "a3d235d90299a312588ab66c18a43eb7a98cfb0c318c27e45906e39b5fe0ed1e",
+        "provenance_events": [
+          {
+            "id": "event-enrollment-1",
+            "event_type": "enrollment",
+            "created_at": "2026-08-01T10:00:00.000Z",
+            "exclusion_reason": null
+          },
+          {
+            "id": "event-completion-1",
+            "event_type": "completion",
+            "created_at": "2026-08-01T11:31:00.125Z",
+            "exclusion_reason": null
+          },
+          {
+            "id": "event-exclusion-1",
+            "event_type": "evidence_exclusion",
+            "created_at": "2026-08-01T12:00:00.000Z",
+            "exclusion_reason": "post_completion_profile_edit"
+          }
+        ]
+      },
+      "untrusted_client_evaluator_fields": {
+        "cohort_role": "secondary",
+        "source_role": "score-visible-first-party",
+        "selection_design": "prospective-score-visible-self-selected"
+      },
+      "expected_secondary_admission_allowed": false,
+      "promotion_bearing": false,
+      "expected_evaluator_mapping": null
+    },
+    {
+      "id": "legacy-context-cannot-promote",
+      "raw_collection": {
+        "event_type": "legacy_context",
+        "source_role": "context_only",
+        "evidence_status": "context_only",
+        "cohort_id": "predeployment-context",
+        "selection_method": "organic_unverified",
+        "validation_protocol_id": null,
+        "activation_manifest_sha256": null,
+        "activated_at": null,
+        "activation_scoring_system_sha256": null,
+        "exclusion_reason": "prospective_collection_not_active",
+        "participant_group_id": null,
+        "recruitment_event_sha256": null,
+        "forecast_impression_id": null,
+        "assignment_id": null,
+        "source_record_sha256": null,
+        "effort_segment_id": null,
+        "completion_event_at": null,
+        "completion_event_sha256": null,
+        "collection_event_id": "event-legacy-1",
+        "collection_event_at": "2026-07-01T12:00:00.000Z",
+        "collection_event_type_counts": {
+          "enrollment": 0,
+          "completion": 0,
+          "evidence_exclusion": 0,
+          "retrospective_submission": 0,
+          "legacy_context": 1
+        },
+        "collection_terminal_event_id": "event-legacy-1",
+        "collection_terminal_event_type": "legacy_context",
+        "collection_terminal_event_at": "2026-07-01T12:00:00.000Z",
+        "collection_provenance_chain_sha256": "e61aa9b84b74acac48ba15a4822395dd5d20641f9cf52cbd18c43b1c3716acc5",
+        "provenance_events": [
+          {
+            "id": "event-legacy-1",
+            "event_type": "legacy_context",
+            "created_at": "2026-07-01T12:00:00.000Z",
+            "exclusion_reason": null
+          }
+        ]
+      },
+      "untrusted_client_evaluator_fields": {
+        "cohort_role": "secondary",
+        "source_role": "score-visible-first-party",
+        "selection_design": "prospective-score-visible-self-selected"
+      },
+      "expected_secondary_admission_allowed": false,
+      "promotion_bearing": false,
+      "expected_evaluator_mapping": null
+    },
+    {
+      "id": "wrong-collection-cohort",
+      "raw_collection": {
+        "event_type": "completion",
+        "source_role": "prospective_secondary",
+        "evidence_status": "secondary_pending_review",
+        "cohort_id": "organic-score-visible-v1",
+        "selection_method": "organic_score_visible",
+        "validation_protocol_id": "california-halibut-site-window-v1",
+        "activation_manifest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "activated_at": "2026-07-31T23:59:00.000Z",
+        "activation_scoring_system_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "exclusion_reason": null,
+        "participant_group_id": "participant-ea33e7b618bfe4a00b9425f4322eb129ba778c4fbe6c42ad36c0c99e0c3608fd",
+        "recruitment_event_sha256": "a2e9bb18f1261584c6f1bda822bcd7ffaca20f8c0a392dd8d3ff70a1529f467c",
+        "forecast_impression_id": "impression_00000000-0000-4000-8000-000000000001",
+        "assignment_id": "assignment-cbd18763dac0e4643b345be943e0d15522472ac16d7cc4642d68544bff0529e1",
+        "source_record_sha256": "6288c12c769ad83e29955c3c9392d1dd06f8bdbd413b6289a5308306749baf18",
+        "effort_segment_id": "effort-d4e9e9dfb5268fecfb5ad5b8a3699ed5591ecc045a34ebe8ffeaa0649015eead",
+        "completion_event_at": "2026-08-01T11:31:00.125Z",
+        "completion_event_sha256": "df0b3fc4c541972bff00393e66278ac6f5151784988c72e3c6cbec15cf7f6aae",
+        "collection_event_id": "event-completion-1",
+        "collection_event_at": "2026-08-01T11:31:00.125Z",
+        "collection_event_type_counts": {
+          "enrollment": 1,
+          "completion": 1,
+          "evidence_exclusion": 0,
+          "retrospective_submission": 0,
+          "legacy_context": 0
+        },
+        "collection_terminal_event_id": "event-completion-1",
+        "collection_terminal_event_type": "completion",
+        "collection_terminal_event_at": "2026-08-01T11:31:00.125Z",
+        "collection_provenance_chain_sha256": "8fcc75e34ab6c859694684c11344f4cf977dde64d8367c9dc1c684a923b183eb",
+        "provenance_events": [
+          {
+            "id": "event-enrollment-1",
+            "event_type": "enrollment",
+            "created_at": "2026-08-01T10:00:00.000Z",
+            "exclusion_reason": null
+          },
+          {
+            "id": "event-completion-1",
+            "event_type": "completion",
+            "created_at": "2026-08-01T11:31:00.125Z",
+            "exclusion_reason": null
+          }
+        ]
+      },
+      "untrusted_client_evaluator_fields": null,
+      "expected_secondary_admission_allowed": false,
+      "promotion_bearing": false,
+      "expected_evaluator_mapping": null
+    }
+  ]
+}

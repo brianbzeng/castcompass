@@ -2,12 +2,23 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 import re
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
+
+from shared.species_contract import (
+    MODEL_RUN_CONTRACT_VERSION,
+    OBSERVATION_CONTRACT_VERSION,
+    OPPORTUNITY_CONTRACT_VERSION,
+    PRODUCTION_TARGET_TAXON_ID,
+    TAXON_CATALOG_VERSION,
+    is_strict_offset_datetime,
+    validate_contract_assets,
+)
 
 from .models import (
     ComponentScores,
@@ -52,6 +63,183 @@ class DataUnavailableError(RuntimeError):
     pass
 
 
+OPPORTUNITY_CONTRACT_FIELDS = {
+    "target_taxon_id": PRODUCTION_TARGET_TAXON_ID,
+    "taxon_catalog_version": TAXON_CATALOG_VERSION,
+    "observation_contract_version": OBSERVATION_CONTRACT_VERSION,
+    "model_run_contract_version": MODEL_RUN_CONTRACT_VERSION,
+    "opportunity_contract_version": OPPORTUNITY_CONTRACT_VERSION,
+}
+
+STATIC_WINDOW_REQUIRED_FIELDS = {
+    "id",
+    "species",
+    "target_taxon_id",
+    "taxon_catalog_version",
+    "observation_contract_version",
+    "model_run_contract_version",
+    "opportunity_contract_version",
+    "scoring_system_kind",
+    "scoring_system_sha256",
+    "siteId",
+    "start",
+    "end",
+    "score",
+    "habitatScore",
+    "seasonalityScore",
+    "dynamicScore",
+    "fishabilityScore",
+    "modelVersion",
+    "confidence",
+}
+NORMALIZED_WINDOW_REQUIRED_FIELDS = {
+    "id",
+    "species",
+    "target_taxon_id",
+    "taxon_catalog_version",
+    "observation_contract_version",
+    "model_run_contract_version",
+    "opportunity_contract_version",
+    "scoring_system_kind",
+    "scoring_system_version",
+    "scoring_system_sha256",
+    "site",
+    "start_time",
+    "end_time",
+    "opportunity_score",
+    "components",
+    "model_version",
+    "confidence",
+}
+STATIC_WINDOW_FORBIDDEN_FIELDS = {
+    "site",
+    "start_time",
+    "end_time",
+    "opportunity_score",
+    "model_version",
+    "scoring_system_version",
+}
+NORMALIZED_WINDOW_FORBIDDEN_FIELDS = {
+    "siteId",
+    "start",
+    "end",
+    "score",
+    "modelVersion",
+}
+COMPONENT_SCORE_FIELDS = frozenset(
+    {
+        "habitat_score",
+        "seasonality_score",
+        "dynamic_score",
+        "fishability_score",
+    }
+)
+
+
+def validate_snapshot_window_shape(raw: dict[str, Any], *, location: str) -> None:
+    """Reject partial or hybrid windows rather than repairing them through aliases."""
+
+    fields = set(raw)
+    looks_static = bool(fields & {"siteId", "start", "end", "score", "modelVersion"})
+    looks_normalized = bool(
+        fields & {"site", "start_time", "end_time", "opportunity_score", "model_version"}
+    )
+    if looks_static == looks_normalized:
+        raise DataUnavailableError(f"{location} must use exactly one opportunity representation")
+    required = STATIC_WINDOW_REQUIRED_FIELDS if looks_static else NORMALIZED_WINDOW_REQUIRED_FIELDS
+    forbidden = STATIC_WINDOW_FORBIDDEN_FIELDS if looks_static else NORMALIZED_WINDOW_FORBIDDEN_FIELDS
+    missing = required - fields
+    present_forbidden = forbidden & fields
+    if missing or present_forbidden:
+        raise DataUnavailableError(
+            f"{location} is malformed; missing={sorted(missing)}, "
+            f"forbidden={sorted(present_forbidden)}"
+        )
+    confidence = raw.get("confidence")
+    if looks_static:
+        if not isinstance(confidence, str) or confidence not in {"low", "medium", "high"}:
+            raise DataUnavailableError(f"{location} static confidence must be low, medium, or high")
+    elif (
+        not isinstance(confidence, dict)
+        or not isinstance(confidence.get("level"), str)
+        or confidence.get("level") not in {"low", "medium", "high"}
+    ):
+        raise DataUnavailableError(f"{location} normalized confidence must contain a valid level")
+    if not looks_static:
+        components = raw.get("components")
+        if not isinstance(components, dict) or not COMPONENT_SCORE_FIELDS <= set(components):
+            raise DataUnavailableError(
+                f"{location} normalized components must contain all four component scores"
+            )
+
+
+def validate_database_window_shape(raw: dict[str, Any], *, location: str) -> None:
+    """Require the canonical JSONB storage shape before any normalization."""
+
+    confidence = raw.get("confidence")
+    if (
+        not isinstance(confidence, dict)
+        or not isinstance(confidence.get("level"), str)
+        or confidence.get("level") not in {"low", "medium", "high"}
+    ):
+        raise DataUnavailableError(
+            f"{location} database confidence must be an object with a valid level"
+        )
+    components = raw.get("components")
+    if not isinstance(components, dict) or not COMPONENT_SCORE_FIELDS <= set(components):
+        raise DataUnavailableError(
+            f"{location} database components must explicitly contain all four scores"
+        )
+
+
+def opportunity_identity(raw: dict[str, Any]) -> dict[str, str]:
+    return {
+        **OPPORTUNITY_CONTRACT_FIELDS,
+        "species": str(raw["species"]),
+        "scoring_system_kind": str(raw["scoring_system_kind"]),
+        "scoring_system_version": str(raw["scoring_system_version"]),
+        "scoring_system_sha256": str(raw["scoring_system_sha256"]),
+    }
+
+
+def validate_opportunity_contract(raw: dict[str, Any], *, location: str) -> None:
+    """Reject incomplete, cross-target, or cross-version opportunity artifacts."""
+
+    for field, expected in OPPORTUNITY_CONTRACT_FIELDS.items():
+        actual = raw.get(field)
+        if actual != expected:
+            raise DataUnavailableError(
+                f"{location} has invalid {field}: expected {expected!r}, got {actual!r}"
+            )
+    if raw.get("species") != raw["target_taxon_id"]:
+        raise DataUnavailableError(f"{location} species must exactly match target_taxon_id")
+    model_version = raw.get("model_version", raw.get("modelVersion"))
+    if not isinstance(model_version, str) or not model_version.strip():
+        raise DataUnavailableError(f"{location} has no model_version")
+    scoring_kind = raw.get("scoring_system_kind")
+    if scoring_kind not in {"heuristic-configuration", "trained-model"}:
+        raise DataUnavailableError(f"{location} has invalid scoring_system_kind")
+    scoring_version = raw.get("scoring_system_version", raw.get("modelVersion"))
+    if not isinstance(scoring_version, str) or not scoring_version.strip():
+        raise DataUnavailableError(f"{location} has no scoring_system_version")
+    scoring_sha256 = raw.get("scoring_system_sha256")
+    if not isinstance(scoring_sha256, str) or re.fullmatch(r"[a-f0-9]{64}", scoring_sha256) is None:
+        raise DataUnavailableError(f"{location} has invalid scoring_system_sha256")
+    if model_version != scoring_version:
+        raise DataUnavailableError(f"{location} model version does not match scoring system version")
+    if scoring_kind == "heuristic-configuration":
+        expected_version = f"heuristic-{raw['target_taxon_id']}-{scoring_sha256}"
+        if scoring_version != expected_version:
+            raise DataUnavailableError(
+                f"{location} heuristic version must exactly bind its target and SHA-256"
+            )
+    else:
+        expected_prefix = f"model-{raw['target_taxon_id']}-"
+        digest = scoring_version.removeprefix(expected_prefix)
+        if not scoring_version.startswith(expected_prefix) or re.fullmatch(r"[a-f0-9]{64}", digest) is None:
+            raise DataUnavailableError(f"{location} trained-model version is not content addressed")
+
+
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -61,16 +249,20 @@ def as_datetime(value: Any, *, default: datetime | None = None) -> datetime | No
         return default
     if isinstance(value, datetime):
         parsed = value
-    elif isinstance(value, (int, float)):
-        parsed = datetime.fromtimestamp(value, tz=timezone.utc)
-    else:
-        text = str(value).strip().replace("Z", "+00:00")
+    elif isinstance(value, str):
+        if not is_strict_offset_datetime(value):
+            raise DataUnavailableError(
+                f"Timestamp must use strict ISO-8601 with Z or an explicit offset: {value!r}"
+            )
+        text = value.replace("Z", "+00:00")
         try:
             parsed = datetime.fromisoformat(text)
         except ValueError as exc:
             raise DataUnavailableError(f"Invalid timestamp in data snapshot: {value!r}") from exc
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
+    else:
+        raise DataUnavailableError(f"Invalid timestamp type in data snapshot: {value!r}")
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise DataUnavailableError(f"Timestamp must include an explicit UTC offset: {value!r}")
     return parsed.astimezone(timezone.utc)
 
 
@@ -298,9 +490,38 @@ def _site_summary(site: SiteDetail) -> SiteSummary:
     return SiteSummary.model_validate(site.model_dump())
 
 
-def _component_score(raw: dict[str, Any], components: dict[str, Any], *keys: str, default: float) -> float:
+def _bounded_score(value: Any, *, location: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise DataUnavailableError(f"{location} must be a numeric score")
+    try:
+        score = float(value)
+    except (OverflowError, TypeError, ValueError) as exc:
+        raise DataUnavailableError(f"{location} must be a finite numeric score") from exc
+    if not math.isfinite(score) or not 0 <= score <= 100:
+        raise DataUnavailableError(f"{location} must be finite and between 0 and 100")
+    return score
+
+
+def _bounded_number(value: Any, *, location: str, minimum: float, maximum: float) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise DataUnavailableError(f"{location} must be numeric")
+    try:
+        number = float(value)
+    except (OverflowError, TypeError, ValueError) as exc:
+        raise DataUnavailableError(f"{location} must be finite") from exc
+    if not math.isfinite(number) or not minimum <= number <= maximum:
+        raise DataUnavailableError(f"{location} must be finite and between {minimum} and {maximum}")
+    return number
+
+
+def _component_score(
+    raw: dict[str, Any],
+    components: dict[str, Any],
+    *keys: str,
+    default: float | None,
+) -> float:
     value = _first(components, *keys, default=_first(raw, *keys, default=default))
-    return max(0.0, min(100.0, float(value)))
+    return _bounded_score(value, location=f"Opportunity component {keys[0]}")
 
 
 def normalize_opportunity(
@@ -309,6 +530,7 @@ def normalize_opportunity(
     sites: dict[str, SiteDetail],
     snapshot_generated_at: datetime,
 ) -> OpportunityWindow:
+    validate_opportunity_contract(raw, location=f"Opportunity {raw.get('id')!r}")
     site_raw = raw.get("site")
     if isinstance(site_raw, dict):
         site = normalize_site(site_raw)
@@ -321,7 +543,7 @@ def normalize_opportunity(
     start_time = as_datetime(_first(raw, "start_time", "start", "starts_at"))
     if start_time is None:
         raise DataUnavailableError(f"Opportunity for {site.id!r} has no start time")
-    end_time = as_datetime(_first(raw, "end_time", "end", "ends_at"), default=start_time + timedelta(hours=2))
+    end_time = as_datetime(_first(raw, "end_time", "end", "ends_at"))
     if end_time is None or end_time <= start_time:
         raise DataUnavailableError(f"Opportunity for {site.id!r} has an invalid end time")
 
@@ -329,37 +551,74 @@ def normalize_opportunity(
     components_raw = raw.get("components") if isinstance(raw.get("components"), dict) else {}
     multiplier = _first(components_raw, "seasonality_multiplier", default=raw.get("seasonality_multiplier"))
     modifier = _first(components_raw, "dynamic_modifier", default=raw.get("dynamic_modifier"))
-    seasonality_default = 50.0 if multiplier is None else 50.0 * float(multiplier)
-    dynamic_default = 50.0 if modifier is None else 50.0 + 100.0 * float(modifier)
+    normalized_multiplier = (
+        None
+        if multiplier is None
+        else _bounded_number(multiplier, location="seasonality_multiplier", minimum=0, maximum=3)
+    )
+    normalized_modifier = (
+        None
+        if modifier is None
+        else _bounded_number(modifier, location="dynamic_modifier", minimum=-0.5, maximum=0.5)
+    )
     components = ComponentScores(
-        habitat_score=_component_score(raw, components_raw, "habitat_score", "habitatScore", "habitat", default=50),
+        habitat_score=_component_score(
+            raw,
+            components_raw,
+            "habitat_score",
+            "habitatScore",
+            "habitat",
+            default=None,
+        ),
         seasonality_score=_component_score(
             raw,
             components_raw,
             "seasonality_score",
             "seasonalityScore",
             "seasonality",
-            default=seasonality_default,
+            default=None,
         ),
         dynamic_score=_component_score(
-            raw, components_raw, "dynamic_score", "dynamicScore", "dynamic", default=dynamic_default
+            raw,
+            components_raw,
+            "dynamic_score",
+            "dynamicScore",
+            "dynamic",
+            default=None,
         ),
         fishability_score=_component_score(
-            raw, components_raw, "fishability_score", "fishabilityScore", default=dynamic_default
+            raw,
+            components_raw,
+            "fishability_score",
+            "fishabilityScore",
+            default=None,
         ),
-        seasonality_multiplier=float(multiplier) if multiplier is not None else None,
-        dynamic_modifier=float(modifier) if modifier is not None else None,
+        seasonality_multiplier=normalized_multiplier,
+        dynamic_modifier=normalized_modifier,
     )
 
-    confidence_raw = raw.get("confidence", "medium")
+    confidence_raw = raw.get("confidence")
     if isinstance(confidence_raw, dict):
+        level = confidence_raw.get("level")
+        if not isinstance(level, str) or level not in {"low", "medium", "high"}:
+            raise DataUnavailableError("normalized opportunity confidence has an invalid level")
+        confidence_score = confidence_raw.get("score")
+        if confidence_score is not None:
+            confidence_score = _bounded_number(
+                confidence_score,
+                location="confidence.score",
+                minimum=0,
+                maximum=1,
+            )
         confidence = Confidence(
-            level=str(confidence_raw.get("level") or confidence_raw.get("label") or "medium").lower(),
-            score=confidence_raw.get("score"),
+            level=level,
+            score=confidence_score,
             reasons=list(confidence_raw.get("reasons") or []),
         )
     else:
-        confidence = Confidence(level=str(confidence_raw).lower())
+        if not isinstance(confidence_raw, str) or confidence_raw not in {"low", "medium", "high"}:
+            raise DataUnavailableError("static opportunity confidence has an invalid level")
+        confidence = Confidence(level=confidence_raw)
 
     factors_raw = _first(
         raw, "explanation_factors", "explanationFactors", "factors", "explanations", default=[]
@@ -393,7 +652,10 @@ def normalize_opportunity(
     else:
         status = OpportunityStatus.FRESH
 
-    score = float(_first(raw, "opportunity_score", "total_score", "score", default=0))
+    score = _bounded_score(
+        _first(raw, "opportunity_score", "total_score", "score", default=None),
+        location=f"Opportunity {raw.get('id')!r} score",
+    )
     conditions_raw = raw.get("conditions") if isinstance(raw.get("conditions"), dict) else None
     conditions = None
     if conditions_raw is not None:
@@ -445,20 +707,31 @@ def normalize_opportunity(
                 conditions_raw, "fishing_pressure_basis", "fishingPressureBasis"
             ),
         )
-    opportunity_id = str(
-        _first(raw, "id", default=f"{site.id}-{start_time.strftime('%Y%m%dT%H%M%SZ')}")
-    )
+    opportunity_id = raw.get("id")
+    if (
+        not isinstance(opportunity_id, str)
+        or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}", opportunity_id) is None
+    ):
+        raise DataUnavailableError("Opportunity id must be a normalized stable identifier")
     return OpportunityWindow(
         id=opportunity_id,
-        species=str(raw.get("species") or "california-halibut"),
+        species=str(raw["species"]),
+        target_taxon_id=str(raw["target_taxon_id"]),
+        taxon_catalog_version=str(raw["taxon_catalog_version"]),
+        observation_contract_version=str(raw["observation_contract_version"]),
+        model_run_contract_version=str(raw["model_run_contract_version"]),
+        opportunity_contract_version=str(raw["opportunity_contract_version"]),
+        scoring_system_kind=str(raw["scoring_system_kind"]),
+        scoring_system_version=str(raw.get("scoring_system_version", raw.get("modelVersion"))),
+        scoring_system_sha256=str(raw["scoring_system_sha256"]),
         site=_site_summary(site),
         start_time=start_time,
         end_time=end_time,
-        opportunity_score=max(0.0, min(100.0, score)),
+        opportunity_score=score,
         components=components,
         confidence=confidence,
         explanation_factors=factors,
-        model_version=str(_first(raw, "model_version", "modelVersion", default="unversioned-snapshot")),
+        model_version=str(_first(raw, "model_version", "modelVersion")),
         generated_at=generated_at,
         status=status,
         source_freshness=freshness,
@@ -471,17 +744,17 @@ class Repository(ABC):
     source = "unknown"
 
     @abstractmethod
-    def list_sites(self) -> list[SiteDetail]:
+    def list_sites(self) -> tuple[list[SiteDetail], str]:
         raise NotImplementedError
 
     @abstractmethod
-    def get_site(self, site_id: str) -> SiteDetail | None:
+    def get_site(self, site_id: str) -> tuple[SiteDetail | None, str]:
         raise NotImplementedError
 
     @abstractmethod
     def list_opportunities(
         self, species: str, from_time: datetime, through: datetime
-    ) -> tuple[list[OpportunityWindow], datetime]:
+    ) -> tuple[list[OpportunityWindow], datetime, dict[str, str], str]:
         raise NotImplementedError
 
 
@@ -495,14 +768,20 @@ class FileRepository(Repository):
 
     @staticmethod
     def _read_json(path: Path) -> Any:
+        def reject_nonfinite(value: str) -> None:
+            raise ValueError(f"non-finite JSON constant {value!r}")
+
         try:
-            return json.loads(path.read_text(encoding="utf-8"))
+            return json.loads(
+                path.read_text(encoding="utf-8"),
+                parse_constant=reject_nonfinite,
+            )
         except FileNotFoundError as exc:
             raise DataUnavailableError(f"Required data snapshot is unavailable: {path}") from exc
-        except json.JSONDecodeError as exc:
+        except (json.JSONDecodeError, ValueError) as exc:
             raise DataUnavailableError(f"Data snapshot is invalid JSON: {path}") from exc
 
-    def list_sites(self) -> list[SiteDetail]:
+    def list_sites(self) -> tuple[list[SiteDetail], str]:
         document = self._read_json(self.sites_path)
         records = document.get("sites", document.get("data", [])) if isinstance(document, dict) else document
         if not isinstance(records, list):
@@ -516,10 +795,11 @@ class FileRepository(Repository):
         ]
         if not sites:
             raise DataUnavailableError("sites.json contains no usable sites")
-        return sites
+        return sites, self.source
 
-    def get_site(self, site_id: str) -> SiteDetail | None:
-        return next((site for site in self.list_sites() if site.id == site_id), None)
+    def get_site(self, site_id: str) -> tuple[SiteDetail | None, str]:
+        sites, source = self.list_sites()
+        return next((site for site in sites if site.id == site_id), None), source
 
     @staticmethod
     def _source_keys(name: str) -> list[str]:
@@ -570,28 +850,61 @@ class FileRepository(Repository):
 
     def list_opportunities(
         self, species: str, from_time: datetime, through: datetime
-    ) -> tuple[list[OpportunityWindow], datetime]:
+    ) -> tuple[list[OpportunityWindow], datetime, dict[str, str], str]:
         document = self._read_json(self.opportunities_path)
         if isinstance(document, dict):
+            validate_opportunity_contract(document, location="Opportunity snapshot root")
+            identity = opportunity_identity(document)
             records = document.get("windows", document.get("opportunities", document.get("data", [])))
-            generated_at = as_datetime(_first(document, "generated_at", "generatedAt"), default=utc_now()) or utc_now()
+            generated_at = as_datetime(_first(document, "generated_at", "generatedAt"))
+            if generated_at is None:
+                raise DataUnavailableError("Opportunity snapshot root has no generated_at timestamp")
         else:
-            records = document
-            generated_at = utc_now()
+            raise DataUnavailableError("opportunities.json must be a versioned root object")
         if not isinstance(records, list):
             raise DataUnavailableError("opportunities.json must contain a list or a {windows: [...]} object")
+        if not records:
+            raise DataUnavailableError("opportunities.json contains no opportunity windows")
 
-        sites = {site.id: site for site in self.list_sites()}
+        site_records, _ = self.list_sites()
+        sites = {site.id: site for site in site_records}
         windows: list[OpportunityWindow] = []
-        for item in records:
+        for index, item in enumerate(records):
             if not isinstance(item, dict):
-                continue
+                raise DataUnavailableError(
+                    f"Opportunity snapshot window {index} must be a JSON object"
+                )
             enriched = dict(item)
             if isinstance(document, dict):
+                validate_snapshot_window_shape(
+                    enriched,
+                    location=f"Opportunity {enriched.get('id')!r}",
+                )
                 enriched["source_freshness"] = self._snapshot_freshness(document, item)
-                enriched.setdefault("model_version", _first(document, "model_version", "modelVersion"))
-                enriched.setdefault("species", document.get("species"))
-            windows.append(normalize_opportunity(enriched, sites=sites, snapshot_generated_at=generated_at))
+                for field, expected in identity.items():
+                    actual = (
+                        enriched.get("modelVersion")
+                        if field == "scoring_system_version" and "scoring_system_version" not in enriched
+                        else enriched.get(field)
+                    )
+                    if actual != expected:
+                        raise DataUnavailableError(
+                            f"Opportunity {enriched.get('id')!r} disagrees with root {field}"
+                        )
+            try:
+                windows.append(
+                    normalize_opportunity(
+                        enriched,
+                        sites=sites,
+                        snapshot_generated_at=generated_at,
+                    )
+                )
+            except DataUnavailableError:
+                raise
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise DataUnavailableError(
+                    f"Opportunity {enriched.get('id')!r} failed normalized validation"
+                ) from exc
         filtered = [
             window
             for window in windows
@@ -599,7 +912,7 @@ class FileRepository(Repository):
         ]
         filtered.sort(key=lambda window: (-window.opportunity_score, window.start_time, window.site.name))
         ranked = [window.model_copy(update={"rank": index}) for index, window in enumerate(filtered, start=1)]
-        return ranked, generated_at
+        return ranked, generated_at, identity, self.source
 
 
 class PostgresRepository(Repository):
@@ -616,7 +929,7 @@ class PostgresRepository(Repository):
             raise DataUnavailableError("psycopg is required when DATABASE_URL is configured") from exc
         return psycopg.connect(self.database_url, row_factory=dict_row, connect_timeout=5)
 
-    def list_sites(self) -> list[SiteDetail]:
+    def list_sites(self) -> tuple[list[SiteDetail], str]:
         query = """
             SELECT id, name, region, locality, ST_Y(location::geometry) AS latitude,
                    ST_X(location::geometry) AS longitude, fishing_modes, access_type,
@@ -632,9 +945,9 @@ class PostgresRepository(Repository):
             sites = [normalize_site(dict(row)) for row in cursor.fetchall()]
         if not sites:
             raise DataUnavailableError("The database contains no accessible fishing sites")
-        return sites
+        return sites, self.source
 
-    def get_site(self, site_id: str) -> SiteDetail | None:
+    def get_site(self, site_id: str) -> tuple[SiteDetail | None, str]:
         query = """
             SELECT id, name, region, locality, ST_Y(location::geometry) AS latitude,
                    ST_X(location::geometry) AS longitude, fishing_modes, access_type,
@@ -647,13 +960,17 @@ class PostgresRepository(Repository):
         with self._connect() as connection, connection.cursor() as cursor:
             cursor.execute(query, (site_id,))
             row = cursor.fetchone()
-            return normalize_site(dict(row)) if row else None
+            return (normalize_site(dict(row)) if row else None), self.source
 
     def list_opportunities(
         self, species: str, from_time: datetime, through: datetime
-    ) -> tuple[list[OpportunityWindow], datetime]:
+    ) -> tuple[list[OpportunityWindow], datetime, dict[str, str], str]:
         query = """
-            SELECT ow.id, ow.species, ow.site_id, ow.start_time, ow.end_time,
+            SELECT ow.id, ow.species, ow.target_taxon_id, ow.taxon_catalog_version,
+                   ow.observation_contract_version, ow.model_run_contract_version,
+                   ow.opportunity_contract_version, ow.scoring_system_kind,
+                   ow.scoring_system_version, ow.scoring_system_sha256,
+                   ow.site_id, ow.start_time, ow.end_time,
                    ow.opportunity_score, ow.components, ow.confidence,
                    ow.conditions, ow.explanation_factors, ow.model_version, ow.generated_at,
                    COALESCE(
@@ -677,95 +994,84 @@ class PostgresRepository(Repository):
           GROUP BY ow.id
           ORDER BY ow.opportunity_score DESC, ow.start_time ASC
         """
-        sites = {site.id: site for site in self.list_sites()}
+        site_records, _ = self.list_sites()
+        sites = {site.id: site for site in site_records}
         with self._connect() as connection, connection.cursor() as cursor:
             cursor.execute(query, (species, from_time, through))
             rows = [dict(row) for row in cursor.fetchall()]
         if rows:
+            for index, row in enumerate(rows):
+                validate_database_window_shape(
+                    row,
+                    location=f"Database opportunity row {index}",
+                )
             generated_at = max(as_datetime(row.get("generated_at"), default=utc_now()) or utc_now() for row in rows)
+            identity = opportunity_identity(rows[0])
+            for row in rows[1:]:
+                if opportunity_identity(row) != identity:
+                    raise DataUnavailableError("database opportunity rows mix scoring identities")
         else:
-            generated_at = utc_now()
-        windows = [normalize_opportunity(row, sites=sites, snapshot_generated_at=generated_at) for row in rows]
-        return [window.model_copy(update={"rank": i}) for i, window in enumerate(windows, 1)], generated_at
+            raise DataUnavailableError("database query returned no opportunity scoring identity")
+        try:
+            windows = [
+                normalize_opportunity(row, sites=sites, snapshot_generated_at=generated_at)
+                for row in rows
+            ]
+        except DataUnavailableError:
+            raise
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise DataUnavailableError("database opportunity rows failed normalized validation") from exc
+        return (
+            [window.model_copy(update={"rank": i}) for i, window in enumerate(windows, 1)],
+            generated_at,
+            identity,
+            self.source,
+        )
 
 
 class HybridRepository(Repository):
     def __init__(self, file_repository: FileRepository, database_repository: PostgresRepository | None):
         self.file_repository = file_repository
         self.database_repository = database_repository
-        self.source = database_repository.source if database_repository else file_repository.source
 
     def _call(self, method: str, *args: Any):
         if self.database_repository is not None:
             try:
-                result = getattr(self.database_repository, method)(*args)
-                self.source = self.database_repository.source
-                return result
+                return getattr(self.database_repository, method)(*args)
             except Exception as exc:  # fallback must remain available during database incidents
                 LOGGER.warning("Database read failed; using the published file snapshot: %s", exc)
-        self.source = self.file_repository.source
         return getattr(self.file_repository, method)(*args)
 
-    def list_sites(self) -> list[SiteDetail]:
+    def list_sites(self) -> tuple[list[SiteDetail], str]:
         return self._call("list_sites")
 
-    def get_site(self, site_id: str) -> SiteDetail | None:
+    def get_site(self, site_id: str) -> tuple[SiteDetail | None, str]:
         site: SiteDetail | None = None
+        site_source = self.file_repository.source
         if self.database_repository is not None:
             try:
-                site = self.database_repository.get_site(site_id)
-                if site is not None:
-                    self.source = self.database_repository.source
+                site, site_source = self.database_repository.get_site(site_id)
             except Exception as exc:
                 LOGGER.warning("Database read failed; using the published file snapshot: %s", exc)
         if site is None:
-            self.source = self.file_repository.source
-            site = self.file_repository.get_site(site_id)
-        if site is None:
-            return None
-
-        now = utc_now()
-        windows, _ = self.list_opportunities(
-            "california-halibut", now, now + timedelta(hours=72)
-        )
-        best = next((window for window in windows if window.site.id == site_id), None)
-        if best is None:
-            return site
-        return site.model_copy(
-            update={
-                "current_conditions": best.conditions,
-                "next_window": {
-                    "id": best.id,
-                    "start": best.start_time,
-                    "end": best.end_time,
-                    "opportunity_score": best.opportunity_score,
-                    "components": best.components.model_dump(),
-                    "confidence": best.confidence.model_dump(),
-                    "explanation_factors": [
-                        factor.model_dump() for factor in best.explanation_factors
-                    ],
-                    "model_version": best.model_version,
-                },
-                "data_freshness": best.source_freshness,
-            }
-        )
+            site, site_source = self.file_repository.get_site(site_id)
+        return site, site_source
 
     def list_opportunities(
         self, species: str, from_time: datetime, through: datetime
-    ) -> tuple[list[OpportunityWindow], datetime]:
+    ) -> tuple[list[OpportunityWindow], datetime, dict[str, str], str]:
         if self.database_repository is not None:
             try:
                 result = self.database_repository.list_opportunities(species, from_time, through)
                 if result[0]:
-                    self.source = self.database_repository.source
                     return result
             except Exception as exc:
                 LOGGER.warning("Database read failed; using the published file snapshot: %s", exc)
-        self.source = self.file_repository.source
         return self.file_repository.list_opportunities(species, from_time, through)
 
 
 def build_repository() -> HybridRepository:
+    validate_contract_assets()
     default_root = Path(__file__).resolve().parents[3]
     root = Path(os.getenv("DATA_ROOT", str(default_root))).resolve()
     file_repository = FileRepository(root=root)

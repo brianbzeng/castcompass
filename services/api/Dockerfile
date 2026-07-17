@@ -14,6 +14,8 @@ COPY services/api/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir --requirement /tmp/requirements.txt
 
 COPY services/api/app /app/app
+COPY shared /app/shared
+COPY contracts /app/contracts
 COPY data /app/data
 COPY public/data /app/public/data
 

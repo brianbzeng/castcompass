@@ -1,5 +1,7 @@
+import json
 import unittest
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
@@ -7,6 +9,17 @@ from scripts import generate_snapshot
 
 
 class SnapshotSourceTests(unittest.TestCase):
+    def test_published_snapshot_matches_content_addressed_scoring_source(self):
+        root = Path(__file__).resolve().parents[2]
+        snapshot = json.loads((root / "public" / "data" / "opportunities.json").read_text(encoding="utf-8"))
+        version, digest = generate_snapshot.scoring_system_identity()
+        self.assertEqual(snapshot["scoring_system_version"], version)
+        self.assertEqual(snapshot["scoring_system_sha256"], digest)
+        self.assertEqual(snapshot["modelVersion"], version)
+        self.assertTrue(snapshot["windows"])
+        self.assertTrue(all(window["modelVersion"] == version for window in snapshot["windows"]))
+        self.assertTrue(all(window["scoring_system_sha256"] == digest for window in snapshot["windows"]))
+
     def test_buoy_scans_each_variable_for_its_latest_valid_row(self):
         payload = """#YY MM DD hh mm WVHT WTMP
 #yr mo dy hr mn m degC

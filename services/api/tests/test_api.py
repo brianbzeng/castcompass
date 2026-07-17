@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -8,7 +10,32 @@ import pytest
 from fastapi.testclient import TestClient
 
 from services.api.app.main import app, get_repository
-from services.api.app.repository import FileRepository
+from services.api.app.repository import (
+    DataUnavailableError,
+    FileRepository,
+    HybridRepository,
+    validate_database_window_shape,
+)
+
+
+SCORING_SHA256 = "a" * 64
+SCORING_VERSION = f"heuristic-california-halibut-{SCORING_SHA256}"
+CONTRACT_IDENTITY = {
+    "species": "california-halibut",
+    "target_taxon_id": "california-halibut",
+    "taxon_catalog_version": "castingcompass.taxa/1.0.0",
+    "observation_contract_version": "castingcompass.observation/2.0.0",
+    "model_run_contract_version": "castingcompass.model-run/2.0.0",
+    "opportunity_contract_version": "castingcompass.opportunity/2.0.0",
+    "scoring_system_kind": "heuristic-configuration",
+    "scoring_system_version": SCORING_VERSION,
+    "scoring_system_sha256": SCORING_SHA256,
+}
+WINDOW_CONTRACT_IDENTITY = {
+    key: value
+    for key, value in CONTRACT_IDENTITY.items()
+    if key != "scoring_system_version"
+}
 
 
 @pytest.fixture
@@ -52,7 +79,9 @@ def snapshot_root(tmp_path: Path) -> Path:
     (tmp_path / "public" / "data" / "opportunities.json").write_text(
         json.dumps(
             {
+                **CONTRACT_IDENTITY,
                 "generated_at": generated_at.isoformat(),
+                "modelVersion": SCORING_VERSION,
                 "sources": [
                     {
                         "name": "Open-Meteo Marine SST forecast (Météo-France)",
@@ -63,20 +92,19 @@ def snapshot_root(tmp_path: Path) -> Path:
                 ],
                 "windows": [
                     {
+                        **WINDOW_CONTRACT_IDENTITY,
                         "id": "test-window",
-                        "site_id": "test-pier",
+                        "siteId": "test-pier",
                         "species": "california-halibut",
-                        "start_time": (generated_at + timedelta(hours=1)).isoformat(),
-                        "end_time": (generated_at + timedelta(hours=3)).isoformat(),
-                        "opportunity_score": 82,
-                        "components": {
-                            "habitat_score": 86,
-                            "seasonality_score": 78,
-                            "dynamic_score": 71,
-                            "dynamic_modifier": 0.08,
-                        },
-                        "confidence": {"level": "high", "score": 0.84},
-                        "explanation_factors": [
+                        "start": (generated_at + timedelta(hours=1)).isoformat(),
+                        "end": (generated_at + timedelta(hours=3)).isoformat(),
+                        "score": 82,
+                        "habitatScore": 86,
+                        "seasonalityScore": 78,
+                        "dynamicScore": 71,
+                        "fishabilityScore": 74,
+                        "confidence": "high",
+                        "explanationFactors": [
                             {
                                 "label": "Channel edge",
                                 "direction": "positive",
@@ -84,7 +112,7 @@ def snapshot_root(tmp_path: Path) -> Path:
                                 "detail": "A reachable depth transition is present in the casting zone.",
                             }
                         ],
-                        "model_version": "test-v1",
+                        "modelVersion": SCORING_VERSION,
                         "conditions": {"waterTempF": 59.8},
                         "source_freshness": [
                             {
@@ -157,11 +185,17 @@ def test_opportunity_contract_marks_stale_sources_excluded(client: TestClient):
     )
     assert response.status_code == 200
     payload = response.json()
+    assert payload["repository"] == "file-snapshot"
+    assert response.headers["x-castingcompass-data-source"] == "file-snapshot"
     assert datetime.fromisoformat(payload["from"]).tzinfo is not None
     assert "not a catch probability" in payload["score_definition"]
     assert len(payload["windows"]) == 1
     window = payload["windows"][0]
     assert window["rank"] == 1
+    assert window["target_taxon_id"] == "california-halibut"
+    assert window["scoring_system_kind"] == "heuristic-configuration"
+    assert window["model_version"] == window["scoring_system_version"]
+    assert payload["scoring_system_sha256"] == SCORING_SHA256
     assert window["opportunity_score"] == 82
     assert window["status"] == "partial"
     stale = next(item for item in window["source_freshness"] if item["source"] == "tides")
@@ -189,3 +223,176 @@ def test_missing_snapshot_returns_explicit_503(tmp_path: Path):
     assert response.status_code == 503
     assert response.json()["invented_values_used"] is False
     assert response.headers["retry-after"] == "300"
+
+
+def test_incomplete_or_mixed_opportunity_contract_fails_closed(snapshot_root: Path):
+    path = snapshot_root / "public" / "data" / "opportunities.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    del document["windows"][0]["target_taxon_id"]
+    path.write_text(json.dumps(document), encoding="utf-8")
+    repository = FileRepository(snapshot_root)
+    app.dependency_overrides[get_repository] = lambda: repository
+    try:
+        response = TestClient(app).get("/v1/opportunities")
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 503
+    assert response.json()["invented_values_used"] is False
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "non-object-window",
+        "naive-window-time",
+        "naive-root-time",
+        "nonfinite-score",
+        "out-of-range-score",
+        "out-of-range-component",
+        "heuristic-version-hash-mismatch",
+        "invalid-confidence",
+        "missing-component",
+        "empty-window-list",
+    ],
+)
+def test_malformed_windows_are_never_repaired_or_dropped(snapshot_root: Path, mutation: str):
+    path = snapshot_root / "public" / "data" / "opportunities.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    window = document["windows"][0]
+    if mutation == "non-object-window":
+        document["windows"].append(None)
+    elif mutation == "naive-window-time":
+        window["start"] = "2026-07-16T08:00:00"
+    elif mutation == "naive-root-time":
+        document["generated_at"] = "2026-07-16T08:00:00"
+    elif mutation == "nonfinite-score":
+        window["score"] = float("nan")
+    elif mutation == "out-of-range-score":
+        window["score"] = 101
+    elif mutation == "out-of-range-component":
+        window["dynamicScore"] = -1
+    elif mutation == "heuristic-version-hash-mismatch":
+        mismatched = f"heuristic-california-halibut-{'b' * 64}"
+        document["scoring_system_version"] = mismatched
+        document["modelVersion"] = mismatched
+        window["modelVersion"] = mismatched
+    elif mutation == "invalid-confidence":
+        window["confidence"] = {"level": "high"}
+    elif mutation == "missing-component":
+        del window["fishabilityScore"]
+    elif mutation == "empty-window-list":
+        document["windows"] = []
+    path.write_text(json.dumps(document), encoding="utf-8")
+
+    repository = FileRepository(snapshot_root)
+    app.dependency_overrides[get_repository] = lambda: repository
+    try:
+        response = TestClient(app).get("/v1/opportunities")
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 503
+    assert response.json()["invented_values_used"] is False
+
+
+def test_database_rows_require_canonical_confidence_and_all_component_scores():
+    valid = {
+        "confidence": {"level": "high", "score": 0.8},
+        "components": {
+            "habitat_score": 80,
+            "seasonality_score": 70,
+            "dynamic_score": 60,
+            "fishability_score": 50,
+            "seasonality_multiplier": 1.4,
+            "dynamic_modifier": 0.1,
+        },
+    }
+    validate_database_window_shape(valid, location="valid row")
+
+    malformed = []
+    for confidence in ("high", None, {}, {"level": "HIGH"}, {"level": 1}):
+        row = json.loads(json.dumps(valid))
+        row["confidence"] = confidence
+        malformed.append(row)
+    for missing, derivation in (
+        ("habitat_score", {}),
+        ("seasonality_score", {"seasonality_multiplier": 1.4}),
+        ("dynamic_score", {"dynamic_modifier": 0.1}),
+        ("fishability_score", {}),
+    ):
+        row = json.loads(json.dumps(valid))
+        del row["components"][missing]
+        row["components"].update(derivation)
+        malformed.append(row)
+    malformed.append({**valid, "components": None})
+
+    for index, row in enumerate(malformed):
+        with pytest.raises(DataUnavailableError, match="confidence|components"):
+            validate_database_window_shape(row, location=f"malformed row {index}")
+
+
+def test_hybrid_source_attribution_is_atomic_under_concurrent_fallback(snapshot_root: Path):
+    file_repository = FileRepository(snapshot_root)
+    barrier = threading.Barrier(2)
+
+    class ConcurrentDatabase:
+        source = "postgres-postgis"
+
+        def list_opportunities(self, species, from_time, through):
+            barrier.wait(timeout=5)
+            if from_time.microsecond == 1:
+                raise RuntimeError("intentional database fallback")
+            windows, generated_at, identity, _ = file_repository.list_opportunities(
+                species, from_time, through
+            )
+            return windows, generated_at, identity, self.source
+
+    hybrid = HybridRepository(file_repository, ConcurrentDatabase())  # type: ignore[arg-type]
+    generated_at = datetime.fromisoformat(
+        json.loads(file_repository.opportunities_path.read_text(encoding="utf-8"))["generated_at"]
+    )
+    request_times = [generated_at.replace(microsecond=1), generated_at.replace(microsecond=2)]
+    app.dependency_overrides[get_repository] = lambda: hybrid
+    try:
+        with TestClient(app) as test_client, ThreadPoolExecutor(max_workers=2) as executor:
+            responses = list(
+                executor.map(
+                    lambda value: test_client.get(
+                        "/v1/opportunities",
+                        params={"from": value.isoformat(), "hours": 4},
+                    ),
+                    request_times,
+                )
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert {response.status_code for response in responses} == {200}
+    sources = {response.json()["repository"] for response in responses}
+    assert sources == {"postgres-postgis", "file-snapshot"}
+    for response in responses:
+        assert response.headers["x-castingcompass-data-source"] == response.json()["repository"]
+
+
+def test_site_detail_attributes_mixed_database_site_and_file_forecast(snapshot_root: Path):
+    file_repository = FileRepository(snapshot_root)
+    site, _ = file_repository.get_site("test-pier")
+    assert site is not None
+
+    class DatabaseWithForecastFailure:
+        source = "postgres-postgis"
+
+        def get_site(self, site_id):
+            return (site if site_id == "test-pier" else None), self.source
+
+        def list_opportunities(self, species, from_time, through):
+            raise RuntimeError("intentional database fallback")
+
+    hybrid = HybridRepository(file_repository, DatabaseWithForecastFailure())  # type: ignore[arg-type]
+    app.dependency_overrides[get_repository] = lambda: hybrid
+    try:
+        response = TestClient(app).get("/v1/sites/test-pier")
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert response.json()["next_window"] is not None
+    assert response.headers["x-castingcompass-data-source"] == "postgres-postgis+file-snapshot"

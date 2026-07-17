@@ -1,0 +1,17 @@
+{
+  "schema_version": "castingcompass.recruitment-event-test-vector/1.0.0",
+  "participant_token_domain": "castingcompass.validation-participant/1.0.0",
+  "reporter_key_hash_input": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "expected_participant_group_id": "participant-ea33e7b618bfe4a00b9425f4322eb129ba778c4fbe6c42ad36c0c99e0c3608fd",
+  "event_contract_version": "castingcompass.recruitment-event/1.0.0",
+  "canonicalization": "rfc8785-json-canonicalization-sha256",
+  "payload": {
+    "community_approval_sha256": null,
+    "participant_group_id": "participant-ea33e7b618bfe4a00b9425f4322eb129ba778c4fbe6c42ad36c0c99e0c3608fd",
+    "recruitment_event_at": "2026-08-01T10:31:00.000Z",
+    "recruitment_frame_id": "california-halibut-site-window-recruitment-v1",
+    "recruitment_source_id": "castingcompass-organic-product"
+  },
+  "canonical_json": "{\"community_approval_sha256\":null,\"participant_group_id\":\"participant-ea33e7b618bfe4a00b9425f4322eb129ba778c4fbe6c42ad36c0c99e0c3608fd\",\"recruitment_event_at\":\"2026-08-01T10:31:00.000Z\",\"recruitment_frame_id\":\"california-halibut-site-window-recruitment-v1\",\"recruitment_source_id\":\"castingcompass-organic-product\"}",
+  "expected_recruitment_event_sha256": "a2e9bb18f1261584c6f1bda822bcd7ffaca20f8c0a392dd8d3ff70a1529f467c"
+}

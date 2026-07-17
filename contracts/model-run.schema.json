@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "castingcompass.model-run/2.0.0",
+  "title": "CastingCompass model run provenance 2.0.0",
+  "description": "Structural run_metadata.json envelope; schema validation covers runtime metadata. A separate integrity verifier recomputes version identity from target scope, command, dataset kind, configuration, inputs, and source state, and can rehash supplied inputs and finalized artifacts independently.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "model_run_contract_version",
+    "observation_contract_version",
+    "taxon_catalog_version",
+    "target_taxon_id",
+    "target_scope",
+    "run_id",
+    "created_at",
+    "status",
+    "dataset_kind",
+    "command",
+    "experiment_version",
+    "model_version",
+    "git_revision",
+    "runtime",
+    "config",
+    "inputs",
+    "metrics",
+    "notes"
+  ],
+  "properties": {
+    "schema_version": { "const": "castingcompass.model-run/2.0.0" },
+    "model_run_contract_version": { "const": "castingcompass.model-run/2.0.0" },
+    "observation_contract_version": {
+      "type": ["string", "null"],
+      "enum": ["castingcompass.observation/2.0.0", null]
+    },
+    "taxon_catalog_version": { "const": "castingcompass.taxa/1.0.0" },
+    "target_taxon_id": {
+      "enum": ["california-halibut", "synthetic-target", null]
+    },
+    "target_scope": { "$ref": "#/$defs/targetScope" },
+    "run_id": { "$ref": "#/$defs/stableId" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "status": { "enum": ["unrun", "running", "completed", "failed"] },
+    "dataset_kind": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "command": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "experiment_version": {
+      "type": "string",
+      "pattern": "^exp-(?:target-agnostic|[a-z0-9]+(?:-[a-z0-9]+)*)-[a-f0-9]{64}$"
+    },
+    "model_version": {
+      "type": "string",
+      "pattern": "^model-(?:target-agnostic|[a-z0-9]+(?:-[a-z0-9]+)*)-[a-f0-9]{64}$"
+    },
+    "git_revision": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["python", "platform"],
+      "properties": {
+        "python": { "type": "string", "minLength": 1 },
+        "platform": { "type": "string", "minLength": 1 }
+      }
+    },
+    "config": { "type": "object" },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "bytes"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "sha256": { "$ref": "#/$defs/sha256" },
+          "bytes": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "metrics": { "type": "object" },
+    "notes": { "type": "string" }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["target_taxon_id", "target_scope", "observation_contract_version", "dataset_kind"],
+      "properties": {
+        "target_taxon_id": { "const": null },
+        "target_scope": { "const": { "kind": "target-agnostic", "taxon_id": null } },
+        "observation_contract_version": { "const": null },
+        "dataset_kind": {
+          "enum": ["official_unlabeled_bathymetry", "official_seafloor_character_probe"]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["target_taxon_id", "target_scope", "observation_contract_version", "dataset_kind"],
+      "properties": {
+        "target_taxon_id": { "const": "synthetic-target" },
+        "target_scope": { "const": { "kind": "taxon", "taxon_id": "synthetic-target" } },
+        "observation_contract_version": { "const": "castingcompass.observation/2.0.0" },
+        "dataset_kind": { "const": "synthetic_fixture" }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["target_taxon_id", "target_scope", "observation_contract_version", "dataset_kind"],
+      "properties": {
+        "target_taxon_id": { "const": "california-halibut" },
+        "target_scope": { "const": { "kind": "taxon", "taxon_id": "california-halibut" } },
+        "observation_contract_version": { "const": "castingcompass.observation/2.0.0" },
+        "dataset_kind": {
+          "type": "string",
+          "not": {
+            "enum": [
+              "official_unlabeled_bathymetry",
+              "official_seafloor_character_probe",
+              "synthetic_fixture"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "required": ["status"],
+        "properties": { "status": { "const": "completed" } }
+      },
+      "then": {
+        "type": "object",
+        "required": ["inputs", "metrics", "notes"],
+        "properties": {
+          "inputs": { "type": "array", "minItems": 1 },
+          "metrics": { "type": "object", "minProperties": 1 },
+          "notes": { "type": "string", "minLength": 1, "pattern": ".*\\S.*" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "stableId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "targetScope": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "taxon_id"],
+          "properties": {
+            "kind": { "const": "taxon" },
+            "taxon_id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "taxon_id"],
+          "properties": {
+            "kind": { "const": "target-agnostic" },
+            "taxon_id": { "type": "null" }
+          }
+        }
+      ]
+    }
+  }
+}

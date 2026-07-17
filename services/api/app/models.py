@@ -6,7 +6,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
-
 class APIModel(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -138,7 +137,15 @@ class ExplanationFactor(APIModel):
 
 class OpportunityWindow(APIModel):
     id: str
-    species: str = "california-halibut"
+    species: str
+    target_taxon_id: str
+    taxon_catalog_version: str
+    observation_contract_version: str
+    model_run_contract_version: str
+    opportunity_contract_version: str
+    scoring_system_kind: str
+    scoring_system_version: str
+    scoring_system_sha256: str
     site: SiteSummary
     start_time: datetime
     end_time: datetime
@@ -156,6 +163,14 @@ class OpportunityWindow(APIModel):
 
 class OpportunityResponse(APIModel):
     species: str
+    target_taxon_id: str
+    taxon_catalog_version: str
+    observation_contract_version: str
+    model_run_contract_version: str
+    opportunity_contract_version: str
+    scoring_system_kind: str
+    scoring_system_version: str
+    scoring_system_sha256: str
     from_time: datetime = Field(serialization_alias="from")
     through: datetime
     hours: int
