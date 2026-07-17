@@ -71,6 +71,8 @@ const LEGACY_CLIENT_FORECAST_FIELDS = [
   "predictionMetadata",
 ] as const;
 const LIVE_START_FIELDS = [
+  "clientTripId",
+  "requestToken",
   "siteId",
   "startedAt",
   "anglerCount",
@@ -114,6 +116,8 @@ const LIVE_COMPLETION_FIELDS = [
   ...LEGACY_CLIENT_FORECAST_FIELDS,
 ] as const;
 const PAST_REPORT_FIELDS = [
+  "clientTripId",
+  "requestToken",
   "siteId",
   "startedAt",
   "endedAt",
@@ -146,6 +150,9 @@ const VALIDATION_ENROLLMENT_END_EXCLUSIVE_MS = Date.parse("2027-08-01T00:00:00.0
 // datetime-local inputs round to a minute; requests within this bound are bound to server receipt time.
 const MAX_LIVE_START_CLOCK_SKEW_MS = 90 * 1_000;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
+const TRIP_ID_PATTERN = /^trip_[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
+const REQUEST_TOKEN_PATTERN = /^[A-Za-z0-9_-]{40,160}$/;
+const CLIENT_REQUEST_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const STRICT_UTC_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 const RECRUITMENT_FRAME_ID = "california-halibut-site-window-recruitment-v1" as const;
 const RECRUITMENT_EVENT_CONTRACT_VERSION = "castingcompass.recruitment-event/1.0.0" as const;
@@ -256,6 +263,7 @@ export interface TripRow {
   reporter_key_hash: string;
   referral_code: string | null;
   token_hash: string | null;
+  idempotency_key_hash: string | null;
   opportunity_window_id: string | null;
   opportunity_score: number | null;
   habitat_score: number | null;
@@ -318,6 +326,7 @@ interface NewTripRecord {
   reporterKeyHash: string;
   referralCode: string | null;
   tokenHash: string | null;
+  idempotencyKeyHash: string | null;
   opportunityWindowId: string | null;
   opportunityScore: number | null;
   habitatScore: number | null;
@@ -622,6 +631,7 @@ const CREATE_TRIPS_SQL = `CREATE TABLE IF NOT EXISTS trips (
   reporter_key_hash TEXT NOT NULL,
   referral_code TEXT,
   token_hash TEXT,
+  idempotency_key_hash TEXT,
   opportunity_window_id TEXT,
   opportunity_score REAL,
   habitat_score REAL,
@@ -1186,6 +1196,7 @@ const INSERT_TRIP_SQL = `INSERT INTO trips (
   taxon_catalog_version, target_taxon_id, contract_status, taxon_observations_json, outcome_class,
   target_encounter_count, any_fish_encounter_count, target_identification_confidence,
   notes, consent, consent_at, moderation_status, reporter_key_hash, referral_code, token_hash,
+  idempotency_key_hash,
   opportunity_window_id, opportunity_score, habitat_score, seasonality_score, conditions_score,
   fishability_score, model_version, score_influenced_choice, prediction_metadata_json, photo_key,
   photo_content_type, photo_size_bytes, created_at, updated_at, completed_at
@@ -1195,7 +1206,7 @@ const INSERT_TRIP_SQL = `INSERT INTO trips (
   ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
   ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
   ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-  ?, ?, ?, ?, ?
+  ?, ?, ?, ?, ?, ?
 )`;
 
 const INSERT_FORECAST_IMPRESSION_SQL = `INSERT INTO forecast_impressions (
@@ -1554,6 +1565,7 @@ export function createTripStore(db: D1DatabaseLike): TripStore {
           record.reporterKeyHash,
           record.referralCode,
           record.tokenHash,
+          record.idempotencyKeyHash,
           record.opportunityWindowId,
           record.opportunityScore,
           record.habitatScore,
@@ -2612,13 +2624,26 @@ export async function handleTripRequest(
       assertPrimaryTargetConfirmed(body.primaryTargetConfirmed);
 
       const reporter = await getOrCreateReporter(request, body.reporterKey);
+      const id = parseClientTripId(body.clientTripId);
+      const token = parseRequestToken(body.requestToken);
+      const idempotencyKeyHash = await sha256(token);
+      const existingRequest = await store.getTrip(id);
+      if (existingRequest) {
+        if (isMatchingLiveStart(existingRequest, idempotencyKeyHash, reporter.hash, options.accountId)) {
+          return jsonResponse({
+            trip: publicTrip(existingRequest),
+            token,
+            receipt: { operation: "start", tripId: id },
+          }, 201, reporter.setCookie);
+        }
+        throw new ApiError(409, "trip_request_conflict", "This trip request identity cannot be reused.");
+      }
       await store.assertSubmissionAllowed(reporter.hash, now);
       const site = getSite(siteMap, body.siteId);
       const submittedStartedAt = parseStartDate(body.startedAt, now, 48);
       const mode = parseRequiredMode(body.mode);
       const scoreInfluencedChoice = requiredScoreInfluence(body);
       const referralCode = parseReferralCode(body.referralCode);
-      const token = randomSecret();
       const timestamp = now.toISOString();
       const serverBoundLiveStart = Math.abs(Date.parse(submittedStartedAt) - now.getTime()) <=
         MAX_LIVE_START_CLOCK_SKEW_MS;
@@ -2630,7 +2655,6 @@ export async function handleTripRequest(
         );
       }
       const startedAt = timestamp;
-      const id = `trip_${crypto.randomUUID()}`;
       const attestation = await verifyOpportunityAttestation(env.ASSETS, request.url, {
         windowId: body.opportunityWindowId,
         siteId: site.id,
@@ -2753,49 +2777,63 @@ export async function handleTripRequest(
         opportunity: attestation.opportunity,
       });
 
-      const trip = await store.insertTrip({
-        id,
-        userId: options.accountId ?? null,
-        status: "active",
-        source: "live",
-        siteId: site.id,
-        startedAt,
-        endedAt: null,
-        mode,
-        fishingMethod: optionalText(body.method ?? body.fishingMethod, "method", 80),
-        ...parseTripDetails(body),
-        anglerCount: parseInteger(body.anglerCount, "anglerCount", 1, 12, 1),
-        anglerHours: null,
-        keeperCount: null,
-        shortReleasedCount: null,
-        halibutEncounters: null,
-        noCatch: null,
-        observationContractVersion: null,
-        taxonCatalogVersion: null,
-        targetTaxonId: CALIFORNIA_HALIBUT_TAXON_ID,
-        contractStatus: null,
-        taxonObservationsJson: null,
-        outcomeClass: null,
-        targetEncounterCount: null,
-        anyFishEncounterCount: null,
-        targetIdentificationConfidence: null,
-        notes: null,
-        consent: true,
-        consentAt: timestamp,
-        moderationStatus: "pending",
-        reporterKeyHash: reporter.hash,
-        referralCode,
-        tokenHash: await sha256(token),
-        ...forecastFieldsFromAttestation(attestation.opportunity, scoreInfluencedChoice),
-        photoKey: null,
-        photoContentType: null,
-        photoSizeBytes: null,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-        completedAt: null,
-      }, validation, feasibilityStart, feasibilityRecruitment);
+      let trip: TripRow;
+      try {
+        trip = await store.insertTrip({
+          id,
+          userId: options.accountId ?? null,
+          status: "active",
+          source: "live",
+          siteId: site.id,
+          startedAt,
+          endedAt: null,
+          mode,
+          fishingMethod: optionalText(body.method ?? body.fishingMethod, "method", 80),
+          ...parseTripDetails(body),
+          anglerCount: parseInteger(body.anglerCount, "anglerCount", 1, 12, 1),
+          anglerHours: null,
+          keeperCount: null,
+          shortReleasedCount: null,
+          halibutEncounters: null,
+          noCatch: null,
+          observationContractVersion: null,
+          taxonCatalogVersion: null,
+          targetTaxonId: CALIFORNIA_HALIBUT_TAXON_ID,
+          contractStatus: null,
+          taxonObservationsJson: null,
+          outcomeClass: null,
+          targetEncounterCount: null,
+          anyFishEncounterCount: null,
+          targetIdentificationConfidence: null,
+          notes: null,
+          consent: true,
+          consentAt: timestamp,
+          moderationStatus: "pending",
+          reporterKeyHash: reporter.hash,
+          referralCode,
+          tokenHash: idempotencyKeyHash,
+          idempotencyKeyHash,
+          ...forecastFieldsFromAttestation(attestation.opportunity, scoreInfluencedChoice),
+          photoKey: null,
+          photoContentType: null,
+          photoSizeBytes: null,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          completedAt: null,
+        }, validation, feasibilityStart, feasibilityRecruitment);
+      } catch (error) {
+        const racedTrip = await store.getTrip(id);
+        if (!racedTrip || !isMatchingLiveStart(racedTrip, idempotencyKeyHash, reporter.hash, options.accountId)) {
+          throw error;
+        }
+        trip = racedTrip;
+      }
 
-      return jsonResponse({ trip: publicTrip(trip), token }, 201, reporter.setCookie);
+      return jsonResponse({
+        trip: publicTrip(trip),
+        token,
+        receipt: { operation: "start", tripId: id },
+      }, 201, reporter.setCookie);
     }
 
     const cancellationMatch = url.pathname.match(/^\/api\/trips\/([^/]+)\/cancel$/);
@@ -2805,11 +2843,11 @@ export async function handleTripRequest(
       const body = await readJsonObject(request);
       assertOnlyInputFields(body, ["token", "reason"]);
       const id = cancellationMatch[1];
-      if (!/^trip_[a-f0-9-]{36}$/.test(id)) {
+      if (!TRIP_ID_PATTERN.test(id)) {
         throw new ApiError(404, "trip_not_found", "The active trip could not be found.");
       }
       const token = requiredText(body.token, "token", 160);
-      if (!/^[A-Za-z0-9_-]{40,160}$/.test(token)) {
+      if (!REQUEST_TOKEN_PATTERN.test(token)) {
         throw new ApiError(404, "trip_not_found", "The active trip could not be found.");
       }
       const reason = parseSafeCancellationReason(body.reason);
@@ -2842,15 +2880,31 @@ export async function handleTripRequest(
       assertCompleteAttempt(form.get("completeAttempt"));
       assertPrimaryTargetConfirmed(form.get("primaryTargetConfirmed"));
       const id = completionMatch[1];
-      if (!/^trip_[a-f0-9-]{36}$/.test(id)) {
+      if (!TRIP_ID_PATTERN.test(id)) {
         throw new ApiError(404, "trip_not_found", "The active trip could not be found.");
       }
       const token = requiredText(form.get("token"), "token", 160);
-      if (!/^[A-Za-z0-9_-]{40,160}$/.test(token)) {
+      if (!REQUEST_TOKEN_PATTERN.test(token)) {
         throw new ApiError(404, "trip_not_found", "The active trip could not be found.");
       }
 
       const existing = await store.getTrip(id);
+      const tokenHash = await sha256(token);
+      if (
+        existing?.status === "completed" && existing.source === "live" &&
+        existing.idempotency_key_hash === tokenHash
+      ) {
+        const reporter = await getOrCreateReporter(request, form.get("reporterKey"));
+        if (!sameTripPrincipal(existing, reporter.hash, options.accountId)) {
+          throw new ApiError(404, "trip_not_found", "The active trip could not be found.");
+        }
+        const originalForecastImpression = await (store.getForecastImpression?.(id) ?? Promise.resolve(null));
+        return jsonResponse({
+          trip: publicTrip(existing),
+          forecastAttributionCleared: Boolean(originalForecastImpression) && existing.opportunity_window_id === null,
+          receipt: { operation: "complete", tripId: id },
+        }, 200, reporter.setCookie);
+      }
       if (!existing || existing.status !== "active") {
         throw new ApiError(404, "trip_not_found", "The active trip could not be found.");
       }
@@ -2925,7 +2979,7 @@ export async function handleTripRequest(
       const uploaded = await processPhoto(form.get("photo"), id, env);
 
       try {
-        const completed = await store.completeTrip(id, await sha256(token), {
+        const completed = await store.completeTrip(id, tokenHash, {
           endedAt,
           mode,
           fishingMethod:
@@ -2948,12 +3002,45 @@ export async function handleTripRequest(
         }, completionProvenance, feasibilityTerminal);
 
         if (!completed) {
-          throw new ApiError(404, "trip_not_found", "The active trip could not be found.");
+          const racedTrip = await store.getTrip(id);
+          const retryReporter = await getOrCreateReporter(request, form.get("reporterKey"));
+          if (
+            !racedTrip || racedTrip.status !== "completed" || racedTrip.source !== "live" ||
+            racedTrip.idempotency_key_hash !== tokenHash ||
+            !sameTripPrincipal(racedTrip, retryReporter.hash, options.accountId)
+          ) {
+            throw new ApiError(404, "trip_not_found", "The active trip could not be found.");
+          }
+          if (uploaded && racedTrip.photo_key !== uploaded.key) {
+            await env.TRIP_PHOTOS?.delete(uploaded.key).catch(() => undefined);
+          }
+          const originalForecastImpression = await (store.getForecastImpression?.(id) ?? Promise.resolve(null));
+          return jsonResponse({
+            trip: publicTrip(racedTrip),
+            forecastAttributionCleared: Boolean(originalForecastImpression) && racedTrip.opportunity_window_id === null,
+            receipt: { operation: "complete", tripId: id },
+          }, 200, retryReporter.setCookie);
         }
         options.onTripCompleted?.(completed);
-        return jsonResponse({ trip: publicTrip(completed), forecastAttributionCleared });
+        return jsonResponse({
+          trip: publicTrip(completed),
+          forecastAttributionCleared,
+          receipt: { operation: "complete", tripId: id },
+        });
       } catch (error) {
-        if (uploaded) await env.TRIP_PHOTOS?.delete(uploaded.key).catch(() => undefined);
+        let committedTrip: TripRow | null = null;
+        if (uploaded) {
+          try {
+            committedTrip = await store.getTrip(id);
+          } catch {
+            // A failed reconciliation read cannot prove that the write rolled back.
+            // Keep the object for the idempotent retry/deletion ledger to reconcile.
+            throw error;
+          }
+        }
+        if (uploaded && committedTrip?.photo_key !== uploaded.key) {
+          await env.TRIP_PHOTOS?.delete(uploaded.key).catch(() => undefined);
+        }
         throw error;
       }
     }
@@ -2970,6 +3057,19 @@ export async function handleTripRequest(
       assertPrimaryTargetConfirmed(form.get("primaryTargetConfirmed"));
 
       const reporter = await getOrCreateReporter(request, form.get("reporterKey"));
+      const id = parseClientTripId(form.get("clientTripId"));
+      const requestToken = parseRequestToken(form.get("requestToken"));
+      const idempotencyKeyHash = await sha256(requestToken);
+      const existingRequest = await store.getTrip(id);
+      if (existingRequest) {
+        if (isMatchingPastReport(existingRequest, idempotencyKeyHash, reporter.hash, options.accountId)) {
+          return jsonResponse({
+            trip: publicTrip(existingRequest),
+            receipt: { operation: "past", tripId: id },
+          }, 201, reporter.setCookie);
+        }
+        throw new ApiError(409, "trip_request_conflict", "This trip request identity cannot be reused.");
+      }
       await store.assertSubmissionAllowed(reporter.hash, now);
       const site = getSite(siteMap, form.get("siteId"));
       const startedAt = parseHistoricalStartDate(form.get("startedAt"), now);
@@ -2988,7 +3088,6 @@ export async function handleTripRequest(
         throw new ApiError(422, "invalid_counts", "Combined halibut encounters cannot exceed 40.");
       }
 
-      const id = `trip_${crypto.randomUUID()}`;
       const timestamp = now.toISOString();
       const mode = parseRequiredMode(form.get("mode"));
       const scoreInfluencedChoice = requiredScoreInfluence(form);
@@ -3041,6 +3140,7 @@ export async function handleTripRequest(
           reporterKeyHash: reporter.hash,
           referralCode,
           tokenHash: null,
+          idempotencyKeyHash,
           ...forecastFieldsFromAttestation(null, scoreInfluencedChoice),
           photoKey: uploaded?.key ?? null,
           photoContentType: uploaded?.contentType ?? null,
@@ -3050,9 +3150,24 @@ export async function handleTripRequest(
           completedAt: timestamp,
         }, validation);
         options.onTripCompleted?.(trip);
-        return jsonResponse({ trip: publicTrip(trip) }, 201, reporter.setCookie);
+        return jsonResponse({
+          trip: publicTrip(trip),
+          receipt: { operation: "past", tripId: id },
+        }, 201, reporter.setCookie);
       } catch (error) {
-        if (uploaded) await env.TRIP_PHOTOS?.delete(uploaded.key).catch(() => undefined);
+        const racedTrip = await store.getTrip(id);
+        if (racedTrip && isMatchingPastReport(racedTrip, idempotencyKeyHash, reporter.hash, options.accountId)) {
+          if (uploaded && racedTrip.photo_key !== uploaded.key) {
+            await env.TRIP_PHOTOS?.delete(uploaded.key).catch(() => undefined);
+          }
+          return jsonResponse({
+            trip: publicTrip(racedTrip),
+            receipt: { operation: "past", tripId: id },
+          }, 201, reporter.setCookie);
+        }
+        if (uploaded && racedTrip?.photo_key !== uploaded.key) {
+          await env.TRIP_PHOTOS?.delete(uploaded.key).catch(() => undefined);
+        }
         throw error;
       }
     }
@@ -3642,6 +3757,48 @@ async function getOrCreateReporter(request: Request, suppliedKey?: unknown) {
   }
   if (!raw) throw new Error("Anonymous reporter key generation failed");
   return { hash: await sha256(raw), setCookie };
+}
+
+function parseClientTripId(value: unknown) {
+  if (typeof value !== "string" || !TRIP_ID_PATTERN.test(value)) {
+    throw new ApiError(422, "invalid_trip_request", "A valid client trip request identity is required.");
+  }
+  return value;
+}
+
+function parseRequestToken(value: unknown) {
+  if (typeof value !== "string" || !CLIENT_REQUEST_TOKEN_PATTERN.test(value)) {
+    throw new ApiError(422, "invalid_trip_request", "A valid client trip recovery secret is required.");
+  }
+  return value;
+}
+
+function sameTripPrincipal(row: TripRow, reporterKeyHash: string, accountId?: string | null) {
+  return row.reporter_key_hash === reporterKeyHash &&
+    (row.user_id ?? null) === (accountId ?? null);
+}
+
+function isMatchingLiveStart(
+  row: TripRow,
+  idempotencyKeyHash: string,
+  reporterKeyHash: string,
+  accountId?: string | null,
+) {
+  return row.status === "active" && row.source === "live" &&
+    sameTripPrincipal(row, reporterKeyHash, accountId) &&
+    row.idempotency_key_hash === idempotencyKeyHash &&
+    row.token_hash === idempotencyKeyHash;
+}
+
+function isMatchingPastReport(
+  row: TripRow,
+  idempotencyKeyHash: string,
+  reporterKeyHash: string,
+  accountId?: string | null,
+) {
+  return row.status === "completed" && row.source === "past_report" &&
+    sameTripPrincipal(row, reporterKeyHash, accountId) &&
+    row.idempotency_key_hash === idempotencyKeyHash;
 }
 
 function parseCookies(header: string) {

@@ -28,7 +28,18 @@ const MIGRATIONS = [
   "0014_validation_feasibility_recruitment_and_corrections.sql",
   "0015_validation_snapshot_suppression.sql",
   "0016_data_resilience_indexes.sql",
+  "0017_trip_idempotency.sql",
 ];
+
+let tripRequestSequence = 0;
+
+function tripRequestMaterial() {
+  tripRequestSequence += 1;
+  return {
+    clientTripId: `trip_10000000-0000-4000-8000-${tripRequestSequence.toString(16).padStart(12, "0")}`,
+    requestToken: `privacy-request-${tripRequestSequence.toString(36).padStart(27, "0")}`,
+  };
+}
 
 class D1StatementAdapter {
   constructor(owner, query, statement) {
@@ -1426,7 +1437,7 @@ test("export includes user data and downloadable photos without internal locator
   assert.equal(payload.photos[0].availability, "downloadable");
   assert.equal(payload.photos[0].downloadPath, `/api/profile/export/photos/${tripId}`);
   const serialized = JSON.stringify(payload);
-  assert.doesNotMatch(serialized, /private\/export\.jpg|reporter-secret|trip-token-secret|operator-private-identity|approved_by|photo_key|reporter_key_hash|token_hash/);
+  assert.doesNotMatch(serialized, /private\/export\.jpg|reporter-secret|trip-token-secret|operator-private-identity|approved_by|photo_key|reporter_key_hash|token_hash|idempotency_key_hash/);
 
   const download = await handleAccountRequest(request(`/api/profile/export/photos/${tripId}`, { cookie: user.cookie }), {
     DB: d1,
@@ -1462,6 +1473,7 @@ test("private export preserves immutable validation lineage without accepting ev
   };
   const reporterKey = "private-export-device-key-123456789";
   const startBody = {
+    ...tripRequestMaterial(),
     siteId: "ocean-beach",
     startedAt: "2026-08-01T10:30:00.000Z",
     mode: "beach",
@@ -1775,6 +1787,7 @@ test("feasibility pilot start, completion, safe cancellation, export, and privac
       method: "POST",
       headers: { Origin: "https://castingcompass.com", "Content-Type": "application/json" },
       body: JSON.stringify({
+        ...tripRequestMaterial(),
         siteId,
         startedAt: timestamp,
         mode: "beach",
@@ -2137,6 +2150,9 @@ test("profile edits recompute valid v2 evidence, reject overrides, and never pro
   const user = await addUser(sqlite, "26");
   const sites = [{ id: "ocean-beach", type: "Beach" }];
   const form = new FormData();
+  const pastRequest = tripRequestMaterial();
+  form.set("clientTripId", pastRequest.clientTripId);
+  form.set("requestToken", pastRequest.requestToken);
   form.set("siteId", "ocean-beach");
   form.set("startedAt", "2026-07-10T15:00:00.000Z");
   form.set("endedAt", "2026-07-10T18:00:00.000Z");
@@ -2335,6 +2351,7 @@ test("active completion clears forecast attribution atomically when fishing mode
     method: "POST",
     headers: { Origin: "https://castingcompass.com", "Content-Type": "application/json" },
     body: JSON.stringify({
+      ...tripRequestMaterial(),
       siteId: "ocean-beach",
       startedAt: "2026-07-10T10:00:00.000Z",
       mode: "pier",
@@ -2362,21 +2379,25 @@ test("active completion clears forecast attribution atomically when fishing mode
   assert.equal(startResponse?.status, 201, JSON.stringify(await startResponse?.clone().json()));
   const started = await startResponse.json();
 
-  const form = new FormData();
-  form.set("token", started.token);
-  form.set("endedAt", "2026-07-10T12:00:00.000Z");
-  form.set("mode", "shore");
-  form.set("anglerCount", "1");
-  form.set("keeperCount", "0");
-  form.set("shortReleasedCount", "0");
-  form.set("otherCatchCount", "0");
-  form.set("consent", "true");
-  form.set("primaryTargetConfirmed", "true");
-  form.set("completeAttempt", "true");
-  form.set("website", "");
+  const completionForm = () => {
+    const form = new FormData();
+    form.set("token", started.token);
+    form.set("reporterKey", "mode-change-device-key-123456789");
+    form.set("endedAt", "2026-07-10T12:00:00.000Z");
+    form.set("mode", "shore");
+    form.set("anglerCount", "1");
+    form.set("keeperCount", "0");
+    form.set("shortReleasedCount", "0");
+    form.set("otherCatchCount", "0");
+    form.set("consent", "true");
+    form.set("primaryTargetConfirmed", "true");
+    form.set("completeAttempt", "true");
+    form.set("website", "");
+    return form;
+  };
   const completionResponse = await handleTripRequest(new Request(
     `https://castingcompass.com/api/trips/${started.trip.id}/complete`,
-    { method: "POST", headers: { Origin: "https://castingcompass.com" }, body: form },
+    { method: "POST", headers: { Origin: "https://castingcompass.com" }, body: completionForm() },
   ), { DB: d1, ASSETS: privacyTestAssets() }, sites, { now: () => new Date("2026-07-10T12:00:00.000Z") });
   assert.equal(completionResponse?.status, 200);
   const completed = await completionResponse.json();
@@ -2402,6 +2423,19 @@ test("active completion clears forecast attribution atomically when fishing mode
   });
   assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM forecast_impressions WHERE trip_id = ?")
     .get(started.trip.id).count, 1);
+  assert.deepEqual({ ...sqlite.prepare(
+    "SELECT token_hash, length(idempotency_key_hash) AS idempotency_hash_length FROM trips WHERE id = ?",
+  ).get(started.trip.id) }, { token_hash: null, idempotency_hash_length: 64 });
+  const retryResponse = await handleTripRequest(new Request(
+    `https://castingcompass.com/api/trips/${started.trip.id}/complete`,
+    { method: "POST", headers: { Origin: "https://castingcompass.com" }, body: completionForm() },
+  ), { DB: d1, ASSETS: privacyTestAssets() }, sites, { now: () => new Date("2026-07-10T13:00:00.000Z") });
+  assert.equal(retryResponse?.status, 200);
+  const retried = await retryResponse.json();
+  assert.deepEqual(retried.receipt, { operation: "complete", tripId: started.trip.id });
+  assert.equal(retried.trip.endedAt, completed.trip.endedAt);
+  assert.equal(retried.trip.updatedAt, completed.trip.updatedAt);
+  assert.equal(retried.forecastAttributionCleared, true);
   assert.deepEqual({ ...sqlite.prepare(`SELECT source_role, evidence_status, exclusion_reason,
       complete_attempt_confirmed, consented_at FROM trip_validation_provenance
     WHERE trip_id = ? AND event_type = 'completion'`).get(started.trip.id) }, {

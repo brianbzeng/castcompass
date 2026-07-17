@@ -73,6 +73,10 @@ SELECT
       'validation_feasibility_correction_activation_sequence_idx'
     )
   ) AS data_resilience_indexes,
+  (
+    SELECT COUNT(*) FROM pragma_table_info('trips')
+    WHERE name = 'idempotency_key_hash'
+  ) AS trip_idempotency_columns,
   (SELECT COUNT(*) FROM users) AS users,
   (SELECT COUNT(*) FROM users WHERE age_eligibility_confirmed_at IS NULL) AS users_missing_age_eligibility,
   (SELECT COUNT(*) FROM users

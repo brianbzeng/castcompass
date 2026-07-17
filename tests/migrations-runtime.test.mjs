@@ -208,6 +208,7 @@ test("the complete migration chain applies atomically and produces the runtime s
     "0014_validation_feasibility_recruitment_and_corrections.sql",
     "0015_validation_snapshot_suppression.sql",
     "0016_data_resilience_indexes.sql",
+    "0017_trip_idempotency.sql",
   ]);
 
   const sqlite = new DatabaseSync(":memory:");
@@ -233,6 +234,7 @@ test("the complete migration chain applies atomically and produces the runtime s
   assert.ok(columns(sqlite, "privacy_deletion_tasks").includes("object_key_hash"));
   assert.ok(columns(sqlite, "trips").includes("observation_contract_version"));
   assert.ok(columns(sqlite, "trips").includes("taxon_observations_json"));
+  assert.ok(columns(sqlite, "trips").includes("idempotency_key_hash"));
   assert.ok(columns(sqlite, "trips").includes("outcome_class"));
   assert.ok(columns(sqlite, "trip_validation_provenance").includes("activation_manifest_sha256"));
   assert.ok(columns(sqlite, "trip_validation_provenance").includes("complete_attempt_confirmed"));

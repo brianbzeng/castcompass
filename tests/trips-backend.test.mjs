@@ -359,6 +359,7 @@ class MemoryTripStore {
 function recordToRow(record) {
   return {
     id: record.id,
+    user_id: record.userId,
     status: record.status,
     source: record.source,
     site_id: record.siteId,
@@ -392,6 +393,7 @@ function recordToRow(record) {
     reporter_key_hash: record.reporterKeyHash,
     referral_code: record.referralCode,
     token_hash: record.tokenHash,
+    idempotency_key_hash: record.idempotencyKeyHash,
     opportunity_window_id: record.opportunityWindowId,
     opportunity_score: record.opportunityScore,
     habitat_score: record.habitatScore,
@@ -428,8 +430,20 @@ function multipartRequest(path, form) {
   });
 }
 
+let tripRequestSequence = 0;
+
+function nextTripRequestMaterial() {
+  tripRequestSequence += 1;
+  const suffix = tripRequestSequence.toString(16).padStart(12, "0");
+  return {
+    clientTripId: `trip_00000000-0000-4000-8000-${suffix}`,
+    requestToken: `request-token-${tripRequestSequence.toString(36).padStart(29, "0")}`,
+  };
+}
+
 function validStartBody(overrides = {}) {
   return {
+    ...nextTripRequestMaterial(),
     siteId: "oyster-point",
     consent: true,
     primaryTargetConfirmed: true,
@@ -442,6 +456,11 @@ function validStartBody(overrides = {}) {
 }
 
 function addRequiredCompletionFields(form, { mode = "beach", includeInfluence = true } = {}) {
+  if (form.has("siteId")) {
+    const request = nextTripRequestMaterial();
+    form.set("clientTripId", request.clientTripId);
+    form.set("requestToken", request.requestToken);
+  }
   form.set("consent", "true");
   form.set("primaryTargetConfirmed", "true");
   form.set("completeAttempt", "true");
@@ -504,6 +523,153 @@ test("start validates origin and curated site IDs", async () => {
   const response = await handleTripRequest(unknownSite, {}, SITES, options);
   assert.equal(response.status, 422);
   assert.equal((await response.json()).error.code, "invalid_site");
+});
+
+test("client trip identities make start, completion, and past-report retries idempotent", async () => {
+  const store = new MemoryTripStore();
+  const reporterKey = "idempotent-device-key-123456789012";
+  const now = () => new Date("2026-07-11T18:00:00.000Z");
+  const startBody = validStartBody({
+    clientTripId: "trip_20000000-0000-4000-8000-000000000001",
+    requestToken: "start-idempotency-token-0000000000000000001",
+    startedAt: "2026-07-11T18:00:00.000Z",
+    reporterKey,
+  });
+
+  const firstStartResponse = await handleTripRequest(
+    jsonRequest("/api/trips/start", startBody),
+    {},
+    SITES,
+    { store, now },
+  );
+  assert.equal(firstStartResponse.status, 201);
+  const firstStart = await firstStartResponse.json();
+  assert.deepEqual(firstStart.receipt, { operation: "start", tripId: startBody.clientTripId });
+  assert.equal(firstStart.token, startBody.requestToken);
+  assert.equal(store.trips.size, 1);
+
+  store.rateLimited = true;
+  const retryStartResponse = await handleTripRequest(
+    jsonRequest("/api/trips/start", { ...startBody, siteId: "crissy-field" }),
+    {},
+    SITES,
+    { store, now },
+  );
+  assert.equal(retryStartResponse.status, 201);
+  const retryStart = await retryStartResponse.json();
+  assert.equal(retryStart.trip.id, firstStart.trip.id);
+  assert.equal(retryStart.trip.siteId, firstStart.trip.siteId);
+  assert.equal(store.trips.size, 1);
+
+  const conflictingStart = await handleTripRequest(
+    jsonRequest("/api/trips/start", { ...startBody, requestToken: "wrong-idempotency-token-0000000000000000001" }),
+    {},
+    SITES,
+    { store, now },
+  );
+  assert.equal(conflictingStart.status, 409);
+  assert.equal((await conflictingStart.json()).error.code, "trip_request_conflict");
+  const crossAccountStart = await handleTripRequest(
+    jsonRequest("/api/trips/start", startBody),
+    {},
+    SITES,
+    { store, now, accountId: "different-account" },
+  );
+  assert.equal(crossAccountStart.status, 409);
+
+  const completionForm = () => {
+    const form = new FormData();
+    form.set("token", firstStart.token);
+    form.set("reporterKey", reporterKey);
+    form.set("keeperCount", "0");
+    form.set("shortReleasedCount", "0");
+    form.set("otherCatchCount", "0");
+    addRequiredCompletionFields(form, { mode: "pier", includeInfluence: false });
+    return form;
+  };
+  let completionCallbacks = 0;
+  const firstCompletionResponse = await handleTripRequest(
+    multipartRequest(`/api/trips/${firstStart.trip.id}/complete`, completionForm()),
+    {},
+    SITES,
+    { store, now: () => new Date("2026-07-11T19:00:00.000Z"), onTripCompleted: () => { completionCallbacks += 1; } },
+  );
+  assert.equal(firstCompletionResponse.status, 200);
+  const firstCompletion = await firstCompletionResponse.json();
+  assert.deepEqual(firstCompletion.receipt, { operation: "complete", tripId: firstStart.trip.id });
+  assert.equal(store.trips.get(firstStart.trip.id).token_hash, null);
+
+  const retryCompletionResponse = await handleTripRequest(
+    multipartRequest(`/api/trips/${firstStart.trip.id}/complete`, completionForm()),
+    {},
+    SITES,
+    { store, now: () => new Date("2026-07-11T20:00:00.000Z"), onTripCompleted: () => { completionCallbacks += 1; } },
+  );
+  assert.equal(retryCompletionResponse.status, 200);
+  const retryCompletion = await retryCompletionResponse.json();
+  assert.equal(retryCompletion.trip.id, firstCompletion.trip.id);
+  assert.equal(retryCompletion.trip.endedAt, firstCompletion.trip.endedAt);
+  assert.equal(completionCallbacks, 1);
+  const wrongReporterCompletion = completionForm();
+  wrongReporterCompletion.set("reporterKey", "different-device-key-12345678901234");
+  const deniedCompletionResponse = await handleTripRequest(
+    multipartRequest(`/api/trips/${firstStart.trip.id}/complete`, wrongReporterCompletion),
+    {},
+    SITES,
+    { store, now: () => new Date("2026-07-11T20:00:00.000Z") },
+  );
+  assert.equal(deniedCompletionResponse.status, 404);
+
+  store.rateLimited = false;
+  const pastRequest = {
+    clientTripId: "trip_20000000-0000-4000-8000-000000000002",
+    requestToken: "past-idempotency-token-00000000000000000001",
+  };
+  const pastForm = () => {
+    const form = new FormData();
+    form.set("siteId", "crissy-field");
+    form.set("startedAt", "2026-07-10T15:00:00.000Z");
+    form.set("endedAt", "2026-07-10T18:00:00.000Z");
+    form.set("keeperCount", "0");
+    form.set("shortReleasedCount", "0");
+    form.set("otherCatchCount", "0");
+    form.set("reporterKey", reporterKey);
+    addRequiredCompletionFields(form, { mode: "beach" });
+    form.set("clientTripId", pastRequest.clientTripId);
+    form.set("requestToken", pastRequest.requestToken);
+    return form;
+  };
+  const firstPastResponse = await handleTripRequest(
+    multipartRequest("/api/trips/report", pastForm()),
+    {},
+    SITES,
+    { store, now },
+  );
+  assert.equal(firstPastResponse.status, 201);
+  const firstPast = await firstPastResponse.json();
+  assert.deepEqual(firstPast.receipt, { operation: "past", tripId: pastRequest.clientTripId });
+  assert.equal(store.trips.size, 2);
+
+  store.rateLimited = true;
+  const retryPastResponse = await handleTripRequest(
+    multipartRequest("/api/trips/report", pastForm()),
+    {},
+    SITES,
+    { store, now },
+  );
+  assert.equal(retryPastResponse.status, 201);
+  const retryPast = await retryPastResponse.json();
+  assert.equal(retryPast.trip.id, firstPast.trip.id);
+  assert.equal(store.trips.size, 2);
+  const wrongReporterPast = pastForm();
+  wrongReporterPast.set("reporterKey", "different-device-key-12345678901234");
+  const deniedPastResponse = await handleTripRequest(
+    multipartRequest("/api/trips/report", wrongReporterPast),
+    {},
+    SITES,
+    { store, now },
+  );
+  assert.equal(deniedPastResponse.status, 409);
 });
 
 test("start and complete persist privacy-safe validation fields", async () => {

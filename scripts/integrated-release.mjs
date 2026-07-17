@@ -30,6 +30,7 @@ export const STAGED_MIGRATIONS = Object.freeze([
   "0014_validation_feasibility_recruitment_and_corrections.sql",
   "0015_validation_snapshot_suppression.sql",
   "0016_data_resilience_indexes.sql",
+  "0017_trip_idempotency.sql",
 ]);
 export const ALL_RELEASE_MIGRATIONS = Object.freeze([
   ...BASE_APPLIED_MIGRATIONS,
@@ -108,6 +109,10 @@ const STAGE_ABSENCE_QUERIES = Object.freeze({
       'validation_feasibility_recruitment_user_sequence_idx',
       'validation_feasibility_correction_activation_sequence_idx'
     )`,
+  "0017_trip_idempotency.sql": `
+    SELECT COUNT(*) AS target_artifacts_found
+    FROM pragma_table_info('trips')
+    WHERE name = 'idempotency_key_hash'`,
 });
 
 function fail(label, expected, actual) {
@@ -242,6 +247,7 @@ export function verifyFinalPostflight(payload) {
     validation_tables: 11,
     snapshot_suppression_columns: 2,
     data_resilience_indexes: 15,
+    trip_idempotency_columns: 1,
     non_legacy_trip_rows: 0,
     trip_photo_locators: 0,
     discussion_rows_with_approval_metadata: 0,

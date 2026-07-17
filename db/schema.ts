@@ -223,6 +223,7 @@ export const trips = sqliteTable(
     reporterKeyHash: text("reporter_key_hash").notNull(),
     referralCode: text("referral_code"),
     tokenHash: text("token_hash"),
+    idempotencyKeyHash: text("idempotency_key_hash"),
     opportunityWindowId: text("opportunity_window_id"),
     opportunityScore: real("opportunity_score"),
     habitatScore: real("habitat_score"),

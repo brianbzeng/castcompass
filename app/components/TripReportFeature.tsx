@@ -21,15 +21,23 @@ const LEGACY_ACTIVE_TRIP_KEY = "contourcast.active-trip.v1";
 const REPORTER_KEY = "castingcompass.reporter-key.v1";
 const LEGACY_REPORTER_KEY = "contourcast.reporter-key.v1";
 const TRIP_DRAFT_PREFIX = "castingcompass.trip-draft.v1.";
+const TRIP_REQUEST_PREFIX = "castingcompass.trip-request.v1.";
+const TRIP_PENDING_PREFIX = "castingcompass.trip-pending.v1.";
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const PHOTO_UPLOADS_ENABLED = process.env.NEXT_PUBLIC_PHOTO_UPLOADS !== "false";
-// Trip writes do not yet expose an idempotency key or reconciliation endpoint.
-// Keep a slow request pending instead of aborting or replaying an ambiguous write.
+// Keep a slow request pending. If its response is lost, the stable request
+// identity below makes an explicit user retry idempotent; nothing auto-replays.
 const SLOW_SUBMISSION_NOTICE_MS = 4_000;
 
 type Panel = "start" | "complete" | "past";
-type SubmitState = "idle" | "submitting" | "success" | "error";
+type SubmitState = "idle" | "submitting" | "success" | "error" | "ambiguous";
+type TripReceiptOperation = "start" | "complete" | "past";
+
+interface TripRequestMaterial {
+  id: string;
+  token: string;
+}
 
 interface StoredActiveTrip {
   id: string;
@@ -311,23 +319,109 @@ async function responsePayload(response: Response) {
   return payload;
 }
 
-function isConnectionFailure(error: unknown) {
-  return error instanceof TypeError;
+class AmbiguousTripSubmissionError extends Error {
+  constructor() {
+    super("The server response did not provide an exact trip receipt.");
+    this.name = "AmbiguousTripSubmissionError";
+  }
+}
+
+async function tripSubmissionPayload(response: Response) {
+  let payload: Record<string, unknown>;
+  try {
+    payload = await response.json() as Record<string, unknown>;
+  } catch {
+    if (response.ok || response.status >= 500) throw new AmbiguousTripSubmissionError();
+    throw new Error("The report was rejected without a readable explanation. Review it and try again.");
+  }
+  if (!response.ok) {
+    if (response.status >= 500) throw new AmbiguousTripSubmissionError();
+    const nestedError = payload.error && typeof payload.error === "object"
+      ? (payload.error as Record<string, unknown>).message
+      : payload.error;
+    const detail = nestedError ?? payload.message ?? payload.detail;
+    throw new Error(typeof detail === "string" ? detail : "The report was not accepted. Review it and try again.");
+  }
+  return payload;
+}
+
+function exactTripReceipt(
+  payload: Record<string, unknown>,
+  operation: TripReceiptOperation,
+  tripId: string,
+  status: "active" | "completed",
+  source: "live" | "past_report",
+) {
+  const receipt = payload.receipt && typeof payload.receipt === "object"
+    ? payload.receipt as Record<string, unknown>
+    : {};
+  const trip = payload.trip && typeof payload.trip === "object"
+    ? payload.trip as Record<string, unknown>
+    : {};
+  if (
+    receipt.operation !== operation || receipt.tripId !== tripId ||
+    trip.id !== tripId || trip.status !== status || trip.source !== source
+  ) throw new AmbiguousTripSubmissionError();
+  return trip;
+}
+
+function secureTripRequestMaterial(operation: "start" | "past") {
+  const storageKey = `${TRIP_REQUEST_PREFIX}${operation}`;
+  const stored = window.localStorage.getItem(storageKey);
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored) as Partial<TripRequestMaterial>;
+      if (
+        typeof parsed.id === "string" && /^trip_[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(parsed.id) &&
+        typeof parsed.token === "string" && /^[A-Za-z0-9_-]{43}$/.test(parsed.token)
+      ) return { id: parsed.id, token: parsed.token };
+    } catch {
+      // Replace corrupt local request material with a new cryptographic identity.
+    }
+  }
+  if (typeof window.crypto?.randomUUID !== "function" || typeof window.crypto?.getRandomValues !== "function") {
+    throw new Error("This browser cannot create a secure trip recovery identity. Update the browser before submitting.");
+  }
+  const bytes = window.crypto.getRandomValues(new Uint8Array(32));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  const material = {
+    id: `trip_${window.crypto.randomUUID()}`,
+    token: window.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""),
+  };
+  window.localStorage.setItem(storageKey, JSON.stringify(material));
+  return material;
+}
+
+function tripPendingKey(operation: "start" | "past" | `complete.${string}`) {
+  return `${TRIP_PENDING_PREFIX}${operation}`;
+}
+
+function markTripPending(operation: "start" | "past" | `complete.${string}`) {
+  window.localStorage.setItem(tripPendingKey(operation), new Date().toISOString());
+}
+
+function clearTripPending(operation: "start" | "past" | `complete.${string}`) {
+  window.localStorage.removeItem(tripPendingKey(operation));
+}
+
+function isAmbiguousSubmission(error: unknown) {
+  return error instanceof TypeError || error instanceof AmbiguousTripSubmissionError;
 }
 
 function ambiguousSubmissionMessage(operation: "start" | "complete" | "past") {
   if (operation === "start") {
-    return "No server confirmation arrived. This device kept the start draft, but do not assume the trip started. Reconnect and contact support before retrying if no active-trip banner appears.";
+    return "No exact server receipt arrived. This device kept the draft and recovery identity. Do not assume the trip started; retrying here is safe and cannot create a duplicate.";
   }
-  return "No server confirmation arrived. This device kept the draft, but the server may already have accepted the report. Reconnect and check your Profile before retrying to avoid a duplicate.";
+  return "No exact server receipt arrived. This device kept the draft and recovery identity. The server may already have accepted it, but retrying here is safe and cannot create a duplicate.";
 }
 
 function TripFormStatus({ state, message }: { state: SubmitState; message: string }) {
   return (
     <div
       className={`trip-form-status ${state}`}
-      role={state === "error" ? "alert" : "status"}
-      aria-live={state === "error" ? undefined : "polite"}
+      role={state === "error" || state === "ambiguous" ? "alert" : "status"}
+      aria-live={state === "error" || state === "ambiguous" ? undefined : "polite"}
     >
       <span>{message}</span>
       {state === "submitting" ? <i aria-hidden="true" /> : null}
@@ -493,6 +587,15 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
     } else {
       const fallback = freshFields(siteId ?? sites[0]?.id ?? "");
       setFields(parseFormDraft(window.localStorage.getItem(`${TRIP_DRAFT_PREFIX}past`), fallback));
+    }
+
+    const pendingOperation = nextPanel === "complete"
+      ? activeTrip ? `complete.${activeTrip.id}` as const : null
+      : nextPanel;
+    if (pendingOperation && window.localStorage.getItem(tripPendingKey(pendingOperation))) {
+      setFormStep(2);
+      setSubmitState("ambiguous");
+      setMessage(ambiguousSubmissionMessage(nextPanel));
     }
 
     if (nextPanel === "past") {
@@ -690,12 +793,16 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
       setMessage("Still waiting for the server. Keep this page open; no trip start has been confirmed yet.");
     }, SLOW_SUBMISSION_NOTICE_MS);
     try {
+      const requestMaterial = secureTripRequestMaterial("start");
       const startedAt = new Date().toISOString();
       const forecastWindow = findForecastWindow(snapshot, site.id, startedAt);
+      markTripPending("start");
       const response = await fetch("/api/trips/start", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
+          clientTripId: requestMaterial.id,
+          requestToken: requestMaterial.token,
           siteId: site.id,
           startedAt,
           anglerCount: fields.anglerCount,
@@ -716,11 +823,11 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
           ...forecastFields(forecastWindow),
         }),
       });
-      const payload = await responsePayload(response);
-      const trip = payload.trip && typeof payload.trip === "object" ? payload.trip as Record<string, unknown> : {};
-      const id = typeof trip.id === "string" ? trip.id : typeof payload.tripId === "string" ? payload.tripId : null;
+      const payload = await tripSubmissionPayload(response);
+      const trip = exactTripReceipt(payload, "start", requestMaterial.id, "active", "live");
+      const id = requestMaterial.id;
       const token = typeof payload.token === "string" ? payload.token : null;
-      if (!id || !token) throw new Error("The trip started, but this browser did not receive a recovery token.");
+      if (token !== requestMaterial.token) throw new AmbiguousTripSubmissionError();
       const authoritativeStartedAt = typeof trip.startedAt === "string" ? trip.startedAt : startedAt;
       const stored: StoredActiveTrip = {
         id,
@@ -744,12 +851,19 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
       window.localStorage.setItem(ACTIVE_TRIP_KEY, JSON.stringify(stored));
       window.localStorage.removeItem(LEGACY_ACTIVE_TRIP_KEY);
       window.localStorage.removeItem(`${TRIP_DRAFT_PREFIX}start`);
+      window.localStorage.removeItem(`${TRIP_REQUEST_PREFIX}start`);
+      clearTripPending("start");
       setActiveTrip(stored);
       setSubmitState("success");
       setMessage("Trip started. Return here when you finish—even if the result is zero fish.");
     } catch (error) {
-      setSubmitState("error");
-      setMessage(isConnectionFailure(error)
+      const ambiguous = isAmbiguousSubmission(error);
+      if (!ambiguous) {
+        window.localStorage.removeItem(`${TRIP_REQUEST_PREFIX}start`);
+        clearTripPending("start");
+      }
+      setSubmitState(ambiguous ? "ambiguous" : "error");
+      setMessage(ambiguous
         ? ambiguousSubmissionMessage("start")
         : error instanceof Error ? error.message : "The trip could not be started.");
     } finally {
@@ -780,14 +894,17 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
       formData.set("mode", fields.mode);
       formData.set("fishingMethod", fields.fishingMethod);
       formData.set("method", fields.fishingMethod);
+      markTripPending(`complete.${activeTrip.id}`);
       const response = await fetch(`/api/trips/${encodeURIComponent(activeTrip.id)}/complete`, {
         method: "POST",
         body: formData,
       });
-      await responsePayload(response);
+      const payload = await tripSubmissionPayload(response);
+      exactTripReceipt(payload, "complete", activeTrip.id, "completed", "live");
       window.localStorage.removeItem(ACTIVE_TRIP_KEY);
       window.localStorage.removeItem(LEGACY_ACTIVE_TRIP_KEY);
       window.localStorage.removeItem(`${TRIP_DRAFT_PREFIX}complete.${activeTrip.id}`);
+      clearTripPending(`complete.${activeTrip.id}`);
       setActiveTrip(null);
       void refreshSummary(setSummary, setSummaryUnavailable);
       setSubmitState("success");
@@ -797,8 +914,10 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
           ? "Non-target fish recorded with zero California halibut. The complete result is pending review."
         : "Trip recorded and pending review. Thanks for helping build the evaluation backlog.");
     } catch (error) {
-      setSubmitState("error");
-      setMessage(isConnectionFailure(error)
+      const ambiguous = isAmbiguousSubmission(error);
+      if (!ambiguous) clearTripPending(`complete.${activeTrip.id}`);
+      setSubmitState(ambiguous ? "ambiguous" : "error");
+      setMessage(ambiguous
         ? ambiguousSubmissionMessage("complete")
         : error instanceof Error ? error.message : "The trip could not be completed.");
     } finally {
@@ -835,8 +954,11 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
       setMessage("Still saving. The draft remains on this device, and no report is confirmed yet.");
     }, SLOW_SUBMISSION_NOTICE_MS);
     try {
+      const requestMaterial = secureTripRequestMaterial("past");
       const formData = new FormData();
       appendCompletionFields(formData, fields, photo);
+      formData.set("clientTripId", requestMaterial.id);
+      formData.set("requestToken", requestMaterial.token);
       formData.set("siteId", site.id);
       formData.set("anglerCount", String(fields.anglerCount));
       formData.set("mode", fields.mode);
@@ -845,9 +967,13 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
       formData.set("scoreInfluencedChoice", String(fields.scoreInfluencedChoice === "yes"));
       formData.set("reporterKey", anonymousReporterKey());
       if (referralCodeRef.current) formData.set("referralCode", referralCodeRef.current);
+      markTripPending("past");
       const response = await fetch("/api/trips/report", { method: "POST", body: formData });
-      await responsePayload(response);
+      const payload = await tripSubmissionPayload(response);
+      exactTripReceipt(payload, "past", requestMaterial.id, "completed", "past_report");
       window.localStorage.removeItem(`${TRIP_DRAFT_PREFIX}past`);
+      window.localStorage.removeItem(`${TRIP_REQUEST_PREFIX}past`);
+      clearTripPending("past");
       void refreshSummary(setSummary, setSummaryUnavailable);
       setSubmitState("success");
       setMessage(anyFishEncounters === 0
@@ -856,8 +982,13 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
           ? "Non-target fish recorded with zero California halibut. The complete result is pending review."
         : "Past trip recorded and pending review. Thank you.");
     } catch (error) {
-      setSubmitState("error");
-      setMessage(isConnectionFailure(error)
+      const ambiguous = isAmbiguousSubmission(error);
+      if (!ambiguous) {
+        window.localStorage.removeItem(`${TRIP_REQUEST_PREFIX}past`);
+        clearTripPending("past");
+      }
+      setSubmitState(ambiguous ? "ambiguous" : "error");
+      setMessage(ambiguous
         ? ambiguousSubmissionMessage("past")
         : error instanceof Error ? error.message : "The trip could not be reported.");
     } finally {
@@ -938,6 +1069,7 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
 
             {panel === "start" ? (
               <form onSubmit={formStep === 1 ? (event) => { event.preventDefault(); setFormStep(2); } : startTrip}>
+                <fieldset className="trip-write-fields" disabled={submitState === "submitting" || submitState === "ambiguous"}>
                 <header className="trip-form-heading">
                   <h2 id="trip-modal-title">Start fishing.</h2>
                   <p>We save the chosen forecast now, then ask for the full result when you finish.</p>
@@ -1008,8 +1140,9 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
                 </label>
                 </>}
                 {formStep === 2 ? <button className="trip-back-button" type="button" onClick={() => setFormStep(1)}>← Back to trip details</button> : null}
+                </fieldset>
                 <button className="trip-submit" type="submit" disabled={submitState === "submitting" || Boolean(activeTrip) || (formStep === 2 && networkState === "offline")}>
-                  {activeTrip ? "Finish the active trip first" : formStep === 1 ? "Continue to gear" : submitState === "submitting" ? "Starting…" : networkState === "offline" ? "Reconnect to start trip" : "Start trip"}
+                  {activeTrip ? "Finish the active trip first" : submitState === "ambiguous" ? "Retry start safely" : formStep === 1 ? "Continue to gear" : submitState === "submitting" ? "Starting…" : networkState === "offline" ? "Reconnect to start trip" : "Start trip"}
                   {!activeTrip && submitState !== "submitting" ? <ArrowIcon /> : null}
                 </button>
                 <TripFormStatus state={displayedSubmitState} message={displayedSubmitMessage} />
@@ -1018,6 +1151,7 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
 
             {panel === "complete" && activeTrip ? (
               <form onSubmit={completeTrip}>
+                <fieldset className="trip-write-fields" disabled={submitState === "submitting" || submitState === "ambiguous"}>
                 <header className="trip-form-heading">
                   <h2 id="trip-modal-title">Finish the trip.</h2>
                   <p>{activeTrip.siteName} · Finish time is recorded when you submit. California halibut is the fixed target. Zero in every fish-count field records a no-fish trip.</p>
@@ -1037,6 +1171,7 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
                 </label>
                 <TripGearFields fields={fields} setFields={setFields} gearProfiles={gearProfiles} applyGearProfile={applyGearProfile} includeObservations />
                 <TripCompletionFields fields={fields} setFields={setFields} updateCount={updateCount} photo={photo} photoInputRef={photoInputRef} onPhoto={handlePhoto} hideTimes />
+                </fieldset>
                 <button className="trip-submit" type="submit" disabled={submitState === "submitting" || submitState === "success" || networkState === "offline"}>
                   {submitState === "submitting"
                     ? "Saving…"
@@ -1044,12 +1179,14 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
                       ? "Reconnect to save report"
                     : submitState === "success"
                       ? "Report saved"
+                    : submitState === "ambiguous"
+                      ? "Retry safely"
                       : anyFishEncounters === 0
                         ? "Record no-fish trip"
                         : targetEncounters > 0
                           ? `Record ${targetEncounters} halibut`
                           : `Record ${fields.otherCatchCount} non-target fish`}
-                  {submitState === "idle" || submitState === "error" ? <ArrowIcon /> : null}
+                  {submitState === "idle" || submitState === "error" || submitState === "ambiguous" ? <ArrowIcon /> : null}
                 </button>
                 <TripFormStatus state={displayedSubmitState} message={displayedSubmitMessage} />
               </form>
@@ -1065,6 +1202,7 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
 
             {panel === "past" ? (
               <form onSubmit={formStep === 1 ? (event) => { event.preventDefault(); setFormStep(2); } : reportPastTrip}>
+                <fieldset className="trip-write-fields" disabled={submitState === "submitting" || submitState === "ambiguous"}>
                 <header className="trip-form-heading">
                   <h2 id="trip-modal-title">Log a past trip.</h2>
                   <p>Complete past results—including zero fish—provide exploratory context. They cannot enter prospective primary evidence.</p>
@@ -1120,9 +1258,10 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
                 <TripCompletionFields fields={fields} setFields={setFields} updateCount={updateCount} photo={photo} photoInputRef={photoInputRef} onPhoto={handlePhoto} hideTimes />
                 </>}
                 {formStep === 2 ? <button className="trip-back-button" type="button" onClick={() => setFormStep(1)}>← Back to trip details</button> : null}
+                </fieldset>
                 <button className="trip-submit" type="submit" disabled={submitState === "submitting" || submitState === "success" || (formStep === 2 && networkState === "offline")}>
-                  {formStep === 1 ? "Continue to gear + result" : submitState === "submitting" ? "Saving…" : networkState === "offline" ? "Reconnect to save report" : submitState === "success" ? "Report saved" : anyFishEncounters === 0 ? "Record no-fish trip" : "Submit trip report"}
-                  {submitState === "idle" || submitState === "error" ? <ArrowIcon /> : null}
+                  {submitState === "ambiguous" ? "Retry safely" : formStep === 1 ? "Continue to gear + result" : submitState === "submitting" ? "Saving…" : networkState === "offline" ? "Reconnect to save report" : submitState === "success" ? "Report saved" : anyFishEncounters === 0 ? "Record no-fish trip" : "Submit trip report"}
+                  {submitState === "idle" || submitState === "error" || submitState === "ambiguous" ? <ArrowIcon /> : null}
                 </button>
                 <TripFormStatus state={displayedSubmitState} message={displayedSubmitMessage} />
               </form>

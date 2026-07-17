@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Route } from "@playwright/test";
 
 const TURNSTILE_MOCK_SCRIPT = `(() => {
   let sequence = 0;
@@ -36,6 +36,15 @@ async function preparePastTripForSubmission(page: Page) {
   await modal.getByRole("button", { name: "Continue to gear + result" }).click();
   for (const checkbox of await modal.locator(".consent-field input").all()) await checkbox.check();
   return modal;
+}
+
+function pastTripReceipt(route: Route) {
+  const tripId = route.request().postData()?.match(/trip_[a-f0-9-]{36}/)?.[0];
+  if (!tripId) throw new Error("Past-trip request did not include a client trip identity.");
+  return {
+    trip: { id: tripId, status: "completed", source: "past_report" },
+    receipt: { operation: "past", tripId },
+  };
 }
 
 async function prepareAccountDeletion(page: Page) {
@@ -437,7 +446,7 @@ test.describe("trip network recovery", () => {
     await page.route("**/api/trips/report", async (route) => {
       reportAttempts += 1;
       await new Promise((resolve) => setTimeout(resolve, 6_000));
-      return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ tripId: "trip_slow_success" }) });
+      return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(pastTripReceipt(route)) });
     });
 
     const modal = await preparePastTripForSubmission(page);
@@ -455,19 +464,38 @@ test.describe("trip network recovery", () => {
 
   test("a failed trip save remains ambiguous and keeps its draft", async ({ page }) => {
     let reportAttempts = 0;
+    const submittedTripIds: string[] = [];
     await page.route("**/api/trips/report", (route) => {
       reportAttempts += 1;
-      return route.abort("connectionfailed");
+      const receipt = pastTripReceipt(route);
+      submittedTripIds.push(receipt.trip.id);
+      if (reportAttempts === 1) return route.abort("connectionfailed");
+      return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(receipt) });
     });
 
     const modal = await preparePastTripForSubmission(page);
     await modal.getByRole("button", { name: "Record no-fish trip" }).click();
     const alert = modal.getByRole("alert");
-    await expect(alert).toContainText("server may already have accepted the report");
-    await expect(alert).toContainText("check your Profile before retrying to avoid a duplicate");
-    await expect(modal.getByRole("button", { name: "Record no-fish trip" })).toBeEnabled();
+    await expect(alert).toContainText("server may already have accepted it");
+    await expect(alert).toContainText("retrying here is safe and cannot create a duplicate");
+    await expect(modal.getByRole("button", { name: "Retry safely" })).toBeEnabled();
+    await expect(modal.locator("fieldset.trip-write-fields input").first()).toBeDisabled();
     expect(reportAttempts).toBe(1);
     expect(await page.evaluate(() => window.localStorage.getItem("castingcompass.trip-draft.v1.past"))).not.toBeNull();
+    expect(await page.evaluate(() => window.localStorage.getItem("castingcompass.trip-request.v1.past"))).not.toBeNull();
+    expect(await page.evaluate(() => window.localStorage.getItem("castingcompass.trip-pending.v1.past"))).not.toBeNull();
+
+    await modal.getByRole("button", { name: "Close trip report" }).click();
+    await page.getByRole("button", { name: "Log a past trip" }).click();
+    await expect(modal.getByRole("button", { name: "Retry safely" })).toBeEnabled();
+    await expect(modal.locator("fieldset.trip-write-fields input").first()).toBeDisabled();
+    await modal.getByRole("button", { name: "Retry safely" }).click();
+    await expect(modal.getByRole("button", { name: "Report saved" })).toBeDisabled();
+    expect(reportAttempts).toBe(2);
+    expect(submittedTripIds[1]).toBe(submittedTripIds[0]);
+    expect(await page.evaluate(() => window.localStorage.getItem("castingcompass.trip-draft.v1.past"))).toBeNull();
+    expect(await page.evaluate(() => window.localStorage.getItem("castingcompass.trip-request.v1.past"))).toBeNull();
+    expect(await page.evaluate(() => window.localStorage.getItem("castingcompass.trip-pending.v1.past"))).toBeNull();
   });
 });
 

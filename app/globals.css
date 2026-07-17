@@ -4390,6 +4390,14 @@ footer > div {
   cursor: not-allowed;
 }
 
+.trip-write-fields {
+  display: contents;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 .trip-submit svg {
   width: 17px;
 }
@@ -4430,7 +4438,8 @@ footer > div {
   to { transform: translateX(340%); }
 }
 
-.trip-form-status.error {
+.trip-form-status.error,
+.trip-form-status.ambiguous {
   color: #ff9e8f;
 }
 

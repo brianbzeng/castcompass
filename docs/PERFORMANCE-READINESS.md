@@ -61,7 +61,7 @@ semantics:
 | Operation | Current boundary | Reason / next gate |
 | --- | --- | --- |
 | Authorization, session validation, rate limits, password decisions | Synchronous | The response cannot be correct before the decision; never move these to background work |
-| Trip start/completion/edit and active-data privacy deletion | Synchronous atomic D1 batches | User-visible consistency, ownership checks, immutable evidence, and cascade order must commit before success |
+| Trip start/completion/edit and active-data privacy deletion | Synchronous atomic D1 batches | User-visible consistency, ownership checks, immutable evidence, and cascade order must commit before success. Start, completion, and past-report retries use client-held high-entropy request material, server-side one-way hashes, principal binding, and exact receipts; automatic replay remains prohibited |
 | Email delivery | Awaited when delivery determines whether the flow can proceed; `waitUntil` only where a durable challenge already exists and retry is safe | Provider idempotency key is supplied; centralized delivery status/alerting is still needed |
 | AI advisory review | `waitUntil` after the authoritative trip write; scheduled backlog with atomic row claim and bounded provider deadline | Move to a managed queue before high traffic; require idempotency, cost ceiling, retry/backoff, dead-letter state, and operator replay |
 | Privacy object purge | Durable D1 job/task ledger processed after active-data removal | Existing leases, retry bounds, attention state, and receipts preserve correctness; dashboard alerting and production-shaped drills remain open |

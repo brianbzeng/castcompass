@@ -56,8 +56,8 @@ test("trip UX distinguishes no fish, target encounters, and unresolved non-targe
   assert.match(source, /image\/jpeg,image\/png,image\/webp/);
   assert.match(source, /MAX_PHOTO_BYTES = 5 \* 1024 \* 1024/);
   assert.match(source, /role="dialog"/);
-  assert.match(source, /role=\{state === "error" \? "alert" : "status"\}/);
-  assert.match(source, /aria-live=\{state === "error" \? undefined : "polite"\}/);
+  assert.match(source, /role=\{state === "error" \|\| state === "ambiguous" \? "alert" : "status"\}/);
+  assert.match(source, /aria-live=\{state === "error" \|\| state === "ambiguous" \? undefined : "polite"\}/);
 });
 
 test("trip entry points are present in the top bar, forecast detail, and validation section", async () => {

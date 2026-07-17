@@ -345,7 +345,10 @@ after its acceptance checks pass in the intended environment.
     before first load, and provide a generic inline retry without exposing diagnostics.
   - [x] Give trip writes truthful connection and slow-request states: pause new submissions when
     the browser reports offline, keep drafts, show indeterminate progress without invented
-    percentages, and never automatically replay an ambiguous write after reconnection.
+    percentages, and never automatically replay an ambiguous write after reconnection. Start,
+    completion, and past-report writes now use stable high-entropy request identities, retain
+    only one-way recovery-secret hashes after completion, bind replay to the same account/device,
+    require exact operation/trip receipts, and permit only an explicit idempotent user retry.
   - [x] Fail account deletion safely in the client: block offline submission, keep slow requests
     visibly unconfirmed, and treat a dropped response as potentially committed so the user is
     directed to the durable deletion receipt instead of retrying a destructive write.

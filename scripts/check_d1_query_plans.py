@@ -118,8 +118,8 @@ CHECKS = (
 
 def apply_migrations(connection: sqlite3.Connection) -> list[Path]:
     migrations = sorted(MIGRATIONS.glob("*.sql"))
-    if not migrations or migrations[-1].name != "0016_data_resilience_indexes.sql":
-        raise AssertionError("0016_data_resilience_indexes.sql must be the latest D1 migration")
+    if not migrations or migrations[-1].name != "0017_trip_idempotency.sql":
+        raise AssertionError("0017_trip_idempotency.sql must be the latest D1 migration")
     connection.execute("PRAGMA foreign_keys = ON")
     for path in migrations:
         sql = path.read_text(encoding="utf-8").replace("--> statement-breakpoint", "")

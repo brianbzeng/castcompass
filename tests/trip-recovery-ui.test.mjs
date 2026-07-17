@@ -23,8 +23,13 @@ test("reconnection never automatically replays an ambiguous write", () => {
   const onlineHandler = tripFeature.slice(onlineHandlerStart, onlineHandlerEnd);
   assert.doesNotMatch(onlineHandler, /fetch\(/);
   assert.match(tripFeature, /Nothing was resubmitted automatically/);
-  assert.match(tripFeature, /server may already have accepted the report/);
-  assert.match(tripFeature, /check your Profile before retrying to avoid a duplicate/);
+  assert.match(tripFeature, /server may already have accepted it/);
+  assert.match(tripFeature, /retrying here is safe and cannot create a duplicate/);
+  assert.match(tripFeature, /TRIP_REQUEST_PREFIX/);
+  assert.match(tripFeature, /exactTripReceipt/);
+  assert.match(tripFeature, /Retry safely/);
+  assert.match(tripFeature, /trip-write-fields/);
+  assert.match(tripFeature, /markTripPending/);
 });
 
 test("slow trip writes show honest indeterminate progress and retain drafts", () => {
