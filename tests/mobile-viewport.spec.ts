@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const TURNSTILE_MOCK_SCRIPT = `(() => {
   let sequence = 0;
@@ -26,11 +26,24 @@ const TURNSTILE_MOCK_SCRIPT = `(() => {
   };
 })();`;
 
+async function preparePastTripForSubmission(page: Page) {
+  await page.getByRole("button", { name: "Log a past trip" }).click();
+  const modal = page.locator(".trip-modal");
+  await modal.getByLabel("Fishing mode for the whole trip").selectOption("shore");
+  await modal.getByLabel("Did the score influence this trip?").selectOption("no");
+  await modal.getByRole("button", { name: "Continue to gear + result" }).click();
+  for (const checkbox of await modal.locator(".consent-field input").all()) await checkbox.check();
+  return modal;
+}
+
 test.beforeEach(async ({ page }, testInfo) => {
   if (testInfo.title.includes("failed lazy route dependency")) {
     await page.route("**/assets/ContourMap-*.js", (route) => route.abort());
   }
   const profileRecoveryTest = testInfo.title.includes("failed profile load stays unknown");
+  const tripRecoveryTest = testInfo.title.includes("trip submissions pause while offline") ||
+    testInfo.title.includes("slow trip save stays pending") ||
+    testInfo.title.includes("failed trip save remains ambiguous");
   let profileAttempts = 0;
   await page.route("**/api/auth/session", (route) => route.fulfill({
     status: 200,
@@ -38,10 +51,12 @@ test.beforeEach(async ({ page }, testInfo) => {
     body: JSON.stringify({
       user: profileRecoveryTest
         ? { id: "user_profile_recovery", email: "profiletest@example.com", ageEligible: true, legalAccepted: true }
+        : tripRecoveryTest
+          ? { id: "user_trip_recovery", email: "triptest@example.com", ageEligible: true, legalAccepted: true }
         : null,
     }),
   }));
-  if (profileRecoveryTest) {
+  if (profileRecoveryTest || tripRecoveryTest) {
     await page.route("**/api/saved-sites", (route) => route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -52,6 +67,8 @@ test.beforeEach(async ({ page }, testInfo) => {
       contentType: "application/json",
       body: JSON.stringify({ gearProfiles: [] }),
     }));
+  }
+  if (profileRecoveryTest) {
     await page.route("**/api/profile", (route) => {
       profileAttempts += 1;
       if (profileAttempts === 1) {
@@ -200,6 +217,70 @@ test.describe("profile recovery", () => {
     await expect(page.getByText("Limantour Beach", { exact: true })).toBeVisible();
     await expect(page.locator(".profile-summary")).toContainText("1Saved locations");
     await expect(page.locator(".profile-summary")).toContainText("0Completed trips");
+  });
+});
+
+test.describe("trip network recovery", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("trip submissions pause while offline and never replay automatically", async ({ page, context }) => {
+    let reportAttempts = 0;
+    await page.route("**/api/trips/report", (route) => {
+      reportAttempts += 1;
+      return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ tripId: "unexpected" }) });
+    });
+
+    await expect(page.locator(".account-label")).toHaveText("triptest");
+    const modal = await preparePastTripForSubmission(page);
+    await expect(modal.getByRole("button", { name: "Record no-fish trip" })).toBeVisible();
+
+    await context.setOffline(true);
+    await expect(modal.getByRole("alert")).toContainText("trip submissions are paused");
+    await expect(modal.getByRole("button", { name: "Reconnect to save report" })).toBeDisabled();
+
+    await context.setOffline(false);
+    await expect(modal.getByRole("status").filter({ hasText: "Nothing was resubmitted automatically" })).toBeVisible();
+    await expect(modal.getByRole("button", { name: "Record no-fish trip" })).toBeEnabled();
+    await page.waitForTimeout(100);
+    expect(reportAttempts).toBe(0);
+  });
+
+  test("a slow trip save stays pending until authoritative confirmation", async ({ page }) => {
+    let reportAttempts = 0;
+    await page.route("**/api/trips/report", async (route) => {
+      reportAttempts += 1;
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
+      return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ tripId: "trip_slow_success" }) });
+    });
+
+    const modal = await preparePastTripForSubmission(page);
+    await modal.getByRole("button", { name: "Record no-fish trip" }).click();
+    const status = modal.locator(".trip-form-status");
+    await expect(status).toContainText("no report is confirmed yet", { timeout: 5_500 });
+    await expect(status.locator("i")).toBeVisible();
+    await expect(modal.getByRole("button", { name: "Saving…" })).toBeDisabled();
+    expect(reportAttempts).toBe(1);
+
+    await expect(status).toContainText("No-fish trip recorded and pending review", { timeout: 8_000 });
+    await expect(modal.getByRole("button", { name: "Report saved" })).toBeDisabled();
+    expect(await page.evaluate(() => window.localStorage.getItem("castingcompass.trip-draft.v1.past"))).toBeNull();
+  });
+
+  test("a failed trip save remains ambiguous and keeps its draft", async ({ page }) => {
+    let reportAttempts = 0;
+    await page.route("**/api/trips/report", (route) => {
+      reportAttempts += 1;
+      return route.abort("connectionfailed");
+    });
+
+    const modal = await preparePastTripForSubmission(page);
+    await modal.getByRole("button", { name: "Record no-fish trip" }).click();
+    const alert = modal.getByRole("alert");
+    await expect(alert).toContainText("server may already have accepted the report");
+    await expect(alert).toContainText("check your Profile before retrying to avoid a duplicate");
+    await expect(modal.getByRole("button", { name: "Record no-fish trip" })).toBeEnabled();
+    expect(reportAttempts).toBe(1);
+    expect(await page.evaluate(() => window.localStorage.getItem("castingcompass.trip-draft.v1.past"))).not.toBeNull();
   });
 });
 

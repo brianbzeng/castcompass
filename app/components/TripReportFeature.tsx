@@ -23,9 +23,13 @@ const TRIP_DRAFT_PREFIX = "castingcompass.trip-draft.v1.";
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const PHOTO_UPLOADS_ENABLED = process.env.NEXT_PUBLIC_PHOTO_UPLOADS !== "false";
+// Trip writes do not yet expose an idempotency key or reconciliation endpoint.
+// Keep a slow request pending instead of aborting or replaying an ambiguous write.
+const SLOW_SUBMISSION_NOTICE_MS = 4_000;
 
 type Panel = "start" | "complete" | "past";
 type SubmitState = "idle" | "submitting" | "success" | "error";
+type NetworkState = "unknown" | "online" | "offline" | "restored";
 
 interface StoredActiveTrip {
   id: string;
@@ -307,6 +311,30 @@ async function responsePayload(response: Response) {
   return payload;
 }
 
+function isConnectionFailure(error: unknown) {
+  return error instanceof TypeError;
+}
+
+function ambiguousSubmissionMessage(operation: "start" | "complete" | "past") {
+  if (operation === "start") {
+    return "No server confirmation arrived. This device kept the start draft, but do not assume the trip started. Reconnect and contact support before retrying if no active-trip banner appears.";
+  }
+  return "No server confirmation arrived. This device kept the draft, but the server may already have accepted the report. Reconnect and check your Profile before retrying to avoid a duplicate.";
+}
+
+function TripFormStatus({ state, message }: { state: SubmitState; message: string }) {
+  return (
+    <div
+      className={`trip-form-status ${state}`}
+      role={state === "error" ? "alert" : "status"}
+      aria-live={state === "error" ? undefined : "polite"}
+    >
+      <span>{message}</span>
+      {state === "submitting" ? <i aria-hidden="true" /> : null}
+    </div>
+  );
+}
+
 async function refreshSummary(
   setSummary: (summary: SummaryView) => void,
   setUnavailable: (unavailable: boolean) => void,
@@ -404,6 +432,7 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
   const [message, setMessage] = useState("");
   const [summary, setSummary] = useState<SummaryView | null>(null);
   const [summaryUnavailable, setSummaryUnavailable] = useState(false);
+  const [networkState, setNetworkState] = useState<NetworkState>("unknown");
 
   const siteMap = useMemo(() => new Map(sites.map((site) => [site.id, site])), [sites]);
   const targetEncounters = fields.keeperCount + fields.shortReleasedCount;
@@ -411,6 +440,12 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
   const currentStartWindow = panel === "start"
     ? findForecastWindow(snapshot, fields.siteId, new Date().toISOString())
     : null;
+  const displayedSubmitState = submitState === "idle" && networkState === "offline" ? "error" : submitState;
+  const displayedSubmitMessage = submitState === "idle" && networkState === "offline"
+    ? "This device appears offline. Drafts stay on this device, and trip submissions are paused."
+    : submitState === "idle" && networkState === "restored"
+      ? "This device reports that its connection is back. Nothing was resubmitted automatically; review any earlier status before trying again."
+      : message;
 
   const resetFeedback = useCallback(() => {
     setSubmitState("idle");
@@ -496,6 +531,21 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
     }
     return () => window.cancelAnimationFrame(restoreFrame);
   }, [openPanel]);
+
+  useEffect(() => {
+    const initialSyncFrame = window.requestAnimationFrame(() => {
+      setNetworkState(window.navigator.onLine ? "online" : "offline");
+    });
+    const handleOffline = () => setNetworkState("offline");
+    const handleOnline = () => setNetworkState((current) => current === "offline" ? "restored" : "online");
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
+    return () => {
+      window.cancelAnimationFrame(initialSyncFrame);
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
 
   useEffect(() => {
     if (!request || request.key === lastRequestKeyRef.current) return;
@@ -618,6 +668,11 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
 
   const startTrip = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (networkState === "offline") {
+      setSubmitState("error");
+      setMessage("This device appears offline. The trip was not submitted; reconnect before starting it.");
+      return;
+    }
     const site = siteMap.get(fields.siteId);
     if (!site) {
       setSubmitState("error");
@@ -645,7 +700,10 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
       return;
     }
     setSubmitState("submitting");
-    setMessage("");
+    setMessage("Sending the trip start to the server. No trip is confirmed yet.");
+    const slowNotice = window.setTimeout(() => {
+      setMessage("Still waiting for the server. Keep this page open; no trip start has been confirmed yet.");
+    }, SLOW_SUBMISSION_NOTICE_MS);
     try {
       const startedAt = new Date().toISOString();
       const forecastWindow = findForecastWindow(snapshot, site.id, startedAt);
@@ -706,15 +764,27 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
       setMessage("Trip started. Return here when you finish—even if the result is zero fish.");
     } catch (error) {
       setSubmitState("error");
-      setMessage(error instanceof Error ? error.message : "The trip could not be started.");
+      setMessage(isConnectionFailure(error)
+        ? ambiguousSubmissionMessage("start")
+        : error instanceof Error ? error.message : "The trip could not be started.");
+    } finally {
+      window.clearTimeout(slowNotice);
     }
   };
 
   const completeTrip = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!activeTrip) return;
+    if (networkState === "offline") {
+      setSubmitState("error");
+      setMessage("This device appears offline. The report was not submitted and its draft remains on this device.");
+      return;
+    }
     setSubmitState("submitting");
-    setMessage("");
+    setMessage("Saving the complete trip report. Keep this page open until the server confirms it.");
+    const slowNotice = window.setTimeout(() => {
+      setMessage("Still saving. The draft remains on this device, and no completed report is confirmed yet.");
+    }, SLOW_SUBMISSION_NOTICE_MS);
     try {
       const formData = new FormData();
       appendCompletionFields(formData, fields, photo, false);
@@ -743,12 +813,21 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
         : "Trip recorded and pending review. Thanks for helping build the evaluation backlog.");
     } catch (error) {
       setSubmitState("error");
-      setMessage(error instanceof Error ? error.message : "The trip could not be completed.");
+      setMessage(isConnectionFailure(error)
+        ? ambiguousSubmissionMessage("complete")
+        : error instanceof Error ? error.message : "The trip could not be completed.");
+    } finally {
+      window.clearTimeout(slowNotice);
     }
   };
 
   const reportPastTrip = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (networkState === "offline") {
+      setSubmitState("error");
+      setMessage("This device appears offline. The report was not submitted and its draft remains on this device.");
+      return;
+    }
     const site = siteMap.get(fields.siteId);
     if (!site) {
       setSubmitState("error");
@@ -766,7 +845,10 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
       return;
     }
     setSubmitState("submitting");
-    setMessage("");
+    setMessage("Saving the past trip report. Keep this page open until the server confirms it.");
+    const slowNotice = window.setTimeout(() => {
+      setMessage("Still saving. The draft remains on this device, and no report is confirmed yet.");
+    }, SLOW_SUBMISSION_NOTICE_MS);
     try {
       const formData = new FormData();
       appendCompletionFields(formData, fields, photo);
@@ -790,7 +872,11 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
         : "Past trip recorded and pending review. Thank you.");
     } catch (error) {
       setSubmitState("error");
-      setMessage(error instanceof Error ? error.message : "The trip could not be reported.");
+      setMessage(isConnectionFailure(error)
+        ? ambiguousSubmissionMessage("past")
+        : error instanceof Error ? error.message : "The trip could not be reported.");
+    } finally {
+      window.clearTimeout(slowNotice);
     }
   };
 
@@ -937,11 +1023,11 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
                 </label>
                 </>}
                 {formStep === 2 ? <button className="trip-back-button" type="button" onClick={() => setFormStep(1)}>← Back to trip details</button> : null}
-                <button className="trip-submit" type="submit" disabled={submitState === "submitting" || Boolean(activeTrip)}>
-                  {activeTrip ? "Finish the active trip first" : formStep === 1 ? "Continue to gear" : submitState === "submitting" ? "Starting…" : "Start trip"}
+                <button className="trip-submit" type="submit" disabled={submitState === "submitting" || Boolean(activeTrip) || (formStep === 2 && networkState === "offline")}>
+                  {activeTrip ? "Finish the active trip first" : formStep === 1 ? "Continue to gear" : submitState === "submitting" ? "Starting…" : networkState === "offline" ? "Reconnect to start trip" : "Start trip"}
                   {!activeTrip && submitState !== "submitting" ? <ArrowIcon /> : null}
                 </button>
-                <div className={`trip-form-status ${submitState}`} aria-live="polite">{message}</div>
+                <TripFormStatus state={displayedSubmitState} message={displayedSubmitMessage} />
               </form>
             ) : null}
 
@@ -966,9 +1052,11 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
                 </label>
                 <TripGearFields fields={fields} setFields={setFields} gearProfiles={gearProfiles} applyGearProfile={applyGearProfile} includeObservations />
                 <TripCompletionFields fields={fields} setFields={setFields} updateCount={updateCount} photo={photo} photoInputRef={photoInputRef} onPhoto={handlePhoto} hideTimes />
-                <button className="trip-submit" type="submit" disabled={submitState === "submitting" || submitState === "success"}>
+                <button className="trip-submit" type="submit" disabled={submitState === "submitting" || submitState === "success" || networkState === "offline"}>
                   {submitState === "submitting"
                     ? "Saving…"
+                    : networkState === "offline"
+                      ? "Reconnect to save report"
                     : submitState === "success"
                       ? "Report saved"
                       : anyFishEncounters === 0
@@ -978,7 +1066,7 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
                           : `Record ${fields.otherCatchCount} non-target fish`}
                   {submitState === "idle" || submitState === "error" ? <ArrowIcon /> : null}
                 </button>
-                <div className={`trip-form-status ${submitState}`} aria-live="polite">{message}</div>
+                <TripFormStatus state={displayedSubmitState} message={displayedSubmitMessage} />
               </form>
             ) : null}
 
@@ -1047,11 +1135,11 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
                 <TripCompletionFields fields={fields} setFields={setFields} updateCount={updateCount} photo={photo} photoInputRef={photoInputRef} onPhoto={handlePhoto} hideTimes />
                 </>}
                 {formStep === 2 ? <button className="trip-back-button" type="button" onClick={() => setFormStep(1)}>← Back to trip details</button> : null}
-                <button className="trip-submit" type="submit" disabled={submitState === "submitting" || submitState === "success"}>
-                  {formStep === 1 ? "Continue to gear + result" : submitState === "submitting" ? "Saving…" : submitState === "success" ? "Report saved" : anyFishEncounters === 0 ? "Record no-fish trip" : "Submit trip report"}
+                <button className="trip-submit" type="submit" disabled={submitState === "submitting" || submitState === "success" || (formStep === 2 && networkState === "offline")}>
+                  {formStep === 1 ? "Continue to gear + result" : submitState === "submitting" ? "Saving…" : networkState === "offline" ? "Reconnect to save report" : submitState === "success" ? "Report saved" : anyFishEncounters === 0 ? "Record no-fish trip" : "Submit trip report"}
                   {submitState === "idle" || submitState === "error" ? <ArrowIcon /> : null}
                 </button>
-                <div className={`trip-form-status ${submitState}`} aria-live="polite">{message}</div>
+                <TripFormStatus state={displayedSubmitState} message={displayedSubmitMessage} />
               </form>
             ) : null}
 
