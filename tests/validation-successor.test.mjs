@@ -341,13 +341,14 @@ test("freezes non-adaptive feasibility gates and a separate confirmatory handoff
 });
 
 test("documents v1 as inactive, records local ledger progress, and leaves activation closed", async () => {
-  const [v1, successor, roadmap, pipelineReadme, modelCard, architecture] = await Promise.all([
+  const [v1, successor, roadmap, pipelineReadme, modelCard, architecture, storage] = await Promise.all([
     readFile(new URL("docs/VALIDATION-PROTOCOL.md", root), "utf8"),
     readFile(new URL("docs/VALIDATION-SUCCESSOR.md", root), "utf8"),
     readFile(new URL("docs/PRODUCT_ROADMAP.md", root), "utf8"),
     readFile(new URL("pipeline/README.md", root), "utf8"),
     readFile(new URL("docs/MODEL_CARD.md", root), "utf8"),
     readFile(new URL("docs/ARCHITECTURE.md", root), "utf8"),
+    readFile(new URL("docs/VALIDATION-STORAGE.md", root), "utf8"),
   ]);
   assert.match(v1, /do not activate v1/i);
   assert.match(v1, /supersedes it for any\s+future activation/i);
@@ -358,6 +359,7 @@ test("documents v1 as inactive, records local ledger progress, and leaves activa
   assert.match(successor, /- \[x\] Implement the privacy-safe deletion-linked participant token/);
   assert.match(successor, /- \[x\] Implement the append-only event ledger/);
   assert.match(successor, /- \[ \] Submit the exact protocol artifact to OSF/);
+  assert.match(successor, /89-day full-D1 operational drill[^.]+does not\s+satisfy this 730-day validation gate/is);
   assert.match(roadmap, /- \[x\] Freeze and locally verify the v2 successor schemas/);
   assert.match(roadmap, /- \[x\] Locally implement and verify the default-off v2 start\/completion\/safe-cancellation/);
   assert.match(roadmap, /- \[x\] Locally implement and verify append-only correction handling/);
@@ -367,4 +369,6 @@ test("documents v1 as inactive, records local ledger progress, and leaves activa
   assert.match(pipelineReadme, /No command below satisfies those gates/);
   assert.match(modelCard, /No run may claim evidence under historical v1 or the v2 feasibility pilot/);
   assert.match(architecture, /V2 retains the same source IDs for feasibility reporting but performs no pooled\s+candidate analysis/);
+  assert.match(storage, /Do not solve this by silently\s+retaining full account exports or raw identifiers for 730 days/i);
+  assert.match(storage, /validation_snapshot_and_restore_gate_passed: false/);
 });

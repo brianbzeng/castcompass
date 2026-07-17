@@ -23,6 +23,10 @@ after its acceptance checks pass in the intended environment.
     headers, a D1-backed health check and security.txt endpoints, provider-log redaction,
     secret scanning, immutable CI actions, dependency-update automation, and fail-closed
     release tooling.
+  - [x] Implement and locally verify AES-256-GCM sealing for full-D1 operational exports,
+    fixed 89-day retention, private checksum manifests, a role-labeled hash-chained audit log,
+    isolated restore, current deletion-ledger replay, validation-ledger integrity checks, and
+    aggregate-only evidence. No production backup or restore drill has been performed.
   - [ ] Deploy the reviewed release, configure and test edge rate limits and Turnstile, deliver
     test alerts, create an encrypted backup, complete a non-production restore drill, and
     attach the production evidence required by `docs/PRODUCTION-OPERATIONS.md`.
@@ -75,9 +79,12 @@ after its acceptance checks pass in the intended environment.
     immutable campaign sealed by D1 server time before activation; an HMAC invitation alone is
     not treated as proof of issue time. First-source-wins, account export/deletion, correction
     chaining, source-separated reconciliation, and adversarial mutation/timing cases are covered.
-  - [ ] Configure the encrypted snapshot/restore path and operator audit evidence; complete
-    legal/privacy/data-steward review; externally preregister the exact artifact; then seal and
-    deploy a valid activation manifest before the first pilot-eligible row.
+  - [ ] Approve and implement the separate 730-day validation-only snapshot and deletion-
+    suppression policy. The verified 89-day full-D1 operational restore path cannot satisfy
+    this gate without contradicting the current 90-day deletion-tombstone boundary. Then
+    configure production storage/operator evidence; complete legal/privacy/data-steward review;
+    externally preregister the exact artifact; and seal/deploy a valid activation manifest
+    before the first pilot-eligible row.
   - [ ] If the pilot passes, freeze and preregister a separate confirmatory protocol with a fixed
     candidate and baselines, source-separated development and locked test data, geographic/time
     holdouts, clustered uncertainty, minimum support, and promotion/drift/rollback gates. Never

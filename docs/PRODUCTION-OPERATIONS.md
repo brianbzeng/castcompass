@@ -81,6 +81,14 @@ authentication/session revocation behavior, and application reads. Record only a
 evidence, then destroy the drill copy. R2/photo backup is out of scope while uploads remain
 disabled; add a separate private-object restore drill before enabling photos.
 
+The repository's local sealing and deletion-replay tool is documented in
+`docs/VALIDATION-STORAGE.md`. It fixes full-D1 operational retention at 89 days, verifies
+AES-256-GCM artifacts and a private audit chain, restores only in a private temporary child,
+replays the preserved current deletion ledger, and writes aggregate-only evidence. Passing its
+tests is not evidence that a production artifact, key-custody policy, or reviewed drill exists.
+Its 89-day operational copy also does not satisfy the v2 pilot's separate 730-day validation-
+snapshot requirement.
+
 ### Privacy deletion ledger and restore suppression
 
 The `privacy_deletion_jobs` and `privacy_deletion_tasks` tables are operational privacy

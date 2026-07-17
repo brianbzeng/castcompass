@@ -1,0 +1,881 @@
+#!/usr/bin/env node
+
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+} from "node:crypto";
+import {
+  closeSync,
+  constants as fsConstants,
+  existsSync,
+  fsyncSync,
+  lstatSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { DatabaseSync } from "node:sqlite";
+
+import { buildFeasibilityReconciliationExport } from "../worker/validation-feasibility-export.ts";
+
+export const STORAGE_ARTIFACT_VERSION = "castingcompass.operational-storage-artifact/1.0.0";
+export const STORAGE_MANIFEST_VERSION = "castingcompass.operational-storage-manifest/1.0.0";
+export const PRIVACY_LEDGER_VERSION = "castingcompass.operational-privacy-ledger/1.0.0";
+export const STORAGE_AUDIT_VERSION = "castingcompass.operational-storage-audit/1.0.0";
+export const RESTORE_EVIDENCE_VERSION = "castingcompass.operational-restore-evidence/1.0.0";
+
+const MAGIC = Buffer.from("CCV2BK1\n", "ascii");
+const AUTH_TAG_BYTES = 16;
+const NONCE_BYTES = 12;
+const KEY_BYTES = 32;
+const MAX_HEADER_BYTES = 8 * 1024;
+const MAX_PLAINTEXT_BYTES = 512 * 1024 * 1024;
+const OPERATIONAL_RETENTION_DAYS = 89;
+const VALIDATION_RETENTION_DAYS = 730;
+const DAY_MILLISECONDS = 86_400_000;
+const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
+const ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/u;
+const ROLE_PATTERN = /^[a-z][a-z0-9-]{2,50}$/u;
+const ARTIFACT_KINDS = new Set(["d1-sql-export", "privacy-deletion-ledger"]);
+const RECONCILIATION_INTEGRITY_GATES = new Set([
+  "invalid_event_hash",
+  "duplicate_start_event",
+  "duplicate_terminal_event",
+  "orphan_terminal_event",
+  "terminal_identity_mismatch",
+  "invalid_correction_hash",
+  "invalid_correction_chain",
+  "privacy_removal_ledger_invalid",
+]);
+
+const JOB_COLUMNS = [
+  "id", "receipt_hash", "scope", "subject_hash", "owner_subject_hash", "state",
+  "objects_total", "objects_deleted", "last_error_code", "requested_at",
+  "active_data_removed_at", "completed_at", "updated_at",
+];
+const TASK_COLUMNS = [
+  "id", "job_id", "object_key", "object_key_hash", "state", "attempts",
+  "available_at", "lease_expires_at", "lease_token", "last_error_code",
+  "created_at", "updated_at", "completed_at",
+];
+
+function canonicalJson(value) {
+  if (value === null || typeof value === "boolean" || typeof value === "number" || typeof value === "string") {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (typeof value !== "object") throw new Error("Canonical JSON contains an unsupported value");
+  const object = value;
+  return `{${Object.keys(object).sort().map((key) => (
+    `${JSON.stringify(key)}:${canonicalJson(object[key])}`
+  )).join(",")}}`;
+}
+
+function sha256(value) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function strictTimestamp(value, name) {
+  if (typeof value !== "string") throw new Error(`${name} must be a UTC timestamp`);
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) {
+    throw new Error(`${name} must be a millisecond-aligned UTC timestamp`);
+  }
+  return value;
+}
+
+function strictIdentifier(value, name, pattern = ID_PATTERN) {
+  if (typeof value !== "string" || value.length < 3 || value.length > 200 || !pattern.test(value)) {
+    throw new Error(`${name} is invalid`);
+  }
+  return value;
+}
+
+function exactKeys(value, expected, name) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${name} must be an object`);
+  const actual = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
+    throw new Error(`${name} has unexpected fields`);
+  }
+  return value;
+}
+
+function assertPrivateFile(path, name, { maximumBytes = MAX_PLAINTEXT_BYTES } = {}) {
+  const metadata = lstatSync(path);
+  if (metadata.isSymbolicLink() || !metadata.isFile()) throw new Error(`${name} must be a regular file`);
+  if ((metadata.mode & 0o077) !== 0) throw new Error(`${name} must not be accessible by group or others`);
+  if (metadata.size <= 0 || metadata.size > maximumBytes) throw new Error(`${name} has an invalid size`);
+  return metadata;
+}
+
+function assertPrivateDirectory(path, name) {
+  const metadata = lstatSync(path);
+  if (metadata.isSymbolicLink() || !metadata.isDirectory()) throw new Error(`${name} must be a real directory`);
+  if ((metadata.mode & 0o077) !== 0) throw new Error(`${name} must not be accessible by group or others`);
+}
+
+function assertOutputAvailable(path, name) {
+  assertPrivateDirectory(dirname(resolve(path)), `${name} parent directory`);
+  if (existsSync(path)) throw new Error(`${name} already exists`);
+}
+
+function atomicWrite(path, bytes) {
+  const temporary = `${path}.tmp-${process.pid}-${randomBytes(8).toString("hex")}`;
+  const descriptor = openSync(temporary, fsConstants.O_CREAT | fsConstants.O_EXCL | fsConstants.O_WRONLY, 0o600);
+  try {
+    writeFileSync(descriptor, bytes);
+    fsyncSync(descriptor);
+  } finally {
+    closeSync(descriptor);
+  }
+  renameSync(temporary, path);
+}
+
+function readKey(path) {
+  assertPrivateFile(path, "Encryption key", { maximumBytes: KEY_BYTES });
+  const key = readFileSync(path);
+  if (key.byteLength !== KEY_BYTES) throw new Error("Encryption key must contain exactly 32 random bytes");
+  return key;
+}
+
+function retentionUntil(createdAt) {
+  return new Date(
+    new Date(createdAt).getTime() + (OPERATIONAL_RETENTION_DAYS * DAY_MILLISECONDS),
+  ).toISOString();
+}
+
+function encryptPayload({ plaintext, artifactKind, activationId, key, keyId, createdAt }) {
+  if (!Buffer.isBuffer(plaintext) || plaintext.byteLength === 0 || plaintext.byteLength > MAX_PLAINTEXT_BYTES) {
+    throw new Error("Snapshot plaintext has an invalid size");
+  }
+  if (!ARTIFACT_KINDS.has(artifactKind)) throw new Error("Snapshot artifact kind is invalid");
+  strictIdentifier(activationId, "Activation ID");
+  strictIdentifier(keyId, "Key ID");
+  strictTimestamp(createdAt, "Snapshot creation time");
+  const nonce = randomBytes(NONCE_BYTES);
+  const header = {
+    schema_version: STORAGE_ARTIFACT_VERSION,
+    artifact_kind: artifactKind,
+    activation_id: activationId,
+    algorithm: "aes-256-gcm",
+    key_id: keyId,
+    created_at: createdAt,
+    retention_days: OPERATIONAL_RETENTION_DAYS,
+    retention_until: retentionUntil(createdAt),
+    nonce_base64url: nonce.toString("base64url"),
+    plaintext_bytes: plaintext.byteLength,
+  };
+  const headerBytes = Buffer.from(canonicalJson(header), "utf8");
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(headerBytes.byteLength);
+  const aad = Buffer.concat([MAGIC, length, headerBytes]);
+  const cipher = createCipheriv("aes-256-gcm", key, nonce, { authTagLength: AUTH_TAG_BYTES });
+  cipher.setAAD(aad, { plaintextLength: plaintext.byteLength });
+  const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+  const artifact = Buffer.concat([aad, ciphertext, cipher.getAuthTag()]);
+  return { artifact, header };
+}
+
+function manifestFor(path, artifact, header) {
+  return {
+    schema_version: STORAGE_MANIFEST_VERSION,
+    artifact_kind: header.artifact_kind,
+    activation_id: header.activation_id,
+    artifact_filename: basename(path),
+    algorithm: header.algorithm,
+    key_id: header.key_id,
+    created_at: header.created_at,
+    retention_days: header.retention_days,
+    retention_until: header.retention_until,
+    encrypted_bytes: artifact.byteLength,
+    encrypted_sha256: sha256(artifact),
+  };
+}
+
+function parseManifest(path) {
+  assertPrivateFile(path, "Storage manifest", { maximumBytes: 64 * 1024 });
+  let parsed;
+  try {
+    parsed = JSON.parse(readFileSync(path, "utf8"));
+  } catch {
+    throw new Error("Storage manifest is not valid JSON");
+  }
+  const manifest = exactKeys(parsed, [
+    "schema_version", "artifact_kind", "activation_id", "artifact_filename", "algorithm",
+    "key_id", "created_at", "retention_days", "retention_until", "encrypted_bytes", "encrypted_sha256",
+  ], "Storage manifest");
+  if (manifest.schema_version !== STORAGE_MANIFEST_VERSION || !ARTIFACT_KINDS.has(manifest.artifact_kind)) {
+    throw new Error("Storage manifest contract is unsupported");
+  }
+  strictIdentifier(manifest.activation_id, "Manifest activation ID");
+  strictIdentifier(manifest.key_id, "Manifest key ID");
+  strictTimestamp(manifest.created_at, "Manifest creation time");
+  strictTimestamp(manifest.retention_until, "Manifest retention time");
+  if (manifest.retention_days !== OPERATIONAL_RETENTION_DAYS ||
+      manifest.retention_until !== retentionUntil(manifest.created_at)) {
+    throw new Error("Operational storage retention must remain shorter than the 90-day tombstone window");
+  }
+  if (manifest.algorithm !== "aes-256-gcm") throw new Error("Storage manifest algorithm is unsupported");
+  if (!Number.isInteger(manifest.encrypted_bytes) || manifest.encrypted_bytes <= 0) {
+    throw new Error("Storage manifest byte count is invalid");
+  }
+  if (!SHA256_PATTERN.test(manifest.encrypted_sha256)) throw new Error("Storage manifest checksum is invalid");
+  return manifest;
+}
+
+function decryptArtifact({ artifactPath, manifestPath, keyPath, expectedKind, expectedActivationId }) {
+  const manifest = parseManifest(manifestPath);
+  assertPrivateFile(artifactPath, "Encrypted storage artifact");
+  if (basename(artifactPath) !== manifest.artifact_filename) throw new Error("Artifact filename does not match manifest");
+  const artifact = readFileSync(artifactPath);
+  if (artifact.byteLength !== manifest.encrypted_bytes || sha256(artifact) !== manifest.encrypted_sha256) {
+    throw new Error("Encrypted artifact checksum does not match manifest");
+  }
+  if (!artifact.subarray(0, MAGIC.byteLength).equals(MAGIC)) throw new Error("Encrypted artifact magic is invalid");
+  const headerLength = artifact.readUInt32BE(MAGIC.byteLength);
+  if (headerLength <= 0 || headerLength > MAX_HEADER_BYTES) throw new Error("Encrypted artifact header is invalid");
+  const headerEnd = MAGIC.byteLength + 4 + headerLength;
+  if (artifact.byteLength <= headerEnd + AUTH_TAG_BYTES) throw new Error("Encrypted artifact is truncated");
+  let parsedHeader;
+  try {
+    parsedHeader = JSON.parse(artifact.subarray(MAGIC.byteLength + 4, headerEnd).toString("utf8"));
+  } catch {
+    throw new Error("Encrypted artifact header is not valid JSON");
+  }
+  const header = exactKeys(parsedHeader, [
+    "schema_version", "artifact_kind", "activation_id", "algorithm", "key_id", "created_at",
+    "retention_days", "retention_until", "nonce_base64url", "plaintext_bytes",
+  ], "Encrypted artifact header");
+  for (const field of [
+    "artifact_kind", "activation_id", "algorithm", "key_id", "created_at",
+    "retention_days", "retention_until",
+  ]) {
+    if (header[field] !== manifest[field]) throw new Error(`Encrypted artifact ${field} does not match manifest`);
+  }
+  if (header.schema_version !== STORAGE_ARTIFACT_VERSION || header.artifact_kind !== expectedKind) {
+    throw new Error("Encrypted artifact contract is unsupported");
+  }
+  if (header.activation_id !== expectedActivationId) throw new Error("Encrypted artifact activation does not match drill");
+  if (!Number.isInteger(header.plaintext_bytes) || header.plaintext_bytes <= 0 || header.plaintext_bytes > MAX_PLAINTEXT_BYTES) {
+    throw new Error("Encrypted artifact plaintext size is invalid");
+  }
+  const nonce = Buffer.from(header.nonce_base64url, "base64url");
+  if (nonce.byteLength !== NONCE_BYTES || nonce.toString("base64url") !== header.nonce_base64url) {
+    throw new Error("Encrypted artifact nonce is invalid");
+  }
+  const key = readKey(keyPath);
+  const ciphertextEnd = artifact.byteLength - AUTH_TAG_BYTES;
+  const aad = artifact.subarray(0, headerEnd);
+  const ciphertext = artifact.subarray(headerEnd, ciphertextEnd);
+  const tag = artifact.subarray(ciphertextEnd);
+  try {
+    const decipher = createDecipheriv("aes-256-gcm", key, nonce, { authTagLength: AUTH_TAG_BYTES });
+    decipher.setAAD(aad, { plaintextLength: header.plaintext_bytes });
+    decipher.setAuthTag(tag);
+    const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    if (plaintext.byteLength !== header.plaintext_bytes) throw new Error("size mismatch");
+    return { plaintext, manifest };
+  } catch {
+    throw new Error("Encrypted artifact authentication failed");
+  } finally {
+    key.fill(0);
+  }
+}
+
+function auditPayload(event) {
+  const payload = { ...event };
+  delete payload.event_sha256;
+  return payload;
+}
+
+function verifyAuditEvent(event, expectedSequence, expectedPrevious, expectedNotBefore) {
+  exactKeys(event, [
+    "schema_version", "sequence", "event_id", "activation_id", "event_type", "artifact_sha256",
+    "previous_event_sha256", "event_at", "operator_role", "event_sha256",
+  ], "Storage audit event");
+  if (event.schema_version !== STORAGE_AUDIT_VERSION || event.sequence !== expectedSequence) {
+    throw new Error("Storage audit sequence is invalid");
+  }
+  strictIdentifier(event.event_id, "Storage audit event ID");
+  strictIdentifier(event.activation_id, "Storage audit activation ID");
+  strictIdentifier(event.operator_role, "Storage audit operator role", ROLE_PATTERN);
+  strictTimestamp(event.event_at, "Storage audit time");
+  if (expectedNotBefore && event.event_at < expectedNotBefore) throw new Error("Storage audit chronology is invalid");
+  if (!["snapshot_sealed", "privacy_ledger_sealed", "restore_drill_completed"].includes(event.event_type)) {
+    throw new Error("Storage audit event type is invalid");
+  }
+  if (!SHA256_PATTERN.test(event.artifact_sha256) || !SHA256_PATTERN.test(event.event_sha256)) {
+    throw new Error("Storage audit checksum is invalid");
+  }
+  if (event.previous_event_sha256 !== expectedPrevious) throw new Error("Storage audit chain is invalid");
+  if (sha256(canonicalJson(auditPayload(event))) !== event.event_sha256) {
+    throw new Error("Storage audit event hash is invalid");
+  }
+}
+
+export function verifyStorageAuditLog(path) {
+  if (!existsSync(path)) return [];
+  assertPrivateFile(path, "Storage audit log", { maximumBytes: 16 * 1024 * 1024 });
+  const contents = readFileSync(path, "utf8");
+  if (!contents.endsWith("\n")) throw new Error("Storage audit log is truncated");
+  const events = contents.split("\n").filter(Boolean).map((line) => {
+    try {
+      return JSON.parse(line);
+    } catch {
+      throw new Error("Storage audit log contains invalid JSON");
+    }
+  });
+  let previous = null;
+  let previousAt = null;
+  for (let index = 0; index < events.length; index += 1) {
+    verifyAuditEvent(events[index], index + 1, previous, previousAt);
+    previous = events[index].event_sha256;
+    previousAt = events[index].event_at;
+  }
+  return events;
+}
+
+function appendAuditEvent({ auditPath, activationId, eventType, artifactSha256, eventAt, operatorRole }) {
+  assertPrivateDirectory(dirname(resolve(auditPath)), "Storage audit parent directory");
+  strictIdentifier(activationId, "Storage audit activation ID");
+  strictIdentifier(operatorRole, "Storage audit operator role", ROLE_PATTERN);
+  strictTimestamp(eventAt, "Storage audit time");
+  if (!SHA256_PATTERN.test(artifactSha256)) throw new Error("Storage audit artifact checksum is invalid");
+  const lockPath = `${auditPath}.lock`;
+  const lock = openSync(lockPath, fsConstants.O_CREAT | fsConstants.O_EXCL | fsConstants.O_WRONLY, 0o600);
+  closeSync(lock);
+  try {
+    const events = verifyStorageAuditLog(auditPath);
+    if (events.at(-1)?.event_at && eventAt < events.at(-1).event_at) {
+      throw new Error("Storage audit event cannot predate the current audit head");
+    }
+    const previous = events.at(-1)?.event_sha256 ?? null;
+    const unsigned = {
+      schema_version: STORAGE_AUDIT_VERSION,
+      sequence: events.length + 1,
+      event_id: `storage-${eventType}-${randomBytes(12).toString("hex")}`,
+      activation_id: activationId,
+      event_type: eventType,
+      artifact_sha256: artifactSha256,
+      previous_event_sha256: previous,
+      event_at: eventAt,
+      operator_role: operatorRole,
+    };
+    const event = { ...unsigned, event_sha256: sha256(canonicalJson(unsigned)) };
+    const descriptor = openSync(auditPath, fsConstants.O_CREAT | fsConstants.O_APPEND | fsConstants.O_WRONLY, 0o600);
+    try {
+      writeFileSync(descriptor, `${canonicalJson(event)}\n`);
+      fsyncSync(descriptor);
+    } finally {
+      closeSync(descriptor);
+    }
+    return event;
+  } finally {
+    unlinkSync(lockPath);
+  }
+}
+
+function writeSealedArtifact({ payload, artifactKind, activationId, keyPath, keyId, createdAt, artifactPath, manifestPath }) {
+  assertOutputAvailable(artifactPath, "Encrypted artifact");
+  assertOutputAvailable(manifestPath, "Storage manifest");
+  if (resolve(artifactPath) === resolve(manifestPath)) throw new Error("Artifact and manifest paths must differ");
+  const key = readKey(keyPath);
+  try {
+    const { artifact, header } = encryptPayload({
+      plaintext: payload,
+      artifactKind,
+      activationId,
+      key,
+      keyId,
+      createdAt,
+    });
+    const manifest = manifestFor(artifactPath, artifact, header);
+    atomicWrite(artifactPath, artifact);
+    atomicWrite(manifestPath, `${canonicalJson(manifest)}\n`);
+    return manifest;
+  } finally {
+    key.fill(0);
+  }
+}
+
+export function sealOperationalSnapshot(input) {
+  if (input.destroyPlaintext !== true) throw new Error("Snapshot sealing requires explicit plaintext destruction");
+  assertPrivateFile(input.inputPath, "D1 SQL export");
+  const plaintext = readFileSync(input.inputPath);
+  const manifest = writeSealedArtifact({
+    payload: plaintext,
+    artifactKind: "d1-sql-export",
+    activationId: input.activationId,
+    keyPath: input.keyPath,
+    keyId: input.keyId,
+    createdAt: input.createdAt,
+    artifactPath: input.artifactPath,
+    manifestPath: input.manifestPath,
+  });
+  const auditEvent = appendAuditEvent({
+    auditPath: input.auditPath,
+    activationId: input.activationId,
+    eventType: "snapshot_sealed",
+    artifactSha256: manifest.encrypted_sha256,
+    eventAt: input.createdAt,
+    operatorRole: input.operatorRole,
+  });
+  unlinkSync(input.inputPath);
+  plaintext.fill(0);
+  return { manifest, auditEvent };
+}
+
+function executeSqlExport(sqlBytes, databasePath = ":memory:") {
+  const database = new DatabaseSync(databasePath);
+  try {
+    database.exec("PRAGMA foreign_keys = OFF;");
+    database.exec(sqlBytes.toString("utf8"));
+    database.exec("PRAGMA foreign_keys = ON;");
+    return database;
+  } catch (error) {
+    database.close();
+    throw error;
+  }
+}
+
+function tableExists(database, table) {
+  return Boolean(database.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(table));
+}
+
+function extractPrivacyLedger(database, activationId, capturedAt) {
+  if (!tableExists(database, "privacy_deletion_jobs") || !tableExists(database, "privacy_deletion_tasks")) {
+    throw new Error("D1 export lacks the privacy deletion ledger");
+  }
+  const jobs = database.prepare(`SELECT ${JOB_COLUMNS.join(", ")} FROM privacy_deletion_jobs ORDER BY id`).all();
+  const tasks = database.prepare(`SELECT ${TASK_COLUMNS.join(", ")} FROM privacy_deletion_tasks ORDER BY id`).all();
+  const jobIds = new Set(jobs.map((job) => job.id));
+  if (tasks.some((task) => !jobIds.has(task.job_id))) throw new Error("Privacy deletion ledger contains orphan tasks");
+  return {
+    schema_version: PRIVACY_LEDGER_VERSION,
+    activation_id: activationId,
+    captured_at: capturedAt,
+    jobs,
+    tasks,
+  };
+}
+
+export function sealPrivacyLedger(input) {
+  if (input.destroyPlaintext !== true) throw new Error("Ledger sealing requires explicit plaintext destruction");
+  assertPrivateFile(input.inputPath, "Current D1 SQL export");
+  const sqlBytes = readFileSync(input.inputPath);
+  const database = executeSqlExport(sqlBytes);
+  let ledger;
+  try {
+    ledger = extractPrivacyLedger(database, input.activationId, input.createdAt);
+  } finally {
+    database.close();
+    sqlBytes.fill(0);
+  }
+  const payload = Buffer.from(canonicalJson(ledger), "utf8");
+  const manifest = writeSealedArtifact({
+    payload,
+    artifactKind: "privacy-deletion-ledger",
+    activationId: input.activationId,
+    keyPath: input.keyPath,
+    keyId: input.keyId,
+    createdAt: input.createdAt,
+    artifactPath: input.artifactPath,
+    manifestPath: input.manifestPath,
+  });
+  const auditEvent = appendAuditEvent({
+    auditPath: input.auditPath,
+    activationId: input.activationId,
+    eventType: "privacy_ledger_sealed",
+    artifactSha256: manifest.encrypted_sha256,
+    eventAt: input.createdAt,
+    operatorRole: input.operatorRole,
+  });
+  unlinkSync(input.inputPath);
+  payload.fill(0);
+  return { manifest, auditEvent };
+}
+
+function parsePrivacyLedger(bytes, expectedActivationId) {
+  let parsed;
+  try {
+    parsed = JSON.parse(bytes.toString("utf8"));
+  } catch {
+    throw new Error("Privacy ledger artifact is not valid JSON");
+  }
+  const ledger = exactKeys(parsed, ["schema_version", "activation_id", "captured_at", "jobs", "tasks"], "Privacy ledger");
+  if (ledger.schema_version !== PRIVACY_LEDGER_VERSION || ledger.activation_id !== expectedActivationId) {
+    throw new Error("Privacy ledger contract does not match the restore drill");
+  }
+  strictTimestamp(ledger.captured_at, "Privacy ledger capture time");
+  if (!Array.isArray(ledger.jobs) || !Array.isArray(ledger.tasks)) throw new Error("Privacy ledger rows are invalid");
+  for (const job of ledger.jobs) {
+    exactKeys(job, JOB_COLUMNS, "Privacy deletion job");
+    if (!["account", "trip"].includes(job.scope) || !SHA256_PATTERN.test(job.subject_hash) ||
+        !SHA256_PATTERN.test(job.owner_subject_hash)) {
+      throw new Error("Privacy deletion job identity is invalid");
+    }
+  }
+  const jobIds = new Set(ledger.jobs.map((job) => job.id));
+  if (jobIds.size !== ledger.jobs.length) throw new Error("Privacy deletion job IDs are not unique");
+  for (const task of ledger.tasks) {
+    exactKeys(task, TASK_COLUMNS, "Privacy deletion task");
+    if (!jobIds.has(task.job_id) || !SHA256_PATTERN.test(task.object_key_hash)) {
+      throw new Error("Privacy deletion task identity is invalid");
+    }
+    if ((task.state === "completed") !== (task.object_key === null)) {
+      throw new Error("Privacy deletion task locator state is invalid");
+    }
+  }
+  return ledger;
+}
+
+function insertRows(database, table, columns, rows) {
+  const placeholders = columns.map(() => "?").join(", ");
+  const insert = database.prepare(`INSERT INTO ${table} (${columns.join(", ")}) VALUES (${placeholders})`);
+  for (const row of rows) insert.run(...columns.map((column) => row[column]));
+}
+
+function replacePrivacyLedger(database, ledger) {
+  database.exec("PRAGMA foreign_keys = OFF; BEGIN IMMEDIATE;");
+  try {
+    database.exec("DELETE FROM privacy_deletion_tasks; DELETE FROM privacy_deletion_jobs;");
+    insertRows(database, "privacy_deletion_jobs", JOB_COLUMNS, ledger.jobs);
+    insertRows(database, "privacy_deletion_tasks", TASK_COLUMNS, ledger.tasks);
+    database.exec("COMMIT; PRAGMA foreign_keys = ON;");
+  } catch (error) {
+    database.exec("ROLLBACK; PRAGMA foreign_keys = ON;");
+    throw error;
+  }
+}
+
+function suppressRestoredDeletions(database, ledger) {
+  const users = tableExists(database, "users") ? database.prepare("SELECT id FROM users").all() : [];
+  const trips = tableExists(database, "trips") ? database.prepare("SELECT id, user_id FROM trips").all() : [];
+  const accountIds = new Set();
+  const tripIds = new Set();
+  for (const job of ledger.jobs) {
+    if (job.scope === "account") {
+      for (const user of users) {
+        if (sha256(`account:${user.id}`) === job.subject_hash) accountIds.add(user.id);
+      }
+    } else {
+      for (const trip of trips) {
+        if (sha256(`trip:${trip.id}`) === job.subject_hash) tripIds.add(trip.id);
+      }
+    }
+  }
+  for (const trip of trips) {
+    if (accountIds.has(trip.user_id)) tripIds.add(trip.id);
+  }
+  let discussions = 0;
+  let validationEvents = 0;
+  let validationCorrections = 0;
+  let validationRecruitments = 0;
+  if (tableExists(database, "site_discussion_posts") && tripIds.size > 0) {
+    const count = database.prepare("SELECT COUNT(*) AS count FROM site_discussion_posts WHERE trip_id = ?");
+    for (const tripId of tripIds) discussions += Number(count.get(tripId).count);
+  }
+  if (tableExists(database, "validation_feasibility_events")) {
+    const count = database.prepare("SELECT COUNT(*) AS count FROM validation_feasibility_events WHERE trip_id = ?");
+    for (const tripId of tripIds) validationEvents += Number(count.get(tripId).count);
+  }
+  if (tableExists(database, "validation_feasibility_corrections")) {
+    const count = database.prepare("SELECT COUNT(*) AS count FROM validation_feasibility_corrections WHERE trip_id = ?");
+    for (const tripId of tripIds) validationCorrections += Number(count.get(tripId).count);
+  }
+  if (tableExists(database, "validation_feasibility_recruitment_events")) {
+    const count = database.prepare("SELECT COUNT(*) AS count FROM validation_feasibility_recruitment_events WHERE user_id = ?");
+    for (const accountId of accountIds) validationRecruitments += Number(count.get(accountId).count);
+  }
+  database.exec("BEGIN IMMEDIATE;");
+  try {
+    const deleteTrip = database.prepare("DELETE FROM trips WHERE id = ?");
+    for (const tripId of tripIds) deleteTrip.run(tripId);
+    const deleteUser = database.prepare("DELETE FROM users WHERE id = ?");
+    for (const accountId of accountIds) deleteUser.run(accountId);
+    database.exec("COMMIT;");
+  } catch (error) {
+    database.exec("ROLLBACK;");
+    throw error;
+  }
+  return {
+    accountIds,
+    tripIds,
+    discussions,
+    validationEvents,
+    validationCorrections,
+    validationRecruitments,
+  };
+}
+
+function assertDeletionSuppressed(database, ledger) {
+  const users = tableExists(database, "users") ? database.prepare("SELECT id FROM users").all() : [];
+  const trips = tableExists(database, "trips") ? database.prepare("SELECT id FROM trips").all() : [];
+  for (const job of ledger.jobs) {
+    const rows = job.scope === "account" ? users : trips;
+    if (rows.some((row) => sha256(`${job.scope}:${row.id}`) === job.subject_hash)) {
+      throw new Error("A current privacy tombstone still matches restored active data");
+    }
+  }
+}
+
+class SQLiteStatementAdapter {
+  constructor(statement) {
+    this.statement = statement;
+    this.values = [];
+  }
+
+  bind(...values) {
+    this.values = values;
+    return this;
+  }
+
+  async all() {
+    return { results: this.statement.all(...this.values) };
+  }
+
+  async first() {
+    return this.statement.get(...this.values) ?? null;
+  }
+}
+
+class SQLiteD1Adapter {
+  constructor(database) {
+    this.database = database;
+  }
+
+  prepare(query) {
+    return new SQLiteStatementAdapter(this.database.prepare(query));
+  }
+}
+
+function countRows(database, table) {
+  return tableExists(database, table)
+    ? Number(database.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get().count)
+    : 0;
+}
+
+function requiredAuditArtifact(events, eventType, checksum, activationId) {
+  return events.some((event) => event.event_type === eventType &&
+    event.artifact_sha256 === checksum && event.activation_id === activationId);
+}
+
+export async function runOperationalRestoreDrill(input) {
+  if (input.destroyRestored !== true) throw new Error("Restore drill requires destruction of the isolated restored database");
+  strictIdentifier(input.activationId, "Restore activation ID");
+  strictIdentifier(input.operatorRole, "Restore operator role", ROLE_PATTERN);
+  strictTimestamp(input.completedAt, "Restore completion time");
+  assertPrivateDirectory(input.workParent, "Restore work parent");
+  assertOutputAvailable(input.evidencePath, "Restore evidence");
+  const snapshot = decryptArtifact({
+    artifactPath: input.snapshotArtifactPath,
+    manifestPath: input.snapshotManifestPath,
+    keyPath: input.snapshotKeyPath,
+    expectedKind: "d1-sql-export",
+    expectedActivationId: input.activationId,
+  });
+  const privacy = decryptArtifact({
+    artifactPath: input.ledgerArtifactPath,
+    manifestPath: input.ledgerManifestPath,
+    keyPath: input.ledgerKeyPath,
+    expectedKind: "privacy-deletion-ledger",
+    expectedActivationId: input.activationId,
+  });
+  const auditEvents = verifyStorageAuditLog(input.auditPath);
+  if (!requiredAuditArtifact(auditEvents, "snapshot_sealed", snapshot.manifest.encrypted_sha256, input.activationId) ||
+      !requiredAuditArtifact(auditEvents, "privacy_ledger_sealed", privacy.manifest.encrypted_sha256, input.activationId)) {
+    throw new Error("Restore inputs are missing from the verified storage audit chain");
+  }
+  const ledger = parsePrivacyLedger(privacy.plaintext, input.activationId);
+  const workDirectory = mkdtempSync(join(resolve(input.workParent), "castingcompass-restore-"));
+  const databasePath = join(workDirectory, "isolated.sqlite3");
+  let database;
+  let evidenceCore;
+  try {
+    database = executeSqlExport(snapshot.plaintext, databasePath);
+    for (const table of [
+      "users", "trips", "privacy_deletion_jobs", "privacy_deletion_tasks",
+      "validation_feasibility_activations", "validation_feasibility_events",
+      "validation_feasibility_corrections", "validation_feasibility_recruitment_events",
+    ]) {
+      if (!tableExists(database, table)) throw new Error(`Restored database lacks required table ${table}`);
+    }
+    replacePrivacyLedger(database, ledger);
+    const suppressed = suppressRestoredDeletions(database, ledger);
+    assertDeletionSuppressed(database, ledger);
+    const integrity = database.prepare("PRAGMA integrity_check").get().integrity_check;
+    const foreignKeyViolations = database.prepare("PRAGMA foreign_key_check").all().length;
+    if (integrity !== "ok" || foreignKeyViolations !== 0) throw new Error("Restored database integrity checks failed");
+    const activation = database.prepare("SELECT id FROM validation_feasibility_activations WHERE id = ?").get(input.activationId);
+    if (!activation) throw new Error("Restored database lacks the requested feasibility activation");
+    const reconciliationExport = await buildFeasibilityReconciliationExport({
+      db: new SQLiteD1Adapter(database),
+      activationId: input.activationId,
+      snapshotAndRestorePassed: false,
+      exportedAt: input.completedAt,
+    });
+    if (reconciliationExport.reconciliation.failedGates.some((gate) => RECONCILIATION_INTEGRITY_GATES.has(gate))) {
+      throw new Error("Restored feasibility ledger failed reconciliation integrity checks");
+    }
+    const migrations = tableExists(database, "d1_migrations")
+      ? database.prepare("SELECT name FROM d1_migrations ORDER BY id").all()
+      : [];
+    const unresolvedTasks = ledger.tasks.filter((task) => task.state !== "completed").length;
+    const completedTasks = ledger.tasks.length - unresolvedTasks;
+    evidenceCore = {
+      schema_version: RESTORE_EVIDENCE_VERSION,
+      activation_id: input.activationId,
+      drill_completed_at: input.completedAt,
+      snapshot_encrypted_sha256: snapshot.manifest.encrypted_sha256,
+      privacy_ledger_encrypted_sha256: privacy.manifest.encrypted_sha256,
+      snapshot_retention_until: snapshot.manifest.retention_until,
+      restored_schema_table_count: Number(database.prepare(
+        "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'",
+      ).get().count),
+      migration_count: migrations.length,
+      last_migration_name: migrations.at(-1)?.name ?? null,
+      integrity_check: integrity,
+      foreign_key_violation_count: foreignKeyViolations,
+      suppressed_account_count: suppressed.accountIds.size,
+      suppressed_trip_count: suppressed.tripIds.size,
+      suppressed_public_discussion_count: suppressed.discussions,
+      suppressed_validation_event_count: suppressed.validationEvents,
+      suppressed_validation_correction_count: suppressed.validationCorrections,
+      suppressed_validation_recruitment_count: suppressed.validationRecruitments,
+      privacy_job_count: ledger.jobs.length,
+      privacy_task_count: ledger.tasks.length,
+      unresolved_object_task_count: unresolvedTasks,
+      completed_object_task_count: completedTasks,
+      validation_event_count: countRows(database, "validation_feasibility_events"),
+      validation_correction_count: countRows(database, "validation_feasibility_corrections"),
+      validation_recruitment_count: countRows(database, "validation_feasibility_recruitment_events"),
+      reconciliation_status: reconciliationExport.reconciliation.status,
+      reconciliation_failed_gates: reconciliationExport.reconciliation.failedGates,
+      candidate_performance_computed: reconciliationExport.candidatePerformanceComputed,
+      operational_restore_passed: true,
+      validation_snapshot_and_restore_gate_passed: false,
+      validation_snapshot_retention_days_required: VALIDATION_RETENTION_DAYS,
+      validation_snapshot_gate_blocker: "730-day-validation-snapshot-suppression-policy-not-approved",
+      plaintext_artifacts_retained: false,
+      restored_database_retained: false,
+    };
+  } finally {
+    database?.close();
+    snapshot.plaintext.fill(0);
+    privacy.plaintext.fill(0);
+    rmSync(workDirectory, { recursive: true, force: true });
+  }
+  const evidencePayloadSha256 = sha256(canonicalJson(evidenceCore));
+  const auditEvent = appendAuditEvent({
+    auditPath: input.auditPath,
+    activationId: input.activationId,
+    eventType: "restore_drill_completed",
+    artifactSha256: evidencePayloadSha256,
+    eventAt: input.completedAt,
+    operatorRole: input.operatorRole,
+  });
+  const evidence = {
+    ...evidenceCore,
+    evidence_payload_sha256: evidencePayloadSha256,
+    audit_event_sha256: auditEvent.event_sha256,
+  };
+  atomicWrite(input.evidencePath, `${canonicalJson(evidence)}\n`);
+  return evidence;
+}
+
+function parseArguments(argv) {
+  const values = new Map();
+  const booleans = new Set();
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (!argument.startsWith("--")) throw new Error(`Unexpected argument ${argument}`);
+    if (["--destroy-plaintext", "--destroy-restored"].includes(argument)) {
+      booleans.add(argument.slice(2));
+      continue;
+    }
+    const value = argv[index + 1];
+    if (!value || value.startsWith("--")) throw new Error(`${argument} requires a value`);
+    values.set(argument.slice(2), value);
+    index += 1;
+  }
+  return { get: (name) => values.get(name), has: (name) => booleans.has(name) };
+}
+
+function required(args, name) {
+  const value = args.get(name);
+  if (!value) throw new Error(`--${name} is required`);
+  return value;
+}
+
+async function main() {
+  const [command, ...argv] = process.argv.slice(2);
+  const args = parseArguments(argv);
+  if (command === "seal-snapshot" || command === "seal-ledger") {
+    const input = {
+      inputPath: required(args, "input"),
+      artifactPath: required(args, "artifact"),
+      manifestPath: required(args, "manifest"),
+      keyPath: required(args, "key-file"),
+      keyId: required(args, "key-id"),
+      activationId: required(args, "activation-id"),
+      createdAt: new Date().toISOString(),
+      auditPath: required(args, "audit-log"),
+      operatorRole: required(args, "operator-role"),
+      destroyPlaintext: args.has("destroy-plaintext"),
+    };
+    const result = command === "seal-snapshot"
+      ? sealOperationalSnapshot(input)
+      : sealPrivacyLedger(input);
+    process.stdout.write(`${JSON.stringify({
+      encryptedSha256: result.manifest.encrypted_sha256,
+      auditEventSha256: result.auditEvent.event_sha256,
+    })}\n`);
+    return;
+  }
+  if (command === "restore-drill") {
+    const result = await runOperationalRestoreDrill({
+      activationId: required(args, "activation-id"),
+      snapshotArtifactPath: required(args, "snapshot-artifact"),
+      snapshotManifestPath: required(args, "snapshot-manifest"),
+      snapshotKeyPath: required(args, "snapshot-key-file"),
+      ledgerArtifactPath: required(args, "ledger-artifact"),
+      ledgerManifestPath: required(args, "ledger-manifest"),
+      ledgerKeyPath: required(args, "ledger-key-file"),
+      auditPath: required(args, "audit-log"),
+      workParent: required(args, "work-parent"),
+      evidencePath: required(args, "evidence"),
+      completedAt: new Date().toISOString(),
+      operatorRole: required(args, "operator-role"),
+      destroyRestored: args.has("destroy-restored"),
+    });
+    process.stdout.write(`${JSON.stringify({
+      operationalRestorePassed: result.operational_restore_passed,
+      validationSnapshotGatePassed: result.validation_snapshot_and_restore_gate_passed,
+      evidencePayloadSha256: result.evidence_payload_sha256,
+      auditEventSha256: result.audit_event_sha256,
+    })}\n`);
+    return;
+  }
+  if (command === "verify-audit") {
+    const events = verifyStorageAuditLog(required(args, "audit-log"));
+    process.stdout.write(`${JSON.stringify({ events: events.length, head: events.at(-1)?.event_sha256 ?? null })}\n`);
+    return;
+  }
+  throw new Error("Usage: validation-storage.mjs seal-snapshot|seal-ledger|restore-drill|verify-audit [options]");
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  main().catch((error) => {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  });
+}
