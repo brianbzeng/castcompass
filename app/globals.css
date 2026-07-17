@@ -4286,10 +4286,39 @@ footer > div {
 }
 
 .trip-form-status {
+  display: grid;
+  gap: 0.45rem;
   min-height: 1.2rem;
   margin-top: 0.7rem;
   font-size: 0.6rem;
   line-height: 1.5;
+}
+
+.trip-form-status.submitting {
+  color: var(--seafoam);
+}
+
+.trip-form-status > i {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 3px;
+  overflow: hidden;
+  background: rgba(99, 151, 188, 0.2);
+}
+
+.trip-form-status > i::after {
+  position: absolute;
+  inset: 0;
+  width: 42%;
+  background: linear-gradient(90deg, transparent, var(--seafoam), transparent);
+  content: "";
+  animation: trip-request-progress 1.4s ease-in-out infinite;
+}
+
+@keyframes trip-request-progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(340%); }
 }
 
 .trip-form-status.error {

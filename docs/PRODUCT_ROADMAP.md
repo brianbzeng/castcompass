@@ -338,6 +338,9 @@ after its acceptance checks pass in the intended environment.
   - [x] Keep profile request failures distinct from verified empty accounts: preserve the last
     successful copy, validate response shape, show unknown counts and accessible skeletons
     before first load, and provide a generic inline retry without exposing diagnostics.
+  - [x] Give trip writes truthful connection and slow-request states: pause new submissions when
+    the browser reports offline, keep drafts, show indeterminate progress without invented
+    percentages, and never automatically replay an ambiguous write after reconnection.
   - [ ] Add operation-specific progress, timeout, retry, cancellation, and reconnection states
     only where the underlying API can report them truthfully; retain authoritative confirmation
     for account, trip, privacy, and other privileged writes.
