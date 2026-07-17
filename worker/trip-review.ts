@@ -8,6 +8,7 @@ import {
 } from "../shared/species-contract.ts";
 import type { CuratedSite, D1DatabaseLike, TripRow } from "./trips";
 import { aiProviderRateLimitAllowed, type RateLimitEnv } from "./rate-limit.ts";
+import { logEvent } from "./observability.ts";
 
 interface ReviewEnv extends RateLimitEnv {
   DB?: D1DatabaseLike;
@@ -80,9 +81,9 @@ export async function reviewTripWithMimo(
   if (!env.DB || !env.MIMO_API_KEY) return;
   const model = configuredModel(env.MIMO_MODEL);
   if (!model) {
-    console.error("Automated trip review configuration rejected", {
-      name: "ReviewError",
-      code: "invalid_model_configuration",
+    logEvent("error", "ai_review.configuration_rejected", {
+      error_name: "ReviewError",
+      error_code: "invalid_model_configuration",
     });
     return;
   }
@@ -158,9 +159,9 @@ Return one JSON object and no surrounding prose. Use exactly these top-level key
       .bind(stored, model, new Date().toISOString(), trip.id)
       .run();
   } catch (error) {
-    console.error("Automated trip review failed", {
-      name: error instanceof Error ? error.name : "UnknownError",
-      code: error instanceof ReviewError ? error.code : "review_failed",
+    logEvent("error", "ai_review.failed", {
+      error_name: error instanceof Error ? error.name : "UnknownError",
+      error_code: error instanceof ReviewError ? error.code : "review_failed",
       status: error instanceof ReviewError ? error.status : undefined,
     });
     await env.DB.prepare(`UPDATE trips SET ai_review_status = 'retry', ai_review_model = ?

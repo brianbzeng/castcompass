@@ -162,6 +162,8 @@ Set the production PWA's `NEXT_PUBLIC_API_URL` to the Render service URL and the
 
 For the production Worker, D1 trip storage, custom domain, release command, and
 Cloudflare Git build settings, see [Cloudflare deployment](docs/CLOUDFLARE_DEPLOYMENT.md).
+For structured request correlation, redaction rules, saved Cloudflare diagnostic views, alerts,
+and the PostHog decision boundary, see [Observability and operator diagnostics](docs/OBSERVABILITY.md).
 
 ## Safety and interpretation
 

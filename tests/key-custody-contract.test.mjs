@@ -6,6 +6,7 @@ import { scanText } from "../scripts/check-secrets.mjs";
 
 const RUNTIME_SECRET_NAMES = [
   "MIMO_API_KEY",
+  "OBSERVABILITY_PSEUDONYM_SECRET",
   "RATE_LIMIT_KEY_SECRET",
   "RESEND_API_KEY",
   "TURNSTILE_SECRET_KEY",
@@ -16,6 +17,7 @@ const RUNTIME_SECRET_NAMES = [
 test("every Worker runtime secret is inventoried, scanned, and absent from Wrangler vars", () => {
   const worker = [
     "worker/auth.ts",
+    "worker/observability.ts",
     "worker/rate-limit.ts",
     "worker/trip-review.ts",
     "worker/turnstile.ts",

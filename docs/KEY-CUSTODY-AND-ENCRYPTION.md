@@ -29,6 +29,7 @@ Each production and non-production environment needs distinct values and access 
 | `RESEND_API_KEY` | Transactional account email | Environment-specific Worker secret | Verification email operations return a sanitized unavailable response; optional welcome mail is skipped | Replace through a reviewed Worker version, exercise synthetic delivery, then revoke the old provider credential |
 | `TURNSTILE_SECRET_KEY` | Server-side Turnstile verification; `TURNSTILE_ENABLED` remains default-off | Environment- and widget-specific Worker secret | Off means no provider call; enabled but incomplete configuration fails protected account actions closed | Keep enforcement off while staging a replacement, verify exact widget/hostname/action binding, then enable through a separate reviewed release |
 | `MIMO_API_KEY` | Optional, bounded advisory trip-review provider | Environment-specific Worker secret | Missing key skips advisory review; provider failures return claimed work to retry without publishing | Replace on a reviewed version, verify redacted failure/retry behavior, then revoke the old credential |
+| `OBSERVABILITY_PSEUDONYM_SECRET` | HMAC pseudonymization for short-lived request/session correlation; logging itself remains enabled without it | Environment-specific Worker secret, 32–256 characters, distinct from every other HMAC role | Request logs omit `actor_session_key`; request IDs, normalized route/status/latency, and scheduled events remain available | Rotation intentionally breaks cross-rotation correlation without affecting sessions or authorization; record the boundary and retain no translation table |
 | `RATE_LIMIT_KEY_SECRET` | HMAC pseudonymization for request-limit keys; `RATE_LIMITING_ENABLED` remains default-off | Environment-specific Worker secret, 32–256 characters | Off retains durable D1 limits; enabled with a missing or malformed key returns a generic `503` before protected work | Rotation changes every network pseudonym and temporarily resets affected edge counters; coordinate it as a control change, never an authentication-key rotation |
 | `VALIDATION_PARTICIPANT_HMAC_SECRET` | Default-off v2 pilot participant pseudonyms | Activation- and environment-specific Worker secret, 32–512 bytes | Missing/invalid material prevents a participant context from being created | Never rotate during an activation: it would split one participant into multiple pseudonyms. Rotate only at a sealed activation boundary unless versioned identifiers and a reviewed migration are implemented first |
 | `VALIDATION_RECRUITMENT_HMAC_SECRET` | Default-off v2 pilot recruitment-token signatures | Activation- and environment-specific Worker secret, 32–512 bytes | Missing/invalid material prevents recruitment-token verification | Never rotate during an active campaign: it invalidates outstanding tokens. Use an activation boundary unless versioned signing keys and bounded dual verification are implemented first |
@@ -47,8 +48,9 @@ without breaking safe preview builds.
 ## Separation rules
 
 - Never reuse material across providers, environments, or purposes.
-- Keep the rate-limit pseudonym key separate from session tokens, validation HMAC keys,
-  provider credentials, deletion receipts, deployment credentials, and backup keys.
+- Keep the observability and rate-limit pseudonym keys separate from each other and from session
+  tokens, validation HMAC keys, provider credentials, deletion receipts, deployment credentials,
+  and backup keys.
 - Keep the participant and recruitment HMAC keys separate from each other and from every
   activation that follows them.
 - Keep the four documented backup key roles distinct: operational D1 snapshot, current

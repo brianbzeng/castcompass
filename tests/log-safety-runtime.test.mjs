@@ -339,6 +339,6 @@ test("trip persistence failures do not log database or object-store details", as
 
   assert.equal(response?.status, 500);
   const logs = serializedLogs(entries);
-  assert.match(logs, /Trip API request failed/);
+  assert.match(logs, /trip\.request\.failed/);
   assert.doesNotMatch(logs, /private\.angler|example\.com|exact-note|bearer-secret/);
 });

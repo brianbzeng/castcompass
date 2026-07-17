@@ -1,3 +1,5 @@
+import { logEvent } from "./observability.ts";
+
 interface RateLimitResult {
   success: boolean;
 }
@@ -62,7 +64,7 @@ export async function enforceRequestRateLimit(request: Request, env: RateLimitEn
     if (results.some((result) => result.success !== true)) return rateLimitedResponse();
     return null;
   } catch {
-    console.error("Request rate limiter unavailable", { classes });
+    logEvent("error", "rate_limit.request.unavailable", { rate_limit_classes: classes });
     return unavailableResponse();
   }
 }
@@ -71,20 +73,20 @@ export async function aiProviderRateLimitAllowed(env: RateLimitEnv) {
   const mode = rateLimitMode(env);
   if (mode === "disabled") return true;
   if (mode === "invalid" || !env.AI_PROVIDER_RATE_LIMITER) {
-    console.error("AI provider rate limiter configuration rejected", {
-      code: "rate_limiter_configuration_invalid",
+    logEvent("error", "rate_limit.ai.configuration_rejected", {
+      error_code: "rate_limiter_configuration_invalid",
     });
     return false;
   }
   try {
     const result = await env.AI_PROVIDER_RATE_LIMITER.limit({ key: "castingcompass.ai-review/1" });
     if (result.success !== true) {
-      console.warn("AI provider rate limit reached", { code: "ai_provider_rate_limited" });
+      logEvent("warn", "rate_limit.ai.reached", { error_code: "ai_provider_rate_limited" });
       return false;
     }
     return true;
   } catch {
-    console.error("AI provider rate limiter unavailable", { code: "rate_limiter_unavailable" });
+    logEvent("error", "rate_limit.ai.unavailable", { error_code: "rate_limiter_unavailable" });
     return false;
   }
 }

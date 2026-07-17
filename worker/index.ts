@@ -16,12 +16,23 @@ import {
 } from "./security";
 import { handleTurnstileConfigRequest, type TurnstileEnv } from "./turnstile";
 import { enforceRequestRateLimit, type RateLimitEnv } from "./rate-limit";
+import {
+  attachRequestId,
+  internalErrorResponse,
+  logEvent,
+  logRequestCompleted,
+  observeScheduledTask,
+  requestLogContext,
+  runWithLogContext,
+  safeErrorFields,
+  type ObservabilityEnv,
+} from "./observability";
 
 interface AssetFetcher {
   fetch(request: Request): Promise<Response>;
 }
 
-interface Env extends TripApiEnv, TurnstileEnv, RateLimitEnv {
+interface Env extends TripApiEnv, TurnstileEnv, RateLimitEnv, ObservabilityEnv {
   ASSETS: AssetFetcher;
   MIMO_API_KEY?: string;
   MIMO_MODEL?: string;
@@ -42,29 +53,45 @@ interface ExecutionContext {
 
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const redirect = canonicalRedirect(request);
-    if (redirect) return hardenResponse(redirect, request);
-
-    const maintenance = releaseMaintenanceResponse(request, env);
-    if (maintenance) return hardenResponse(maintenance, request);
-
-    const rateLimit = await enforceRequestRateLimit(request, env);
-    if (rateLimit) return hardenResponse(rateLimit, request);
-
-    const guarded = await guardRequestBody(request);
-    if (guarded.response) return hardenResponse(guarded.response, request);
-
-    const routedRequest = guarded.request;
-    const response = await routeRequest(routedRequest, env, ctx);
-    return hardenResponse(response, routedRequest);
+    const logContext = await requestLogContext(request, env);
+    return runWithLogContext(logContext, async () => {
+      const started = performance.now();
+      let response: Response;
+      try {
+        response = await handleFetchRequest(request, env, ctx);
+      } catch (error) {
+        logEvent("error", "http.request.exception", safeErrorFields(error));
+        response = internalErrorResponse(request);
+      }
+      const hardened = attachRequestId(hardenResponse(response, request), logContext.requestId);
+      logRequestCompleted(hardened, performance.now() - started);
+      return hardened;
+    });
   },
 
   async scheduled(_controller: unknown, env: Env, ctx: ExecutionContext) {
     if (releaseMaintenanceEnabled(env)) return;
-    ctx.waitUntil(reviewTripBacklog(env, sites));
-    ctx.waitUntil(cleanupAuthData(env));
+    ctx.waitUntil(observeScheduledTask(env, "trip_review_backlog", () => reviewTripBacklog(env, sites)));
+    ctx.waitUntil(observeScheduledTask(env, "auth_data_cleanup", () => cleanupAuthData(env)));
   },
 };
+
+async function handleFetchRequest(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const redirect = canonicalRedirect(request);
+  if (redirect) return redirect;
+
+  const maintenance = releaseMaintenanceResponse(request, env);
+  if (maintenance) return maintenance;
+
+  const rateLimit = await enforceRequestRateLimit(request, env);
+  if (rateLimit) return rateLimit;
+
+  const guarded = await guardRequestBody(request);
+  if (guarded.response) return guarded.response;
+
+  const routedRequest = guarded.request;
+  return routeRequest(routedRequest, env, ctx);
+}
 
 async function routeRequest(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);

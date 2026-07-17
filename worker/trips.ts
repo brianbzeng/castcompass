@@ -34,6 +34,7 @@ import {
   type StoredFeasibilityRecruitmentCampaign,
   type StoredFeasibilityStart,
 } from "./validation-feasibility.ts";
+import { logEvent } from "./observability.ts";
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const MAX_MULTIPART_BYTES = MAX_PHOTO_BYTES + 1024 * 1024;
@@ -3069,8 +3070,9 @@ export async function handleTripRequest(
     if (error instanceof ApiError) {
       return jsonResponse({ error: { code: error.code, message: error.message } }, error.status);
     }
-    console.error("Trip API request failed", {
-      name: error instanceof Error ? error.name : "UnknownError",
+    logEvent("error", "trip.request.failed", {
+      error_name: error instanceof Error ? error.name : "UnknownError",
+      error_code: "trip_request_failed",
     });
     return jsonResponse(
       { error: { code: "internal_error", message: "The trip could not be saved right now." } },

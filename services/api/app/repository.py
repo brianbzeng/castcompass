@@ -35,8 +35,10 @@ from .models import (
     SiteSummary,
     SourceFreshness,
 )
+from .observability import configure_logger, log_event, safe_error_fields
 
 LOGGER = logging.getLogger(__name__)
+configure_logger(LOGGER)
 
 BAY_REGULATIONS = "https://wildlife.ca.gov/Fishing/Ocean/Regulations/Fishing-Map/sf-bay"
 COAST_REGULATIONS = "https://wildlife.ca.gov/Fishing/Ocean/Regulations/Fishing-Map/San-Francisco"
@@ -1123,7 +1125,7 @@ class HybridRepository(Repository):
             try:
                 return getattr(self.database_repository, method)(*args)
             except Exception as exc:  # fallback must remain available during database incidents
-                LOGGER.warning("Database read failed; using the published file snapshot: %s", exc)
+                log_event(LOGGER, "warn", "database.read.fallback", **safe_error_fields(exc, "database_read_failed"))
         return getattr(self.file_repository, method)(*args)
 
     def list_sites(self) -> tuple[list[SiteDetail], str]:
@@ -1136,7 +1138,7 @@ class HybridRepository(Repository):
             try:
                 site, site_source = self.database_repository.get_site(site_id)
             except Exception as exc:
-                LOGGER.warning("Database read failed; using the published file snapshot: %s", exc)
+                log_event(LOGGER, "warn", "database.read.fallback", **safe_error_fields(exc, "database_read_failed"))
         if site is None:
             site, site_source = self.file_repository.get_site(site_id)
         return site, site_source
@@ -1150,7 +1152,7 @@ class HybridRepository(Repository):
                 if result[0]:
                     return result
             except Exception as exc:
-                LOGGER.warning("Database read failed; using the published file snapshot: %s", exc)
+                log_event(LOGGER, "warn", "database.read.fallback", **safe_error_fields(exc, "database_read_failed"))
         return self.file_repository.list_opportunities(species, from_time, through)
 
 

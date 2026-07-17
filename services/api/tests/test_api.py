@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import threading
+import uuid
 from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -169,6 +171,31 @@ def test_lists_map_ready_sites(client: TestClient):
     }
 
 
+def test_api_request_logs_are_structured_correlated_and_query_free(client: TestClient, caplog):
+    caplog.set_level(logging.INFO, logger="services.api.app.main")
+    response = client.get("/v1/sites?private=private.angler@example.com")
+
+    request_id = response.headers["x-request-id"]
+    assert str(uuid.UUID(request_id)) == request_id
+    entries = []
+    for record in caplog.records:
+        try:
+            entry = json.loads(record.getMessage())
+        except json.JSONDecodeError:
+            continue
+        if entry.get("event") == "http.request.completed":
+            entries.append(entry)
+
+    assert len(entries) == 1
+    entry = entries[0]
+    assert entry["schema_version"] == "castingcompass.log/1.0.0"
+    assert entry["service"] == "castingcompass-api"
+    assert entry["request_id"] == request_id
+    assert entry["route"] == "/v1/sites"
+    assert entry["status"] == 200
+    assert "private.angler" not in json.dumps(entry)
+
+
 def test_site_detail_and_not_found(client: TestClient):
     response = client.get("/v1/sites/test-pier")
     assert response.status_code == 200
@@ -224,6 +251,8 @@ def test_missing_snapshot_returns_explicit_503(tmp_path: Path):
         app.dependency_overrides.clear()
     assert response.status_code == 503
     assert response.json()["invented_values_used"] is False
+    assert response.json()["reason"] == "published_data_unavailable"
+    assert str(uuid.UUID(response.headers["x-request-id"])) == response.headers["x-request-id"]
     assert response.headers["retry-after"] == "300"
 
 

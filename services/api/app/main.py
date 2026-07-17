@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, AsyncIterator
@@ -23,10 +24,19 @@ from .models import (
     SiteDetail,
     SiteSummary,
 )
+from .observability import (
+    begin_request,
+    configure_logger,
+    current_request_id,
+    end_request,
+    log_event,
+    safe_error_fields,
+)
 from .repository import DataUnavailableError, Repository, build_repository, utc_now
 
 API_VERSION = "0.1.0"
 LOGGER = logging.getLogger(__name__)
+configure_logger(LOGGER)
 
 repository = build_repository()
 
@@ -36,7 +46,12 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     try:
         repository.open()
     except Exception as exc:
-        LOGGER.warning("Postgres pool startup deferred; file snapshot remains available (%s)", type(exc).__name__)
+        log_event(
+            LOGGER,
+            "warn",
+            "database.pool.startup_deferred",
+            **safe_error_fields(exc, "pool_startup_deferred"),
+        )
     try:
         yield
     finally:
@@ -77,6 +92,7 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["GET", "OPTIONS"],
     allow_headers=["Accept", "Content-Type", "If-None-Match"],
+    expose_headers=["X-CastingCompass-Data-Source", "X-Request-ID"],
 )
 
 
@@ -100,14 +116,57 @@ async def cache_headers(request: Request, call_next):
     return response
 
 
+@app.middleware("http")
+async def observe_requests(request: Request, call_next):
+    token = begin_request(request)
+    started = time.perf_counter()
+    try:
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            log_event(LOGGER, "error", "http.request.exception", **safe_error_fields(exc))
+            response = JSONResponse(
+                status_code=500,
+                content={"detail": "The request could not be completed."},
+                headers={"Cache-Control": "no-store"},
+            )
+        request_id = current_request_id()
+        if request_id:
+            response.headers["X-Request-ID"] = request_id
+        level = (
+            "error"
+            if response.status_code >= 500
+            else "warn"
+            if response.status_code == 429
+            else "info"
+        )
+        log_event(
+            LOGGER,
+            level,
+            "http.request.completed",
+            status=response.status_code,
+            outcome=(
+                "server_error"
+                if response.status_code >= 500
+                else "client_error"
+                if response.status_code >= 400
+                else "ok"
+            ),
+            duration_ms=round(max(0.0, (time.perf_counter() - started) * 1000), 2),
+        )
+        return response
+    finally:
+        end_request(token)
+
+
 @app.exception_handler(DataUnavailableError)
 async def unavailable_handler(_: Request, exc: DataUnavailableError):
-    LOGGER.error("Published data is unavailable: %s", exc)
+    log_event(LOGGER, "error", "snapshot.data_unavailable", **safe_error_fields(exc, "data_unavailable"))
     return JSONResponse(
         status_code=503,
         content={
             "detail": "The latest verified CastingCompass data snapshot is unavailable.",
-            "reason": str(exc),
+            "reason": "published_data_unavailable",
             "invented_values_used": False,
         },
         headers={"Cache-Control": "no-store", "Retry-After": "300"},

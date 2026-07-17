@@ -12,6 +12,7 @@ import {
   type TurnstileAction,
   type TurnstileEnv,
 } from "./turnstile.ts";
+import { logEvent } from "./observability.ts";
 
 const SESSION_COOKIE = "__Host-cc_session";
 const LEGACY_SESSION_COOKIE = "cc_session";
@@ -79,9 +80,9 @@ class AuthError extends Error {
 
 function safeErrorContext(error: unknown) {
   if (error instanceof AuthError) {
-    return { name: error.name, status: error.status, code: error.code };
+    return { error_name: error.name, error_status: error.status, error_code: error.code };
   }
-  return { name: error instanceof Error ? error.name : "UnknownError" };
+  return { error_name: error instanceof Error ? error.name : "UnknownError" };
 }
 
 function providerRequestId(response: Response) {
@@ -476,7 +477,7 @@ export async function handleAccountRequest(
       // Account creation should succeed even if the optional welcome message is
       // delayed. Verification already proved ownership of the address.
       await sendWelcomeEmail(env, user.email, user.id).catch((error) => {
-        console.error("Welcome email delivery failed", safeErrorContext(error));
+        logEvent("error", "email.welcome.delivery_failed", safeErrorContext(error));
       });
       return createSessionResponse(db, request, user, 201);
     }
@@ -1372,7 +1373,7 @@ function accountRequestErrorResponse(error: unknown) {
   if (error instanceof AuthError || error instanceof TurnstileVerificationError) {
     return errorResponse(error.status, error.code, error.message);
   }
-  console.error("Account API request failed", safeErrorContext(error));
+  logEvent("error", "account.request.failed", safeErrorContext(error));
   return errorResponse(500, "internal_error", "The account request could not be completed.");
 }
 
@@ -1630,7 +1631,7 @@ async function deletionStatusAfterCommit(
     const job = env.DB ? await selectDeletionJobByReceipt(env.DB, deletion.receipt) : null;
     return job ? publicDeletionStatus(job) : fallback;
   } catch (error) {
-    console.error("Post-commit deletion cleanup deferred", safeErrorContext(error));
+    logEvent("error", "privacy.deletion.cleanup_deferred", safeErrorContext(error));
     return fallback;
   }
 }
@@ -2341,15 +2342,18 @@ async function sendVerificationEmail(
     }),
   });
   if (!response.ok) {
-    console.error("Transactional email delivery failed", {
+    logEvent("error", "email.transactional.delivery_failed", {
       status: response.status,
-      requestId: providerRequestId(response),
+      provider_request_id: providerRequestId(response),
     });
     await response.body?.cancel().catch(() => undefined);
     throw new AuthError(502, "email_delivery_failed", "The verification email could not be sent. Try again shortly.");
   }
   const receipt = await response.json().catch(() => null) as { id?: string } | null;
-  console.log("Transactional email accepted by Resend", { id: safeProviderIdentifier(receipt?.id) });
+  logEvent("info", "email.transactional.accepted", {
+    provider: "resend",
+    provider_request_id: safeProviderIdentifier(receipt?.id),
+  });
 }
 
 async function sendWelcomeEmail(env: AuthApiEnv, to: string, userId: string) {
@@ -2371,15 +2375,18 @@ async function sendWelcomeEmail(env: AuthApiEnv, to: string, userId: string) {
     }),
   });
   if (!response.ok) {
-    console.error("Welcome email provider request failed", {
+    logEvent("error", "email.welcome.provider_failed", {
       status: response.status,
-      requestId: providerRequestId(response),
+      provider_request_id: providerRequestId(response),
     });
     await response.body?.cancel().catch(() => undefined);
     throw new Error("Welcome email provider request failed");
   }
   const receipt = await response.json().catch(() => null) as { id?: string } | null;
-  console.log("Welcome email accepted by Resend", { id: safeProviderIdentifier(receipt?.id) });
+  logEvent("info", "email.welcome.accepted", {
+    provider: "resend",
+    provider_request_id: safeProviderIdentifier(receipt?.id),
+  });
 }
 
 function randomCode() {
@@ -2461,9 +2468,9 @@ function deferPasswordRecoveryEmail(
     try {
       await db.prepare("DELETE FROM email_challenges WHERE id = ?").bind(challengeId).run();
     } catch (cleanupError) {
-      console.error("Password recovery challenge cleanup failed", safeErrorContext(cleanupError));
+      logEvent("error", "password_recovery.challenge_cleanup_failed", safeErrorContext(cleanupError));
     }
-    console.error("Password recovery email delivery deferred", safeErrorContext(error));
+    logEvent("error", "password_recovery.email_delivery_deferred", safeErrorContext(error));
   });
   options.waitUntil?.(guardedDelivery);
   return guardedDelivery;

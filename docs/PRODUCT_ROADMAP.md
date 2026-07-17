@@ -127,7 +127,7 @@ after its acceptance checks pass in the intended environment.
       all-or-nothing hash checking and binary-only installs in CI/API containers, pin the API
       Python base image by patch and multi-platform digest, and schedule Docker updates. The
       optional Geo/PyTorch stack and signed deployment provenance remain open.
-    - [x] Locally inventory all six Worker runtime secrets, extend named-secret scanning and
+    - [x] Locally inventory all seven Worker runtime secrets, extend named-secret scanning and
       ignored local Wrangler secret files, define environment/purpose/backup-key separation,
       document D1 managed-encryption and application-controlled AES-256-GCM boundaries, and
       record feature-specific rotation and recovery hazards. Production IAM/MFA evidence,
@@ -180,6 +180,12 @@ after its acceptance checks pass in the intended environment.
     immutable change history. Keep future financial reporting as a separately authorized data
     domain with accounting-grade source records and reconciliation, not values inferred from
     application logs.
+  - [x] Locally centralize Worker logging behind a schema-enforcing module, add server-generated
+    request IDs and secret-keyed session pseudonyms, normalize dynamic/unknown routes, replace
+    ad hoc console output, correlate scheduled work, disable raw URL invocation logs, and publish
+    the Cloudflare dashboard/query/incident recipe plus the PostHog privacy decision. Production
+    dashboard creation, IAM/retention/cost evidence, external uptime checks, and delivered alert
+    drills remain open.
 - [ ] Make the data and execution paths measurably scalable before a traffic campaign.
   - [ ] Inventory every production query, capture representative `EXPLAIN QUERY PLAN` evidence,
     add only workload-justified indexes, bound scans/pagination, eliminate N+1 patterns, verify

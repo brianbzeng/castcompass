@@ -105,7 +105,7 @@ gate open until those live synthetic checks pass on the exact deployed version.
 ## Key custody and encryption
 
 Use [Key custody and encryption](KEY-CUSTODY-AND-ENCRYPTION.md) as the source of truth for the
-six runtime secret names, separation rules, managed D1 encryption boundary, local backup
+seven runtime secret names, separation rules, managed D1 encryption boundary, local backup
 encryption, semantic rotation hazards, incident path, and account-level acceptance evidence.
 Never include a secret value in this runbook, a release record, monitoring, or the future
 operator dashboard. A local scanner pass does not prove production custody, least-privilege
@@ -119,8 +119,10 @@ and account for the temporary edge-counter reset caused by rate-limit pseudonym-
 
 ## Monitoring and alerting
 
-Cloudflare Worker observability is enabled in `wrangler.jsonc`, but that setting alone is not
-an alerting system. Configure and exercise:
+Cloudflare Worker observability is enabled in `wrangler.jsonc`; raw invocation URL logs are
+disabled and the application emits the privacy-bounded schema in `docs/OBSERVABILITY.md`. That
+repository setting alone is not a deployed dashboard or alerting system. Create the documented
+saved views, configure, and exercise:
 
 - Worker exceptions, 5xx rate, CPU time, and request-volume anomaly alerts;
 - D1 error/latency and storage growth review;
@@ -231,7 +233,7 @@ prove that the object is either attached to a live trip or durably queued for cl
       verification passed at the exact commit. The recorded SBOM/lock hashes match that commit.
 - [ ] GitHub dependency/Dependabot review has no untriaged high or critical advisory; accepted
       development findings have reachability evidence, an owner, and a deadline.
-- [ ] The six runtime secret bindings, distinct opaque key IDs, named custodians/reviewers,
+- [ ] The seven runtime secret bindings, distinct opaque key IDs, named custodians/reviewers,
       least-privilege account roles, MFA, recovery, revocation, and environment separation were
       verified without placing values in evidence.
 - [ ] D1 managed transport/at-rest controls and the absence of application field-level
@@ -253,6 +255,9 @@ prove that the object is either attached to a live trip or durably queued for cl
 - [ ] Turnstile is enforced and tested on the agreed high-abuse forms, or an explicit
       time-bounded risk acceptance identifies the owner and deadline.
 - [ ] Exception, 5xx, CPU, D1, uptime, and volume alerts delivered a test notification.
+- [ ] The `docs/OBSERVABILITY.md` saved views exist under an MFA-protected operator role;
+      raw invocation URLs are absent, request-ID reconstruction passed, the dedicated
+      observability pseudonym key is separate, and redaction fixtures exposed no private fields.
 - [ ] A recent encrypted D1 export exists with a tested retention/deletion procedure.
 - [ ] A non-production restore drill passed and its aggregate evidence is recorded.
 - [ ] The backup/Time Travel window is shorter than the 90-day deletion-tombstone window.
