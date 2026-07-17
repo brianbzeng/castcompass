@@ -122,13 +122,14 @@ after its acceptance checks pass in the intended environment.
       Optional Geo/PyTorch platform locks, cross-platform npm install-script allowlisting,
       combined/signed SBOM and build attestations, production evidence, key custody, and restore
       drills remain open.
-    - [x] Enable live `main` protection with pull requests, strict GitHub Actions checks,
-      resolved conversations, administrator enforcement, and force-push/deletion denial; enable
-      Dependabot security updates, secret-scanning push protection, private vulnerability
-      reporting, and GitHub-managed CodeQL for Actions, JavaScript/TypeScript, and Python. The
-      initial CodeQL findings were individually reviewed: the public test-protocol identifier
-      was documented as a test-only false positive, while biased verification-code generation
-      and overly broad CLI output were remediated and regression-tested.
+    - [x] Enable live `main` protection with pull requests, strict app-bound GitHub Actions and
+      Advanced Security `CodeQL` checks, resolved conversations, administrator enforcement, and
+      force-push/deletion denial; enable Dependabot security updates, secret-scanning push
+      protection, private vulnerability reporting, and GitHub-managed CodeQL for Actions,
+      JavaScript/TypeScript, and Python. The initial CodeQL findings were individually reviewed:
+      the public test-protocol identifier was documented as a test-only false positive, while
+      biased verification-code generation and overly broad CLI output were remediated and
+      regression-tested.
     - [x] Lock the exercised FastAPI and pipeline CI Python graphs to exact transitive versions
       and committed SHA-256 distribution hashes, bind lock metadata to its source inputs, keep
       test-only packages out of the API image, enforce pip
