@@ -260,6 +260,11 @@ catch-only CSVs and expanded estimates are rejected because they cannot supply
 truthful zero-catch effort or one-row-per-attempt labels. A JSONL row has this
 shape (abbreviated only by having one zero-count target row):
 
+The separately receipted public CDFW ds3186 and ds3185 BlockBox CPUA layers are aggregate
+descriptive context only. They do not satisfy this complete-effort contract and must not be
+passed to `ingest-observations`. See `docs/OFFICIAL-FISHERIES-DATA.md` for their exact source
+versions, checksums, missing-value sentinel, and prohibited uses.
+
 ```json
 {"contract_version":"castingcompass.observation/2.0.0","taxon_catalog_version":"castingcompass.taxa/1.0.0","contract_status":"valid","observation_id":"crfs:sample-123","effort_segment_id":"crfs:effort-123","primary_target_taxon_id":"california-halibut","source":{"source_id":"cdfw_crfs","source_record_id":"sample-123","data_kind":"complete-effort-segment","complete_attempt":true,"expanded_estimate":false},"target_effort":{"value":2.5,"unit":"angler-hours","mode":"shore"},"temporal_support":{"start_at":"2026-06-01T15:00:00Z","end_at":"2026-06-01T17:30:00Z","precision":"exact"},"spatial_support":{"kind":"site","support_id":"crfs-site-123"},"taxon_observations":[{"taxon_id":"california-halibut","encounter_count":0,"retained_count":0,"released_count":0,"disposition_unknown_count":0,"identification_confidence":"not_observed","identification_basis":"not-observed"}],"outcome_class":"no_fish"}
 ```

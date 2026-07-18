@@ -9,7 +9,24 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
-## Current seven-step work cycle
+## Current seven-step work cycle — official fisheries data
+
+- [x] Reconcile PR `#87`, its exact post-merge checks, and the zero-open-alert repository state.
+- [x] Inventory the existing CDFW, CRFS, and RecFIN contracts without ingesting private or
+      social data.
+- [x] Verify the current ds3185/ds3186 official service identities, revisions, dictionaries,
+      sampling boundaries, license labels, and export drift.
+- [x] Acquire and twice reproduce canonical owner-only snapshots with byte-binding receipts and
+      a fail-closed acquisition command.
+- [x] Verify support and allowed-use boundaries. Local evidence: 69/69 pipeline tests passed
+      (one documented optional raster test skipped), 324/324 repository tests passed, Ruff,
+      lint, typecheck, offline dependency audits, secrets, locks, and both SBOM checks passed.
+- [ ] Publish the draft PR and obtain hosted network-audit and mobile-browser evidence; the local
+      sandbox cannot reach the registry or bind the Playwright test port.
+- [ ] Merge only after every required hosted check passes, reconcile post-merge evidence, and
+      leave Cloudflare and production paused.
+
+## Completed prior seven-step cycle
 
 - [x] Triage PRs `#17`–`#32`; close unsafe, broken, duplicated, or superseded updates.
 - [x] Upgrade and lock maintained runtimes and direct dependency families.
@@ -72,6 +89,8 @@ also satisfied.
       preregistration, witnessed restore, and activation remain.
 - [ ] Acquire reproducible official CDFW/CRFS/RecFIN data with manifests, checksums, licenses,
       dictionaries, sampling support, and allowed-use declarations; begin a prospective cohort.
+      **Exact aggregate ds3186/ds3185 snapshots and receipts complete;** both are context-only,
+      while a complete-effort RecFIN export and the prospective cohort remain open.
 - [ ] Treat Fishbrain only as an optional written-license partnership and Facebook groups only
       as admin-approved prospective recruitment—never scraped retrospective evidence.
 - [ ] Validate California halibut relative ranking against frozen baselines and publish
@@ -131,9 +150,11 @@ also satisfied.
       not change DNS or submit URLs until the reviewed crawl foundation is deployed.
 - [ ] Record current Google/Bing dashboard ownership and verification status with screenshots
       that contain no secrets. Leave sitemap submission and live URL inspection for deployment.
-- [ ] Build the official-data source register for CDFW/CRFS/RecFIN: dataset name, official URL,
+- [x] Build the official-data source register for CDFW/CRFS/RecFIN: dataset name, official URL,
       owner, retrieval method, license/terms, dictionary, update cadence, and intended use. Do
-      not ingest private/social data.
+      not ingest private/social data. The register and exact ds3185/ds3186 receipts are in
+      `docs/OFFICIAL-FISHERIES-DATA.md` and `pipeline/sources/receipts/`; neither aggregate is
+      approved for training, validation, scoring, or point labels.
 - [ ] Draft five short user-interview scripts focused on whether people understand the
       heuristic ranking, freshness labels, limitations, and trip-report privacy. Avoid collecting
       precise locations, credentials, or private trip notes while the service is paused.

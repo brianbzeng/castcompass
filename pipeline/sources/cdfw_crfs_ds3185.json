@@ -1,0 +1,79 @@
+{
+  "manifest_version": "2.0",
+  "source_id": "cdfw_crfs_ds3185",
+  "dataset_id": "ds3185",
+  "title": "California Recreational Fisheries Survey, Catch Per Unit Angler for Rockfish, Cabezon, Greenling, and Lingcod - R7 - 2004-2024",
+  "steward": "California Department of Fish and Wildlife",
+  "official_landing_page": "https://www.lab.data.ca.gov/dataset/california-recreational-fisheries-survey-catch-per-unit-angler-for-rockfish-cabezon-greenling-a",
+  "license": {
+    "portal_label": "Creative Commons Attribution",
+    "url": "https://www.lab.data.ca.gov/licenses",
+    "note": "The portal does not state a version number on the dataset page; do not infer one. Preserve attribution and re-check the current portal terms before redistribution or commercial use."
+  },
+  "attribution": "California Department of Fish and Wildlife, California Recreational Fisheries Survey ds3185; accessed through the California Open Data Portal and CDFW ArcGIS service.",
+  "access": {
+    "mode": "official_arcgis_snapshot",
+    "service_url": "https://services2.arcgis.com/Uq9r85Potqm3MfRV/arcgis/rest/services/biosds3185_fpu/FeatureServer/0",
+    "expected_layer_name": "California Recreational Fisheries Survey Catch Per Unit Angler for Rockfish Cabezon Greenling and Lingcod _ R7 _ 2004_2024 _ CDFW _ ds3185",
+    "expected_copyright": "Marine Region GIS Lab California Department of Fish and Wildlife",
+    "expected_max_record_count": 2000,
+    "expected_fields": [
+      {"name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false},
+      {"name": "Catch", "type": "esriFieldTypeString", "nullable": true},
+      {"name": "Trip", "type": "esriFieldTypeString", "nullable": true},
+      {"name": "All_21_24", "type": "esriFieldTypeDouble", "nullable": true},
+      {"name": "All_10_15", "type": "esriFieldTypeDouble", "nullable": true},
+      {"name": "All_04_09", "type": "esriFieldTypeDouble", "nullable": true},
+      {"name": "All_16_20", "type": "esriFieldTypeDouble", "nullable": true},
+      {"name": "Kept_21_24", "type": "esriFieldTypeDouble", "nullable": true},
+      {"name": "Kept_10_15", "type": "esriFieldTypeDouble", "nullable": true},
+      {"name": "Kept_04_09", "type": "esriFieldTypeDouble", "nullable": true},
+      {"name": "Kept_16_20", "type": "esriFieldTypeDouble", "nullable": true},
+      {"name": "CPUA_Kept", "type": "esriFieldTypeDouble", "nullable": true},
+      {"name": "CPUA_All", "type": "esriFieldTypeDouble", "nullable": true},
+      {"name": "Samples", "type": "esriFieldTypeInteger", "nullable": true},
+      {"name": "BlockBox", "type": "esriFieldTypeString", "nullable": true},
+      {"name": "Shape__Area", "type": "esriFieldTypeDouble", "nullable": true},
+      {"name": "Shape__Length", "type": "esriFieldTypeDouble", "nullable": true}
+    ]
+  },
+  "source_version": {
+    "dataset_version": "R7-2004-2024",
+    "service_revision": {
+      "lastEditDate": 1753738702086,
+      "schemaLastEditDate": 1753738702086,
+      "dataLastEditDate": 1753737060466
+    },
+    "expected_feature_count": 4471
+  },
+  "sampling_design": {
+    "kind": "published aggregate CPUA by CRFS one-minute BlockBox",
+    "catch_label": "RCGL",
+    "trip_label": "Bottomfish",
+    "release_floor": "Only blocks with at least three reported fishing trips over 2004-2024 are published.",
+    "multi_block_rule": "When an interview reported multiple blocks, catch was divided across all indicated blocks.",
+    "source_transition": "2004-2015 records came from the PSMFC legacy RecFIN database; 2016-2024 records came from the CDFW CRFS system."
+  },
+  "denominator": "Surveyed anglers whose primary target fell within the broad CRFS Bottomfish trip category in a block and period; one angler means one person fishing in one block on one day. This is not species-specific effort for any rockfish, cabezon, greenling, or lingcod taxon.",
+  "spatial_support": "CDFW CRFS 1-minute BlockBox polygon. It is an aggregate area, never an exact fishing point; no centroid may be converted into a catch location.",
+  "temporal_support": "Aggregate bins 2004-2009, 2010-2015, 2016-2020, 2021-2024, plus the full 2004-2024 period; no exact event time.",
+  "field_semantics": {
+    "missing_binned_cpua_sentinel": -9999,
+    "rule": "The eight period-specific All_* and Kept_* fields use -9999 where that bin has no published value. Preserve it in the raw snapshot, translate it only to an explicit missing value in derived data, and never interpret it as negative catch or zero."
+  },
+  "permitted_uses": {
+    "descriptive_context": true,
+    "model_training": false,
+    "model_validation": false,
+    "production_scoring": false,
+    "point_labels": false,
+    "reason": "The layer pools multiple caught taxa into RCGL and many targets into Bottomfish effort, lacks complete attempt rows, and supplies only block/time-bin support."
+  },
+  "limitations": [
+    "CPUA is a descriptive aggregate, not a probability of catch and not an expanded population estimate.",
+    "The RCGL numerator and Bottomfish denominator are broad groups and cannot support a named-species model target without a separately reviewed contract.",
+    "Survey coverage, modes, sampling intensity, regulations, and source systems vary across the 2004-2024 period.",
+    "The source uses an undocumented -9999 sentinel in period-specific CPUA fields; the acquisition contract records this observed field behavior and fails closed on any different negative value.",
+    "A zero aggregate catch value is not proof that no fish from the grouped taxa were present."
+  ]
+}

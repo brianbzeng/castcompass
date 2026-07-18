@@ -5,7 +5,7 @@ reproducible full-survey official-data self-supervised pretraining implemented.
 The production species migration and any supervised catch-training dataset
 remain unapproved. Official rasters and weights are not bundled.
 
-**Version:** 0.3.0
+**Version:** 0.3.1
 
 ## Intended dataset
 
@@ -33,12 +33,19 @@ The machine-readable manifests are in `pipeline/sources/`.
 | Central San Francisco Bay multibeam | U.S. Geological Survey | 4 m bathymetry/backscatter and bedform structure | [USGS DS 55](https://pubs.usgs.gov/dds/dds-55/pacmaps/sf_data.htm) |
 | California Recreational Fisheries Survey (CRFS) | California Department of Fish and Wildlife | California marine recreational catch/effort samples or estimates | [CDFW CRFS](https://wildlife.ca.gov/Conservation/Marine/CRFS/Additional-Information) |
 | RecFIN Data Warehouse | Pacific States Marine Fisheries Commission | Official distribution/query system for Pacific Coast recreational-fisheries data, including CRFS | [RecFIN](https://www.recfin.org/) |
+| CRFS ds3186 | California Department of Fish and Wildlife | All-catch/all-effort BlockBox CPUA context only | [California Open Data ds3186](https://www.lab.data.ca.gov/dataset/california-recreational-fisheries-survey-catch-per-unit-angler-for-all-species-and-all-effort-r) |
+| CRFS ds3185 | California Department of Fish and Wildlife | RCGL-catch/Bottomfish-effort BlockBox CPUA context only | [California Open Data ds3185](https://www.lab.data.ca.gov/dataset/california-recreational-fisheries-survey-catch-per-unit-angler-for-rockfish-cabezon-greenling-a) |
 
 CRFS and RecFIN are not NOAA bathymetry products. Their actual stewards are
 preserved because survey ownership, design documentation, and citation matter.
 CDFW states that CRFS data and estimates from 2004 onward are available through
 RecFIN. Raw query exports, query filters, access dates, and checksums must be
 retained.
+
+The exact ds3185/ds3186 source revisions, dictionaries, sampling boundaries, permissions, and
+canonical snapshot receipts are documented in [OFFICIAL-FISHERIES-DATA.md](OFFICIAL-FISHERIES-DATA.md).
+They are aggregate descriptive context only. They cannot enter observation-v2 training,
+validation, calibration, production scoring, or exact-point terrain labels.
 
 ## Data contracts
 

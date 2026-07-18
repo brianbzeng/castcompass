@@ -444,6 +444,14 @@ after its acceptance checks pass in the intended environment.
   attribution, dictionary, source version, sampling design, denominator, and spatial/time
   support. Keep samples separate from expanded estimates, never invent point labels from
   blocks, and declare training/validation/context permissions per source.
+  - [x] Acquire and twice reproduce exact current ds3186 and ds3185 FeatureServer snapshots,
+    commit byte-binding receipts, pin layer identity/revision/dictionary and the `-9999`
+    missing-value sentinel, and explicitly restrict both block/time-bin aggregates to
+    descriptive context. The stale ds3185 convenience export was rejected rather than silently
+    accepted as current data.
+  - [ ] Obtain a permitted, reproducible complete-effort CRFS/RecFIN sample export and begin the
+    prospective first-party cohort. The aggregate layers cannot substitute for complete
+    attempts, species-specific target effort, exact support, or source-separated validation.
 - [ ] Treat Fishbrain as an optional written-license partnership and Facebook groups as
   admin-approved prospective recruitment—not scraped retrospective evidence. Licensed social
   data without complete attempts, no-catch, effort, coverage, and sampling propensity is for

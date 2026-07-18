@@ -5,7 +5,9 @@
   "steward": "California Department of Fish and Wildlife",
   "official_landing_page": "https://wildlife.ca.gov/Conservation/Marine/CRFS/Additional-Information",
   "related_official_pages": [
-    "https://www.recfin.org/"
+    "https://www.recfin.org/",
+    "https://www.lab.data.ca.gov/dataset/california-recreational-fisheries-survey-catch-per-unit-angler-for-all-species-and-all-effort-r",
+    "https://www.lab.data.ca.gov/dataset/california-recreational-fisheries-survey-catch-per-unit-angler-for-rockfish-cabezon-greenling-a"
   ],
   "access": {
     "mode": "manual_recfin_export",
@@ -24,6 +26,7 @@
     "CRFS is a probability survey designed for catch and effort estimation, not a census of all trips.",
     "Sample records and expanded estimates have different statistical meanings and must not be pooled without design-aware treatment.",
     "Public spatial fields may be aggregated or withheld.",
-    "Survey modes, coverage, regulations, and sampling intensity vary over time."
+    "Survey modes, coverage, regulations, and sampling intensity vary over time.",
+    "Public ds3185/ds3186 CPUA layers are separately receipted aggregate context sources; they are not complete-effort observation-v2 rows."
   ]
 }
