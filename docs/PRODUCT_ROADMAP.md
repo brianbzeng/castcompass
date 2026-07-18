@@ -75,9 +75,13 @@ after its acceptance checks pass in the intended environment.
   activation, or broader AI use. Treat every browser, API, uploaded file, model input, model
   output, webhook, and provider response as untrusted; a checklist or nominal layer count is
   not completion without attack-specific tests and production evidence.
-  - [ ] Map the owner's security-layer reference images into the threat model when the original
+  - [x] Map the owner's security-layer reference images into the threat model when the original
     attachments are available, reconcile them with the existing controls, and record each
-    control's owner, evidence, alert, recovery path, and residual risk.
+    control's owner, evidence, alert, recovery path, and residual risk. The three original
+    screenshots were recovered and integrity-receipted; `docs/THREAT_MODEL.md` now maps all 13
+    layers and preserves the exact acceptance boundary. This completes the mapping only: L10
+    dynamic testing, L12 edge filtering, and L13 live detection remain open or partial, and the
+    production/provider/independent-review gates below remain unchanged.
   - [ ] Keep session credentials out of `localStorage`: verify `HttpOnly`, `Secure`, appropriately
     scoped `SameSite` cookies, rotation, expiry, revocation, fixation resistance, CSRF defenses,
     and enumeration-safe login/recovery behavior. Client-side session or admin checks may guide

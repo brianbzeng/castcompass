@@ -41,7 +41,9 @@ also satisfied.
       matrix and ownership predicates, schema/input/output/upload/prompt boundaries, endpoint
       abuse ceilings, password safety, encryption/custody, version locks, SBOMs, provenance,
       vulnerability response, restore testing, and authorized staging penetration testing.
-      **Most repository controls complete;** production/provider/staging gates remain.
+      **Most repository controls complete; the 13-layer owner reference mapping is locally
+      complete;** production/provider/staging gates remain, including isolated DAST, active edge
+      filtering, live detection/alerting, key custody, and independent review.
 - [ ] Complete the privacy lifecycle: data inventory, cascade map, deletion semantics,
       retention decision, rights workflows, processor handling, and counsel approval. **Local
       inventory/cascade/deletion checks complete;** the optional 30-day recovery decision and

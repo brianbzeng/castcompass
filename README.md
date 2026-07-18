@@ -6,6 +6,10 @@ Live app: [castingcompass.com](https://castingcompass.com) · Source:
 Owner launch tracking: [goal-status dashboard](docs/GOAL_STATUS.md) · Detailed acceptance
 criteria: [product roadmap](docs/PRODUCT_ROADMAP.md)
 
+Security boundaries: [threat model and 13-layer security map](docs/THREAT_MODEL.md) ·
+[access-control matrix](docs/ACCESS_CONTROL_MATRIX.md) ·
+[key custody and encryption](docs/KEY-CUSTODY-AND-ENCRYPTION.md)
+
 CastingCompass is an installable, mobile-first California halibut opportunity planner for public shore, beach, jetty, and pier access from Point Reyes through San Francisco Bay to Half Moon Bay.
 
 It compares reachable casting zones and two-hour windows using three separately visible components:
