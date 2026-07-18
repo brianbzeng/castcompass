@@ -13,6 +13,10 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
+      fastapi-stack:
+        patterns:
+          - fastapi
+          - starlette
       psycopg-family:
         patterns:
           - psycopg

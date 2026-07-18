@@ -7,10 +7,12 @@ import uuid
 from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+from importlib.metadata import version
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
 from services.api.app.main import app, get_repository
 from services.api.app.repository import (
@@ -240,6 +242,50 @@ def test_opportunity_contract_marks_stale_sources_excluded(client: TestClient):
 def test_rejects_unsupported_species_and_horizon(client: TestClient):
     assert client.get("/v1/opportunities", params={"species": "striped-bass"}).status_code == 422
     assert client.get("/v1/opportunities", params={"hours": 1000}).status_code == 422
+
+
+def test_patched_starlette_url_boundaries_and_narrow_method_surface(client: TestClient):
+    assert version("fastapi") == "0.139.2"
+    assert version("starlette") == "1.3.1"
+
+    malformed_host = Request(
+        {
+            "type": "http",
+            "http_version": "1.1",
+            "method": "GET",
+            "scheme": "https",
+            "path": "/v1/sites",
+            "raw_path": b"/v1/sites",
+            "root_path": "",
+            "query_string": b"",
+            "headers": [(b"host", b"attacker.example/poison?path=")],
+            "server": ("api.castingcompass.test", 443),
+            "client": ("127.0.0.1", 50000),
+        }
+    )
+    assert malformed_host.url.hostname == "api.castingcompass.test"
+    assert malformed_host.url.path == "/v1/sites"
+
+    authority_shaped_path = Request(
+        {
+            "type": "http",
+            "http_version": "1.1",
+            "method": "GET",
+            "scheme": "https",
+            "path": "@attacker.example",
+            "raw_path": b"@attacker.example",
+            "root_path": "",
+            "query_string": b"",
+            "headers": [(b"host", b"api.castingcompass.test")],
+            "server": ("api.castingcompass.test", 443),
+            "client": ("127.0.0.1", 50000),
+        }
+    )
+    assert authority_shaped_path.url.hostname == "api.castingcompass.test"
+    assert authority_shaped_path.url.path == "/@attacker.example"
+
+    assert client.request("INTERNAL", "/v1/sites").status_code == 405
+    assert client.post("/v1/sites", data={"field": "value"}).status_code == 405
 
 
 def test_missing_snapshot_returns_explicit_503(tmp_path: Path):

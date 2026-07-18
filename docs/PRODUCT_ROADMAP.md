@@ -140,24 +140,36 @@ after its acceptance checks pass in the intended environment.
       `cryptography` 48.0.1 and the API test graph to `pytest` 9.0.3; regenerate the source-bound
       hashed locks and pass isolated Python 3.12.13 installs, query-plan checks, API tests,
       pipeline lint/tests, and the deterministic smoke workflow. The patched files are on the
-      default branch; Dependabot alert `#2` had not refreshed after the merge and must close from
-      a fresh dependency-graph evaluation rather than being manually hidden as proof.
+      default branch; at that point Dependabot alert `#2` had not refreshed and remained open
+      pending a fresh dependency-graph evaluation rather than being manually hidden as proof.
     - [x] Locally repair the managed Python graph inputs after GitHub's job evidence showed two
       ingestion failures: its per-directory API resolver selected Python 3.14 and could not use
       the old `psycopg-binary` wheel, while its pipeline parser would not follow a `.lock`
       constraint suffix. Preserve the canonical frozen validation lock behind a byte-identical
       parser-readable `.txt` mirror, group the Psycopg family, upgrade it to the reviewed 3.3
       releases, regenerate all source-bound hashed locks, and pass isolated API/pipeline
-      verification. The post-merge API managed job then completed, but its hosted resolver used
-      Python 3.14.5 despite the directory-local selectors and the repository graph still showed
-      null Python versions, so those selectors are documented only as local-tool mirrors. The
-      slower pipeline managed run remains separate provider evidence until its final receipt.
+      verification. Both configured graph updates then completed with exact `pytest` 9.0.3 and
+      Psycopg 3.3.4 package URLs, and alert `#2` automatically changed to fixed without
+      dismissal. A separate hosted version-update job used Python 3.14.5 despite the
+      directory-local selectors, so those selectors are documented only as local-tool mirrors
+      rather than a provider-runtime control.
     - [x] Locally add and attack-test a main-only, post-API/pipeline dependency-submission job
       that converts all three exact hashed Python locks into versioned PyPI package URLs, scopes
       runtime versus development graphs, records direct versus indirect relationships, rejects
       non-main or incomplete commit identity, and holds its required write permission only in
-      the isolated submission job. A successful post-merge snapshot receipt, exact non-null
-      provider graph, and automatic Dependabot alert `#2` closure remain external evidence.
+      the isolated submission job. Main CI run `29621586247` accepted snapshot `83398229` after
+      both tested Python jobs passed at commit `716c3ecef29af7a85791972593ee96fca0c7f8af`; the
+      configured graph already exposed exact SPDX `versionInfo` values and alert `#2` was fixed
+      automatically, completing this subitem's provider evidence.
+    - [ ] Remediate the six distinct Starlette advisories surfaced by the exact graph (12 alerts
+      across the API runtime and test manifests), including three high-severity denial-of-service
+      or Windows file-serving findings. Locally upgrade the reviewed pair to FastAPI 0.139.2 and
+      Starlette 1.3.1, the first Starlette release above every affected range; regenerate the
+      source-bound locks and verify malformed Host/path handling plus the API's GET/OPTIONS-only
+      surface. Move the test client from deprecated `httpx` compatibility to Starlette's
+      preferred exact `httpx2` backend. Mark this complete only after tested `main` snapshot
+      evidence records the exact versions and GitHub closes alerts `#3` through `#14`
+      automatically without dismissal.
     - [x] Locally inventory all seven Worker runtime secrets, extend named-secret scanning and
       ignored local Wrangler secret files, define environment/purpose/backup-key separation,
       document D1 managed-encryption and application-controlled AES-256-GCM boundaries, and

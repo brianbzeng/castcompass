@@ -130,16 +130,33 @@ tests above. The managed version-update job is useful advisory evidence but is n
 Python runtime contract and may use a newer hosted interpreter. Never manually dismiss a stale
 alert merely to make the dashboard appear green.
 
+The exact graph exposed Starlette 0.47.3 under both API manifests with six distinct advisories,
+duplicated into 12 alerts. The reviewed remediation pairs FastAPI 0.139.2 with an explicit
+Starlette 1.3.1 direct pin, the first Starlette version above every affected range, and groups
+the pair for future Dependabot proposals. The API does not mount `StaticFiles`, return
+`FileResponse`, parse forms, or define `HTTPEndpoint` subclasses, and it allows only GET/OPTIONS;
+those facts reduce reachability but do not justify retaining a vulnerable framework. Isolated
+tests must also exercise the patched malformed-Host/path URL boundaries and reject unsupported
+methods before this change is merged. The test-only graph uses exact `httpx2` 2.7.0, Starlette's
+preferred test-client backend, instead of relying on its deprecated `httpx` compatibility path.
+The post-merge snapshot and automatic closure of alerts `#3` through `#14` remain required
+provider evidence; do not dismiss them manually.
+
 ## Exact GitHub Python dependency snapshot
 
-GitHub's managed graph completed after the Psycopg and constraint fixes, but its repository
-SBOM still exposed Python packages such as `pytest` and `psycopg` with a null version. The CI
-`dependency-submission` job corrects that evidence gap only after the hash-required API and
-pipeline jobs pass on a push to `main`. It parses the committed locks without importing package
-code and submits three exact versioned manifests: API runtime, API tests, and pipeline CI. The
-runtime manifest is scoped as runtime; test and pipeline packages are scoped as development;
-direct relationships come from the reviewed source inputs and every other locked package is
-marked indirect.
+GitHub's configured graph updates completed after the Psycopg and constraint fixes and recorded
+exact package URLs including `pytest` 9.0.3 and `psycopg` 3.3.4. The repository SBOM expresses
+those versions in the SPDX `versionInfo` field; a missing, non-SPDX `version` property must not
+be misreported as a null package version. Dependabot alert `#2` automatically changed to fixed
+from that refreshed managed evidence without dismissal.
+
+The CI `dependency-submission` job adds independent build-tested evidence only after the
+hash-required API and pipeline jobs pass on a push to `main`. It parses the committed locks
+without importing package code and submits three exact versioned manifests: API runtime, API
+tests, and pipeline CI. The runtime manifest is scoped as runtime; test and pipeline packages
+are scoped as development; direct relationships come from the reviewed source inputs and every
+other locked package is marked indirect. It supplements the successful configured graph rather
+than repairing a versionless graph.
 
 That job alone receives `contents: write`, the permission GitHub requires for dependency
 snapshot creation. It checks out without persisted credentials, runs only repository-owned code
@@ -153,7 +170,12 @@ automatic submissions, and static parsing. After every relevant merge, require a
 3. the repository dependency graph shows exact, non-null versions from that detector; and
 4. affected Dependabot alerts closed automatically from the refreshed evidence.
 
-Until all four receipts exist, the graph/alert item remains externally open.
+The 2026-07-17 evidence is complete: configured graph runs `29621047113` (pipeline) and
+`29621047299` (API) succeeded for commit `0f6e5181b36784239544545f701dda03a8b8d0c7`;
+the repository SBOM exposed the exact `pytest` 9.0.3 and Psycopg 3.3.4 package URLs; alert `#2`
+was fixed automatically at `2026-07-17T23:36:35Z`; and main CI run `29621586247` accepted
+snapshot `83398229` for commit `716c3ecef29af7a85791972593ee96fca0c7f8af`. Repeat the four
+receipts for future dependency changes.
 
 Primary references:
 

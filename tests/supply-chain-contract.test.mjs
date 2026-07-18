@@ -55,7 +55,7 @@ test("Python API and pipeline installs use exact source-bound wheel hashes", asy
   });
   assert.equal(verifier.status, 0, verifier.stderr);
   assert.match(verifier.stdout, /FastAPI runtime Python lock verified \(\d+ exact hashed packages\)/);
-  assert.match(verifier.stdout, /FastAPI test Python lock verified \(31 exact hashed packages\)/);
+  assert.match(verifier.stdout, /FastAPI test Python lock verified \(32 exact hashed packages\)/);
   assert.match(verifier.stdout, /pipeline CI Python lock verified \(14 exact hashed packages\)/);
 
   const manifest = JSON.parse(await readFile(new URL("package.json", root), "utf8"));
@@ -71,11 +71,20 @@ test("Python API and pipeline installs use exact source-bound wheel hashes", asy
 
   const dependabot = await readFile(new URL(".github/dependabot.yml", root), "utf8");
   assert.match(dependabot, /package-ecosystem: docker[\s\S]+directory: \/services\/api/);
+  assert.match(dependabot, /fastapi-stack:[\s\S]+fastapi[\s\S]+starlette/);
   assert.match(dependabot, /psycopg-family:[\s\S]+psycopg-binary[\s\S]+psycopg-pool/);
 
   const apiRequirements = await readFile(new URL("services/api/requirements.txt", root), "utf8");
+  assert.match(apiRequirements, /^fastapi==0\.139\.2$/m);
   assert.match(apiRequirements, /^psycopg\[binary\]==3\.3\.4$/m);
   assert.match(apiRequirements, /^psycopg-pool==3\.3\.1$/m);
+  assert.match(apiRequirements, /^starlette==1\.3\.1$/m);
+  const apiTestRequirements = await readFile(
+    new URL("services/api/requirements-test.in", root),
+    "utf8",
+  );
+  assert.match(apiTestRequirements, /^httpx2==2\.7\.0$/m);
+  assert.doesNotMatch(apiTestRequirements, /^httpx==/m);
 
   const validationLock = await readFile(new URL("pipeline/requirements-validation.lock", root));
   const validationConstraints = await readFile(new URL("pipeline/requirements-validation.txt", root));
@@ -116,7 +125,9 @@ test("the supply-chain runbook closes exercised Python locks but keeps optional 
   assert.match(policy, /stacked successor PRs[\s\S]+do not falsely report a dependency-review pass/i);
   assert.match(policy, /directory-local `services\/api\/\.python-version`[\s\S]+not a control over GitHub's[\s\S]+hosted resolver/i);
   assert.match(policy, /byte-identical transport mirror[\s\S]+managed parser/i);
-  assert.match(policy, /exact GitHub Python dependency snapshot[\s\S]+null version/i);
+  assert.match(policy, /exact GitHub Python dependency snapshot[\s\S]+SPDX `versionInfo`/i);
+  assert.match(policy, /alert `#2`[\s\S]+changed to fixed[\s\S]+without dismissal/i);
+  assert.doesNotMatch(policy, /SBOM[^\n]+null (?:package )?version/i);
   assert.match(policy, /user submissions[\s\S]+highest-priority dependency evidence/i);
   assert.match(policy, /parent roadmap item[\s\S]+remains\s+open/i);
 });
