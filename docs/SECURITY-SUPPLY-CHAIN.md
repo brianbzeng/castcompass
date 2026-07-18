@@ -156,8 +156,22 @@ behavior can be reviewed independently. Isolated seed-12 and seed-42 comparisons
 spatial folds and all naive/boosted aggregate outputs exactly; the maximum linear aggregate
 change is `0.000150451`, below the committed `0.001` canary. CI treats future deprecation
 warnings as errors, and the habitat probe normalizes clipped multiclass probabilities before
-log-loss calculation. This local evidence does not replace hosted dependency review, CodeQL,
-the merged-main dependency snapshot, or future optional-platform locks.
+log-loss calculation. PR `#64` passed dependency review, API, warning-strict pipeline/smoke,
+web/mobile, and all CodeQL analyses. At merge commit
+`9a66eb65f8222fce6338d2518371ea8d6d413b09`, main CI run `29625410418` passed all jobs and
+submitted exact dependency snapshot `83443013`; managed graph run `29625412040` and main
+CodeQL run `29625410265` succeeded; the SPDX graph records scikit-learn 1.9.0 and narwhals
+2.24.0; and the post-merge audit found zero open dependency, code-scanning, or secret-scanning
+alerts. Future optional-platform locks remain open.
+
+Pipeline Dependabot proposals are advisory inputs, not mergeable lock updates. The provider
+parses and edits `pipeline/requirements-validation.txt`, but that file is only a transport mirror;
+it cannot replace the canonical validation lock or regenerate the hash-required CI lock. Generated
+PR `#66` demonstrated the fail-closed boundary: its mirror-only NumPy/SciPy/pandas edits failed
+the byte-identity contract and were closed with the evidence recorded, without ignoring any
+candidate version or dismissing an alert. Recreate such candidates in an owner branch, update the
+canonical lock first, regenerate every source-bound hash, compare old/new behavior, and run all
+required checks before merge.
 
 ## Exact GitHub Python dependency snapshot
 
