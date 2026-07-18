@@ -1,0 +1,129 @@
+{
+  "schema_version": "castingcompass.model-governance/1.0.0",
+  "policy_id": "california-halibut-model-governance-v1",
+  "policy_version": "1.0.0",
+  "target_taxon_id": "california-halibut",
+  "contract_versions": {
+    "model_governance": "castingcompass.model-governance/1.0.0",
+    "model_run": "castingcompass.model-run/2.0.0",
+    "observation": "castingcompass.observation/2.0.0",
+    "opportunity": "castingcompass.opportunity/2.0.0",
+    "taxon_catalog": "castingcompass.taxa/1.0.0"
+  },
+  "current_release": {
+    "serving_kind": "heuristic-configuration",
+    "trained_model_authorized": false,
+    "automatic_promotion_allowed": false,
+    "public_probability_claim_allowed": false,
+    "reason": "no-separately-preregistered-confirmatory-model-validation-pass"
+  },
+  "promotion": {
+    "stages": [
+      "development",
+      "candidate",
+      "shadow",
+      "limited",
+      "production"
+    ],
+    "safety_states": [
+      "suppressed",
+      "retired"
+    ],
+    "stage_skipping_allowed": false,
+    "automatic_promotion_allowed": false,
+    "named_human_approval_required": true,
+    "separate_confirmatory_protocol_required": true,
+    "external_timestamp_before_enrollment_required": true,
+    "activation_before_first_eligible_row_required": true,
+    "pilot_rows_excluded": true,
+    "locked_test_outcomes_available_to_development": false,
+    "required_gates": [
+      "target-contract-and-run-integrity",
+      "checkpoint-and-metrics-artifact-rehash",
+      "fixed-candidate-and-best-preregistered-baseline",
+      "source-separated-development-and-locked-test-data",
+      "geographic-and-temporal-holdouts",
+      "participant-clustered-uncertainty",
+      "complete-attempt-inclusion-and-score-influence-stratification",
+      "all-primary-and-slice-metrics-estimable",
+      "primary-lower-confidence-bound-beats-best-baseline",
+      "paired-improvement-lower-confidence-bound-above-zero",
+      "calibration-within-preregistered-ceiling-and-not-worse-than-baseline",
+      "no-required-geography-season-mode-or-taxon-slice-below-floor",
+      "minimum-positive-negative-participant-and-slice-support",
+      "independent-checkpoint-reproduction",
+      "low-confidence-missing-coverage-and-source-outage-product-tests",
+      "negative-and-inconclusive-reporting-commitment"
+    ]
+  },
+  "monitoring": {
+    "privacy": {
+      "precise_coordinates_allowed": false,
+      "raw_labels_allowed": false,
+      "minimum_aggregate_group_size": 20
+    },
+    "cadence": {
+      "integrity": "per-request-and-release",
+      "distribution_and_support": "rolling-seven-day-window-reviewed-weekly",
+      "delayed_performance_and_calibration": "each-preregistered-minimum-support-window",
+      "full_revalidation": "at-least-every-180-days"
+    },
+    "immediate_suppression_triggers": [
+      "model-or-policy-digest-mismatch",
+      "target-or-contract-version-mismatch",
+      "crs-channel-order-source-version-or-coverage-contract-failure",
+      "nonfinite-malformed-or-out-of-contract-features",
+      "required-input-missingness-above-preregistered-bound",
+      "serving-outside-validated-geography-season-mode-or-taxon-support"
+    ],
+    "rollback_triggers": [
+      "primary-performance-lower-bound-no-longer-clears-preregistered-floor",
+      "calibration-no-longer-clears-preregistered-bound",
+      "required-slice-no-longer-clears-preregistered-floor",
+      "distribution-drift-breaches-preregistered-action-bound",
+      "support-falls-below-preregistered-minimum",
+      "monitoring-evidence-exceeds-maximum-age"
+    ]
+  },
+  "rollback": {
+    "fallback_order": [
+      "last-known-good-trained-model-if-fresh-compatible-and-rehashed",
+      "reviewed-heuristic-configuration",
+      "feature-unavailable"
+    ],
+    "last_known_good_release_immutable": true,
+    "artifact_rehash_required": true,
+    "automatic_safety_suppression_allowed": true,
+    "automatic_promotion_allowed": false,
+    "named_human_operator_required_for_restoration": true,
+    "post_rollback_incident_and_revalidation_required": true
+  },
+  "revalidation": {
+    "maximum_evidence_age_days": 180,
+    "same_exposed_locked_test_reuse_for_new_candidate_allowed": false,
+    "post_change_shadow_stage_required": true,
+    "triggers": [
+      "candidate-model-or-checkpoint-change",
+      "feature-definition-order-normalization-or-imputation-change",
+      "target-taxon-or-contract-version-change",
+      "training-label-or-data-source-change",
+      "validated-geography-season-mode-or-population-expansion",
+      "calibration-method-or-decision-threshold-change",
+      "material-regulation-product-or-ranking-semantics-change",
+      "rollback-or-safety-suppression",
+      "maximum-evidence-age-reached"
+    ]
+  },
+  "audit": {
+    "decision_schema_version": "castingcompass.model-governance-decision/1.0.0",
+    "append_only_decision_record_required": true,
+    "raw_sensitive_data_allowed": false,
+    "required_identity": [
+      "policy-sha256",
+      "protocol-and-activation-sha256",
+      "model-run-and-artifact-sha256",
+      "source-release-and-serving-version",
+      "decision-timestamp-action-reasons-and-owner"
+    ]
+  }
+}

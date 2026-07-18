@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "castingcompass.model-governance/1.0.0",
+  "title": "CastingCompass model governance policy 1.0.0",
+  "description": "Strict structural contract for a target-specific promotion, monitoring, rollback, and revalidation policy. Semantic verification additionally locks the required gates and current fail-closed launch state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "policy_id",
+    "policy_version",
+    "target_taxon_id",
+    "contract_versions",
+    "current_release",
+    "promotion",
+    "monitoring",
+    "rollback",
+    "revalidation",
+    "audit"
+  ],
+  "properties": {
+    "schema_version": { "const": "castingcompass.model-governance/1.0.0" },
+    "policy_id": { "const": "california-halibut-model-governance-v1" },
+    "policy_version": { "const": "1.0.0" },
+    "target_taxon_id": { "const": "california-halibut" },
+    "contract_versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_governance", "model_run", "observation", "opportunity", "taxon_catalog"],
+      "properties": {
+        "model_governance": { "const": "castingcompass.model-governance/1.0.0" },
+        "model_run": { "const": "castingcompass.model-run/2.0.0" },
+        "observation": { "const": "castingcompass.observation/2.0.0" },
+        "opportunity": { "const": "castingcompass.opportunity/2.0.0" },
+        "taxon_catalog": { "const": "castingcompass.taxa/1.0.0" }
+      }
+    },
+    "current_release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["serving_kind", "trained_model_authorized", "automatic_promotion_allowed", "public_probability_claim_allowed", "reason"],
+      "properties": {
+        "serving_kind": { "const": "heuristic-configuration" },
+        "trained_model_authorized": { "const": false },
+        "automatic_promotion_allowed": { "const": false },
+        "public_probability_claim_allowed": { "const": false },
+        "reason": { "const": "no-separately-preregistered-confirmatory-model-validation-pass" }
+      }
+    },
+    "promotion": { "$ref": "#/$defs/promotion" },
+    "monitoring": { "$ref": "#/$defs/monitoring" },
+    "rollback": { "$ref": "#/$defs/rollback" },
+    "revalidation": { "$ref": "#/$defs/revalidation" },
+    "audit": { "$ref": "#/$defs/audit" }
+  },
+  "$defs": {
+    "slug": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "orderedUniqueSlugs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/slug" }
+    },
+    "promotion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stages",
+        "safety_states",
+        "stage_skipping_allowed",
+        "automatic_promotion_allowed",
+        "named_human_approval_required",
+        "separate_confirmatory_protocol_required",
+        "external_timestamp_before_enrollment_required",
+        "activation_before_first_eligible_row_required",
+        "pilot_rows_excluded",
+        "locked_test_outcomes_available_to_development",
+        "required_gates"
+      ],
+      "properties": {
+        "stages": { "$ref": "#/$defs/orderedUniqueSlugs" },
+        "safety_states": { "$ref": "#/$defs/orderedUniqueSlugs" },
+        "stage_skipping_allowed": { "const": false },
+        "automatic_promotion_allowed": { "const": false },
+        "named_human_approval_required": { "const": true },
+        "separate_confirmatory_protocol_required": { "const": true },
+        "external_timestamp_before_enrollment_required": { "const": true },
+        "activation_before_first_eligible_row_required": { "const": true },
+        "pilot_rows_excluded": { "const": true },
+        "locked_test_outcomes_available_to_development": { "const": false },
+        "required_gates": { "$ref": "#/$defs/orderedUniqueSlugs" }
+      }
+    },
+    "monitoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["privacy", "cadence", "immediate_suppression_triggers", "rollback_triggers"],
+      "properties": {
+        "privacy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["precise_coordinates_allowed", "raw_labels_allowed", "minimum_aggregate_group_size"],
+          "properties": {
+            "precise_coordinates_allowed": { "const": false },
+            "raw_labels_allowed": { "const": false },
+            "minimum_aggregate_group_size": { "type": "integer", "minimum": 20 }
+          }
+        },
+        "cadence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["integrity", "distribution_and_support", "delayed_performance_and_calibration", "full_revalidation"],
+          "properties": {
+            "integrity": { "type": "string", "minLength": 1 },
+            "distribution_and_support": { "type": "string", "minLength": 1 },
+            "delayed_performance_and_calibration": { "type": "string", "minLength": 1 },
+            "full_revalidation": { "type": "string", "minLength": 1 }
+          }
+        },
+        "immediate_suppression_triggers": { "$ref": "#/$defs/orderedUniqueSlugs" },
+        "rollback_triggers": { "$ref": "#/$defs/orderedUniqueSlugs" }
+      }
+    },
+    "rollback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fallback_order",
+        "last_known_good_release_immutable",
+        "artifact_rehash_required",
+        "automatic_safety_suppression_allowed",
+        "automatic_promotion_allowed",
+        "named_human_operator_required_for_restoration",
+        "post_rollback_incident_and_revalidation_required"
+      ],
+      "properties": {
+        "fallback_order": { "$ref": "#/$defs/orderedUniqueSlugs" },
+        "last_known_good_release_immutable": { "const": true },
+        "artifact_rehash_required": { "const": true },
+        "automatic_safety_suppression_allowed": { "const": true },
+        "automatic_promotion_allowed": { "const": false },
+        "named_human_operator_required_for_restoration": { "const": true },
+        "post_rollback_incident_and_revalidation_required": { "const": true }
+      }
+    },
+    "revalidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maximum_evidence_age_days", "same_exposed_locked_test_reuse_for_new_candidate_allowed", "post_change_shadow_stage_required", "triggers"],
+      "properties": {
+        "maximum_evidence_age_days": { "type": "integer", "minimum": 1, "maximum": 180 },
+        "same_exposed_locked_test_reuse_for_new_candidate_allowed": { "const": false },
+        "post_change_shadow_stage_required": { "const": true },
+        "triggers": { "$ref": "#/$defs/orderedUniqueSlugs" }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision_schema_version", "append_only_decision_record_required", "raw_sensitive_data_allowed", "required_identity"],
+      "properties": {
+        "decision_schema_version": { "const": "castingcompass.model-governance-decision/1.0.0" },
+        "append_only_decision_record_required": { "const": true },
+        "raw_sensitive_data_allowed": { "const": false },
+        "required_identity": { "$ref": "#/$defs/orderedUniqueSlugs" }
+      }
+    }
+  }
+}
