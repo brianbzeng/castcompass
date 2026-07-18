@@ -193,6 +193,10 @@ test("the supply-chain runbook closes exercised Python locks but keeps optional 
     policy,
     /pandas 2\.2\.3[\s\S]+2\.3\.3[\s\S]+3\.0\.3[\s\S]+3\.0\.4[\s\S]+yanked[\s\S]+byte-identical seed-12 and seed-42/i,
   );
+  assert.match(
+    policy,
+    /PR `#70`[\s\S]+29626959333[\s\S]+snapshot `83447588`[\s\S]+29626961391[\s\S]+29626959344[\s\S]+zero open\s+dependency, code-scanning, or secret-scanning alerts/i,
+  );
   assert.match(policy, /exact GitHub Python dependency snapshot[\s\S]+SPDX `versionInfo`/i);
   assert.match(policy, /alert `#2`[\s\S]+changed to fixed[\s\S]+without dismissal/i);
   assert.match(

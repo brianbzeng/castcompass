@@ -206,7 +206,7 @@ after its acceptance checks pass in the intended environment.
       scikit-learn 1.9.0, narwhals 2.24.0, and retained pandas 2.2.3; and the post-merge alert
       audit found zero open dependency, code-scanning, or secret-scanning alerts. The separate
       pandas 3 review remains open.
-    - [x] Locally advance pandas 2.2.3 through the recommended warning-clean 2.3.3 bridge to
+    - [x] Advance pandas 2.2.3 through the recommended warning-clean 2.3.3 bridge to
       pandas 3.0.3, while retaining NumPy 2.5.1, SciPy 1.18.0, and scikit-learn 1.9.0. Do not use
       pandas 3.0.4: PyPI yanked it for reported datetime-related segmentation faults. Bind the
       pandas 3 dedicated-string and copy-on-write semantics with an explicit ingestion canary.
@@ -214,8 +214,15 @@ after its acceptance checks pass in the intended environment.
       observation fixtures and metric artifacts; the 2.3.3 bridge and 3.0.3 candidate each passed
       `pip check`, Ruff, 62 warning-strict pipeline tests, and deterministic smoke workflows. The
       regenerated 14-package source-bound lock then passed a clean hash-only install, `pip check`,
-      Ruff, 63 warning-strict tests including the new canary, and both deterministic seeds. Hosted
-      checks and merged-main dependency evidence remain open.
+      Ruff, 63 warning-strict tests including the new canary, and both deterministic seeds. PR
+      `#70` passed hosted dependency review, API, warning-strict pipeline/smoke, web/mobile, and
+      all CodeQL analyses before merge commit
+      `3d5751b3ec8ce0f263fd9afebe4a6018315a63c3`. Main CI run `29626959333` passed all jobs and
+      accepted exact dependency snapshot `83447588`; managed graph run `29626961391` and main
+      CodeQL run `29626959344` succeeded. The SPDX graph records exact pandas 3.0.3, NumPy 2.5.1,
+      SciPy 1.18.0, scikit-learn 1.9.0, and narwhals 2.24.0 entries, and the post-merge alert audit
+      found zero open dependency, code-scanning, or secret-scanning alerts. Only the separate
+      optional-platform lock work remains open for this dependency family.
     - [x] Locally inventory all seven Worker runtime secrets, extend named-secret scanning and
       ignored local Wrangler secret files, define environment/purpose/backup-key separation,
       document D1 managed-encryption and application-controlled AES-256-GCM boundaries, and

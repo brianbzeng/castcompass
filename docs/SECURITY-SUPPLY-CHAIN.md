@@ -193,8 +193,13 @@ fixtures and metric artifacts. Both the 2.3.3 bridge and 3.0.3 candidate passed 
 62 tests, and deterministic smoke workflows with `FutureWarning` and `DeprecationWarning` treated
 as errors. The regenerated 14-package source-bound lock then passed a clean binary-only,
 hash-required install, `pip check`, Ruff, 63 warning-strict tests including the new canary, and
-both deterministic seeds. Hosted and merged-main evidence remain required before this release is
-complete.
+both deterministic seeds. PR `#70` then passed hosted dependency review, API, warning-strict
+pipeline/smoke, web/mobile, and all CodeQL analyses before merge commit
+`3d5751b3ec8ce0f263fd9afebe4a6018315a63c3`. Main CI run `29626959333` passed every job and
+submitted exact dependency snapshot `83447588`; managed graph run `29626961391` and main CodeQL
+run `29626959344` succeeded. The SPDX graph contains exact entries for pandas 3.0.3, NumPy 2.5.1,
+SciPy 1.18.0, scikit-learn 1.9.0, and narwhals 2.24.0. The post-merge audit found zero open
+dependency, code-scanning, or secret-scanning alerts. Future optional-platform locks remain open.
 
 Pipeline Dependabot proposals are advisory inputs, not mergeable lock updates. The provider
 parses and edits `pipeline/requirements-validation.txt`, but that file is only a transport mirror;
