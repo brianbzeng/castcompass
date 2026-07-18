@@ -21,6 +21,23 @@ test("direct npm packages and build runtimes are exact reviewed versions", async
   assert.equal(await readFile(new URL("services/api/.python-version", root), "utf8"), "3.12.13\n");
   assert.equal(await readFile(new URL("pipeline/.python-version", root), "utf8"), "3.12.13\n");
 
+  const reactFramework = {
+    next: "16.2.10",
+    react: "19.2.7",
+    "react-dom": "19.2.7",
+    "eslint-config-next": "16.2.10",
+    "react-server-dom-webpack": "19.2.7",
+  };
+  for (const [name, version] of Object.entries(reactFramework)) {
+    assert.equal(manifest.dependencies[name] ?? manifest.devDependencies[name], version);
+    assert.equal(lock.packages[`node_modules/${name}`].version, version);
+  }
+  const dependabot = await readFile(new URL(".github/dependabot.yml", root), "utf8");
+  assert.match(
+    dependabot,
+    /react-framework:[\s\S]+next[\s\S]+eslint-config-next[\s\S]+react[\s\S]+react-dom[\s\S]+react-server-dom-webpack/,
+  );
+
   assert.equal(lock.packages["node_modules/@babel/core"].version, "7.29.7");
   assert.equal(lock.packages["node_modules/js-yaml"].version, "4.3.0");
   assert.equal(
