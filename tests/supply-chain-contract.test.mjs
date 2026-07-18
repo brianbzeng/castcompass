@@ -127,6 +127,10 @@ test("the supply-chain runbook closes exercised Python locks but keeps optional 
   assert.match(policy, /byte-identical transport mirror[\s\S]+managed parser/i);
   assert.match(policy, /exact GitHub Python dependency snapshot[\s\S]+SPDX `versionInfo`/i);
   assert.match(policy, /alert `#2`[\s\S]+changed to fixed[\s\S]+without dismissal/i);
+  assert.match(
+    policy,
+    /29622373929[\s\S]+snapshot `83408257`[\s\S]+29622376160[\s\S]+alerts `#3` through `#14`[\s\S]+fixed[\s\S]+no dismissal/i,
+  );
   assert.doesNotMatch(policy, /SBOM[^\n]+null (?:package )?version/i);
   assert.match(policy, /user submissions[\s\S]+highest-priority dependency evidence/i);
   assert.match(policy, /parent roadmap item[\s\S]+remains\s+open/i);

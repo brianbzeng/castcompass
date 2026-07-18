@@ -161,15 +161,18 @@ after its acceptance checks pass in the intended environment.
       both tested Python jobs passed at commit `716c3ecef29af7a85791972593ee96fca0c7f8af`; the
       configured graph already exposed exact SPDX `versionInfo` values and alert `#2` was fixed
       automatically, completing this subitem's provider evidence.
-    - [ ] Remediate the six distinct Starlette advisories surfaced by the exact graph (12 alerts
+    - [x] Remediate the six distinct Starlette advisories surfaced by the exact graph (12 alerts
       across the API runtime and test manifests), including three high-severity denial-of-service
-      or Windows file-serving findings. Locally upgrade the reviewed pair to FastAPI 0.139.2 and
+      or Windows file-serving findings. Upgrade the reviewed pair to FastAPI 0.139.2 and
       Starlette 1.3.1, the first Starlette release above every affected range; regenerate the
       source-bound locks and verify malformed Host/path handling plus the API's GET/OPTIONS-only
       surface. Move the test client from deprecated `httpx` compatibility to Starlette's
-      preferred exact `httpx2` backend. Mark this complete only after tested `main` snapshot
-      evidence records the exact versions and GitHub closes alerts `#3` through `#14`
-      automatically without dismissal.
+      preferred exact `httpx2` backend. Main CI run `29622373929` passed the API, pipeline,
+      web/mobile, and dependency-submission jobs at merge commit
+      `8d130c47c7cd708eefc47bdbfd83e391ce4b08c7`; snapshot `83408257` was accepted, managed graph
+      run `29622376160` succeeded, and the SPDX graph recorded FastAPI 0.139.2, Starlette 1.3.1,
+      and httpx2 2.7.0. GitHub then closed alerts `#3` through `#14` automatically as fixed
+      without dismissal, completing the external evidence gate.
     - [x] Locally inventory all seven Worker runtime secrets, extend named-secret scanning and
       ignored local Wrangler secret files, define environment/purpose/backup-key separation,
       document D1 managed-encryption and application-controlled AES-256-GCM boundaries, and

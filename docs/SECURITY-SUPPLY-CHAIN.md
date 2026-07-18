@@ -139,8 +139,15 @@ those facts reduce reachability but do not justify retaining a vulnerable framew
 tests must also exercise the patched malformed-Host/path URL boundaries and reject unsupported
 methods before this change is merged. The test-only graph uses exact `httpx2` 2.7.0, Starlette's
 preferred test-client backend, instead of relying on its deprecated `httpx` compatibility path.
-The post-merge snapshot and automatic closure of alerts `#3` through `#14` remain required
-provider evidence; do not dismiss them manually.
+
+The 2026-07-18 provider evidence is complete at merge commit
+`8d130c47c7cd708eefc47bdbfd83e391ce4b08c7`: main CI run `29622373929` passed the hash-required
+API and pipeline jobs before accepting dependency snapshot `83408257`; configured graph run
+`29622376160` succeeded; and the repository SPDX graph recorded exact FastAPI 0.139.2,
+Starlette 1.3.1, and httpx2 2.7.0 package URLs. Dependabot alerts `#3` through `#14` then changed
+to fixed at `2026-07-18T00:08:27Z`–`00:08:28Z` with no dismissal. Main CodeQL run `29622373824`
+also passed its Actions, JavaScript/TypeScript, and Python analyses. Repeat the same receipt and
+automatic-closure checks for future framework updates.
 
 ## Exact GitHub Python dependency snapshot
 
