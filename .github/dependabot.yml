@@ -14,6 +14,18 @@ updates:
           - react
           - react-dom
           - react-server-dom-webpack
+      cloudflare-toolchain:
+        patterns:
+          - "@cloudflare/vite-plugin"
+          - wrangler
+      tailwind-toolchain:
+        patterns:
+          - "@tailwindcss/postcss"
+          - tailwindcss
+    ignore:
+      - dependency-name: eslint
+        update-types:
+          - "version-update:semver-major"
 
   - package-ecosystem: pip
     directory: /services/api

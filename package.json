@@ -46,13 +46,13 @@
     "react-dom": "19.2.7"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.45.0",
+    "@cloudflare/vite-plugin": "1.45.1",
     "@playwright/test": "1.61.1",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-react": "6.0.3",
     "@vitejs/plugin-rsc": "0.5.26",
     "ajv": "8.20.0",
     "ajv-formats": "2.1.1",
@@ -64,7 +64,7 @@
     "typescript": "5.9.3",
     "vinext": "0.0.50",
     "vite": "8.1.5",
-    "wrangler": "4.111.0"
+    "wrangler": "4.112.0"
   },
   "overrides": {
     "@babel/core": "7.29.7",

@@ -32,11 +32,27 @@ test("direct npm packages and build runtimes are exact reviewed versions", async
     assert.equal(manifest.dependencies[name] ?? manifest.devDependencies[name], version);
     assert.equal(lock.packages[`node_modules/${name}`].version, version);
   }
+  const buildToolchain = {
+    "@cloudflare/vite-plugin": "1.45.1",
+    "@vitejs/plugin-react": "6.0.3",
+    wrangler: "4.112.0",
+  };
+  for (const [name, version] of Object.entries(buildToolchain)) {
+    assert.equal(manifest.devDependencies[name], version);
+    assert.equal(lock.packages[`node_modules/${name}`].version, version);
+  }
+  assert.equal(
+    lock.packages["node_modules/@cloudflare/vite-plugin"].peerDependencies.wrangler,
+    "^4.112.0",
+  );
   const dependabot = await readFile(new URL(".github/dependabot.yml", root), "utf8");
   assert.match(
     dependabot,
     /react-framework:[\s\S]+next[\s\S]+eslint-config-next[\s\S]+react[\s\S]+react-dom[\s\S]+react-server-dom-webpack/,
   );
+  assert.match(dependabot, /cloudflare-toolchain:[\s\S]+@cloudflare\/vite-plugin[\s\S]+wrangler/);
+  assert.match(dependabot, /tailwind-toolchain:[\s\S]+@tailwindcss\/postcss[\s\S]+tailwindcss/);
+  assert.match(dependabot, /dependency-name: eslint[\s\S]+version-update:semver-major/);
 
   assert.equal(lock.packages["node_modules/@babel/core"].version, "7.29.7");
   assert.equal(lock.packages["node_modules/js-yaml"].version, "4.3.0");
