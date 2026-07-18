@@ -83,14 +83,16 @@ npm run security:sbom:write
 npm run security:sbom
 ```
 
-The generator takes npm's complete lockfile-only CycloneDX graph, independently resolves the
-lockfile-only production tree with `npm ls --package-lock-only --omit=dev`, intersects the two
-graphs, removes random/time/local-path metadata, sorts components and dependency edges,
-normalizes the root component name, and embeds the current `package-lock.json` SHA-256. Using
-the lock rather than the host installation keeps optional native variants deterministic across
-macOS and Linux. The intersection avoids relying on npm SBOM's version-dependent omit behavior;
-tests also require every direct runtime package. Review both the lock diff and SBOM diff in the
-same pull request. CI rejects a stale SBOM.
+The generator takes npm's complete lockfile-only CycloneDX graph and selects component instances
+by their exact lockfile package paths, excluding only paths marked strictly development-only by
+npm. It merges duplicate package identities and dependency edges, replaces npm's random serial
+number with a lock-derived UUIDv5, removes time/tool metadata, sorts components and dependency
+edges, normalizes the root component name, and embeds the current `package-lock.json` SHA-256.
+Using lockfile path flags rather than the host installation keeps production-optional native
+variants deterministic across macOS and Linux without admitting a development-only package that
+happens to share a name/version with production. Tests also require every direct runtime package,
+unique graph references, and the signer-required deterministic serial number. Review both the
+lock diff and SBOM diff in the same pull request. CI rejects a stale SBOM.
 
 The SBOM intentionally covers the production npm tree only. Development tools remain visible
 in `package-lock.json`, the complete-tree audit, and dependency review. Python and external

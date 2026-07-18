@@ -2,6 +2,7 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
+  "serialNumber": "urn:uuid:876d04a5-e4ed-5ace-8f57-797233f2d455",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -61,36 +62,6 @@
           "content": "be08fb477cb75a0c76e0841a18f03f47a6055cb1d530e674b951322103da5acfab7750337c43179400b6d856303b55e4291e8d3ecabb9946a7747f2821175917"
         }
       ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "@emnapi/runtime@1.11.1",
-      "type": "library",
-      "name": "@emnapi/runtime",
-      "version": "1.11.1",
-      "scope": "optional",
-      "purl": "pkg:npm/%40emnapi/runtime@1.11.1",
-      "properties": [
-        {
-          "name": "cdx:npm:package:bundled",
-          "value": "true"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        },
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@tailwindcss/oxide-wasm32-wasi/node_modules/@emnapi/runtime"
-        }
-      ],
-      "externalReferences": [],
       "licenses": [
         {
           "license": {
@@ -2606,80 +2577,6 @@
       "purl": "pkg:npm/semver@7.8.0",
       "properties": [
         {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        },
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@typescript-eslint/typescript-estree/node_modules/semver"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/semver/-/semver-7.8.0.tgz"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "01c33b755ff9ba5e047a4a10dbd0209b9beb8bc24da91ca3dfda34aa95fabc3176199aedbad665e51c200f55e766389301f9dcb0984c238f10407dec37ced834"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "ISC"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "semver@7.8.0",
-      "type": "library",
-      "name": "semver",
-      "version": "7.8.0",
-      "scope": "optional",
-      "purl": "pkg:npm/semver@7.8.0",
-      "properties": [
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        },
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/is-bun-module/node_modules/semver"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/semver/-/semver-7.8.0.tgz"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "01c33b755ff9ba5e047a4a10dbd0209b9beb8bc24da91ca3dfda34aa95fabc3176199aedbad665e51c200f55e766389301f9dcb0984c238f10407dec37ced834"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "ISC"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "semver@7.8.0",
-      "type": "library",
-      "name": "semver",
-      "version": "7.8.0",
-      "scope": "optional",
-      "purl": "pkg:npm/semver@7.8.0",
-      "properties": [
-        {
           "name": "cdx:npm:package:path",
           "value": "node_modules/sharp/node_modules/semver"
         }
@@ -2841,36 +2738,6 @@
       "type": "library",
       "name": "tslib",
       "version": "2.8.1",
-      "scope": "optional",
-      "purl": "pkg:npm/tslib@2.8.1",
-      "properties": [
-        {
-          "name": "cdx:npm:package:bundled",
-          "value": "true"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        },
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@tailwindcss/oxide-wasm32-wasi/node_modules/tslib"
-        }
-      ],
-      "externalReferences": [],
-      "licenses": [
-        {
-          "license": {
-            "id": "0BSD"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "tslib@2.8.1",
-      "type": "library",
-      "name": "tslib",
-      "version": "2.8.1",
       "scope": "required",
       "purl": "pkg:npm/tslib@2.8.1",
       "properties": [
@@ -2901,12 +2768,6 @@
     }
   ],
   "dependencies": [
-    {
-      "ref": "@emnapi/runtime@1.11.1",
-      "dependsOn": [
-        "tslib@2.8.1"
-      ]
-    },
     {
       "ref": "@emnapi/runtime@1.11.1",
       "dependsOn": [
@@ -3333,14 +3194,6 @@
       "dependsOn": []
     },
     {
-      "ref": "semver@7.8.0",
-      "dependsOn": []
-    },
-    {
-      "ref": "semver@7.8.0",
-      "dependsOn": []
-    },
-    {
       "ref": "sharp@0.34.5",
       "dependsOn": [
         "@img/colour@1.1.0",
@@ -3385,10 +3238,6 @@
     },
     {
       "ref": "tinyqueue@3.0.0",
-      "dependsOn": []
-    },
-    {
-      "ref": "tslib@2.8.1",
       "dependsOn": []
     },
     {

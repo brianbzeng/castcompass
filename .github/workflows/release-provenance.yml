@@ -93,7 +93,9 @@ jobs:
           test "$(jq --raw-output '.sbom_sha256' "$manifest")" = "$(sha256sum "$sbom" | cut -d ' ' -f 1)"
           test "$(jq --raw-output '.bundle_bytes' "$manifest")" = "$(stat --format='%s' "$bundle")"
           jq --exit-status \
-            '.bomFormat == "CycloneDX" and .specVersion == "1.5"' \
+            '.bomFormat == "CycloneDX"
+              and .specVersion == "1.5"
+              and (.serialNumber | test("^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"))' \
             "$sbom" > /dev/null
           gzip --test "$bundle"
       - name: Attest release-bundle provenance

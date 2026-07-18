@@ -94,7 +94,8 @@ test("CI fixes runner versions and enforces dependency review, audits, and SBOM 
   assert.doesNotMatch(ci, /pip install ruff|pip install -r .*requirements-(?:smoke|ci)\.txt/);
 
   const generator = await readFile(new URL("scripts/generate-sbom.mjs", root), "utf8");
-  assert.equal((generator.match(/--package-lock-only/g) ?? []).length, 2);
+  assert.equal((generator.match(/--package-lock-only/g) ?? []).length, 1);
+  assert.match(generator, /package_\?\.dev !== true[\s\S]+cdx:npm:package:path/);
 });
 
 test("Python API and pipeline installs use exact source-bound wheel hashes", async () => {
@@ -184,7 +185,8 @@ test("the deterministic production SBOM is bound to the lock and direct runtime 
   const sbom = JSON.parse(await readFile(new URL("security/sbom.cdx.json", root), "utf8"));
   assert.equal(sbom.bomFormat, "CycloneDX");
   assert.equal(sbom.specVersion, "1.5");
-  assert.equal("serialNumber" in sbom, false);
+  assert.match(sbom.serialNumber, /^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u);
+  assert.equal(sbom.serialNumber, "urn:uuid:876d04a5-e4ed-5ace-8f57-797233f2d455");
   assert.equal("timestamp" in sbom.metadata, false);
   assert.equal(sbom.metadata.component.name, manifest.name);
   assert.deepEqual(sbom.metadata.properties, [{
@@ -198,11 +200,22 @@ test("the deterministic production SBOM is bound to the lock and direct runtime 
   }
   const references = sbom.components.map((component) => component["bom-ref"]);
   assert.deepEqual(references, [...references].sort((left, right) => left.localeCompare(right)));
+  assert.equal(new Set(references).size, references.length);
+  const dependencyReferences = sbom.dependencies.map((dependency) => dependency.ref);
+  assert.equal(new Set(dependencyReferences).size, dependencyReferences.length);
+  const allowedReferences = new Set([sbom.metadata.component["bom-ref"], ...references]);
+  for (const dependency of sbom.dependencies) {
+    assert.equal(allowedReferences.has(dependency.ref), true);
+    assert.equal(dependency.dependsOn.every((reference) => allowedReferences.has(reference)), true);
+  }
+  assert.equal(sbom.components.some((component) => component.properties?.some((property) =>
+    property.name === "cdx:npm:package:development" && property.value === "true")), false);
 });
 
 test("the supply-chain runbook scopes optional locks and keeps deployment provenance open", async () => {
   const policy = await readFile(new URL("docs/SECURITY-SUPPLY-CHAIN.md", root), "utf8");
   assert.match(policy, /does? \*\*not\*\* yet claim a cross-version enforced npm install-script/i);
+  assert.match(policy, /exact lockfile package paths[\s\S]+lock-derived UUIDv5[\s\S]+development-only package/i);
   assert.match(policy, /FastAPI runtime\/test and pipeline CI[\s\S]+exact transitive versions[\s\S]+SHA-256/i);
   assert.match(policy, /approved optional Geo\/PyTorch environments[\s\S]+macOS 15\+ ARM64[\s\S]+manylinux_2_28 x86-64 CPU/i);
   assert.match(policy, /CUDA, ROCm, Windows[\s\S]+remain open/i);
