@@ -119,9 +119,8 @@ after its acceptance checks pass in the intended environment.
       action commits; remediate the known npm advisory tree to zero; add high/production-
       moderate audit gates, pull-request dependency review, a deterministic CycloneDX
       production SBOM bound to the package-lock hash, and an owner/deadline/update runbook.
-      Cross-platform npm install-script allowlisting,
-      combined/signed SBOM and build attestations, production evidence, key custody, and restore
-      drills remain open.
+      Cross-version npm install-script enforcement, a combined Python/OS/Worker inventory,
+      Cloudflare deployed-digest evidence, key custody, and restore drills remain open.
     - [x] Define source-bound, exact, SHA-256-hashed, binary-only optional Geo/PyTorch locks for
       CPython 3.12 on macOS 15+ ARM64/MPS and manylinux_2_28 x86-64/CPU; add scheduled hosted
       execution that checks platform/backend identity, exact package identity, GeoTIFF/CRS
@@ -129,6 +128,19 @@ after its acceptance checks pass in the intended environment.
       unlisted environments remain outside the approved reproducibility claim. PR `#72`, main
       CI `29628030773`, optional-platform run `29628030735`, exact dependency snapshot
       `83450872`, and CodeQL run `29628030502` are the immutable merge receipts.
+    - [x] Produce and independently verify a deterministic GitHub release candidate plus signed
+      SLSA build provenance and CycloneDX predicates without granting OIDC/write permission to
+      repository or dependency code. Corrective PR `#77` merged as
+      `fa73c4dd4162b6834113f40a6f77be6907bdd202`; main release-provenance run
+      `29629689167` signed bundle digest
+      `e2d8b79a39a28c9ae97ba1c384e1f8eacffe95275ea6b7eaf79d3baee8f12ad0`
+      as attestations `35935237` and `35935240`. A fresh artifact download passed checksums,
+      the independent bundle verifier, and identity-constrained `gh attestation verify` for
+      both predicates. Main CI `29629689192`, dependency snapshot `83454900`, and CodeQL
+      `29629688765` passed, followed by zero open dependency, code-scanning, or secret-scanning
+      alerts. This completes GitHub release-candidate provenance only; the combined inventory,
+      Cloudflare deployed-digest proof, unapproved platform locks, key custody, and restore drill
+      remain open.
     - [x] Enable live `main` protection with pull requests, strict app-bound GitHub Actions and
       Advanced Security `CodeQL` checks, resolved conversations, administrator enforcement, and
       force-push/deletion denial; enable Dependabot security updates, secret-scanning push
