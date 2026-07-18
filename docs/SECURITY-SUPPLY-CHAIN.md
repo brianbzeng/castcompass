@@ -181,6 +181,21 @@ scikit-learn 1.9.0, narwhals 2.24.0, and retained pandas 2.2.3. The post-merge a
 open dependency, code-scanning, or secret-scanning alerts. The separate pandas 3 behavior review
 remains open.
 
+The pandas review follows the upstream major-upgrade guidance by testing a warning-clean 2.3.3
+bridge before advancing 2.2.3 to
+[3.0.3](https://pandas.pydata.org/docs/whatsnew/v3.0.3.html). It intentionally rejects
+[3.0.4](https://pypi.org/project/pandas/3.0.4/) because PyPI yanked that release for reported
+datetime-related segmentation faults. The repository has no chained-assignment dependency, and
+an explicit canary binds pandas 3's dedicated string dtype and copy-on-write behavior. Under
+Python 3.12.13 with the retained NumPy 2.5.1, SciPy 1.18.0, and scikit-learn 1.9.0 runtime,
+pandas 2.2.3, 2.3.3, and 3.0.3 produced byte-identical seed-12 and seed-42 synthetic observation
+fixtures and metric artifacts. Both the 2.3.3 bridge and 3.0.3 candidate passed `pip check`, Ruff,
+62 tests, and deterministic smoke workflows with `FutureWarning` and `DeprecationWarning` treated
+as errors. The regenerated 14-package source-bound lock then passed a clean binary-only,
+hash-required install, `pip check`, Ruff, 63 warning-strict tests including the new canary, and
+both deterministic seeds. Hosted and merged-main evidence remain required before this release is
+complete.
+
 Pipeline Dependabot proposals are advisory inputs, not mergeable lock updates. The provider
 parses and edits `pipeline/requirements-validation.txt`, but that file is only a transport mirror;
 it cannot replace the canonical validation lock or regenerate the hash-required CI lock. Generated

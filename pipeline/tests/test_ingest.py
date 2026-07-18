@@ -89,6 +89,15 @@ class ObservationIngestTests(unittest.TestCase):
         )
         return output
 
+    def test_pandas_three_string_and_copy_on_write_semantics_are_explicit(self):
+        frame = pd.DataFrame({"identifier": ["alpha", "beta"]})
+        self.assertEqual(str(frame["identifier"].dtype), "str")
+
+        derived = frame[["identifier"]]
+        derived.loc[0, "identifier"] = "changed"
+        self.assertEqual(frame["identifier"].tolist(), ["alpha", "beta"])
+        self.assertEqual(derived["identifier"].tolist(), ["changed", "beta"])
+
     def test_distinguishes_all_outcomes_and_preserves_identity(self):
         records = [
             observation("target", [taxon_row(PRODUCTION_TARGET_TAXON_ID, 2)], "target_encountered"),

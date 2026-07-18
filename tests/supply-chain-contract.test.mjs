@@ -96,7 +96,7 @@ test("Python API and pipeline installs use exact source-bound wheel hashes", asy
   assert.equal(verifier.status, 0, verifier.stderr);
   assert.match(verifier.stdout, /FastAPI runtime Python lock verified \(\d+ exact hashed packages\)/);
   assert.match(verifier.stdout, /FastAPI test Python lock verified \(32 exact hashed packages\)/);
-  assert.match(verifier.stdout, /pipeline CI Python lock verified \(15 exact hashed packages\)/);
+  assert.match(verifier.stdout, /pipeline CI Python lock verified \(14 exact hashed packages\)/);
 
   const manifest = JSON.parse(await readFile(new URL("package.json", root), "utf8"));
   assert.match(manifest.scripts.security, /security:python-locks/);
@@ -133,10 +133,16 @@ test("Python API and pipeline installs use exact source-bound wheel hashes", asy
   assert.match(validationLock.toString(), /^numpy==2\.5\.1$/m);
   assert.match(validationLock.toString(), /^scikit-learn==1\.9\.0$/m);
   assert.match(validationLock.toString(), /^scipy==1\.18\.0$/m);
-  assert.match(await readFile(new URL("pipeline/requirements-smoke.txt", root), "utf8"), /^scipy>=1\.18,<2$/m);
+  const pipelineRanges = await readFile(new URL("pipeline/requirements-smoke.txt", root), "utf8");
+  assert.match(pipelineRanges, /^scipy>=1\.18,<2$/m);
+  assert.match(pipelineRanges, /^pandas>=3\.0\.3,<4$/m);
   const pipelineInput = await readFile(new URL("pipeline/requirements-ci.in", root), "utf8");
   assert.match(pipelineInput, /^-c requirements-validation\.txt$/m);
+  assert.match(pipelineInput, /^pandas==3\.0\.3$/m);
   assert.doesNotMatch(pipelineInput, /^-c .*\.lock$/m);
+  const pipelineLock = await readFile(new URL("pipeline/requirements-ci.lock", root), "utf8");
+  assert.match(pipelineLock, /^pandas==3\.0\.3\s+\\$/m);
+  assert.doesNotMatch(pipelineLock, /^pytz==/m);
   assert.match(dependabot, /scientific-runtime:[\s\S]+numpy[\s\S]+scipy[\s\S]+scikit-learn[\s\S]+pandas/);
 });
 
@@ -182,6 +188,10 @@ test("the supply-chain runbook closes exercised Python locks but keeps optional 
   assert.match(
     policy,
     /PR `#68`[\s\S]+29626219455[\s\S]+snapshot `83445590`[\s\S]+29626220947[\s\S]+29626219486[\s\S]+zero\s+open dependency, code-scanning, or secret-scanning alerts/i,
+  );
+  assert.match(
+    policy,
+    /pandas 2\.2\.3[\s\S]+2\.3\.3[\s\S]+3\.0\.3[\s\S]+3\.0\.4[\s\S]+yanked[\s\S]+byte-identical seed-12 and seed-42/i,
   );
   assert.match(policy, /exact GitHub Python dependency snapshot[\s\S]+SPDX `versionInfo`/i);
   assert.match(policy, /alert `#2`[\s\S]+changed to fixed[\s\S]+without dismissal/i);
