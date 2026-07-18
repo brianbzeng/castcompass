@@ -182,7 +182,7 @@ after its acceptance checks pass in the intended environment.
       pip/ensurepip and the unused affected `tarfile`/`html.parser` modules, eliminates shell-based
       startup, verifies all 22 applicable locked Python packages plus 29 APK packages and their
       licenses, and fails closed on unreviewed/expired high or any critical finding. The three
-      temporary CPython exceptions expire 2026-08-01. PR `#81` merged exact accepted head
+      temporary CPython exceptions originally expired 2026-08-01. PR `#81` merged exact accepted head
       `7de5d51c3e8b7d02faff242ad2acc33d6e04441a` as
       `73d0e3ca879a609673ba57188f59b37f541083a5`. Exact-head native run `29632875263`
       passed both architectures; artifacts `8426086733` (AMD64) and `8426089424` (ARM64)
@@ -194,6 +194,17 @@ after its acceptance checks pass in the intended environment.
       snapshot `83465511`, release-provenance `29633038673`, optional-platform `29633038688`, and
       CodeQL `29633038335` passed, followed by zero open dependency, code-scanning, or
       secret-scanning alerts. CodeQL alert `#4` was fixed in source without dismissal before merge.
+      A 2026-07-18 primary-source review found no fixed stable Python 3.13 image, so PR `#90`
+      added an owner-bound 2026-08-04 re-review and 2026-08-08 hard expiry without restoring the
+      removed modules. Exact head `f20c210bb8014baee62c9bf09010a3d5a99c5d97` passed native
+      image run `29652969712` plus CI, provenance, and CodeQL, then merged as
+      `f1a6579ca97fa509b0b1ac1367c6fa7e4c644104`. Main image run `29653146520` preserved AMD64
+      artifact `8432074834` and ARM64 artifact `8432075433`; both record 29 APK packages,
+      22 locked Python packages, 8 medium, 3 reviewed high, and 0 critical findings. Main CI
+      `29653146497`, release-provenance `29653146479`, and CodeQL `29653146307` passed, followed
+      by zero open dependency, code-scanning, or secret-scanning alerts. Issue `#86` stays open
+      and fails closed after the bounded renewal unless the first fixed stable official image is
+      adopted and natively re-verified.
     - [x] Enable live `main` protection with pull requests, strict app-bound GitHub Actions and
       Advanced Security `CodeQL` checks, resolved conversations, administrator enforcement, and
       force-push/deletion denial; enable Dependabot security updates, secret-scanning push

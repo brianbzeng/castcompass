@@ -31,12 +31,26 @@ also satisfied.
       Evidence: 325/325 repository tests, 29/29 API tests plus all 13 critical query plans,
       69/69 pipeline tests with one documented optional raster skip, 102/102 mobile-browser
       tests, lint, typecheck, secrets, exact Python locks, zero-execution npm policy, both SBOM
-      checks, and both npm audits with zero vulnerabilities. Hosted CI must still prove the exact
-      Python 3.13.14 runtime and native image on both architectures.
-- [ ] Publish the protected draft PR and accept fresh native AMD64/ARM64 image evidence plus all
-      required CI, dependency-review, release-provenance, and CodeQL checks on the exact head.
-- [ ] Merge only after every required check passes, then reconcile the exact `main` commit,
-      post-merge workflows, artifacts, and alert state. Cloudflare and production stay paused.
+      checks, and both npm audits with zero vulnerabilities.
+- [x] Publish the protected draft PR and accept fresh native AMD64/ARM64 image evidence plus all
+      required checks on the exact head. PR `#90` head
+      `f20c210bb8014baee62c9bf09010a3d5a99c5d97` passed CI `29652969717`, image-security
+      `29652969712`, release-provenance `29652969706`, and CodeQL `29652968953`. AMD64 artifact
+      `8432023776` (`sha256:a972eeb814fcdb28a56ca20b676645b0ba5c58d50a9fd3f19a9b34075cf77320`)
+      and ARM64 artifact `8432025040`
+      (`sha256:cfdd3f5a3d8ccea37ce051a1ded26474c96010434814da4e02759161423621de`)
+      retain the raw and normalized evidence.
+- [x] Merge only after every required check passes, then reconcile the exact `main` commit,
+      post-merge workflows, artifacts, and alert state. PR `#90` merged as
+      `f1a6579ca97fa509b0b1ac1367c6fa7e4c644104`; main CI `29653146497`, image-security
+      `29653146520`, release-provenance `29653146479`, and CodeQL `29653146307` passed. AMD64
+      artifact `8432074834`
+      (`sha256:a82c248231ddf83164aad84563b3c5703951f6c39c409b2b71885daa7757b060`)
+      and ARM64 artifact `8432075433`
+      (`sha256:c9eaa3426e90188c0db8015a06018c0fffd20d072b71b4f77a7590ca0b0b2591`)
+      preserve matching source-bound reports through 2026-08-17. Open Dependabot,
+      code-scanning, and secret-scanning alerts are all zero; issue `#86` stays open for the
+      mandatory 2026-08-04 re-review. Cloudflare and production remain paused.
 
 ## Completed prior seven-step cycle — official fisheries data
 

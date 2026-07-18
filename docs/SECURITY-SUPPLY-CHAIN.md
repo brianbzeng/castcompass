@@ -413,7 +413,28 @@ surface-reduction controls, not a sandbox or trust guarantee.
   missing owner, non-primary sources, a mismatched runtime, a later-series gap, an unbound
   exception date, or more than seven days of post-release grace.
 
-  Main image-security run `29633038674` repeated the proof for the merge commit. Artifacts
+  The bounded renewal is accepted at PR `#90`, whose exact final head
+  `f20c210bb8014baee62c9bf09010a3d5a99c5d97` merged as
+  `f1a6579ca97fa509b0b1ac1367c6fa7e4c644104`. Exact-head image-security run `29652969712`
+  passed both architectures; AMD64 artifact `8432023776` and ARM64 artifact `8432025040`
+  preserve the raw SBOM, Grype report, and normalized policy summary with artifact-record
+  SHA-256 digests `a972eeb814fcdb28a56ca20b676645b0ba5c58d50a9fd3f19a9b34075cf77320` and
+  `cfdd3f5a3d8ccea37ce051a1ded26474c96010434814da4e02759161423621de`. Exact-head CI
+  `29652969717`, release-provenance `29652969706`, and CodeQL `29652968953` also passed.
+
+  Main image-security run `29653146520` repeated the proof for the merge commit. AMD64 artifact
+  `8432074834` and ARM64 artifact `8432075433`, retained through 2026-08-17, have artifact-record
+  SHA-256 digests `a82c248231ddf83164aad84563b3c5703951f6c39c409b2b71885daa7757b060` and
+  `c9eaa3426e90188c0db8015a06018c0fffd20d072b71b4f77a7590ca0b0b2591`. Each architecture
+  contains 29 APK packages and 22 applicable locked Python packages, with 11 matches: 8 medium,
+  3 reviewed high, and 0 critical. Both used Grype database v6.1.9 built
+  2026-07-18T06:48:35Z and enforced the named owner plus 2026-08-08 expiry. Main CI
+  `29653146497`, release-provenance `29653146479`, and CodeQL `29653146307` passed; GitHub then
+  reported zero open Dependabot, code-scanning, or secret-scanning alerts. Issue `#86` remains
+  open for the mandatory 2026-08-04 re-review, and the production/Cloudflare hold is unchanged.
+
+  The original acceptance's main image-security run `29633038674` repeated the proof for its
+  merge commit. Artifacts
   `8426143583` and `8426146269`, with artifact-record SHA-256 digests
   `c5a00cea9e2780dccfb08a59d740f348d945b48706c53ef670efe5d2e36c741e` and
   `8a74ca502ee57568e11a71b60291c7252a557a13b8cdb74b09784288a81199b0`, preserve matching
