@@ -23,6 +23,7 @@ jobs:
       - run: npm ci
       - run: npm run security:dependencies
       - run: npm run security:sbom
+      - run: npm run security:release-sbom
       - run: npm run build:cloudflare
       - name: Build deterministic release artifacts
         run: |
@@ -95,7 +96,16 @@ jobs:
           jq --exit-status \
             '.bomFormat == "CycloneDX"
               and .specVersion == "1.5"
-              and (.serialNumber | test("^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"))' \
+              and (.serialNumber | test("^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"))
+              and .metadata.component.name == "castingcompass-release"
+              and ([.metadata.component.properties[]
+                | select(.name == "castingcompass:claim-scope"
+                  and .value == "source-bound release inventory; not Cloudflare deployment provenance")]
+                | length == 1)
+              and ([.components[] | select(.type == "container")] | length >= 1)
+              and ([.components[] | select(.type == "operating-system")] | length >= 1)
+              and ([.components[] | select((.purl // "") | startswith("pkg:pypi/"))] | length >= 1)
+              and ([.services[] | select(.name == "Cloudflare Workers Runtime")] | length == 1)' \
             "$sbom" > /dev/null
           gzip --test "$bundle"
       - name: Attest release-bundle provenance

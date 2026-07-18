@@ -32,6 +32,7 @@ jobs:
       - run: npm ci
       - run: npm run security:dependencies
       - run: npm run security:sbom
+      - run: npm run security:release-sbom
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test

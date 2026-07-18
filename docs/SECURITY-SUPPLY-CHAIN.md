@@ -25,7 +25,8 @@ path so security fixes are not frozen out.
 | Default-branch integrity | Live `main` protection requires pull requests, strict successful `api`, `pipeline`, `web`, and `dependency-review` checks from the GitHub Actions app plus the `CodeQL` result from the GitHub Advanced Security app, resolved review conversations, and applies to the owner; force-pushes and branch deletion are disabled | This is provider-side configuration rather than source code; verify it again for the exact release and preserve a separate emergency-access procedure |
 | Pull-request dependency changes | The SHA-pinned GitHub dependency-review action rejects newly introduced high/critical runtime or development advisories on release PRs targeting the default branch, and the live `main` protection requires that check | GitHub builds the graph from the default branch, so stacked PRs cannot supply this evidence; the complete-tree audit and SBOM remain mandatory |
 | Static analysis | GitHub-managed CodeQL default setup scans Actions, JavaScript/TypeScript, and Python; the Advanced Security `CodeQL` merge result is required on `main`, and findings are reviewed individually rather than bulk-dismissed | GitHub controls the analyzer/runtime and its default query updates; release evidence still records the alert state and each dismissal rationale |
-| Production npm SBOM | `security/sbom.cdx.json` is a deterministic CycloneDX 1.5 inventory of the lock-resolved production graph, including cross-platform optional variants, and embeds the SHA-256 of `package-lock.json` | It is signed and independently verified for the exact GitHub release candidate recorded below, not a combined Python/OS inventory or proof of the bytes Cloudflare actually ran |
+| Production npm SBOM | `security/sbom.cdx.json` is a deterministic CycloneDX 1.5 inventory of the lock-resolved production graph, including cross-platform optional variants, and embeds the SHA-256 of `package-lock.json` | It remains the focused npm input to the combined release inventory; neither document proves the bytes Cloudflare actually ran |
+| Combined release inventory | `security/release-sbom.cdx.json` deterministically combines the production npm graph, exact hashed API-runtime and pipeline-CI Python graphs, pinned Node/Python/API-image/Debian identities, and the repository-declared Worker/D1/assets service contract; every source file is SHA-256-bound and CI rejects drift | The OS entry is identity-level and does not enumerate installed Debian packages; the Worker entries are repository contracts, not deployed-version evidence; hosted signing acceptance must be recorded before this gate is counted complete |
 | Secrets and private reporting | Repository secret scanning and provider-pattern tests run before dependency installation in CI; GitHub secret scanning, push protection, and private vulnerability reporting are enabled | GitHub's extra non-provider-pattern and validity-check options were unavailable in the current account configuration; rotation, IAM, and incident drills still require provider evidence |
 
 The exact Node release is the current patched release selected for the maintained 22.x line,
@@ -94,10 +95,22 @@ happens to share a name/version with production. Tests also require every direct
 unique graph references, and the signer-required deterministic serial number. Review both the
 lock diff and SBOM diff in the same pull request. CI rejects a stale SBOM.
 
-The SBOM intentionally covers the production npm tree only. Development tools remain visible
-in `package-lock.json`, the complete-tree audit, and dependency review. Python and external
-build/service components are not yet represented in one combined signed SBOM; that is an open
-gate below.
+The focused npm SBOM intentionally covers the production npm tree only. Development tools remain
+visible in `package-lock.json`, the complete-tree audit, and dependency review. The deterministic
+combined release SBOM then embeds that npm graph alongside both exercised exact Python graphs,
+the pinned Node/Python/API-container/Debian identities, and the Worker/D1/assets service contract.
+It binds `.node-version`, `.python-version`, both selected Python locks, the API Dockerfile,
+`package.json`, `package-lock.json`, the focused npm SBOM, and `wrangler.jsonc` by SHA-256. Python
+distribution hashes and environment markers remain attached to their package identities. The
+release builder archives those inputs and exports the combined document as the SBOM predicate;
+the isolated signer rejects a narrowed predicate that lacks Python, container, OS, Worker, or the
+explicit non-deployment claim.
+
+This is a source-bound release inventory. The Debian entry identifies the pinned multi-platform
+image index and its `slim-bookworm` OS family but does not claim a package-level scan of a selected
+image manifest. The Cloudflare service entries describe reviewed bindings and compatibility
+settings but do not identify deployed bytes, traffic allocation, or provider state. Preserve these
+limits until separate platform-specific image scanning and deployed-digest evidence exist.
 
 ## Python lock workflow
 
@@ -337,8 +350,11 @@ surface-reduction controls, not a sandbox or trust guarantee.
   x86-64 CPU, and passed CodeQL run `29628030502`. After those receipts, GitHub reported zero
   open Dependabot, code-scanning, or secret-scanning alerts. This evidence covers only the two
   named platform/backend combinations and does not broaden the exclusions above.
-- The committed npm SBOM is not a combined Python/OS/Worker inventory. Produce those additional
-  inventories, bind them to the release commit, and reconcile license/advisory ownership.
+- The deterministic combined release SBOM covers the selected npm/Python graphs plus
+  identity-level API image/OS and Worker service contracts. Obtain a successful main-branch
+  combined-SBOM attestation and independently verify it before closing that sub-gate. Package-level
+  Debian image scanning, deployed Worker digest proof, and license/advisory reconciliation remain
+  separate open work.
 - The checked-in GitHub workflow produces a deterministic release candidate from `main`
   containing the built Worker, static assets, reviewed Wrangler configuration, migrations,
   exact lock, and committed CycloneDX SBOM. The bundle embeds the repository, full commit,

@@ -26,10 +26,27 @@ const sourcePaths = [
   ["dist", "dist"],
   ["drizzle", "drizzle"],
   [".openai/hosting.json", ".openai/hosting.json"],
+  [".node-version", ".node-version"],
+  [".python-version", ".python-version"],
   ["package-lock.json", "package-lock.json"],
   ["package.json", "package.json"],
+  ["pipeline/requirements-ci.lock", "pipeline/requirements-ci.lock"],
+  ["security/release-sbom.cdx.json", "security/release-sbom.cdx.json"],
   ["security/sbom.cdx.json", "security/sbom.cdx.json"],
+  ["services/api/Dockerfile", "services/api/Dockerfile"],
+  ["services/api/requirements-runtime.lock", "services/api/requirements-runtime.lock"],
   ["wrangler.jsonc", "wrangler.jsonc"],
+];
+const releaseSbomInputs = [
+  ".node-version",
+  ".python-version",
+  "package-lock.json",
+  "package.json",
+  "pipeline/requirements-ci.lock",
+  "security/sbom.cdx.json",
+  "services/api/Dockerfile",
+  "services/api/requirements-runtime.lock",
+  "wrangler.jsonc",
 ];
 
 function sha256(value) {
@@ -215,13 +232,17 @@ function parseTar(tar) {
   return entries;
 }
 
-function readSbomLockHash(sbom) {
-  const property = sbom?.metadata?.properties?.find((candidate) =>
-    candidate?.name === "castingcompass:package-lock-sha256");
-  if (!property || !/^[a-f0-9]{64}$/u.test(property.value ?? "")) {
-    throw new Error("Release SBOM is not bound to a package-lock hash");
+function readSbomInputHash(sbom, path) {
+  const prefix = `${path}:`;
+  const property = sbom?.metadata?.component?.properties?.find((candidate) =>
+    candidate?.name === "castingcompass:input-sha256"
+      && typeof candidate.value === "string"
+      && candidate.value.startsWith(prefix));
+  const value = property?.value?.slice(prefix.length);
+  if (!/^[a-f0-9]{64}$/u.test(value ?? "")) {
+    throw new Error(`Release SBOM is not bound to ${path}`);
   }
-  return property.value;
+  return value;
 }
 
 function outputNames(commitSha) {
@@ -262,7 +283,7 @@ export function createReleaseArtifacts({
   assertOutputDirectory(output);
 
   const packageLock = readFileSync(join(source, "package-lock.json"));
-  const sbomBytes = readFileSync(join(source, "security/sbom.cdx.json"));
+  const sbomBytes = readFileSync(join(source, "security/release-sbom.cdx.json"));
   let sbom;
   try {
     sbom = JSON.parse(sbomBytes.toString("utf8"));
@@ -270,8 +291,10 @@ export function createReleaseArtifacts({
     throw new Error("Release SBOM is not valid JSON");
   }
   const packageLockSha256 = sha256(packageLock);
-  if (readSbomLockHash(sbom) !== packageLockSha256) {
-    throw new Error("Release SBOM does not match package-lock.json");
+  for (const path of releaseSbomInputs) {
+    if (readSbomInputHash(sbom, path) !== sha256(readFileSync(join(source, path)))) {
+      throw new Error(`Release SBOM does not match ${path}`);
+    }
   }
 
   const entries = [];
@@ -418,14 +441,20 @@ export function verifyReleaseArtifacts({ outputDirectory, commitSha, repository 
     `${RELEASE_PREFIX}/dist/client/robots.txt`,
     `${RELEASE_PREFIX}/dist/client/sitemap.xml`,
     `${RELEASE_PREFIX}/drizzle/0017_trip_idempotency.sql`,
+    `${RELEASE_PREFIX}/.node-version`,
+    `${RELEASE_PREFIX}/.python-version`,
     `${RELEASE_PREFIX}/package-lock.json`,
+    `${RELEASE_PREFIX}/pipeline/requirements-ci.lock`,
+    `${RELEASE_PREFIX}/security/release-sbom.cdx.json`,
     `${RELEASE_PREFIX}/security/sbom.cdx.json`,
+    `${RELEASE_PREFIX}/services/api/Dockerfile`,
+    `${RELEASE_PREFIX}/services/api/requirements-runtime.lock`,
     `${RELEASE_PREFIX}/wrangler.jsonc`,
   ];
   for (const required of requiredEntries) {
     if (entries.get(required)?.type !== "0") throw new Error(`Release bundle is missing ${required}`);
   }
-  const archivedSbom = entries.get(`${RELEASE_PREFIX}/security/sbom.cdx.json`).bytes;
+  const archivedSbom = entries.get(`${RELEASE_PREFIX}/security/release-sbom.cdx.json`).bytes;
   if (!archivedSbom.equals(sbomBytes)) throw new Error("Release bundle SBOM does not match the attested SBOM");
   const archivedLock = entries.get(`${RELEASE_PREFIX}/package-lock.json`).bytes;
   if (sha256(archivedLock) !== manifest.package_lock_sha256) throw new Error("Release bundle lock does not match its manifest");

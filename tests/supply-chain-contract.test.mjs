@@ -83,7 +83,7 @@ test("CI fixes runner versions and enforces dependency review, audits, and SBOM 
   assert.match(ci, /actions\/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294/);
   assert.match(ci, /fail-on-severity:\s*high/);
   assert.match(ci, /github\.base_ref\s*==\s*github\.event\.repository\.default_branch/);
-  assert.match(ci, /npm run security:secrets[\s\S]+npm ci[\s\S]+npm run security:dependencies[\s\S]+npm run security:sbom/);
+  assert.match(ci, /npm run security:secrets[\s\S]+npm ci[\s\S]+npm run security:dependencies[\s\S]+npm run security:sbom[\s\S]+npm run security:release-sbom/);
   assert.equal((ci.match(/--only-binary=:all: --require-hashes/g) ?? []).length, 2);
   assert.match(ci, /services\/api\/requirements-test\.lock/);
   assert.match(ci, /pipeline\/requirements-ci\.lock/);
@@ -227,6 +227,12 @@ test("the supply-chain runbook scopes optional locks and keeps deployment proven
   assert.match(policy, /separate main-only job[\s\S]+runs no repository or dependency code/i);
   assert.match(policy, /not Cloudflare deployment provenance/i);
   assert.match(policy, /prove[\s\S]+digest is the digest actually deployed[\s\S]+before marking end-to-end provenance complete/i);
+  assert.match(
+    policy,
+    /combined release (?:SBOM|inventory)[\s\S]+production npm graph[\s\S]+Python graphs[\s\S]+API-(?:image|container)\/Debian identities[\s\S]+Worker\/D1\/assets service contract/i,
+  );
+  assert.match(policy, /does not claim a package-level scan[\s\S]+do not identify deployed bytes/i);
+  assert.match(policy, /successful main-branch[\s\S]+attestation[\s\S]+before closing that sub-gate/i);
   assert.match(
     policy,
     /PR `#77`[\s\S]+fa73c4dd4162b6834113f40a6f77be6907bdd202[\s\S]+29629689167[\s\S]+8425041514[\s\S]+e2d8b79a39a28c9ae97ba1c384e1f8eacffe95275ea6b7eaf79d3baee8f12ad0[\s\S]+35935237[\s\S]+35935240[\s\S]+29629689192[\s\S]+83454900[\s\S]+29629688765[\s\S]+zero open Dependabot,[\s\S]+code-scanning,[\s\S]+secret-scanning alerts[\s\S]+None of this proves a Cloudflare deployment/i,
