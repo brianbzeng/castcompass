@@ -164,6 +164,7 @@ test("Python API and pipeline installs use exact source-bound wheel hashes", asy
   assert.match(optionalWorkflow, /runs-on: ubuntu-24\.04[\s\S]+requirements-geo-deep-linux-cpu\.lock/);
   assert.match(optionalWorkflow, /download\.pytorch\.org\/whl\/cpu/);
   assert.match(optionalWorkflow, /runs-on: macos-15[\s\S]+requirements-geo-deep-macos-arm64\.lock/);
+  assert.match(optionalWorkflow, /astral-sh\/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990[\s\S]+version: "0\.10\.11"[\s\S]+uv python install 3\.12\.13/);
   assert.equal((optionalWorkflow.match(/--require-hashes/g) ?? []).length, 2);
   assert.equal((optionalWorkflow.match(/--only-binary=:all:/g) ?? []).length, 2);
   assert.equal((optionalWorkflow.match(/check_geo_deep_environment\.py/g) ?? []).length, 4);

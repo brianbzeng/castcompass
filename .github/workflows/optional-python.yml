@@ -58,21 +58,25 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
+          version: "0.10.11"
           python-version: "3.12.13"
-          cache: pip
-          cache-dependency-path: pipeline/requirements-geo-deep-macos-arm64.lock
+          enable-cache: true
+          cache-python: true
+          cache-dependency-glob: pipeline/requirements-geo-deep-macos-arm64.lock
+      - run: uv python install 3.12.13
+      - run: uv venv --python 3.12.13 --seed .venv
       - run: >-
-          python -m pip install --disable-pip-version-check --only-binary=:all:
+          .venv/bin/python -m pip install --disable-pip-version-check --only-binary=:all:
           --require-hashes --index-url https://pypi.org/simple
           -r pipeline/requirements-geo-deep-macos-arm64.lock
-      - run: python -m pip check
-      - run: python -m ruff check pipeline scripts
-      - run: python -W error::FutureWarning -W error::DeprecationWarning -m unittest discover -s pipeline/tests -v
-      - run: python -m pipeline.contourcast.cli deep-smoke
+      - run: .venv/bin/python -m pip check
+      - run: .venv/bin/python -m ruff check pipeline scripts
+      - run: .venv/bin/python -W error::FutureWarning -W error::DeprecationWarning -m unittest discover -s pipeline/tests -v
+      - run: .venv/bin/python -m pipeline.contourcast.cli deep-smoke
       - run: >-
-          python -W error::FutureWarning -W error::DeprecationWarning
+          .venv/bin/python -W error::FutureWarning -W error::DeprecationWarning
           pipeline/scripts/check_geo_deep_environment.py
         env:
           CC_OPTIONAL_STACK: macos-arm64

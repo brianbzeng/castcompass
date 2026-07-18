@@ -21,7 +21,7 @@ path so security fixes are not frozen out.
 | Direct npm packages | Every direct production and development dependency uses an exact version in `package.json` | A package version can still be malicious or vulnerable; review source/provenance, advisories, licenses, and install scripts |
 | Transitive npm tree | `package-lock.json` records exact versions, registry locations, and integrity hashes; CI and release use `npm ci` | Registry availability and npm/client behavior remain external; the hosted runner itself is not bit-for-bit pinned |
 | Known npm advisories | Compatible Babel and YAML fixes are forced; the deprecated Drizzle loader's vulnerable esbuild is overridden to tested `0.25.12`; the resulting complete npm tree currently audits clean | Replace the deprecated `@esbuild-kit` loader path when Drizzle removes it; do not leave the override indefinitely without tests |
-| GitHub Actions | Every `uses:` reference is a full immutable commit SHA; runner labels are fixed to `ubuntu-24.04` rather than `ubuntu-latest` | GitHub updates the image behind that label; a release still records the workflow run and source commit |
+| GitHub Actions | Every `uses:` reference is a full immutable commit SHA; runner labels are fixed to `ubuntu-24.04` and `macos-15` rather than mutable `-latest` aliases | GitHub updates the images behind those labels; a release still records the workflow run and source commit |
 | Default-branch integrity | Live `main` protection requires pull requests, strict successful `api`, `pipeline`, `web`, and `dependency-review` checks from the GitHub Actions app plus the `CodeQL` result from the GitHub Advanced Security app, resolved review conversations, and applies to the owner; force-pushes and branch deletion are disabled | This is provider-side configuration rather than source code; verify it again for the exact release and preserve a separate emergency-access procedure |
 | Pull-request dependency changes | The SHA-pinned GitHub dependency-review action rejects newly introduced high/critical runtime or development advisories on release PRs targeting the default branch, and the live `main` protection requires that check | GitHub builds the graph from the default branch, so stacked PRs cannot supply this evidence; the complete-tree audit and SBOM remain mandatory |
 | Static analysis | GitHub-managed CodeQL default setup scans Actions, JavaScript/TypeScript, and Python; the Advanced Security `CodeQL` merge result is required on `main`, and findings are reviewed individually rather than bulk-dismissed | GitHub controls the analyzer/runtime and its default query updates; release evidence still records the alert state and each dismissal rationale |
@@ -56,6 +56,11 @@ is benign. The optional workflow uses distinct macOS ARM64/MPS and Linux x86-64 
 validates exact package and platform identity, and runs weekly as well as on relevant changes.
 The Linux job's second index is the official PyTorch CPU repository; exact versions and committed
 hashes fail closed against unreviewed bytes from either index.
+The macOS ARM runner does not provide the exact security-only CPython 3.12.13 release through
+`actions/setup-python`, so its job uses immutable `astral-sh/setup-uv` v8.3.2 with exact uv
+0.10.11 to install that same Python patch before creating the isolated environment. The action,
+uv version, Python version, lock, and hosted execution are all independently pinned; the runner
+image, release download services, and Python standalone build remain external dependencies.
 
 The dependency-review job separately compares the base and head dependency graphs on pull
 requests targeting the default branch. GitHub builds that graph from the default branch, so
