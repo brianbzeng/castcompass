@@ -119,9 +119,14 @@ after its acceptance checks pass in the intended environment.
       action commits; remediate the known npm advisory tree to zero; add high/production-
       moderate audit gates, pull-request dependency review, a deterministic CycloneDX
       production SBOM bound to the package-lock hash, and an owner/deadline/update runbook.
-      Optional Geo/PyTorch platform locks, cross-platform npm install-script allowlisting,
+      Cross-platform npm install-script allowlisting,
       combined/signed SBOM and build attestations, production evidence, key custody, and restore
       drills remain open.
+    - [x] Define source-bound, exact, SHA-256-hashed, binary-only optional Geo/PyTorch locks for
+      CPython 3.12 on macOS 15+ ARM64/MPS and manylinux_2_28 x86-64/CPU; add scheduled hosted
+      execution that checks platform/backend identity, exact package identity, GeoTIFF/CRS
+      behavior, pipeline tests, and deep smoke. CUDA, ROCm, Windows, Intel macOS, and other
+      unlisted environments remain outside the approved reproducibility claim.
     - [x] Enable live `main` protection with pull requests, strict app-bound GitHub Actions and
       Advanced Security `CodeQL` checks, resolved conversations, administrator enforcement, and
       force-push/deletion denial; enable Dependabot security updates, secret-scanning push
@@ -135,7 +140,7 @@ after its acceptance checks pass in the intended environment.
       test-only packages out of the API image, enforce pip
       all-or-nothing hash checking and binary-only installs in CI/API containers, pin the API
       Python base image by patch and multi-platform digest, and schedule Docker updates. The
-      optional Geo/PyTorch stack and signed deployment provenance remain open.
+      unapproved optional Geo/PyTorch platforms and signed deployment provenance remain open.
     - [x] Locally remediate the dependency-graph alerts by upgrading the validation/CI graph to
       `cryptography` 48.0.1 and the API test graph to `pytest` 9.0.3; regenerate the source-bound
       hashed locks and pass isolated Python 3.12.13 installs, query-plan checks, API tests,

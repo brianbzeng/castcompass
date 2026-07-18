@@ -349,11 +349,20 @@ crop, ten-channel feature, three-scale corpus, geographic holdout, training,
 and checkpoint path:
 
 ```bash
-python3 -m venv --system-site-packages .venv-geo-deep
-.venv-geo-deep/bin/python -m pip install -r pipeline/requirements-geo-deep.txt
+python3.12 -m venv .venv-geo-deep
+.venv-geo-deep/bin/python -m pip install --only-binary=:all: --require-hashes \
+  --index-url https://pypi.org/simple \
+  -r pipeline/requirements-geo-deep-macos-arm64.lock
+CC_OPTIONAL_STACK=macos-arm64 CC_REQUIRE_MPS=1 \
+  .venv-geo-deep/bin/python pipeline/scripts/check_geo_deep_environment.py
 PYTHON_BIN=.venv-geo-deep/bin/python \
   pipeline/scripts/run_usgs_sf_2m_ssl_pilot.sh
 ```
+
+That command is specifically for CPython 3.12 on macOS 15+ ARM64. Linux x86-64 CPU
+uses `requirements-geo-deep-linux-cpu.lock` with PyPI plus the official PyTorch CPU
+index, as exercised by `.github/workflows/optional-python.yml`. CUDA, ROCm, Windows,
+and other platforms require separate reviewed locks and platform tests before use.
 
 The pilot crop is 4.096 km square and uses 512 locations with 64 m, 256 m,
 and 1,024 m diameter views. The full-area path below streams tiled GeoTIFF/COG

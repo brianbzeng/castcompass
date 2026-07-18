@@ -68,9 +68,10 @@ test("direct npm packages and build runtimes are exact reviewed versions", async
 test("CI fixes runner versions and enforces dependency review, audits, and SBOM verification", async () => {
   const ci = await readFile(new URL(".github/workflows/ci.yml", root), "utf8");
   const refresh = await readFile(new URL(".github/workflows/refresh-snapshot.yml", root), "utf8");
-  assert.doesNotMatch(`${ci}\n${refresh}`, /ubuntu-latest|node-version:\s*22\s*$|python-version:\s*["']?3\.12["']?\s*$/m);
+  const optional = await readFile(new URL(".github/workflows/optional-python.yml", root), "utf8");
+  assert.doesNotMatch(`${ci}\n${refresh}\n${optional}`, /(?:ubuntu|macos)-latest|node-version:\s*22\s*$|python-version:\s*["']?3\.12["']?\s*$/m);
   assert.equal((`${ci}\n${refresh}`.match(/node-version:\s*22\.23\.1/g) ?? []).length, 3);
-  assert.equal((`${ci}\n${refresh}`.match(/python-version:\s*["']3\.12\.13["']/g) ?? []).length, 3);
+  assert.equal((`${ci}\n${refresh}\n${optional}`.match(/python-version:\s*["']3\.12\.13["']/g) ?? []).length, 5);
   assert.match(ci, /actions\/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294/);
   assert.match(ci, /fail-on-severity:\s*high/);
   assert.match(ci, /github\.base_ref\s*==\s*github\.event\.repository\.default_branch/);
@@ -97,6 +98,8 @@ test("Python API and pipeline installs use exact source-bound wheel hashes", asy
   assert.match(verifier.stdout, /FastAPI runtime Python lock verified \(\d+ exact hashed packages\)/);
   assert.match(verifier.stdout, /FastAPI test Python lock verified \(32 exact hashed packages\)/);
   assert.match(verifier.stdout, /pipeline CI Python lock verified \(14 exact hashed packages\)/);
+  assert.match(verifier.stdout, /Geo\/deep macOS ARM64 Python lock verified \(31 exact hashed packages\)/);
+  assert.match(verifier.stdout, /Geo\/deep Linux x86-64 CPU Python lock verified \(31 exact hashed packages\)/);
 
   const manifest = JSON.parse(await readFile(new URL("package.json", root), "utf8"));
   assert.match(manifest.scripts.security, /security:python-locks/);
@@ -144,6 +147,27 @@ test("Python API and pipeline installs use exact source-bound wheel hashes", asy
   assert.match(pipelineLock, /^pandas==3\.0\.3\s+\\$/m);
   assert.doesNotMatch(pipelineLock, /^pytz==/m);
   assert.match(dependabot, /scientific-runtime:[\s\S]+numpy[\s\S]+scipy[\s\S]+scikit-learn[\s\S]+pandas/);
+  assert.match(dependabot, /geo-deep-runtime:[\s\S]+pyproj[\s\S]+rasterio[\s\S]+torch/);
+
+  const geoInput = await readFile(new URL("pipeline/requirements-geo-deep.in", root), "utf8");
+  assert.match(geoInput, /^pyproj==3\.7\.2$/m);
+  assert.match(geoInput, /^rasterio==1\.5\.0$/m);
+  assert.match(geoInput, /^torch==2\.13\.0$/m);
+  const macLock = await readFile(new URL("pipeline/requirements-geo-deep-macos-arm64.lock", root), "utf8");
+  const linuxLock = await readFile(new URL("pipeline/requirements-geo-deep-linux-cpu.lock", root), "utf8");
+  assert.match(macLock, /^torch==2\.13\.0\s+\\$/m);
+  assert.match(linuxLock, /^torch==2\.13\.0\+cpu\s+\\$/m);
+  assert.doesNotMatch(`${macLock}\n${linuxLock}`, /^(?:nvidia-|triton==)/m);
+
+  const optionalWorkflow = await readFile(new URL(".github/workflows/optional-python.yml", root), "utf8");
+  assert.match(optionalWorkflow, /schedule:[\s\S]+cron:/);
+  assert.match(optionalWorkflow, /runs-on: ubuntu-24\.04[\s\S]+requirements-geo-deep-linux-cpu\.lock/);
+  assert.match(optionalWorkflow, /download\.pytorch\.org\/whl\/cpu/);
+  assert.match(optionalWorkflow, /runs-on: macos-15[\s\S]+requirements-geo-deep-macos-arm64\.lock/);
+  assert.match(optionalWorkflow, /astral-sh\/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990[\s\S]+version: "0\.10\.11"[\s\S]+uv python install 3\.12\.13/);
+  assert.equal((optionalWorkflow.match(/--require-hashes/g) ?? []).length, 2);
+  assert.equal((optionalWorkflow.match(/--only-binary=:all:/g) ?? []).length, 2);
+  assert.equal((optionalWorkflow.match(/check_geo_deep_environment\.py/g) ?? []).length, 4);
 });
 
 test("the deterministic production SBOM is bound to the lock and direct runtime packages", async () => {
@@ -168,11 +192,12 @@ test("the deterministic production SBOM is bound to the lock and direct runtime 
   assert.deepEqual(references, [...references].sort((left, right) => left.localeCompare(right)));
 });
 
-test("the supply-chain runbook closes exercised Python locks but keeps optional and provenance gates open", async () => {
+test("the supply-chain runbook scopes approved optional Python locks and keeps provenance gates open", async () => {
   const policy = await readFile(new URL("docs/SECURITY-SUPPLY-CHAIN.md", root), "utf8");
   assert.match(policy, /does? \*\*not\*\* yet claim a cross-version enforced npm install-script/i);
   assert.match(policy, /FastAPI runtime\/test and pipeline CI[\s\S]+exact transitive versions[\s\S]+SHA-256/i);
-  assert.match(policy, /optional Geo\/PyTorch[\s\S]+remains open/i);
+  assert.match(policy, /approved optional Geo\/PyTorch environments[\s\S]+macOS 15\+ ARM64[\s\S]+manylinux_2_28 x86-64 CPU/i);
+  assert.match(policy, /CUDA, ROCm, Windows[\s\S]+remain open/i);
   assert.match(policy, /not yet signed deployment provenance/i);
   assert.match(policy, /stacked successor PRs[\s\S]+do not falsely report a dependency-review pass/i);
   assert.match(policy, /directory-local `services\/api\/\.python-version`[\s\S]+not a control over GitHub's[\s\S]+hosted resolver/i);

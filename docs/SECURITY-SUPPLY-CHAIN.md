@@ -14,13 +14,14 @@ path so security fixes are not frozen out.
 | Node build runtime | `.node-version`, GitHub CI, and snapshot automation select Node `22.23.1`; `engines.node` accepts only that patched 22.x floor through the next major boundary | Cloudflare must be verified to honor the file on the exact build; GitHub/Cloudflare host images are mutable services |
 | Python test runtime | `.python-version` and every checked-in GitHub test workflow select Python `3.12.13` | GitHub's separate hosted Dependabot resolver used Python 3.14.5; Python 3.12 is security-fixes-only, so a tested feature-series upgrade is still required before its support ends |
 | API container runtime | The API Dockerfile selects the official `python:3.12.13-slim-bookworm` multi-platform image by immutable index digest | The pinned OS/Python image needs weekly reviewed Docker updates; the container is not the current Cloudflare Worker production path |
-| Exercised Python graphs | FastAPI runtime/test and pipeline CI use exact transitive versions from source-bound locks with committed SHA-256 distribution hashes; CI and the API image require hashes and reject source distributions | The package index, pip implementation, host kernel/libc, and wheel contents remain external; optional Geo/PyTorch platforms need separate locks |
+| Exercised Python graphs | FastAPI runtime/test and pipeline CI use exact transitive versions from source-bound locks with committed SHA-256 distribution hashes; CI and the API image require hashes and reject source distributions | The package index, pip implementation, host kernel/libc, and wheel contents remain external |
+| Approved optional Geo/PyTorch graphs | Separate source-bound, exact, hashed, binary-only locks cover CPython 3.12 on macOS 15+ ARM64 with an MPS-capable Torch wheel and manylinux_2_28 x86-64 with the official CPU-only Torch wheel; a scheduled workflow tests both platform identities, GeoTIFF/CRS behavior, the pipeline suite, and deep smoke | GitHub runner images and package indexes remain external; CUDA, ROCm, Windows, Intel macOS, and other unlisted platforms are not approved or claimed reproducible |
 | GitHub Python dependency graph | A main-only job waits for the tested API/pipeline locks, then submits exact versioned PyPI package URLs for all three exercised graphs; user submissions take precedence over incomplete managed/static parses | GitHub owns storage, precedence, and alert refresh; verify the accepted snapshot and alert state after each relevant merge rather than treating a successful upload as the final receipt |
 | Worker runtime contract | `wrangler.jsonc` fixes `compatibility_date` and the reviewed compatibility flags | Cloudflare implements the runtime; a date pin needs deliberate compatibility review and periodic advancement |
 | Direct npm packages | Every direct production and development dependency uses an exact version in `package.json` | A package version can still be malicious or vulnerable; review source/provenance, advisories, licenses, and install scripts |
 | Transitive npm tree | `package-lock.json` records exact versions, registry locations, and integrity hashes; CI and release use `npm ci` | Registry availability and npm/client behavior remain external; the hosted runner itself is not bit-for-bit pinned |
 | Known npm advisories | Compatible Babel and YAML fixes are forced; the deprecated Drizzle loader's vulnerable esbuild is overridden to tested `0.25.12`; the resulting complete npm tree currently audits clean | Replace the deprecated `@esbuild-kit` loader path when Drizzle removes it; do not leave the override indefinitely without tests |
-| GitHub Actions | Every `uses:` reference is a full immutable commit SHA; runner labels are fixed to `ubuntu-24.04` rather than `ubuntu-latest` | GitHub updates the image behind that label; a release still records the workflow run and source commit |
+| GitHub Actions | Every `uses:` reference is a full immutable commit SHA; runner labels are fixed to `ubuntu-24.04` and `macos-15` rather than mutable `-latest` aliases | GitHub updates the images behind those labels; a release still records the workflow run and source commit |
 | Default-branch integrity | Live `main` protection requires pull requests, strict successful `api`, `pipeline`, `web`, and `dependency-review` checks from the GitHub Actions app plus the `CodeQL` result from the GitHub Advanced Security app, resolved review conversations, and applies to the owner; force-pushes and branch deletion are disabled | This is provider-side configuration rather than source code; verify it again for the exact release and preserve a separate emergency-access procedure |
 | Pull-request dependency changes | The SHA-pinned GitHub dependency-review action rejects newly introduced high/critical runtime or development advisories on release PRs targeting the default branch, and the live `main` protection requires that check | GitHub builds the graph from the default branch, so stacked PRs cannot supply this evidence; the complete-tree audit and SBOM remain mandatory |
 | Static analysis | GitHub-managed CodeQL default setup scans Actions, JavaScript/TypeScript, and Python; the Advanced Security `CodeQL` merge result is required on `main`, and findings are reviewed individually rather than bulk-dismissed | GitHub controls the analyzer/runtime and its default query updates; release evidence still records the alert state and each dismissal rationale |
@@ -44,14 +45,22 @@ The web job deliberately orders its gates as follows:
    committed SBOM and lockfile hash;
 5. lint, typecheck, build, run all runtime/attack tests, and exercise the mobile browser suite.
 
-The API and pipeline jobs install only the committed CPython 3.12 locks with pip's
+The API, pipeline, and optional-platform jobs install only the committed CPython 3.12 locks with pip's
 all-or-nothing `--require-hashes` mode and `--only-binary=:all:`. The API job runs its tests;
 the pipeline lock also pins Ruff and the validation-compatible numerical/cryptographic graph
 before lint, unit tests, and the deterministic smoke workflow. The pip caches are keyed to the
 lock files rather than the range/source inputs. The API Dockerfile uses the runtime-only lock,
 excluding pytest/httpx, plus the exact Python patch/image digest. Hash checking proves that
 downloaded bytes match a committed distribution hash; it does not prove that a package or wheel
-is benign.
+is benign. The optional workflow uses distinct macOS ARM64/MPS and Linux x86-64 CPU locks,
+validates exact package and platform identity, and runs weekly as well as on relevant changes.
+The Linux job's second index is the official PyTorch CPU repository; exact versions and committed
+hashes fail closed against unreviewed bytes from either index.
+The macOS ARM runner does not provide the exact security-only CPython 3.12.13 release through
+`actions/setup-python`, so its job uses immutable `astral-sh/setup-uv` v8.3.2 with exact uv
+0.10.11 to install that same Python patch before creating the isolated environment. The action,
+uv version, Python version, lock, and hosted execution are all independently pinned; the runner
+image, release download services, and Python standalone build remain external dependencies.
 
 The dependency-review job separately compares the base and head dependency graphs on pull
 requests targeting the default branch. GitHub builds that graph from the default branch, so
@@ -308,13 +317,16 @@ arbitrary source-build hooks from running during those installs. Wheels can stil
 malicious code and startup behavior; exact hashes and binary-only policy are integrity and
 surface-reduction controls, not a sandbox or trust guarantee.
 
-## Optional Python and artifact-provenance open gates
+## Optional Python and artifact-provenance gates
 
-- The exercised FastAPI runtime/test and pipeline CI paths now use exact transitive versions and
-  SHA-256 hashes, but the optional Geo/PyTorch research stack remains open. It spans large,
-  platform/backend-specific rasterio, pyproj, Torch CPU/CUDA/MPS, and system-library builds;
-  create separately tested locks for each approved platform/backend before treating those
-  research environments as reproducible. Do not force one misleading universal lock onto them.
+- The approved optional Geo/PyTorch environments now have separate, source-bound locks for
+  macOS 15+ ARM64 with an MPS-capable Torch wheel and manylinux_2_28 x86-64 CPU. Both use exact
+  transitive versions, committed SHA-256 distribution hashes, binary-only installs, platform
+  identity checks, GeoTIFF/CRS canaries, pipeline tests, and deep smoke. This closes only those
+  two named environments. CUDA, ROCm, Windows, Intel macOS, other Linux ABIs/architectures, and
+  unlisted system-library combinations remain open and must receive their own reviewed locks
+  and execution evidence before anyone calls them reproducible. Do not force one misleading
+  universal lock onto platform-specific research stacks.
 - The committed npm SBOM is not a combined Python/OS/Worker inventory. Produce those additional
   inventories, bind them to the release commit, and reconcile license/advisory ownership.
 - GitHub and Cloudflare builds are not yet signed deployment provenance. Generate and verify an

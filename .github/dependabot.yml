@@ -58,6 +58,11 @@ updates:
           - joblib
           - narwhals
           - threadpoolctl
+      geo-deep-runtime:
+        patterns:
+          - pyproj
+          - rasterio
+          - torch
 
   - package-ecosystem: docker
     directory: /services/api

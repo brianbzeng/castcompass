@@ -115,7 +115,7 @@ python3 -m unittest discover -s pipeline/tests -v
 python3 -m pipeline.contourcast.cli smoke --output-dir /tmp/contourcast-smoke --seed 42
 ```
 
-The smoke dataset is synthetic and only checks pipeline plumbing. It is never presented as fishing evidence. Full GeoTIFF/PyTorch execution uses the optional dependencies in `pipeline/requirements-geo-deep.txt`.
+The smoke dataset is synthetic and only checks pipeline plumbing. It is never presented as fishing evidence. Full GeoTIFF/PyTorch execution uses a reviewed platform lock: `pipeline/requirements-geo-deep-macos-arm64.lock` for macOS ARM64/MPS or `pipeline/requirements-geo-deep-linux-cpu.lock` for Linux x86-64 CPU. CUDA, ROCm, Windows, and other unlisted environments are not approved as reproducible research stacks.
 
 ## Verification
 

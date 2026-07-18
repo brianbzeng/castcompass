@@ -186,7 +186,7 @@ def ingest_bathymetry(
             crs = source_crs or crs_override or ""
             transform = dataset.transform
             grid = GeoGrid(
-                dataset.read(1),
+                dataset.read()[0],
                 crs,
                 (transform.c, transform.a, transform.b, transform.f, transform.d, transform.e),
                 vertical_datum,

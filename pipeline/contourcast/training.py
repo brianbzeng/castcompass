@@ -177,11 +177,10 @@ def build_geotiff_pretraining_corpus(
         coarse_height = max(1, int(np.ceil(dataset.height / stride_cells)))
         coarse_width = max(1, int(np.ceil(dataset.width / stride_cells)))
         coarse = dataset.read(
-            1,
-            out_shape=(coarse_height, coarse_width),
+            out_shape=(1, coarse_height, coarse_width),
             masked=True,
             resampling=Resampling.nearest,
-        )
+        )[0]
         mask = np.ma.getmaskarray(coarse)
         values = np.asarray(coarse.filled(np.nan), dtype=float)
         water = (~mask) & np.isfinite(values) & (values < 0)
@@ -232,11 +231,10 @@ def build_geotiff_pretraining_corpus(
                 inner_height + 2 * halo,
             )
             elevation = dataset.read(
-                1,
                 window=window,
                 boundless=True,
                 fill_value=fill_value,
-            )
+            )[0]
             window_transform = dataset.window_transform(window)
             grid = GeoGrid(
                 values=elevation,
