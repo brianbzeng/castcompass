@@ -337,9 +337,18 @@ surface-reduction controls, not a sandbox or trust guarantee.
   named platform/backend combinations and does not broaden the exclusions above.
 - The committed npm SBOM is not a combined Python/OS/Worker inventory. Produce those additional
   inventories, bind them to the release commit, and reconcile license/advisory ownership.
-- GitHub and Cloudflare builds are not yet signed deployment provenance. Generate and verify an
-  artifact attestation for the actual release bundle, retain the Worker version/deployment ID,
-  and prove the attested digest is the deployed digest before marking provenance complete.
+- The checked-in GitHub workflow is designed to produce a deterministic release candidate from
+  `main` containing the built Worker, static assets, reviewed Wrangler configuration, migrations,
+  exact lock, and committed CycloneDX
+  SBOM. The bundle embeds the repository, full commit, exact Node/npm toolchain, and production-build
+  switches; its external manifest binds the bundle, lock, and SBOM hashes. A read-only build job
+  uploads the four-file candidate. A separate main-only job receives `id-token` and `attestations`
+  write access, runs no repository or dependency code, verifies the exact file set and checksums,
+  and uses immutable GitHub-owned `actions/attest` code to generate both SLSA provenance and SBOM
+  attestations. Pull requests exercise bundle determinism and the signing isolation contract but
+  cannot sign. This is GitHub release-candidate provenance, not Cloudflare deployment provenance.
+  Retain the Worker version/deployment ID, download and verify the exact attested subject, and prove
+  its digest is the digest actually deployed before marking end-to-end provenance complete.
 - The deprecated Drizzle loader override is tested but remains technical debt. Replace it when
   a reviewed Drizzle release removes the dependency; do not delete the override while the
   vulnerable nested esbuild would return.

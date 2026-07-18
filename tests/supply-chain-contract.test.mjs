@@ -200,7 +200,7 @@ test("the deterministic production SBOM is bound to the lock and direct runtime 
   assert.deepEqual(references, [...references].sort((left, right) => left.localeCompare(right)));
 });
 
-test("the supply-chain runbook scopes approved optional Python locks and keeps provenance gates open", async () => {
+test("the supply-chain runbook scopes optional locks and keeps deployment provenance open", async () => {
   const policy = await readFile(new URL("docs/SECURITY-SUPPLY-CHAIN.md", root), "utf8");
   assert.match(policy, /does? \*\*not\*\* yet claim a cross-version enforced npm install-script/i);
   assert.match(policy, /FastAPI runtime\/test and pipeline CI[\s\S]+exact transitive versions[\s\S]+SHA-256/i);
@@ -210,7 +210,10 @@ test("the supply-chain runbook scopes approved optional Python locks and keeps p
     policy,
     /PR `#72`[\s\S]+0433cb6e67acdee5a6891ddce2cc57e3b46dc2d7[\s\S]+29628030773[\s\S]+83450872[\s\S]+29628030735[\s\S]+29628030502[\s\S]+zero\s+open Dependabot, code-scanning, or secret-scanning alerts/i,
   );
-  assert.match(policy, /not yet signed deployment provenance/i);
+  assert.match(policy, /GitHub workflow is designed to produce a deterministic release candidate from[\s\S]+`main`/i);
+  assert.match(policy, /separate main-only job[\s\S]+runs no repository or dependency code/i);
+  assert.match(policy, /not Cloudflare deployment provenance/i);
+  assert.match(policy, /prove[\s\S]+digest is the digest actually deployed[\s\S]+before marking end-to-end provenance complete/i);
   assert.match(policy, /stacked successor PRs[\s\S]+do not falsely report a dependency-review pass/i);
   assert.match(policy, /directory-local `services\/api\/\.python-version`[\s\S]+not a control over GitHub's[\s\S]+hosted resolver/i);
   assert.match(policy, /byte-identical transport mirror[\s\S]+managed parser/i);

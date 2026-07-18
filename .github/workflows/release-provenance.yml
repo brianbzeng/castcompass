@@ -1,0 +1,107 @@
+name: Release provenance
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-bundle:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.1
+          cache: npm
+      - run: npm run security:secrets
+      - run: npm ci
+      - run: npm run security:dependencies
+      - run: npm run security:sbom
+      - run: npm run build:cloudflare
+      - name: Build deterministic release artifacts
+        run: |
+          node scripts/build-release-artifacts.mjs --write \
+            --output-dir "$RUNNER_TEMP/castingcompass-release-artifacts" \
+            --commit "$GITHUB_SHA" \
+            --repository "$GITHUB_REPOSITORY" \
+            --node-version "$(node --print 'process.versions.node')" \
+            --npm-version "$(npm --version)"
+          node scripts/build-release-artifacts.mjs --verify \
+            --output-dir "$RUNNER_TEMP/castingcompass-release-artifacts" \
+            --commit "$GITHUB_SHA" \
+            --repository "$GITHUB_REPOSITORY"
+          cd "$RUNNER_TEMP/castingcompass-release-artifacts"
+          sha256sum --check --strict SHA256SUMS
+      - name: Upload immutable release candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: castingcompass-release-${{ github.sha }}
+          path: ${{ runner.temp }}/castingcompass-release-artifacts
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: ${{ github.ref == 'refs/heads/main' && 90 || 3 }}
+
+  attest-release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'brianbzeng/castingcompass'
+    needs: release-bundle
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download the tested release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: castingcompass-release-${{ github.sha }}
+          path: ${{ runner.temp }}/castingcompass-release-artifacts
+      - name: Verify the untrusted handoff without running repository code
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/castingcompass-release-artifacts"
+          bundle="castingcompass-worker-${GITHUB_SHA}.tar.gz"
+          manifest="castingcompass-worker-${GITHUB_SHA}.manifest.json"
+          sbom="castingcompass-worker-${GITHUB_SHA}.sbom.cdx.json"
+          actual_files="$(find . -maxdepth 1 -type f -printf '%f\n' | LC_ALL=C sort)"
+          expected_files="$(printf '%s\n' SHA256SUMS "$bundle" "$manifest" "$sbom" | LC_ALL=C sort)"
+          test "$actual_files" = "$expected_files"
+          test "$(wc -l < SHA256SUMS)" -eq 3
+          grep -Eq "^[a-f0-9]{64} \*${bundle}$" SHA256SUMS
+          grep -Eq "^[a-f0-9]{64} \*${manifest}$" SHA256SUMS
+          grep -Eq "^[a-f0-9]{64} \*${sbom}$" SHA256SUMS
+          sha256sum --check --strict SHA256SUMS
+          jq --exit-status \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg commit "$GITHUB_SHA" \
+            --arg bundle "$bundle" \
+            --arg sbom "$sbom" \
+            '.schema_version == "castingcompass.release-artifact/1.0.0"
+              and .repository == $repository
+              and .commit_sha == $commit
+              and .bundle_filename == $bundle
+              and .sbom_filename == $sbom
+              and (.bundle_bytes | type == "number")' \
+            "$manifest" > /dev/null
+          test "$(jq --raw-output '.bundle_sha256' "$manifest")" = "$(sha256sum "$bundle" | cut -d ' ' -f 1)"
+          test "$(jq --raw-output '.sbom_sha256' "$manifest")" = "$(sha256sum "$sbom" | cut -d ' ' -f 1)"
+          test "$(jq --raw-output '.bundle_bytes' "$manifest")" = "$(stat --format='%s' "$bundle")"
+          jq --exit-status \
+            '.bomFormat == "CycloneDX" and .specVersion == "1.5"' \
+            "$sbom" > /dev/null
+          gzip --test "$bundle"
+      - name: Attest release-bundle provenance
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-path: ${{ runner.temp }}/castingcompass-release-artifacts/castingcompass-worker-${{ github.sha }}.tar.gz
+      - name: Attest the release bundle's CycloneDX SBOM
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-path: ${{ runner.temp }}/castingcompass-release-artifacts/castingcompass-worker-${{ github.sha }}.tar.gz
+          sbom-path: ${{ runner.temp }}/castingcompass-release-artifacts/castingcompass-worker-${{ github.sha }}.sbom.cdx.json
