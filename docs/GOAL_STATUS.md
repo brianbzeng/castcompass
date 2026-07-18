@@ -9,7 +9,7 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
-## Current seven-step work cycle — model governance
+## Completed seven-step work cycle — model governance
 
 - [x] Reconcile the exact protected `main` after the API-image renewal cycle. Evidence: `main` is
       `a3242e4369c970500835fa88ce187e670e623385`; CI `29655454304`, release-provenance
@@ -25,12 +25,19 @@ also satisfied.
 - [x] Document the operator decision matrix and pass focused schema, semantic, CLI, and Ruff
       checks. Evidence: 5/5 cross-language schema tests and 7/7 governance tests pass; canonical
       policy SHA-256 is `dac940bd123a2e6505cc20d535f28e7c84a585f9f3e5cd82efce06eae57f47a5`.
-- [ ] Publish the protected draft PR and accept exact-head CI, dependency-review,
-      release-provenance, and CodeQL evidence. **Local gate passed:** 75/75 executable pipeline
-      tests pass with one optional-raster skip; the Cloudflare build and 325/325 Node tests pass;
-      Ruff, ESLint, and TypeScript checks pass; repository security and lock/SBOM checks pass.
-- [ ] Merge only after every required check passes, then reconcile the exact `main`, workflows,
-      PR/issue state, and alerts. Cloudflare and production stay paused.
+- [x] Publish protected PR `#92` at exact head
+      `a83028558b39c145587279a984bfd906cd2625df` and accept every exact-head gate. Evidence: CI
+      `29658229300` including dependency review, release provenance `29658229310`, CodeQL
+      `29658228654`, optional research `29658229306`, and native image security `29658229337`
+      passed; 17 checks passed, five event-appropriate jobs skipped, and none failed. Local
+      evidence also passed 75/75 executable pipeline tests with one optional-raster skip, the
+      Cloudflare build and 325/325 Node tests, Ruff, ESLint, TypeScript, repository security,
+      lock, and SBOM checks.
+- [x] Merge only after every required check passes, then reconcile exact implementation `main`
+      `e74c2bd97fbb2fce1c9fabddf446ba2182b65a51`. Evidence: CI `29658373069`, release provenance
+      `29658373025`, CodeQL `29658372800`, optional research `29658373038`, and native image
+      security `29658373034` passed; open PRs and all three alert classes are empty; issue `#86`
+      remains open by design. Cloudflare and production remain paused.
 
 ## Completed prior seven-step cycle — API image exception deadline
 
