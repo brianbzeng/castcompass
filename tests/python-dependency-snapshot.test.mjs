@@ -24,7 +24,7 @@ test("Python dependency snapshot publishes exact versioned lock inventories", ()
   const pipeline = snapshot.manifests["pipeline/requirements-ci.in"];
   assert.equal(Object.keys(runtime.resolved).length, 24);
   assert.equal(Object.keys(tests.resolved).length, 32);
-  assert.equal(Object.keys(pipeline.resolved).length, 15);
+  assert.equal(Object.keys(pipeline.resolved).length, 14);
 
   assert.deepEqual(runtime.resolved.psycopg, {
     package_url: "pkg:pypi/psycopg@3.3.4",
@@ -61,6 +61,11 @@ test("Python dependency snapshot publishes exact versioned lock inventories", ()
   });
   assert.deepEqual(pipeline.resolved.scipy, {
     package_url: "pkg:pypi/scipy@1.18.0",
+    relationship: "direct",
+    scope: "development",
+  });
+  assert.deepEqual(pipeline.resolved.pandas, {
+    package_url: "pkg:pypi/pandas@3.0.3",
     relationship: "direct",
     scope: "development",
   });
