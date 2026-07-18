@@ -190,7 +190,7 @@ after its acceptance checks pass in the intended environment.
       2.24.0; and the post-merge alert audit found zero open dependency, code-scanning, or secret-
       scanning alerts. The paired NumPy/SciPy review is tracked separately below; pandas and
       optional-platform locks remain open.
-    - [x] Locally advance the coupled numerical foundation to NumPy 2.5.1 and SciPy 1.18.0
+    - [x] Advance the coupled numerical foundation to NumPy 2.5.1 and SciPy 1.18.0
       while retaining scikit-learn 1.9.0 and pandas 2.2.3 for separate review. Promote SciPy to
       an explicit direct dependency, regenerate the 15-package source-bound hash lock, bind both
       versions to evaluator identity, and add an exact relief-filter canary. Isolated seed-12 and
@@ -198,8 +198,14 @@ after its acceptance checks pass in the intended environment.
       naive outputs were exact, boosted differences were floating-point roundoff, and the largest
       aggregate delta was `0.000000357`, far below the committed `0.001` canary. A clean Python
       3.12.13 hash-only install passed `pip check`, Ruff, 62 warning-strict pipeline tests, and the
-      deterministic smoke workflow. Hosted checks, merged-main dependency evidence, and the
-      separate pandas 3 review remain open.
+      deterministic smoke workflow. PR `#68` passed dependency review, API, warning-strict
+      pipeline/smoke, web/mobile, and all CodeQL analyses before merge commit
+      `6ce2ec37de9f6cbe22f85cae05baff256adb3a51`. Main CI run `29626219455` passed all jobs and
+      accepted exact dependency snapshot `83445590`; managed graph run `29626220947` and main
+      CodeQL run `29626219486` succeeded; the SPDX graph records NumPy 2.5.1, SciPy 1.18.0,
+      scikit-learn 1.9.0, narwhals 2.24.0, and retained pandas 2.2.3; and the post-merge alert
+      audit found zero open dependency, code-scanning, or secret-scanning alerts. The separate
+      pandas 3 review remains open.
     - [x] Locally inventory all seven Worker runtime secrets, extend named-secret scanning and
       ignored local Wrangler secret files, define environment/purpose/backup-key separation,
       document D1 managed-encryption and application-controlled AES-256-GCM boundaries, and
