@@ -149,6 +149,16 @@ to fixed at `2026-07-18T00:08:27Z`–`00:08:28Z` with no dismissal. Main CodeQL 
 also passed its Actions, JavaScript/TypeScript, and Python analyses. Repeat the same receipt and
 automatic-closure checks for future framework updates.
 
+The frozen validation runtime separately advances scikit-learn from 1.6.1 to 1.9.0 and records
+its new narwhals 2.24.0 dependency in the exact runtime identity and source-bound CI lock. This
+change intentionally leaves NumPy 2.0.2, SciPy 1.13.1, and pandas 2.2.3 unchanged so their
+behavior can be reviewed independently. Isolated seed-12 and seed-42 comparisons preserve the
+spatial folds and all naive/boosted aggregate outputs exactly; the maximum linear aggregate
+change is `0.000150451`, below the committed `0.001` canary. CI treats future deprecation
+warnings as errors, and the habitat probe normalizes clipped multiclass probabilities before
+log-loss calculation. This local evidence does not replace hosted dependency review, CodeQL,
+the merged-main dependency snapshot, or future optional-platform locks.
+
 ## Exact GitHub Python dependency snapshot
 
 GitHub's configured graph updates completed after the Psycopg and constraint fixes and recorded

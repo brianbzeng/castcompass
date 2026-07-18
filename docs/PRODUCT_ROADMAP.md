@@ -173,6 +173,16 @@ after its acceptance checks pass in the intended environment.
       run `29622376160` succeeded, and the SPDX graph recorded FastAPI 0.139.2, Starlette 1.3.1,
       and httpx2 2.7.0. GitHub then closed alerts `#3` through `#14` automatically as fixed
       without dismissal, completing the external evidence gate.
+    - [x] Locally upgrade the frozen validation runtime from scikit-learn 1.6.1 to 1.9.0 with
+      exact narwhals 2.24.0 identity and source-bound wheel hashes while intentionally retaining
+      the reviewed NumPy 2.0.2, SciPy 1.13.1, and pandas 2.2.3 boundaries. Isolated old/new
+      seed-12 and seed-42 comparisons preserved every spatial fold and all naive/boosted aggregate
+      outputs exactly; the largest linear aggregate delta was `0.000150451`, below the committed
+      `0.001` numerical canary. The change removes the deprecated explicit logistic-regression
+      penalty, renormalizes clipped multiclass probabilities, rejects future deprecation warnings
+      in CI, and passes exact hash installation, 62 pipeline tests, the deterministic smoke workflow,
+      and 305 repository contract tests. Hosted checks, the merged main snapshot, and automatic
+      dependency-graph evidence remain required before treating the release as complete.
     - [x] Locally inventory all seven Worker runtime secrets, extend named-secret scanning and
       ignored local Wrangler secret files, define environment/purpose/backup-key separation,
       document D1 managed-encryption and application-controlled AES-256-GCM boundaries, and

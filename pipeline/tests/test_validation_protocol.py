@@ -1577,9 +1577,10 @@ class ValidationProtocolTests(unittest.TestCase):
         exact_versions = {
             "python": "3.12.8",
             "python_implementation": "CPython",
+            "narwhals": "2.24.0",
             "numpy": "2.0.2",
             "scipy": "1.13.1",
-            "scikit-learn": "1.6.1",
+            "scikit-learn": "1.9.0",
             "cffi": "2.1.0",
             "cryptography": "48.0.1",
             "joblib": "1.5.3",
@@ -1594,7 +1595,8 @@ class ValidationProtocolTests(unittest.TestCase):
                 if relative == "pipeline/requirements-validation.lock":
                     path.write_text(
                         "cffi==2.1.0\ncryptography==48.0.1\njoblib==1.5.3\n"
-                        "numpy==2.0.2\npycparser==3.0\nscikit-learn==1.6.1\n"
+                        "narwhals==2.24.0\nnumpy==2.0.2\npycparser==3.0\n"
+                        "scikit-learn==1.9.0\n"
                         "scipy==1.13.1\nthreadpoolctl==3.6.0\n"
                     )
                 else:

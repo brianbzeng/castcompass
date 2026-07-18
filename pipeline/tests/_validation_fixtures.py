@@ -942,9 +942,10 @@ def fake_evaluator_identity(protocol: Mapping[str, Any]) -> dict[str, Any]:
         "runtime_versions": {
             "python": "3.12.8",
             "python_implementation": "CPython",
+            "narwhals": "2.24.0",
             "numpy": "2.0.2",
             "scipy": "1.13.1",
-            "scikit-learn": "1.6.1",
+            "scikit-learn": "1.9.0",
             "cffi": "2.1.0",
             "cryptography": "48.0.1",
             "joblib": "1.5.3",

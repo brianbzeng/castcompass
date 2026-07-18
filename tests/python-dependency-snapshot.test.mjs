@@ -24,7 +24,7 @@ test("Python dependency snapshot publishes exact versioned lock inventories", ()
   const pipeline = snapshot.manifests["pipeline/requirements-ci.in"];
   assert.equal(Object.keys(runtime.resolved).length, 24);
   assert.equal(Object.keys(tests.resolved).length, 32);
-  assert.equal(Object.keys(pipeline.resolved).length, 14);
+  assert.equal(Object.keys(pipeline.resolved).length, 15);
 
   assert.deepEqual(runtime.resolved.psycopg, {
     package_url: "pkg:pypi/psycopg@3.3.4",
@@ -49,6 +49,16 @@ test("Python dependency snapshot publishes exact versioned lock inventories", ()
   assert.equal("httpx" in tests.resolved, false);
   assert.equal(tests.resolved.anyio.relationship, "indirect");
   assert.equal(pipeline.resolved.ruff.relationship, "direct");
+  assert.deepEqual(pipeline.resolved["scikit-learn"], {
+    package_url: "pkg:pypi/scikit-learn@1.9.0",
+    relationship: "direct",
+    scope: "development",
+  });
+  assert.deepEqual(pipeline.resolved.narwhals, {
+    package_url: "pkg:pypi/narwhals@2.24.0",
+    relationship: "indirect",
+    scope: "development",
+  });
   assert.equal(pipeline.resolved.pycparser.relationship, "indirect");
 
   for (const manifest of Object.values(snapshot.manifests)) {

@@ -48,6 +48,16 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      scientific-runtime:
+        patterns:
+          - numpy
+          - scipy
+          - scikit-learn
+          - pandas
+          - joblib
+          - narwhals
+          - threadpoolctl
 
   - package-ecosystem: docker
     directory: /services/api

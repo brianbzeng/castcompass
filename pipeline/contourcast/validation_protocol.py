@@ -378,6 +378,7 @@ EVALUATOR_IDENTITY_FIELDS = {
 EVALUATOR_RUNTIME_VERSION_FIELDS = {
     "python",
     "python_implementation",
+    "narwhals",
     "numpy",
     "scipy",
     "scikit-learn",
@@ -1037,6 +1038,7 @@ def _evaluator_runtime_versions() -> dict[str, str]:
         "python_implementation": platform.python_implementation(),
     }
     for distribution in (
+        "narwhals",
         "numpy",
         "scipy",
         "scikit-learn",

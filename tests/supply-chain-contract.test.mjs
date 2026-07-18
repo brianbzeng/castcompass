@@ -78,6 +78,7 @@ test("CI fixes runner versions and enforces dependency review, audits, and SBOM 
   assert.equal((ci.match(/--only-binary=:all: --require-hashes/g) ?? []).length, 2);
   assert.match(ci, /services\/api\/requirements-test\.lock/);
   assert.match(ci, /pipeline\/requirements-ci\.lock/);
+  assert.match(ci, /python -W error::FutureWarning -m unittest discover -s pipeline\/tests -v/);
   assert.doesNotMatch(ci, /pip install ruff|pip install -r .*requirements-(?:smoke|ci)\.txt/);
 
   const generator = await readFile(new URL("scripts/generate-sbom.mjs", root), "utf8");
@@ -92,7 +93,7 @@ test("Python API and pipeline installs use exact source-bound wheel hashes", asy
   assert.equal(verifier.status, 0, verifier.stderr);
   assert.match(verifier.stdout, /FastAPI runtime Python lock verified \(\d+ exact hashed packages\)/);
   assert.match(verifier.stdout, /FastAPI test Python lock verified \(32 exact hashed packages\)/);
-  assert.match(verifier.stdout, /pipeline CI Python lock verified \(14 exact hashed packages\)/);
+  assert.match(verifier.stdout, /pipeline CI Python lock verified \(15 exact hashed packages\)/);
 
   const manifest = JSON.parse(await readFile(new URL("package.json", root), "utf8"));
   assert.match(manifest.scripts.security, /security:python-locks/);
@@ -125,9 +126,14 @@ test("Python API and pipeline installs use exact source-bound wheel hashes", asy
   const validationLock = await readFile(new URL("pipeline/requirements-validation.lock", root));
   const validationConstraints = await readFile(new URL("pipeline/requirements-validation.txt", root));
   assert.deepEqual(validationConstraints, validationLock);
+  assert.match(validationLock.toString(), /^narwhals==2\.24\.0$/m);
+  assert.match(validationLock.toString(), /^numpy==2\.0\.2$/m);
+  assert.match(validationLock.toString(), /^scikit-learn==1\.9\.0$/m);
+  assert.match(validationLock.toString(), /^scipy==1\.13\.1$/m);
   const pipelineInput = await readFile(new URL("pipeline/requirements-ci.in", root), "utf8");
   assert.match(pipelineInput, /^-c requirements-validation\.txt$/m);
   assert.doesNotMatch(pipelineInput, /^-c .*\.lock$/m);
+  assert.match(dependabot, /scientific-runtime:[\s\S]+numpy[\s\S]+scipy[\s\S]+scikit-learn[\s\S]+pandas/);
 });
 
 test("the deterministic production SBOM is bound to the lock and direct runtime packages", async () => {

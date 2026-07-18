@@ -313,8 +313,9 @@ def _fit_predict_baseline(
     predict_x = _design_matrix(
         predict, numeric_mean=mean, numeric_scale=scale, modes=modes, sites=sites
     )
+    if hyperparameters["penalty"] != "l2":
+        raise ValueError("frozen logistic baselines require the L2 penalty")
     model = LogisticRegression(
-        penalty=hyperparameters["penalty"],
         C=float(hyperparameters["C"]),
         solver=hyperparameters["solver"],
         class_weight=hyperparameters["class_weight"],

@@ -1,5 +1,6 @@
 import unittest
 import copy
+import warnings
 from pathlib import Path
 from unittest.mock import patch
 
@@ -106,9 +107,11 @@ class HabitatProbeTests(unittest.TestCase):
         )
         train = np.concatenate([np.arange(0, 30), np.arange(40, 70), np.arange(80, 110)])
         test = np.setdiff1d(np.arange(len(labels)), train)
-        metrics, prediction, probability = _fit_probe(
-            features.astype(np.float32), labels, train, test, seed=9
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            metrics, prediction, probability = _fit_probe(
+                features.astype(np.float32), labels, train, test, seed=9
+            )
         self.assertGreater(metrics["macro_f1"], 0.95)
         self.assertEqual(metrics["confusion_matrix"], np.diag([10, 10, 10]).tolist())
         self.assertEqual(prediction.shape, (30,))

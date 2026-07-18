@@ -275,6 +275,8 @@ def _fit_probe(
     classes = model.named_steps["logisticregression"].classes_.astype(int)
     aligned_probability = np.zeros((len(test_indices), len(PROBE_CLASS_NAMES)), dtype=float)
     aligned_probability[:, classes] = probability
+    log_loss_probability = np.clip(aligned_probability, 1e-8, 1 - 1e-8)
+    log_loss_probability /= log_loss_probability.sum(axis=1, keepdims=True)
     truth = labels[test_indices]
     report = classification_report(
         truth,
@@ -289,7 +291,7 @@ def _fit_probe(
         "balanced_accuracy": float(balanced_accuracy_score(truth, prediction)),
         "macro_f1": float(f1_score(truth, prediction, average="macro")),
         "log_loss": float(
-            log_loss(truth, np.clip(aligned_probability, 1e-8, 1 - 1e-8), labels=[0, 1, 2])
+            log_loss(truth, log_loss_probability, labels=[0, 1, 2])
         ),
         "confusion_matrix": confusion_matrix(truth, prediction, labels=[0, 1, 2]).tolist(),
         "per_class": {
