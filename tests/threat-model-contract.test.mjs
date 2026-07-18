@@ -81,7 +81,10 @@ test("roadmap and owner dashboard link the completed mapping without closing pro
     roadmap,
     /L10\s+dynamic testing, L12 edge filtering, and L13 live detection remain open or partial/i,
   );
-  assert.match(dashboard, /13-layer owner reference mapping is locally\s+complete/i);
+  assert.match(
+    dashboard,
+    /13-layer owner reference mapping and zero-execution\s+npm install-script boundary are locally complete/i,
+  );
   assert.match(dashboard, /production\/provider\/staging gates remain/i);
   assert.match(readme, /\[threat model and 13-layer security map\]\(docs\/THREAT_MODEL\.md\)/);
 });
