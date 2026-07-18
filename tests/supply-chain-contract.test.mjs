@@ -45,6 +45,9 @@ test("direct npm packages and build runtimes are exact reviewed versions", async
     lock.packages["node_modules/@cloudflare/vite-plugin"].peerDependencies.wrangler,
     "^4.112.0",
   );
+  assert.equal(manifest.devDependencies.ajv, "8.20.0");
+  assert.equal(manifest.devDependencies["ajv-formats"], "3.0.1");
+  assert.equal(lock.packages["node_modules/ajv-formats"].peerDependencies.ajv, "^8.0.0");
   const dependabot = await readFile(new URL(".github/dependabot.yml", root), "utf8");
   assert.match(
     dependabot,

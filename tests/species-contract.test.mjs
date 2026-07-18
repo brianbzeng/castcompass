@@ -57,6 +57,18 @@ test("machine contract assets declare the locked IDs and versions", async () => 
   assert.equal(catalog.taxa.find((taxon) => taxon.taxon_id === "synthetic-target").production_observation_eligible, false);
 });
 
+test("date-time formats require explicit offsets and real calendar values", () => {
+  const ajv = new Ajv2020({ strict: true });
+  addFormats(ajv);
+  const validate = ajv.compile({ type: "string", format: "date-time" });
+
+  assert.equal(validate("2026-07-18T10:00:00Z"), true);
+  assert.equal(validate("2026-07-18T10:00:00-07:00"), true);
+  assert.equal(validate("2026-07-18T10:00:00"), false);
+  assert.equal(validate("2026-02-30T10:00:00Z"), false);
+  assert.equal(validate("2026-07-18T25:00:00Z"), false);
+});
+
 test("Ajv 2020 strictly compiles every schema and validates structural fixtures", async () => {
   const paths = [
     "contracts/taxa.schema.json",
