@@ -180,7 +180,7 @@ test("API image evidence rejects expired exceptions and stable-series fixes", as
     ...evidence,
     policy,
     platform: "linux/arm64",
-    now: new Date("2026-08-02T00:00:00Z"),
+    now: new Date("2026-08-09T00:00:00Z"),
   }), /exception expired/);
 
   evidence.scan.matches[0].vulnerability.fix.versions = ["3.13.15"];
@@ -190,6 +190,37 @@ test("API image evidence rejects expired exceptions and stable-series fixes", as
     platform: "linux/arm64",
     now: new Date("2026-07-18T12:00:00Z"),
   }), /fixed by stable Python 3\.13\.15/);
+});
+
+test("API image evidence rejects unowned or overlong exception renewals", async () => {
+  const evidence = await acceptedEvidence();
+  const unowned = structuredClone(policy);
+  unowned.exceptionReview.owner = "";
+  assert.throws(() => verifyApiImageEvidence({
+    ...evidence,
+    policy: unowned,
+    platform: "linux/arm64",
+    now: new Date("2026-07-18T12:00:00Z"),
+  }), /review owner is invalid/);
+
+  const overlong = structuredClone(policy);
+  overlong.exceptionReview.renewalDeadline = "2026-08-20";
+  for (const exception of overlong.highSeverityExceptions) exception.expires = "2026-08-20";
+  assert.throws(() => verifyApiImageEvidence({
+    ...evidence,
+    policy: overlong,
+    platform: "linux/arm64",
+    now: new Date("2026-07-18T12:00:00Z"),
+  }), /exceeds the bounded post-release grace/);
+
+  const futureReview = structuredClone(policy);
+  futureReview.reviewedAt = "2026-07-19";
+  assert.throws(() => verifyApiImageEvidence({
+    ...evidence,
+    policy: futureReview,
+    platform: "linux/arm64",
+    now: new Date("2026-07-18T12:00:00Z"),
+  }), /review date is in the future/);
 });
 
 test("API image evidence rejects packages without license reconciliation", async () => {

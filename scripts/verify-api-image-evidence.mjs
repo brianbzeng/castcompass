@@ -8,6 +8,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const EXACT_DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const EXACT_VERSION = /^\d+\.\d+\.\d+(?:[-+._][0-9A-Za-z.-]+)?$/u;
 const EXACT_APK_VERSION = /^\d[0-9A-Za-z._+~-]*$/u;
+const EXACT_DATE = /^\d{4}-\d{2}-\d{2}$/u;
 const SEVERITY = new Map([
   ["Unknown", 0],
   ["Negligible", 1],
@@ -23,6 +24,20 @@ function invariant(condition, message) {
 
 export function isExactVersion(value) {
   return EXACT_VERSION.test(value);
+}
+
+function exactDate(value, boundary = "start") {
+  invariant(EXACT_DATE.test(value ?? ""), `Policy ${boundary} date is invalid`);
+  const suffix = boundary === "end" ? "T23:59:59Z" : "T00:00:00Z";
+  const date = new Date(`${value}${suffix}`);
+  invariant(Number.isFinite(date.valueOf()), `Policy ${boundary} date is invalid`);
+  invariant(date.toISOString().slice(0, 10) === value, `Policy ${boundary} date is invalid`);
+  return date;
+}
+
+function versionParts(value) {
+  invariant(/^\d+\.\d+\.\d+$/u.test(value ?? ""), `Policy Python version ${value} is invalid`);
+  return value.split(".").map(Number);
 }
 
 function normalizeName(value) {
@@ -114,9 +129,54 @@ function assertModuleMitigations(root, policy, dockerfile) {
   }
 }
 
+function assertExceptionReview(policy, now) {
+  const review = policy.exceptionReview;
+  invariant(review && typeof review === "object", "High-severity exceptions lack an owner-bound review");
+  invariant(/^[a-z0-9][a-z0-9._/-]{2,63}$/u.test(review.owner ?? ""), "Exception review owner is invalid");
+  invariant(review.decision === "bounded-renewal-pending-stable-release",
+    "Exception review decision is unsupported");
+  invariant(review.observedStableVersion === policy.runtime.python,
+    "Exception review does not bind the observed stable runtime");
+  const current = versionParts(policy.runtime.python);
+  const expected = versionParts(review.expectedNextVersion);
+  invariant(expected[0] === current[0] && expected[1] === current[1] && expected[2] === current[2] + 1,
+    "Exception review does not name a later stable-series release");
+
+  const reviewedAt = exactDate(policy.reviewedAt);
+  invariant(reviewedAt <= now, "Exception policy review date is in the future");
+  const nextReview = exactDate(review.nextReviewOn, "end");
+  const deadline = exactDate(review.renewalDeadline, "end");
+  invariant(reviewedAt <= nextReview, "Exception re-review precedes the policy review");
+  invariant(nextReview <= deadline, "Exception deadline precedes the required re-review");
+  invariant(Number.isInteger(review.maximumPostReleaseGraceDays)
+    && review.maximumPostReleaseGraceDays >= 1
+    && review.maximumPostReleaseGraceDays <= 7,
+  "Exception post-release grace must be between one and seven days");
+  invariant(
+    deadline.valueOf() - nextReview.valueOf()
+      <= review.maximumPostReleaseGraceDays * 86_400_000,
+    "Exception renewal exceeds the bounded post-release grace",
+  );
+  invariant(typeof review.reason === "string" && review.reason.length >= 80,
+    "Exception review reason is incomplete");
+  invariant(Array.isArray(review.sources) && review.sources.length >= 4,
+    "Exception review lacks primary sources");
+  const sources = new Set(review.sources);
+  invariant(sources.size === review.sources.length, "Exception review sources contain duplicates");
+  invariant([...sources].every((source) => /^https:\/\/(?:www\.python\.org|peps\.python\.org|github\.com\/docker-library)\//u.test(source)),
+    "Exception review includes a non-primary source");
+  invariant([...sources].some((source) => source.startsWith("https://www.python.org/downloads/release/")),
+    "Exception review lacks the current Python release");
+  invariant(sources.has("https://peps.python.org/pep-0719/"),
+    "Exception review lacks the Python 3.13 release schedule");
+  invariant(sources.has("https://github.com/docker-library/official-images/blob/master/library/python"),
+    "Exception review lacks the Docker Official Image source");
+  return review;
+}
+
 function assertPolicy(policy, now) {
-  invariant(policy.schemaVersion === 1, "API image policy schema is unsupported");
-  invariant(/^\d{4}-\d{2}-\d{2}$/u.test(policy.reviewedAt), "Policy review date is invalid");
+  invariant(policy.schemaVersion === 2, "API image policy schema is unsupported");
+  exactDate(policy.reviewedAt);
   invariant(isExactVersion(policy.runtime.python), "Policy Python version is not exact");
   invariant(EXACT_DIGEST.test(policy.baseImage.indexDigest), "Base image index digest is invalid");
   invariant(/^[a-f0-9]{40}$/u.test(policy.baseImage.sourceRevision), "Base image source revision is invalid");
@@ -145,13 +205,15 @@ function assertPolicy(policy, now) {
   }
 
   const exceptions = new Set();
+  const review = policy.highSeverityExceptions.length > 0 ? assertExceptionReview(policy, now) : null;
   for (const exception of policy.highSeverityExceptions) {
     invariant(exception.severity === "High", `${exception.vulnerability} may not exempt Critical severity`);
     invariant(/^CVE-\d{4}-\d+$/u.test(exception.vulnerability), "Exception CVE is invalid");
     invariant(/^https:\/\/(?:github\.com\/python\/cpython|mail\.python\.org)\//u.test(exception.source),
       `${exception.vulnerability} lacks a primary CPython source`);
-    const expires = new Date(`${exception.expires}T23:59:59Z`);
-    invariant(Number.isFinite(expires.valueOf()), `${exception.vulnerability} expiration is invalid`);
+    invariant(exception.expires === review.renewalDeadline,
+      `${exception.vulnerability} expiration is not review-bound`);
+    const expires = exactDate(exception.expires, "end");
     invariant(now <= expires, `${exception.vulnerability} exception expired on ${exception.expires}`);
     const key = vulnerabilityKey(exception);
     invariant(!exceptions.has(key), `${exception.vulnerability} exception is duplicated`);
@@ -333,7 +395,12 @@ export function verifyApiImageEvidence({
     scanners: { syft: policy.scanners.syft, grype: policy.scanners.grype },
     inventory,
     vulnerabilities,
-    policyReview: { reviewedAt: policy.reviewedAt, exceptionsExpire: policy.highSeverityExceptions[0]?.expires },
+    policyReview: {
+      reviewedAt: policy.reviewedAt,
+      owner: policy.exceptionReview?.owner,
+      nextReviewOn: policy.exceptionReview?.nextReviewOn,
+      exceptionsExpire: policy.highSeverityExceptions[0]?.expires,
+    },
   };
 }
 

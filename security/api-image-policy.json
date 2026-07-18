@@ -1,6 +1,22 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "reviewedAt": "2026-07-18",
+  "exceptionReview": {
+    "owner": "repository-security-maintainer",
+    "decision": "bounded-renewal-pending-stable-release",
+    "observedStableVersion": "3.13.14",
+    "expectedNextVersion": "3.13.15",
+    "nextReviewOn": "2026-08-04",
+    "renewalDeadline": "2026-08-08",
+    "maximumPostReleaseGraceDays": 4,
+    "reason": "Python 3.13.14 remains the latest stable 3.13 release, while CPython schedules 3.13.15 for 2026-08-04. Preserve the module-removal mitigations and allow four days for the Docker Official Image to publish and pass native two-architecture review.",
+    "sources": [
+      "https://www.python.org/downloads/source/",
+      "https://www.python.org/downloads/release/python-31314/",
+      "https://peps.python.org/pep-0719/",
+      "https://github.com/docker-library/official-images/blob/master/library/python"
+    ]
+  },
   "baseImage": {
     "repository": "python",
     "tag": "3.13.14-alpine3.24",
@@ -136,9 +152,9 @@
       "version": "3.13.14",
       "type": "binary",
       "severity": "High",
-      "expires": "2026-08-01",
+      "expires": "2026-08-08",
       "module": "tarfile",
-      "reason": "No stable CPython release containing the backport existed at review time; the API image removes tarfile and the source contract rejects reintroduction.",
+      "reason": "The 2026-07-18 primary-source review found no stable CPython 3.13 release containing the backport; the API image removes tarfile and the source contract rejects reintroduction.",
       "source": "https://github.com/python/cpython/issues/151558"
     },
     {
@@ -148,9 +164,9 @@
       "version": "3.13.14",
       "type": "binary",
       "severity": "High",
-      "expires": "2026-08-01",
+      "expires": "2026-08-08",
       "module": "tarfile",
-      "reason": "No stable CPython release containing the backport existed at review time; the API image removes tarfile and the source contract rejects reintroduction.",
+      "reason": "The 2026-07-18 primary-source review found no stable CPython 3.13 release containing the backport; the API image removes tarfile and the source contract rejects reintroduction.",
       "source": "https://github.com/python/cpython/issues/151981"
     },
     {
@@ -160,9 +176,9 @@
       "version": "3.13.14",
       "type": "binary",
       "severity": "High",
-      "expires": "2026-08-01",
+      "expires": "2026-08-08",
       "module": "html.parser",
-      "reason": "No stable CPython release containing the backport existed at review time; the API image removes html.parser and the source contract rejects reintroduction.",
+      "reason": "The 2026-07-18 primary-source review found no stable CPython 3.13 release containing the backport; the API image removes html.parser and the source contract rejects reintroduction.",
       "source": "https://github.com/python/cpython/issues/153030"
     }
   ]

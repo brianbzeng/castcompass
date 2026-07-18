@@ -9,7 +9,36 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
-## Current seven-step work cycle — official fisheries data
+## Current seven-step work cycle — API image exception deadline
+
+- [x] Reconcile the required handoff, exact `main`, open PRs/issues, Dependabot alerts, and
+      post-merge workflows. Evidence: `main` is `e58a7f50359fc3e41f37e5ad168b9ecf089b50b8`,
+      PRs and Dependabot alerts are empty, issue `#86` is the sole open issue, and CI,
+      release-provenance, and CodeQL all passed that exact commit.
+- [x] Re-check official Python and CPython sources. Python 3.13.14 remains the latest stable
+      3.13 release; the three security fixes have upstream/backport PRs but no containing stable
+      3.13 release; PEP 719 schedules Python 3.13.15 for 2026-08-04.
+- [x] Re-check the Docker Official Image source and public registry. The selected tag still maps
+      to source revision `f79aea5b8f6b2d65b31ba2bb3f69c0c2083345c8`, index digest
+      `sha256:399babc8b49529dabfd9c922f2b5eea81d611e4512e3ed250d75bd2e7683f4b0`,
+      AMD64 manifest `sha256:c25cd44f45df1279a2cba589e67dfcd9db04647ea483b117a7de8b1a99bdfb23`,
+      and ARM64 manifest `sha256:0515d7a37d0febc8bd7d88b4879b8598f4e1a1aae16307c733fd34f36be18f15`.
+- [x] Implement the bounded fallback without weakening mitigations: named security owner,
+      mandatory 2026-08-04 re-review, 2026-08-08 hard expiry, primary-source binding, at most
+      seven days of post-release grace, immediate stable-series-fix rejection, and preserved
+      `tarfile`/`html.parser` removal plus import guards. Focused contract tests pass 16/16.
+- [x] Pass the complete local repository, API, pipeline, security, SBOM, build, and mobile gates.
+      Evidence: 325/325 repository tests, 29/29 API tests plus all 13 critical query plans,
+      69/69 pipeline tests with one documented optional raster skip, 102/102 mobile-browser
+      tests, lint, typecheck, secrets, exact Python locks, zero-execution npm policy, both SBOM
+      checks, and both npm audits with zero vulnerabilities. Hosted CI must still prove the exact
+      Python 3.13.14 runtime and native image on both architectures.
+- [ ] Publish the protected draft PR and accept fresh native AMD64/ARM64 image evidence plus all
+      required CI, dependency-review, release-provenance, and CodeQL checks on the exact head.
+- [ ] Merge only after every required check passes, then reconcile the exact `main` commit,
+      post-merge workflows, artifacts, and alert state. Cloudflare and production stay paused.
+
+## Completed prior seven-step cycle — official fisheries data
 
 - [x] Reconcile PR `#87`, its exact post-merge checks, and the zero-open-alert repository state.
 - [x] Inventory the existing CDFW, CRFS, and RecFIN contracts without ingesting private or
@@ -30,7 +59,7 @@ also satisfied.
       `29645959414` all passed. Dependabot remained at zero open alerts. Cloudflare and
       production remain paused.
 
-## Completed prior seven-step cycle
+## Completed earlier seven-step cycle
 
 - [x] Triage PRs `#17`–`#32`; close unsafe, broken, duplicated, or superseded updates.
 - [x] Upgrade and lock maintained runtimes and direct dependency families.

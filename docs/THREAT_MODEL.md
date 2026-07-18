@@ -130,9 +130,11 @@ that could become a privacy, integrity, or availability incident.
 - **Recovery:** Block promotion, remove or upgrade the dependency, regenerate exact locks and
   SBOMs, rebuild from the reviewed commit, and verify provenance before restoring the feature.
 - **Residual risk:** Advisory and scanner databases lag new issues; a correctly named package
-  can still be compromised; the three accepted CPython image exceptions expire 2026-08-01.
-- **Next gate:** Re-evaluate or remove every image exception before expiry and preserve the
-  scheduled reviewed update path rather than freezing vulnerable versions.
+  can still be compromised; the owner-bound CPython image exceptions require re-review when
+  Python 3.13.15 is scheduled on 2026-08-04 and expire 2026-08-08.
+- **Next gate:** Adopt and natively verify the first fixed stable official image, removing every
+  stale exception; if publication is delayed beyond the bounded grace, fail closed rather than
+  silently extending the date or freezing a vulnerable runtime.
 
 ### L04 — Static application security testing
 

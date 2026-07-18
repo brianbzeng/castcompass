@@ -283,7 +283,7 @@ test("the supply-chain runbook scopes optional locks and keeps deployment proven
   assert.match(policy, /package-level contents[\s\S]+per-architecture Syft\/Grype[\s\S]+do not identify deployed\s+bytes/i);
   assert.match(
     policy,
-    /native API image evidence[\s\S]+AMD64 and ARM64[\s\S]+Syft 1\.42\.3[\s\S]+Grype 0\.110\.0[\s\S]+expire 2026-08-01/i,
+    /native API image evidence[\s\S]+AMD64 and ARM64[\s\S]+Syft 1\.42\.3[\s\S]+Grype 0\.110\.0[\s\S]+expires? 2026-08-08/i,
   );
   assert.match(policy, /Main-branch signing acceptance is recorded below[\s\S]+rather than deployed-version evidence/i);
   assert.match(

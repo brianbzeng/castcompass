@@ -27,7 +27,7 @@ path so security fixes are not frozen out.
 | Static analysis | GitHub-managed CodeQL default setup scans Actions, JavaScript/TypeScript, and Python; the Advanced Security `CodeQL` merge result is required on `main`, and findings are reviewed individually rather than bulk-dismissed | GitHub controls the analyzer/runtime and its default query updates; release evidence still records the alert state and each dismissal rationale |
 | Production npm SBOM | `security/sbom.cdx.json` is a deterministic CycloneDX 1.5 inventory of the lock-resolved production graph, including cross-platform optional variants, and embeds the SHA-256 of `package-lock.json` | It remains the focused npm input to the combined release inventory; neither document proves the bytes Cloudflare actually ran |
 | Combined release inventory | `security/release-sbom.cdx.json` deterministically combines the production npm graph, exact hashed API-runtime and pipeline-CI Python graphs, their distinct Python runtimes, pinned Node/API-image/Alpine identities, the image-security policy, and the repository-declared Worker/D1/assets service contract; every source file is SHA-256-bound and CI rejects drift | Main-branch signing acceptance is recorded below; the OS entry remains identity-level while native package reports are separate workflow evidence, and the Worker entries remain repository contracts rather than deployed-version evidence |
-| Native API image evidence | A read-only weekly/change-triggered workflow builds the exact image natively on GitHub's fixed Ubuntu 24.04 AMD64 and ARM64 runners, verifies non-root/minimized runtime behavior and live health, then uses SHA-pinned Syft 1.42.3 and Grype 0.110.0 actions to preserve source-commit-bound raw CycloneDX, vulnerability, and normalized policy reports | PR `#81` and the merged `main` run are accepted below. Three newly disclosed CPython highs have no stable 3.13 fix as of 2026-07-18; exact exceptions expire 2026-08-01 and are coupled to removal/import guards for the affected modules |
+| Native API image evidence | A read-only weekly/change-triggered workflow builds the exact image natively on GitHub's fixed Ubuntu 24.04 AMD64 and ARM64 runners, verifies non-root/minimized runtime behavior and live health, then uses SHA-pinned Syft 1.42.3 and Grype 0.110.0 actions to preserve source-commit-bound raw CycloneDX, vulnerability, and normalized policy reports | PR `#81` and the merged `main` run are accepted below. A 2026-07-18 primary-source re-review found no stable 3.13 fix; the owner-bound renewal requires re-review on 2026-08-04 and expires 2026-08-08 while preserving the affected-module removal/import guards |
 | Secrets and private reporting | Repository secret scanning and provider-pattern tests run before dependency installation in CI; GitHub secret scanning, push protection, and private vulnerability reporting are enabled | GitHub's extra non-provider-pattern and validity-check options were unavailable in the current account configuration; rotation, IAM, and incident drills still require provider evidence |
 
 The exact Node release is the current patched release selected for the maintained 22.x line,
@@ -400,8 +400,18 @@ surface-reduction controls, not a sandbox or trust guarantee.
   the exact head and independently confirmed, per architecture, the exact 29-package APK graph,
   22 applicable hash-locked Python packages, 19 observed license expressions plus two explicit
   missing-metadata reviews, and 11 vulnerability matches: 8 medium, 3 reviewed high, and 0
-  critical. The three high exceptions remain bounded by removed/import-guarded modules and expire
-  2026-08-01.
+  critical. The three high exceptions remain bounded by removed/import-guarded modules. Their
+  original acceptance expired 2026-08-01.
+
+  A fresh 2026-07-18 primary-source review found Python 3.13.14 still the latest stable 3.13
+  release and the Docker Official Image still bound to the same exact source revision and
+  multi-platform digest. Backport pull requests exist upstream for all three fixes, but PEP 719
+  schedules Python 3.13.15 for 2026-08-04. The policy therefore permits only an owner-bound renewal through
+  2026-08-08: re-review is mandatory on the scheduled release date, stable-series fixes are
+  rejected immediately when Grype reports them, and the four-day grace is only for Docker
+  Official Image publication plus native AMD64/ARM64 verification. The verifier rejects a
+  missing owner, non-primary sources, a mismatched runtime, a later-series gap, an unbound
+  exception date, or more than seven days of post-release grace.
 
   Main image-security run `29633038674` repeated the proof for the merge commit. Artifacts
   `8426143583` and `8426146269`, with artifact-record SHA-256 digests
@@ -464,6 +474,8 @@ Additional primary references:
 - [Node.js 22.23.1 release](https://nodejs.org/en/blog/release/v22.23.1)
 - [Python 3.12.13 security release](https://www.python.org/downloads/release/python-31213/)
 - [Python 3.13.14 security release](https://www.python.org/downloads/release/python-31314/)
+- [Python 3.13 release schedule](https://peps.python.org/pep-0719/)
+- [Docker Official Image source of truth](https://github.com/docker-library/official-images/blob/master/library/python)
 - [Syft SBOM action](https://github.com/anchore/sbom-action)
 - [Grype scan action](https://github.com/anchore/scan-action)
 - [CPython CVE-2026-11940 tracking](https://github.com/python/cpython/issues/151558)
