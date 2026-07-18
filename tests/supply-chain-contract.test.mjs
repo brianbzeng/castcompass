@@ -198,6 +198,10 @@ test("the supply-chain runbook scopes approved optional Python locks and keeps p
   assert.match(policy, /FastAPI runtime\/test and pipeline CI[\s\S]+exact transitive versions[\s\S]+SHA-256/i);
   assert.match(policy, /approved optional Geo\/PyTorch environments[\s\S]+macOS 15\+ ARM64[\s\S]+manylinux_2_28 x86-64 CPU/i);
   assert.match(policy, /CUDA, ROCm, Windows[\s\S]+remain open/i);
+  assert.match(
+    policy,
+    /PR `#72`[\s\S]+0433cb6e67acdee5a6891ddce2cc57e3b46dc2d7[\s\S]+29628030773[\s\S]+83450872[\s\S]+29628030735[\s\S]+29628030502[\s\S]+zero\s+open Dependabot, code-scanning, or secret-scanning alerts/i,
+  );
   assert.match(policy, /not yet signed deployment provenance/i);
   assert.match(policy, /stacked successor PRs[\s\S]+do not falsely report a dependency-review pass/i);
   assert.match(policy, /directory-local `services\/api\/\.python-version`[\s\S]+not a control over GitHub's[\s\S]+hosted resolver/i);

@@ -126,7 +126,9 @@ after its acceptance checks pass in the intended environment.
       CPython 3.12 on macOS 15+ ARM64/MPS and manylinux_2_28 x86-64/CPU; add scheduled hosted
       execution that checks platform/backend identity, exact package identity, GeoTIFF/CRS
       behavior, pipeline tests, and deep smoke. CUDA, ROCm, Windows, Intel macOS, and other
-      unlisted environments remain outside the approved reproducibility claim.
+      unlisted environments remain outside the approved reproducibility claim. PR `#72`, main
+      CI `29628030773`, optional-platform run `29628030735`, exact dependency snapshot
+      `83450872`, and CodeQL run `29628030502` are the immutable merge receipts.
     - [x] Enable live `main` protection with pull requests, strict app-bound GitHub Actions and
       Advanced Security `CodeQL` checks, resolved conversations, administrator enforcement, and
       force-push/deletion denial; enable Dependabot security updates, secret-scanning push

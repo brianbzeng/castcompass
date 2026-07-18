@@ -327,6 +327,14 @@ surface-reduction controls, not a sandbox or trust guarantee.
   unlisted system-library combinations remain open and must receive their own reviewed locks
   and execution evidence before anyone calls them reproducible. Do not force one misleading
   universal lock onto platform-specific research stacks.
+  Immutable acceptance evidence is PR `#72`, merged as
+  `0433cb6e67acdee5a6891ddce2cc57e3b46dc2d7`. Its final head passed protected CI run
+  `29627906264`, optional-platform run `29627906268`, and CodeQL run `29627905185`.
+  The merged commit then passed main CI run `29628030773`, submitted exact Python dependency
+  snapshot `83450872`, passed optional-platform run `29628030735` on both macOS ARM64 and Linux
+  x86-64 CPU, and passed CodeQL run `29628030502`. After those receipts, GitHub reported zero
+  open Dependabot, code-scanning, or secret-scanning alerts. This evidence covers only the two
+  named platform/backend combinations and does not broaden the exclusions above.
 - The committed npm SBOM is not a combined Python/OS/Worker inventory. Produce those additional
   inventories, bind them to the release commit, and reconcile license/advisory ownership.
 - GitHub and Cloudflare builds are not yet signed deployment provenance. Generate and verify an
