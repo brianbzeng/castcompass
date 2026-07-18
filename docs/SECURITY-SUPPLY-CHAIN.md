@@ -164,7 +164,7 @@ CodeQL run `29625410265` succeeded; the SPDX graph records scikit-learn 1.9.0 an
 2.24.0; and the post-merge audit found zero open dependency, code-scanning, or secret-scanning
 alerts. Future optional-platform locks remain open.
 
-The next coupled review advances NumPy 2.0.2 to
+The paired numerical review advances NumPy 2.0.2 to
 [2.5.1](https://github.com/numpy/numpy/releases/tag/v2.5.1) and SciPy 1.13.1 to
 [1.18.0](https://docs.scipy.org/doc/scipy/release/1.18.0-notes.html), while retaining pandas
 2.2.3. SciPy is now an explicit direct runtime dependency because the structure pipeline imports
@@ -172,8 +172,14 @@ its deterministic neighborhood filters. The exact relief-filter canary, byte-ide
 fixtures, unchanged seed-12/seed-42 folds, and a maximum aggregate delta of `0.000000357` bound
 the observed behavior. A clean Python 3.12.13 binary-only, hash-required install passed `pip
 check`, Ruff, 62 tests, and the deterministic smoke workflow with both `FutureWarning` and
-`DeprecationWarning` treated as errors. Hosted and merged-main evidence remain required before
-this paired release is complete.
+`DeprecationWarning` treated as errors. PR `#68` then passed hosted dependency review, API,
+warning-strict pipeline/smoke, web/mobile, and all CodeQL analyses before merge commit
+`6ce2ec37de9f6cbe22f85cae05baff256adb3a51`. Main CI run `29626219455` passed all jobs and
+submitted exact dependency snapshot `83445590`; managed graph run `29626220947` and main CodeQL
+run `29626219486` succeeded. The SPDX graph contains exact entries for NumPy 2.5.1, SciPy 1.18.0,
+scikit-learn 1.9.0, narwhals 2.24.0, and retained pandas 2.2.3. The post-merge audit found zero
+open dependency, code-scanning, or secret-scanning alerts. The separate pandas 3 behavior review
+remains open.
 
 Pipeline Dependabot proposals are advisory inputs, not mergeable lock updates. The provider
 parses and edits `pipeline/requirements-validation.txt`, but that file is only a transport mirror;
