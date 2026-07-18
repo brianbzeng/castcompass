@@ -154,15 +154,25 @@ after its acceptance checks pass in the intended environment.
       Dependabot, code-scanning, or secret-scanning alerts. This closes the source-bound combined
       inventory only; package-level image scanning, deployed Worker proof, and license/advisory
       reconciliation remain open.
-    - [ ] Build and accept a native AMD64/ARM64 package-level API image gate. The reviewed
+    - [x] Build and accept a native AMD64/ARM64 package-level API image gate. The reviewed
       candidate upgrades only the API from Python 3.12.13/Bookworm to maintained Python 3.13.14
       on the exact official Alpine 3.24 image index, reducing the local ARM64 scan from 215 total
       findings (8 critical, 30 high) to 11 total findings (0 critical, 3 high). It also removes
       pip/ensurepip and the unused affected `tarfile`/`html.parser` modules, eliminates shell-based
       startup, verifies all 22 applicable locked Python packages plus 29 APK packages and their
       licenses, and fails closed on unreviewed/expired high or any critical finding. The three
-      temporary CPython exceptions expire 2026-08-01. Mark this complete only after both native
-      hosted jobs pass on the exact PR head and the raw/normalized artifacts are preserved.
+      temporary CPython exceptions expire 2026-08-01. PR `#81` merged exact accepted head
+      `7de5d51c3e8b7d02faff242ad2acc33d6e04441a` as
+      `73d0e3ca879a609673ba57188f59b37f541083a5`. Exact-head native run `29632875263`
+      passed both architectures; artifacts `8426086733` (AMD64) and `8426089424` (ARM64)
+      preserve the raw SBOM/Grype reports and normalized summaries through 2026-08-17. Fresh
+      downloads bound that exact head and confirmed 29 APK packages, 22 applicable Python
+      packages, 11 findings, 0 critical, 3 reviewed high, and the 2026-08-01 exception expiry on
+      each architecture. Main run `29633038674` repeated the proof for the merge commit in
+      artifacts `8426143583` and `8426146269`; main CI `29633038669` passed with dependency
+      snapshot `83465511`, release-provenance `29633038673`, optional-platform `29633038688`, and
+      CodeQL `29633038335` passed, followed by zero open dependency, code-scanning, or
+      secret-scanning alerts. CodeQL alert `#4` was fixed in source without dismissal before merge.
     - [x] Enable live `main` protection with pull requests, strict app-bound GitHub Actions and
       Advanced Security `CodeQL` checks, resolved conversations, administrator enforcement, and
       force-push/deletion denial; enable Dependabot security updates, secret-scanning push

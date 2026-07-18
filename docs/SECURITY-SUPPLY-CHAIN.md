@@ -27,7 +27,7 @@ path so security fixes are not frozen out.
 | Static analysis | GitHub-managed CodeQL default setup scans Actions, JavaScript/TypeScript, and Python; the Advanced Security `CodeQL` merge result is required on `main`, and findings are reviewed individually rather than bulk-dismissed | GitHub controls the analyzer/runtime and its default query updates; release evidence still records the alert state and each dismissal rationale |
 | Production npm SBOM | `security/sbom.cdx.json` is a deterministic CycloneDX 1.5 inventory of the lock-resolved production graph, including cross-platform optional variants, and embeds the SHA-256 of `package-lock.json` | It remains the focused npm input to the combined release inventory; neither document proves the bytes Cloudflare actually ran |
 | Combined release inventory | `security/release-sbom.cdx.json` deterministically combines the production npm graph, exact hashed API-runtime and pipeline-CI Python graphs, their distinct Python runtimes, pinned Node/API-image/Alpine identities, the image-security policy, and the repository-declared Worker/D1/assets service contract; every source file is SHA-256-bound and CI rejects drift | Main-branch signing acceptance is recorded below; the OS entry remains identity-level while native package reports are separate workflow evidence, and the Worker entries remain repository contracts rather than deployed-version evidence |
-| Native API image evidence | A read-only weekly/change-triggered workflow builds the exact image natively on GitHub's fixed Ubuntu 24.04 AMD64 and ARM64 runners, verifies non-root/minimized runtime behavior and live health, then uses SHA-pinned Syft 1.42.3 and Grype 0.110.0 actions to preserve raw CycloneDX, vulnerability, and normalized policy reports | The hosted acceptance receipt is pending this change's PR. Three newly disclosed CPython highs have no stable 3.13 fix as of 2026-07-18; exact exceptions expire 2026-08-01 and are coupled to removal/import guards for the affected modules |
+| Native API image evidence | A read-only weekly/change-triggered workflow builds the exact image natively on GitHub's fixed Ubuntu 24.04 AMD64 and ARM64 runners, verifies non-root/minimized runtime behavior and live health, then uses SHA-pinned Syft 1.42.3 and Grype 0.110.0 actions to preserve source-commit-bound raw CycloneDX, vulnerability, and normalized policy reports | PR `#81` and the merged `main` run are accepted below. Three newly disclosed CPython highs have no stable 3.13 fix as of 2026-07-18; exact exceptions expire 2026-08-01 and are coupled to removal/import guards for the affected modules |
 | Secrets and private reporting | Repository secret scanning and provider-pattern tests run before dependency installation in CI; GitHub secret scanning, push protection, and private vulnerability reporting are enabled | GitHub's extra non-provider-pattern and validity-check options were unavailable in the current account configuration; rotation, IAM, and incident drills still require provider evidence |
 
 The exact Node release is the current patched release selected for the maintained 22.x line,
@@ -383,10 +383,33 @@ surface-reduction controls, not a sandbox or trust guarantee.
   JavaScript/TypeScript, and Python. GitHub then reported zero open Dependabot, code-scanning,
   or secret-scanning alerts. At that immutable `#79` receipt, this closed only the
   source-bound combined inventory; package-level Debian image scanning, deployed Worker digest proof, and
-  license/advisory reconciliation were still open. The current change replaces that Debian
-  candidate with a pinned, minimized Alpine image and adds native package/license/vulnerability
-  evidence, but it is not accepted until both hosted architecture jobs pass on the exact final
-  head. Deployed Worker digest proof remains separate open work.
+  license/advisory reconciliation were still open. PR `#81`, accepted separately below, closes
+  that package/license/advisory image gate with a pinned, minimized Alpine image. Deployed Worker
+  digest proof remains separate open work.
+- The native package-level API image gate is accepted at PR `#81`, whose exact final head
+  `7de5d51c3e8b7d02faff242ad2acc33d6e04441a` merged as
+  `73d0e3ca879a609673ba57188f59b37f541083a5`. Exact-head run `29632875263` passed native AMD64
+  and ARM64 jobs. GitHub artifacts `8426086733` and `8426089424` retain each raw CycloneDX SBOM,
+  raw Grype report, and normalized policy summary through 2026-08-17 with artifact-record SHA-256
+  digests `4331f2e2cb42ce8f8dcb9b87db7c6226232e3920cc292091d803807cc93a9926` and
+  `8da2626488dd82db553465300b9117d6d3e0da6c7aa2e0d4e2b5de7544ac8875`. Fresh downloads bound
+  the exact head and independently confirmed, per architecture, the exact 29-package APK graph,
+  22 applicable hash-locked Python packages, 19 observed license expressions plus two explicit
+  missing-metadata reviews, and 11 vulnerability matches: 8 medium, 3 reviewed high, and 0
+  critical. The three high exceptions remain bounded by removed/import-guarded modules and expire
+  2026-08-01.
+
+  Main image-security run `29633038674` repeated the proof for the merge commit. Artifacts
+  `8426143583` and `8426146269`, with artifact-record SHA-256 digests
+  `c5a00cea9e2780dccfb08a59d740f348d945b48706c53ef670efe5d2e36c741e` and
+  `8a74ca502ee57568e11a71b60291c7252a557a13b8cdb74b09784288a81199b0`, preserve matching
+  source-bound summaries through 2026-08-17. Main CI `29633038669` passed web/mobile, API, and
+  pipeline and submitted exact Python dependency snapshot `83465511`; release-provenance run
+  `29633038673`, optional-platform run `29633038688`, and CodeQL run `29633038335` passed.
+  CodeQL alert `#4` was remediated in source and became fixed without dismissal before merge;
+  GitHub then reported zero open Dependabot, code-scanning, or secret-scanning alerts. These
+  receipts cover the repository's API container image, not the Cloudflare Worker production path
+  or deployed bytes.
 - The checked-in GitHub workflow produces a deterministic release candidate from `main`
   containing the built Worker, static assets, reviewed Wrangler configuration, migrations,
   exact lock, and committed CycloneDX SBOM. The bundle embeds the repository, full commit,
