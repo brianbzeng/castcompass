@@ -223,10 +223,14 @@ test("the supply-chain runbook scopes optional locks and keeps deployment proven
     policy,
     /PR `#72`[\s\S]+0433cb6e67acdee5a6891ddce2cc57e3b46dc2d7[\s\S]+29628030773[\s\S]+83450872[\s\S]+29628030735[\s\S]+29628030502[\s\S]+zero\s+open Dependabot, code-scanning, or secret-scanning alerts/i,
   );
-  assert.match(policy, /GitHub workflow is designed to produce a deterministic release candidate from[\s\S]+`main`/i);
+  assert.match(policy, /GitHub workflow produces a deterministic release candidate from `main`/i);
   assert.match(policy, /separate main-only job[\s\S]+runs no repository or dependency code/i);
   assert.match(policy, /not Cloudflare deployment provenance/i);
   assert.match(policy, /prove[\s\S]+digest is the digest actually deployed[\s\S]+before marking end-to-end provenance complete/i);
+  assert.match(
+    policy,
+    /PR `#77`[\s\S]+fa73c4dd4162b6834113f40a6f77be6907bdd202[\s\S]+29629689167[\s\S]+8425041514[\s\S]+e2d8b79a39a28c9ae97ba1c384e1f8eacffe95275ea6b7eaf79d3baee8f12ad0[\s\S]+35935237[\s\S]+35935240[\s\S]+29629689192[\s\S]+83454900[\s\S]+29629688765[\s\S]+zero open Dependabot,[\s\S]+code-scanning,[\s\S]+secret-scanning alerts[\s\S]+None of this proves a Cloudflare deployment/i,
+  );
   assert.match(policy, /stacked successor PRs[\s\S]+do not falsely report a dependency-review pass/i);
   assert.match(policy, /directory-local `services\/api\/\.python-version`[\s\S]+not a control over GitHub's[\s\S]+hosted resolver/i);
   assert.match(policy, /byte-identical transport mirror[\s\S]+managed parser/i);

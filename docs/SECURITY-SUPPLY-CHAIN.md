@@ -1,6 +1,6 @@
 # CastingCompass software supply-chain policy
 
-Status: locally verified repository baseline; production provenance evidence remains open
+Status: GitHub release-candidate provenance verified; Cloudflare deployment provenance remains open
 
 This policy covers source dependencies, build runtimes, CI actions, dependency review,
 software bills of materials, advisory response, and updates. Exact pins reduce unexpected
@@ -25,7 +25,7 @@ path so security fixes are not frozen out.
 | Default-branch integrity | Live `main` protection requires pull requests, strict successful `api`, `pipeline`, `web`, and `dependency-review` checks from the GitHub Actions app plus the `CodeQL` result from the GitHub Advanced Security app, resolved review conversations, and applies to the owner; force-pushes and branch deletion are disabled | This is provider-side configuration rather than source code; verify it again for the exact release and preserve a separate emergency-access procedure |
 | Pull-request dependency changes | The SHA-pinned GitHub dependency-review action rejects newly introduced high/critical runtime or development advisories on release PRs targeting the default branch, and the live `main` protection requires that check | GitHub builds the graph from the default branch, so stacked PRs cannot supply this evidence; the complete-tree audit and SBOM remain mandatory |
 | Static analysis | GitHub-managed CodeQL default setup scans Actions, JavaScript/TypeScript, and Python; the Advanced Security `CodeQL` merge result is required on `main`, and findings are reviewed individually rather than bulk-dismissed | GitHub controls the analyzer/runtime and its default query updates; release evidence still records the alert state and each dismissal rationale |
-| Production npm SBOM | `security/sbom.cdx.json` is a deterministic CycloneDX 1.5 inventory of the lock-resolved production graph, including cross-platform optional variants, and embeds the SHA-256 of `package-lock.json` | It is repository evidence, not a signed deployment attestation or proof of the platform-specific bytes Cloudflare actually ran |
+| Production npm SBOM | `security/sbom.cdx.json` is a deterministic CycloneDX 1.5 inventory of the lock-resolved production graph, including cross-platform optional variants, and embeds the SHA-256 of `package-lock.json` | It is signed and independently verified for the exact GitHub release candidate recorded below, not a combined Python/OS inventory or proof of the bytes Cloudflare actually ran |
 | Secrets and private reporting | Repository secret scanning and provider-pattern tests run before dependency installation in CI; GitHub secret scanning, push protection, and private vulnerability reporting are enabled | GitHub's extra non-provider-pattern and validity-check options were unavailable in the current account configuration; rotation, IAM, and incident drills still require provider evidence |
 
 The exact Node release is the current patched release selected for the maintained 22.x line,
@@ -339,11 +339,11 @@ surface-reduction controls, not a sandbox or trust guarantee.
   named platform/backend combinations and does not broaden the exclusions above.
 - The committed npm SBOM is not a combined Python/OS/Worker inventory. Produce those additional
   inventories, bind them to the release commit, and reconcile license/advisory ownership.
-- The checked-in GitHub workflow is designed to produce a deterministic release candidate from
-  `main` containing the built Worker, static assets, reviewed Wrangler configuration, migrations,
-  exact lock, and committed CycloneDX
-  SBOM. The bundle embeds the repository, full commit, exact Node/npm toolchain, and production-build
-  switches; its external manifest binds the bundle, lock, and SBOM hashes. A read-only build job
+- The checked-in GitHub workflow produces a deterministic release candidate from `main`
+  containing the built Worker, static assets, reviewed Wrangler configuration, migrations,
+  exact lock, and committed CycloneDX SBOM. The bundle embeds the repository, full commit,
+  exact Node/npm toolchain, and production-build switches; its external manifest binds the
+  bundle, lock, and SBOM hashes. A read-only build job
   uploads the four-file candidate. A separate main-only job receives `id-token` and `attestations`
   write access, runs no repository or dependency code, verifies the exact file set and checksums,
   and uses immutable GitHub-owned `actions/attest` code to generate both SLSA provenance and SBOM
@@ -351,6 +351,27 @@ surface-reduction controls, not a sandbox or trust guarantee.
   cannot sign. This is GitHub release-candidate provenance, not Cloudflare deployment provenance.
   Retain the Worker version/deployment ID, download and verify the exact attested subject, and prove
   its digest is the digest actually deployed before marking end-to-end provenance complete.
+  Immutable acceptance evidence is corrective PR `#77`, merged as
+  `fa73c4dd4162b6834113f40a6f77be6907bdd202`. The earlier main run `29629257653`
+  successfully created build-provenance attestation `35934303` but rejected the CycloneDX
+  predicate because npm's random serial had been removed; that partial failure was not counted
+  as acceptance. PR `#77` added a lock-derived UUIDv5, exact lock-path production filtering,
+  unique/closed graph checks, and signer-side serial validation. Main release-provenance run
+  `29629689167` then passed both isolated jobs. GitHub artifact `8425041514` retains the exact
+  four-file candidate through 2026-10-16 with artifact-record SHA-256
+  `4b6fc55cda0ce11d130bf991db01d880c3753e1fc53a8e8af824fb6f4508525a`.
+  Its 118-file bundle SHA-256 is
+  `e2d8b79a39a28c9ae97ba1c384e1f8eacffe95275ea6b7eaf79d3baee8f12ad0`, and its
+  external SBOM SHA-256 is
+  `f912bd94f5b8c158f8cf198097ef9ce2bee11770f462786478e05a38aa167a0f`.
+  A fresh download passed all three `SHA256SUMS` entries and the independent archive/manifest
+  verifier. `gh attestation verify` accepted build-provenance attestation `35935237` and
+  CycloneDX attestation `35935240` only with the exact repository, signer workflow, `main`
+  source ref, source/signer commit, and GitHub-hosted-runner constraints; their Rekor indexes
+  are `2193382355` and `2193382365`. Main CI run `29629689192` passed web/mobile, API,
+  pipeline, and exact Python dependency snapshot `83454900`; CodeQL run `29629688765` passed
+  Actions, JavaScript/TypeScript, and Python. GitHub then reported zero open Dependabot,
+  code-scanning, or secret-scanning alerts. None of this proves a Cloudflare deployment.
 - The deprecated Drizzle loader override is tested but remains technical debt. Replace it when
   a reviewed Drizzle release removes the dependency; do not delete the override while the
   vulnerable nested esbuild would return.
