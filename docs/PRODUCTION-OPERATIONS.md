@@ -301,7 +301,14 @@ prove that the object is either attached to a live trip or durably queued for cl
       raw invocation URLs are absent, request-ID reconstruction passed, the dedicated
       observability pseudonym key is separate, and redaction fixtures exposed no private fields.
 - [ ] A recent encrypted D1 export exists with a tested retention/deletion procedure.
-- [ ] A non-production restore drill passed and its aggregate evidence is recorded.
+- [x] A production-shaped synthetic non-production restore/deletion-replay drill passed from
+      clean commit `0542074ce681c2fbecbe6ea93ffc443c276b6a7a`. Its private aggregate
+      acceptance packet was created at `2026-07-18T06:24:47.211Z`; restore-evidence SHA-256 is
+      `585a156ecbec933c6cdb485340bd04f802be4781d8a0e2bd6a54668c59c309d8` and the
+      verified audit head is
+      `ff60f51a34be01d73dfc2a8182d174d4386e6bf03ede2ad71fdf0365d7f5b96c`.
+      The packet explicitly records no production data/provider use, no production backup
+      restore, no approved key custody, no independent review, and no production-gate pass.
 - [ ] The backup/Time Travel window is shorter than the 90-day deletion-tombstone window.
 - [ ] A restore drill preserved the current deletion ledger and proved that deleted account,
       trip, public-discussion, and pending-photo records could not reappear in service.

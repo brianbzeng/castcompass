@@ -234,13 +234,18 @@ Successful local evidence sets `technical_validation_snapshot_restore_passed: tr
 configuration, and witnessed production-shaped acceptance drill are complete. Never publish
 the encrypted artifacts, manifests, audit log, or raw validation rows.
 
-## Still required outside the repository
+## Acceptance status and work still required outside the repository
 
 - approve production key generation, custody, rotation, recovery, and destruction;
 - create the actual encrypted production artifacts and test their retention deletion;
 - record the D1 Time Travel window and keep it shorter than the current tombstone window;
-- exercise the drill against a production-shaped non-production target with deleted account,
-  trip, discussion, completed object task, and unresolved object task fixtures;
+- [x] Exercise the repository-controlled drill against a production-shaped synthetic non-
+  production target with deleted account, trip, discussion, completed object task, and
+  unresolved object task fixtures. Clean source commit
+  `0542074ce681c2fbecbe6ea93ffc443c276b6a7a`; private packet time
+  `2026-07-18T06:24:47.211Z`; restore-evidence SHA-256
+  `585a156ecbec933c6cdb485340bd04f802be4781d8a0e2bd6a54668c59c309d8`; audit head
+  `ff60f51a34be01d73dfc2a8182d174d4386e6bf03ede2ad71fdf0365d7f5b96c`.
 - obtain the required second-person review;
 - approve the 730-day validation-only snapshot/suppression policy and production controls;
 - create and retention-test actual 730-day validation artifacts with separately custodied keys;

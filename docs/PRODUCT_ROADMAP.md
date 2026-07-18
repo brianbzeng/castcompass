@@ -47,6 +47,22 @@ after its acceptance checks pass in the intended environment.
     Turnstile widget and activate it through a separate reviewed change, deliver test alerts,
     approve key custody, complete a non-production restore/deletion-replay drill, and attach
     the remaining production evidence required by `docs/PRODUCTION-OPERATIONS.md`.
+    - [x] Complete the repository-controlled, production-shaped synthetic non-production
+      restore/deletion-replay drill from clean commit
+      `0542074ce681c2fbecbe6ea93ffc443c276b6a7a`. The private aggregate packet created at
+      `2026-07-18T06:24:47.211Z` has restore-evidence SHA-256
+      `585a156ecbec933c6cdb485340bd04f802be4781d8a0e2bd6a54668c59c309d8`, audit-file
+      SHA-256 `1784e89ac1fc4d9798a13c0175ff3dd4c31b8141a621ace3c679f08c1ba30366`, and
+      verified audit head
+      `ff60f51a34be01d73dfc2a8182d174d4386e6bf03ede2ad71fdf0365d7f5b96c`. It passed
+      tamper/wrong-key rejection, integrity and foreign-key checks, current synthetic deletion-
+      ledger replay, account/trip/discussion suppression, pending/completed object-task
+      preservation, private-value exclusion, and destruction checks. It used no production
+      data or provider and deliberately leaves second-person review, real production restore,
+      key custody, and the production gate false.
+    - [ ] Obtain independent review of the aggregate packet, approve production key custody,
+      and complete the provider/deployment evidence without using this synthetic receipt as a
+      substitute for the real encrypted backup or a current production deletion ledger.
 - [ ] Make account privacy promises durable: deletion queue/tombstones for photos and public
   copies, truthful completion semantics, and an age-only first step before email/password.
   - [x] Implement and locally verify single-use age proofs, consent-safe reacceptance,
