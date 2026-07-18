@@ -150,9 +150,9 @@ also passed its Actions, JavaScript/TypeScript, and Python analyses. Repeat the 
 automatic-closure checks for future framework updates.
 
 The frozen validation runtime separately advances scikit-learn from 1.6.1 to 1.9.0 and records
-its new narwhals 2.24.0 dependency in the exact runtime identity and source-bound CI lock. This
-change intentionally leaves NumPy 2.0.2, SciPy 1.13.1, and pandas 2.2.3 unchanged so their
-behavior can be reviewed independently. Isolated seed-12 and seed-42 comparisons preserve the
+its new narwhals 2.24.0 dependency in the exact runtime identity and source-bound CI lock. That
+release intentionally left NumPy 2.0.2, SciPy 1.13.1, and pandas 2.2.3 unchanged so their
+behavior could be reviewed independently. Isolated seed-12 and seed-42 comparisons preserve the
 spatial folds and all naive/boosted aggregate outputs exactly; the maximum linear aggregate
 change is `0.000150451`, below the committed `0.001` canary. CI treats future deprecation
 warnings as errors, and the habitat probe normalizes clipped multiclass probabilities before
@@ -163,6 +163,17 @@ submitted exact dependency snapshot `83443013`; managed graph run `29625412040` 
 CodeQL run `29625410265` succeeded; the SPDX graph records scikit-learn 1.9.0 and narwhals
 2.24.0; and the post-merge audit found zero open dependency, code-scanning, or secret-scanning
 alerts. Future optional-platform locks remain open.
+
+The next coupled review advances NumPy 2.0.2 to
+[2.5.1](https://github.com/numpy/numpy/releases/tag/v2.5.1) and SciPy 1.13.1 to
+[1.18.0](https://docs.scipy.org/doc/scipy/release/1.18.0-notes.html), while retaining pandas
+2.2.3. SciPy is now an explicit direct runtime dependency because the structure pipeline imports
+its deterministic neighborhood filters. The exact relief-filter canary, byte-identical seed-42
+fixtures, unchanged seed-12/seed-42 folds, and a maximum aggregate delta of `0.000000357` bound
+the observed behavior. A clean Python 3.12.13 binary-only, hash-required install passed `pip
+check`, Ruff, 62 tests, and the deterministic smoke workflow with both `FutureWarning` and
+`DeprecationWarning` treated as errors. Hosted and merged-main evidence remain required before
+this paired release is complete.
 
 Pipeline Dependabot proposals are advisory inputs, not mergeable lock updates. The provider
 parses and edits `pipeline/requirements-validation.txt`, but that file is only a transport mirror;

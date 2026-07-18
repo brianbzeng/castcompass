@@ -54,6 +54,16 @@ test("Python dependency snapshot publishes exact versioned lock inventories", ()
     relationship: "direct",
     scope: "development",
   });
+  assert.deepEqual(pipeline.resolved.numpy, {
+    package_url: "pkg:pypi/numpy@2.5.1",
+    relationship: "direct",
+    scope: "development",
+  });
+  assert.deepEqual(pipeline.resolved.scipy, {
+    package_url: "pkg:pypi/scipy@1.18.0",
+    relationship: "direct",
+    scope: "development",
+  });
   assert.deepEqual(pipeline.resolved.narwhals, {
     package_url: "pkg:pypi/narwhals@2.24.0",
     relationship: "indirect",

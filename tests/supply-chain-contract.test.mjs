@@ -78,7 +78,10 @@ test("CI fixes runner versions and enforces dependency review, audits, and SBOM 
   assert.equal((ci.match(/--only-binary=:all: --require-hashes/g) ?? []).length, 2);
   assert.match(ci, /services\/api\/requirements-test\.lock/);
   assert.match(ci, /pipeline\/requirements-ci\.lock/);
-  assert.match(ci, /python -W error::FutureWarning -m unittest discover -s pipeline\/tests -v/);
+  assert.match(
+    ci,
+    /python -W error::FutureWarning -W error::DeprecationWarning -m unittest discover -s pipeline\/tests -v/,
+  );
   assert.doesNotMatch(ci, /pip install ruff|pip install -r .*requirements-(?:smoke|ci)\.txt/);
 
   const generator = await readFile(new URL("scripts/generate-sbom.mjs", root), "utf8");
@@ -127,9 +130,10 @@ test("Python API and pipeline installs use exact source-bound wheel hashes", asy
   const validationConstraints = await readFile(new URL("pipeline/requirements-validation.txt", root));
   assert.deepEqual(validationConstraints, validationLock);
   assert.match(validationLock.toString(), /^narwhals==2\.24\.0$/m);
-  assert.match(validationLock.toString(), /^numpy==2\.0\.2$/m);
+  assert.match(validationLock.toString(), /^numpy==2\.5\.1$/m);
   assert.match(validationLock.toString(), /^scikit-learn==1\.9\.0$/m);
-  assert.match(validationLock.toString(), /^scipy==1\.13\.1$/m);
+  assert.match(validationLock.toString(), /^scipy==1\.18\.0$/m);
+  assert.match(await readFile(new URL("pipeline/requirements-smoke.txt", root), "utf8"), /^scipy>=1\.18,<2$/m);
   const pipelineInput = await readFile(new URL("pipeline/requirements-ci.in", root), "utf8");
   assert.match(pipelineInput, /^-c requirements-validation\.txt$/m);
   assert.doesNotMatch(pipelineInput, /^-c .*\.lock$/m);
@@ -170,6 +174,10 @@ test("the supply-chain runbook closes exercised Python locks but keeps optional 
   assert.match(
     policy,
     /Pipeline Dependabot proposals are advisory inputs[\s\S]+mirror-only[\s\S]+failed[\s\S]+byte-identity contract/i,
+  );
+  assert.match(
+    policy,
+    /NumPy 2\.0\.2 to[\s\S]+2\.5\.1[\s\S]+SciPy 1\.13\.1 to[\s\S]+1\.18\.0[\s\S]+maximum aggregate delta of `0\.000000357`/i,
   );
   assert.match(policy, /exact GitHub Python dependency snapshot[\s\S]+SPDX `versionInfo`/i);
   assert.match(policy, /alert `#2`[\s\S]+changed to fixed[\s\S]+without dismissal/i);

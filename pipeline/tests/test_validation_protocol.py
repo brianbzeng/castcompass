@@ -1578,8 +1578,8 @@ class ValidationProtocolTests(unittest.TestCase):
             "python": "3.12.8",
             "python_implementation": "CPython",
             "narwhals": "2.24.0",
-            "numpy": "2.0.2",
-            "scipy": "1.13.1",
+            "numpy": "2.5.1",
+            "scipy": "1.18.0",
             "scikit-learn": "1.9.0",
             "cffi": "2.1.0",
             "cryptography": "48.0.1",
@@ -1595,9 +1595,9 @@ class ValidationProtocolTests(unittest.TestCase):
                 if relative == "pipeline/requirements-validation.lock":
                     path.write_text(
                         "cffi==2.1.0\ncryptography==48.0.1\njoblib==1.5.3\n"
-                        "narwhals==2.24.0\nnumpy==2.0.2\npycparser==3.0\n"
+                        "narwhals==2.24.0\nnumpy==2.5.1\npycparser==3.0\n"
                         "scikit-learn==1.9.0\n"
-                        "scipy==1.13.1\nthreadpoolctl==3.6.0\n"
+                        "scipy==1.18.0\nthreadpoolctl==3.6.0\n"
                     )
                 else:
                     path.write_text(f"frozen:{relative}\n")

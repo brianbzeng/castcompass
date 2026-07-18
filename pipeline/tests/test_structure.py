@@ -41,6 +41,12 @@ class StructureFeatureTests(unittest.TestCase):
         self.assertEqual(tuple(metadata["channels"]), STRUCTURE_CHANNELS)
         relief = channels[STRUCTURE_CHANNELS.index("local_relief_m")]
         self.assertGreater(float(relief[20, 20]), float(relief[20, 5]))
+        np.testing.assert_allclose(
+            relief[20, 16:27],
+            [0.48, 0.48, 1.58, 1.58, 1.58, 1.90, 1.98, 1.98, 1.98, 0.48, 0.48],
+            rtol=0,
+            atol=1e-6,
+        )
         self.assertTrue(np.all(np.isfinite(channels)))
 
     def test_resolution_audit_does_not_upgrade_resampling(self):
