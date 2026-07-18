@@ -167,6 +167,10 @@ test("the supply-chain runbook closes exercised Python locks but keeps optional 
   assert.match(policy, /stacked successor PRs[\s\S]+do not falsely report a dependency-review pass/i);
   assert.match(policy, /directory-local `services\/api\/\.python-version`[\s\S]+not a control over GitHub's[\s\S]+hosted resolver/i);
   assert.match(policy, /byte-identical transport mirror[\s\S]+managed parser/i);
+  assert.match(
+    policy,
+    /Pipeline Dependabot proposals are advisory inputs[\s\S]+mirror-only[\s\S]+failed[\s\S]+byte-identity contract/i,
+  );
   assert.match(policy, /exact GitHub Python dependency snapshot[\s\S]+SPDX `versionInfo`/i);
   assert.match(policy, /alert `#2`[\s\S]+changed to fixed[\s\S]+without dismissal/i);
   assert.match(
