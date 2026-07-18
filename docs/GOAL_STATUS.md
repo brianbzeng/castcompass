@@ -9,7 +9,7 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
-## Current seven-step work cycle — source admissibility
+## Completed seven-step work cycle — source admissibility
 
 - [x] Reconcile the exact protected `main` after the model-governance receipt cycle. Evidence:
       `main` is `7a3ca95fe5449bc9b41dab9a0fe0a33ceaaaf237`; CI `29658714106`, release
@@ -30,10 +30,21 @@ also satisfied.
 - [x] Add semantic and cross-language adversarial tests plus owner-facing Fishbrain/Facebook and
       official-data guidance. Evidence: 81/81 executable pipeline tests pass with one documented
       optional-raster skip; 5/5 cross-language contract tests pass; Ruff passes.
-- [ ] Pass the complete local repository/security/lock/SBOM suite, publish a protected draft PR,
-      and accept every required check on its exact head.
-- [ ] Merge only after every required check passes, then reconcile exact `main`, post-merge
-      workflows, PR/issue/alert state, and the unchanged Cloudflare/production hold.
+- [x] Pass the complete local repository/security/lock/SBOM suite, publish protected PR `#94`,
+      and accept every required check on exact head
+      `8440158e5b7d8a7be71807310c710911e2f062ed`. Evidence: CI `29662734186`, release
+      provenance `29662734148`, CodeQL `29662733032`, optional Python research
+      `29662734176`, and native image security `29662734152` passed; 17 checks passed, five
+      event-appropriate jobs skipped, and none failed. Local evidence also passed the Cloudflare
+      build and 325/325 Node tests, 29/29 API tests in a fresh hash-pinned environment, Ruff,
+      ESLint, TypeScript, secrets, the zero-execution install policy, all exact Python locks,
+      both SBOM checks, and both npm audits with zero vulnerabilities.
+- [x] Merge only after every required check passes, then reconcile exact implementation `main`
+      `9f41e1afbafd907ee884cc8d6682e8d759182110`. Evidence: CI `29662858447`, release
+      provenance `29662858449`, CodeQL dispatch `29662858267`, optional Python research
+      `29662858432`, and native image security `29662858463` passed; open PRs and Dependabot,
+      code-scanning, and secret-scanning alerts are empty; issue `#86` remains open by design.
+      Cloudflare and production remain paused.
 
 ## Completed seven-step work cycle — model governance
 
