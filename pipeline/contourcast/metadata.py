@@ -51,7 +51,14 @@ def _fallback_source_digest(root: Path) -> str:
     candidates: list[Path] = []
     excluded_parts = {"__pycache__", "node_modules", ".venv", "artifacts", "dist", ".next"}
     source_suffixes = {".py", ".json", ".toml", ".txt", ".md", ".sh", ".yaml", ".yml", ".lock"}
-    for directory in ("pipeline", "services/api", "shared", "scripts"):
+    for directory in (
+        "pipeline",
+        "services/api",
+        "shared",
+        "scripts",
+        "contracts",
+        "model/governance",
+    ):
         base = root / directory
         if base.exists():
             candidates.extend(

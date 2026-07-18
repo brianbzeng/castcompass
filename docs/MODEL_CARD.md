@@ -175,7 +175,12 @@ A model is eligible for a future `candidate` stage only after:
 5. product behavior for low confidence, missing coverage, and source outages is
    tested.
 
-No automatic production promotion is implemented.
+No automatic production promotion is implemented. The strict
+[model-governance policy](MODEL-GOVERNANCE.md) freezes the stage order, relational promotion
+tests, monitoring cadence, privacy boundary, immediate suppression conditions, rollback order,
+180-day maximum evidence age, material-change revalidation triggers, and append-only decision
+identity. Its evaluator can only recommend human review or a protected policy update; the current
+v1 policy suppresses any trained model because only the reviewed heuristic is authorized.
 
 No run may claim evidence under historical v1 or the v2 feasibility pilot. V1
 is not activatable, and v2 intentionally produces no candidate-performance

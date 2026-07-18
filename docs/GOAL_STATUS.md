@@ -9,7 +9,30 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
-## Current seven-step work cycle — API image exception deadline
+## Current seven-step work cycle — model governance
+
+- [x] Reconcile the exact protected `main` after the API-image renewal cycle. Evidence: `main` is
+      `a3242e4369c970500835fa88ce187e670e623385`; CI `29655454304`, release-provenance
+      `29655454306`, and CodeQL `29655454277` passed; open PRs and all three alert classes are
+      empty; issue `#86` remains open for its mandatory 2026-08-04 review.
+- [x] Inventory the existing model-run, opportunity, validation-v1, feasibility-v2, and model-card
+      boundaries without treating the inactive protocols or terrain experiments as validation.
+- [x] Freeze a strict, target-specific v1 governance policy and JSON Schema covering sequential
+      stages, preregistered relational promotion gates, monitoring privacy/cadence, suppression,
+      rollback, revalidation, and audit identity.
+- [x] Implement a fail-closed evaluator and CLI that hash the policy, reject ambiguous evidence,
+      suppress unauthorized trained serving, and never apply a promotion or restoration.
+- [x] Document the operator decision matrix and pass focused schema, semantic, CLI, and Ruff
+      checks. Evidence: 5/5 cross-language schema tests and 7/7 governance tests pass; canonical
+      policy SHA-256 is `dac940bd123a2e6505cc20d535f28e7c84a585f9f3e5cd82efce06eae57f47a5`.
+- [ ] Publish the protected draft PR and accept exact-head CI, dependency-review,
+      release-provenance, and CodeQL evidence. **Local gate passed:** 75/75 executable pipeline
+      tests pass with one optional-raster skip; the Cloudflare build and 325/325 Node tests pass;
+      Ruff, ESLint, and TypeScript checks pass; repository security and lock/SBOM checks pass.
+- [ ] Merge only after every required check passes, then reconcile the exact `main`, workflows,
+      PR/issue state, and alerts. Cloudflare and production stay paused.
+
+## Completed prior seven-step cycle — API image exception deadline
 
 - [x] Reconcile the required handoff, exact `main`, open PRs/issues, Dependabot alerts, and
       post-merge workflows. Evidence: `main` is `e58a7f50359fc3e41f37e5ad168b9ecf089b50b8`,
@@ -142,7 +165,10 @@ also satisfied.
       as admin-approved prospective recruitment—never scraped retrospective evidence.
 - [ ] Validate California halibut relative ranking against frozen baselines and publish
       uncertainty, limitations, negative results, and the current all-zero sample constraint.
-- [ ] Define model promotion, drift, rollback, monitoring, and revalidation gates.
+- [ ] Define model promotion, drift, rollback, monitoring, and revalidation gates. **Local
+      policy, schema, evaluator, CLI, and operator runbook complete;** the separate confirmatory
+      protocol, eligible locked-test evidence, independent review, staged serving exercises,
+      provider monitoring, and deployed release binding remain open.
 - [ ] Establish truthful technical SEO and measurement. **Local crawl set, canonicals,
       metadata, social previews, JSON-LD, robots, sitemap, noindex, asset/font cleanup, and
       runbook complete;** deployment, Google/Bing verification/submission, coverage, Core Web

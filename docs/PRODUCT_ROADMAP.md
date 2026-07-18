@@ -474,7 +474,16 @@ after its acceptance checks pass in the intended environment.
   sufficiently representative held-out set of positive and negative outcomes.
 - [ ] Define model promotion, drift, and rollback gates: beat preregistered geographic/time
   holdout baselines before promotion; monitor by site, season, mode, and taxon; version every
-  release; and require rollback/revalidation when performance or data support drifts.
+  release; and require rollback/revalidation when performance or data support drifts. **Local
+  governance control complete:** the strict California-halibut v1 policy and schema freeze
+  sequential development/candidate/shadow/limited/production stages, relational confirmatory
+  promotion tests, privacy-minimized monitoring, immediate integrity suppression, performance/
+  calibration/drift/support rollback, 180-day and material-change revalidation, immutable
+  fallback order, and append-only decision identity. The fail-closed evaluator hashes the policy,
+  rejects ambiguous evidence, suppresses any trained model under today's heuristic-only policy,
+  and never applies promotion/restoration. A separate preregistered confirmatory protocol,
+  eligible locked-test evidence, independent approval, isolated shadow/limited exercises,
+  provider monitoring, and exact deployed-release binding remain open.
 - [ ] Establish truthful technical SEO and measurement without promoting unvalidated accuracy:
   Google Search Console and Bing Webmaster Tools verification, sitemap submission, crawl/index
   coverage, canonical URLs, metadata, social previews, appropriate structured data, Core Web

@@ -39,13 +39,22 @@ test("machine contract assets declare the locked IDs and versions", async () => 
     "contracts/taxa.schema.json",
     "contracts/observation.schema.json",
     "contracts/model-run.schema.json",
+    "contracts/model-governance.schema.json",
     "contracts/opportunity.schema.json",
   ].map(async (path) => JSON.parse(await readFile(new URL(path, root), "utf8"))));
-  const [catalog, taxaSchema, observationSchema, modelRunSchema, opportunitySchema] = files;
+  const [
+    catalog,
+    taxaSchema,
+    observationSchema,
+    modelRunSchema,
+    modelGovernanceSchema,
+    opportunitySchema,
+  ] = files;
   assert.equal(catalog.contract_version, "castingcompass.taxa/1.0.0");
   assert.equal(taxaSchema.$id, catalog.contract_version);
   assert.equal(observationSchema.$id, "castingcompass.observation/2.0.0");
   assert.equal(modelRunSchema.$id, "castingcompass.model-run/2.0.0");
+  assert.equal(modelGovernanceSchema.$id, "castingcompass.model-governance/1.0.0");
   assert.equal(opportunitySchema.$id, "castingcompass.opportunity/2.0.0");
   assert.deepEqual(catalog.taxa.map((taxon) => taxon.taxon_id), [
     "california-halibut",
@@ -74,14 +83,22 @@ test("Ajv 2020 strictly compiles every schema and validates structural fixtures"
     "contracts/taxa.schema.json",
     "contracts/observation.schema.json",
     "contracts/model-run.schema.json",
+    "contracts/model-governance.schema.json",
     "contracts/opportunity.schema.json",
   ];
-  const [taxaSchema, observationSchema, modelRunSchema, opportunitySchema] = await Promise.all(
+  const [
+    taxaSchema,
+    observationSchema,
+    modelRunSchema,
+    modelGovernanceSchema,
+    opportunitySchema,
+  ] = await Promise.all(
     paths.map(async (path) => JSON.parse(await readFile(new URL(path, root), "utf8"))),
   );
-  const [catalog, corpus] = await Promise.all([
+  const [catalog, corpus, modelGovernancePolicy] = await Promise.all([
     JSON.parse(await readFile(new URL("contracts/taxa.json", root), "utf8")),
     JSON.parse(await readFile(new URL("contracts/fixtures/observation-contract-cases.json", root), "utf8")),
+    JSON.parse(await readFile(new URL("model/governance/california-halibut-v1.json", root), "utf8")),
   ]);
 
   const ajv = new Ajv2020({ strict: true, allErrors: true });
@@ -89,6 +106,7 @@ test("Ajv 2020 strictly compiles every schema and validates structural fixtures"
   const validateCatalog = ajv.compile(taxaSchema);
   const validateObservation = ajv.compile(observationSchema);
   const validateModelRun = ajv.compile(modelRunSchema);
+  const validateModelGovernance = ajv.compile(modelGovernanceSchema);
   const validateOpportunity = ajv.compile(opportunitySchema);
 
   assert.equal(validateCatalog(catalog), true, JSON.stringify(validateCatalog.errors));
@@ -129,6 +147,17 @@ test("Ajv 2020 strictly compiles every schema and validates structural fixtures"
   };
   assert.equal(validateModelRun(modelRun), true, JSON.stringify(validateModelRun.errors));
   assert.equal(validateModelRun({ ...modelRun, target_taxon_id: "rockfish" }), false);
+  assert.equal(
+    validateModelGovernance(modelGovernancePolicy),
+    true,
+    JSON.stringify(validateModelGovernance.errors),
+  );
+  const weakenedGovernance = structuredClone(modelGovernancePolicy);
+  weakenedGovernance.current_release.trained_model_authorized = true;
+  assert.equal(validateModelGovernance(weakenedGovernance), false);
+  const ambiguousGovernance = structuredClone(modelGovernancePolicy);
+  ambiguousGovernance.unreviewed_escape_hatch = true;
+  assert.equal(validateModelGovernance(ambiguousGovernance), false);
 
   const opportunityCommon = {
     id: "pier--20260716T1800Z",
