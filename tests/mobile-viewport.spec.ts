@@ -27,9 +27,14 @@ const TURNSTILE_MOCK_SCRIPT = `(() => {
 })();`;
 
 async function preparePastTripForSubmission(page: Page) {
-  await page.getByRole("button", { name: "Log a past trip" }).click();
+  const trigger = page.getByRole("button", { name: "Log a past trip" });
   const modal = page.locator(".trip-modal");
-  await modal.getByRole("combobox", { name: "Fishing location" }).fill("Limantour Beach");
+  const location = modal.getByRole("combobox", { name: "Fishing location" });
+  await expect(async () => {
+    if (!(await modal.isVisible())) await trigger.click();
+    await expect(location).toBeVisible({ timeout: 1_000 });
+  }).toPass({ intervals: [100, 250, 500], timeout: 8_000 });
+  await location.fill("Limantour Beach");
   await modal.getByRole("option", { name: /Limantour Beach/ }).click();
   await modal.getByLabel("Fishing mode for the whole trip").selectOption("shore");
   await modal.getByLabel("Did the score influence this trip?").selectOption("no");
