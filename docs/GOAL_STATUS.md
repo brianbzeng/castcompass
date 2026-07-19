@@ -61,6 +61,17 @@ by that discovery.
       remains open for reviewed deployment, Google/Bing verification and provider operations,
       observed indexing/coverage, Core Web Vitals, and privacy-reviewed measurement.
 
+      Follow-up PR `#115` added the machine-bound public all-zero validation status and passed
+      exact-head CI `29699233614`, release provenance `29699233623`, and CodeQL
+      `29699534489` at `9c6d491824aeed04feba6c768a272e2325579b9c`. It merged as
+      `7f84cd19ec0e8742d55d6483d14c82b7f42a567d`; the merge tree
+      `6f5e12b859d64a8b5607347ad4818ebc7979466e` exactly equals the accepted-head tree.
+      Main CI `29701986309`, release provenance `29701986318`, and CodeQL `29701986114`
+      passed that exact merge, including 140/140 browser cases, hosted API and pipeline suites,
+      dependency submission, release/SBOM attestations, and all three CodeQL languages.
+      Production and provider configuration remain untouched; this is code and evidence receipt,
+      not deployment or validation evidence.
+
 ## Completed seven-step work cycle — production change authorization
 
 - [x] Reconcile exact protected `main` and inventory every production mutation entry point.
@@ -689,9 +700,16 @@ by that discovery.
       not ingest private/social data. The register and exact ds3185/ds3186 receipts are in
       `docs/OFFICIAL-FISHERIES-DATA.md` and `pipeline/sources/receipts/`; neither aggregate is
       approved for training, validation, scoring, or point labels.
-- [ ] Draft five short user-interview scripts focused on whether people understand the
-      heuristic ranking, freshness labels, limitations, and trip-report privacy. Avoid collecting
-      precise locations, credentials, or private trip notes while the service is paused.
+- [x] Draft five short user-interview scripts focused on whether people understand the
+      heuristic ranking, freshness labels, limitations, and trip-report privacy. The fictional,
+      machine-checked scripts in `docs/USER-INTERVIEWS.md` require no account or real trip,
+      prohibit recordings and participant-level notes, and permit only aggregate non-identifying
+      comprehension tallies. Execution remains unauthorized, and the work is explicitly not
+      model-validation, catch-outcome, safety, access, legality, freshness, or accuracy evidence.
+      Local acceptance passed the Cloudflare build and 406/406 Node tests, 140/140 Chromium/WebKit
+      browser cases, ESLint, TypeScript, the locked security/SBOM/provenance chain and both zero-
+      vulnerability npm audits, 29/29 API tests plus the D1 query/index contract, Ruff, 81/81
+      pipeline tests with one documented optional-raster skip, and deterministic smoke.
 - [ ] Track operating costs and receipts by provider in a simple accounting ledger. Keep this
       separate from application logs and analytics; a financial dashboard comes later.
 
