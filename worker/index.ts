@@ -4,7 +4,13 @@ import handler from "vinext/server/app-router-entry";
 import sites from "../public/data/sites.json";
 import { handleTripRequest, type TripApiEnv } from "./trips";
 import { cleanupAuthData, getAuthenticatedUser, handleAccountRequest, legalAcceptanceRequiredResponse, unauthorizedResponse } from "./auth";
-import { reviewTripBacklog, reviewTripWithMimo } from "./trip-review";
+import {
+  consumeAiReviewQueue,
+  dispatchAiReviewBacklog,
+  scheduleTripReview,
+  type AiReviewQueueEnv,
+  type QueueBatchLike,
+} from "./trip-review-queue.ts";
 import { handleDiscussionRequest } from "./discussions";
 import {
   canonicalRedirect,
@@ -23,6 +29,7 @@ import {
   internalErrorResponse,
   logEvent,
   logRequestCompleted,
+  observeQueueTask,
   observeScheduledTask,
   requestLogContext,
   runWithLogContext,
@@ -34,7 +41,7 @@ interface AssetFetcher {
   fetch(request: Request): Promise<Response>;
 }
 
-interface Env extends TripApiEnv, TurnstileEnv, RateLimitEnv, ObservabilityEnv {
+interface Env extends TripApiEnv, TurnstileEnv, RateLimitEnv, ObservabilityEnv, AiReviewQueueEnv {
   ASSETS: AssetFetcher;
   MIMO_API_KEY?: string;
   MIMO_MODEL?: string;
@@ -74,8 +81,12 @@ const worker = {
 
   async scheduled(_controller: unknown, env: Env, ctx: ExecutionContext) {
     if (releaseMaintenanceEnabled(env)) return;
-    ctx.waitUntil(observeScheduledTask(env, "trip_review_backlog", () => reviewTripBacklog(env, sites)));
+    ctx.waitUntil(observeScheduledTask(env, "trip_review_backlog", () => dispatchAiReviewBacklog(env, sites)));
     ctx.waitUntil(observeScheduledTask(env, "auth_data_cleanup", () => cleanupAuthData(env)));
+  },
+
+  async queue(batch: QueueBatchLike, env: Env) {
+    await observeQueueTask(env, "ai_review_consumer", () => consumeAiReviewQueue(batch, env, sites));
   },
 };
 
@@ -117,9 +128,11 @@ async function routeRequest(request: Request, env: Env, ctx: ExecutionContext): 
 
   const accountResponse = await handleAccountRequest(request, env, sites, {
     waitUntil: (promise) => ctx.waitUntil(promise),
-    onTripUpdated: (trip) => ctx.waitUntil(reviewTripWithMimo(env, trip.id, sites)),
+    onTripUpdated: (trip) => ctx.waitUntil(scheduleTripReview(env, trip.id, sites, { resetForNewInput: true })),
     onTripsReviewRequested: (trips) => {
-      for (const trip of trips) ctx.waitUntil(reviewTripWithMimo(env, trip.id, sites));
+      for (const trip of trips) {
+        ctx.waitUntil(scheduleTripReview(env, trip.id, sites, { expediteRetry: true }));
+      }
     },
   });
   if (accountResponse) return accountResponse;
@@ -135,7 +148,7 @@ async function routeRequest(request: Request, env: Env, ctx: ExecutionContext): 
 
   const tripResponse = await handleTripRequest(request, env, sites, {
     accountId: authenticatedUser?.id ?? null,
-    onTripCompleted: (trip) => ctx.waitUntil(reviewTripWithMimo(env, trip.id, sites)),
+    onTripCompleted: (trip) => ctx.waitUntil(scheduleTripReview(env, trip.id, sites)),
   });
   if (tripResponse) return tripResponse;
 

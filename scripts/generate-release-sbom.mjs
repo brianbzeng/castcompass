@@ -21,6 +21,7 @@ const inputPaths = [
   "package.json",
   "pipeline/requirements-ci.lock",
   "security/api-image-policy.json",
+  "security/ai-review-queue-policy.json",
   "security/npm-install-policy.json",
   "security/sbom.cdx.json",
   "services/api/.python-version",

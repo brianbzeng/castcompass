@@ -83,7 +83,7 @@ refer to them consistently:
 | `CC — latency by route` | `event = "http.request.completed" AND status < 500` | p50/p95/p99 of `duration_ms`, grouped by `route` |
 | `CC — rate-limit controls` | `startsWith(event, "rate_limit.")` | Count over time, grouped by `event` |
 | `CC — privacy jobs` | `startsWith(event, "privacy.") OR task = "auth_data_cleanup"` | Event table with `level`, `event`, `operation_id`, and version |
-| `CC — AI review` | `startsWith(event, "ai_review.") OR task = "trip_review_backlog"` | Count and latest failures by event/version |
+| `CC — AI review` | `startsWith(event, "ai_review.") OR startsWith(event, "queue.task.") OR task = "trip_review_backlog"` | Count and latest failures by event/version |
 | `CC — email delivery` | `startsWith(event, "email.") OR startsWith(event, "password_recovery.")` | Count by event and provider status; no recipient fields |
 | `CC — one request` | `request_id = "<support-provided UUID>"` | Event table ordered by timestamp |
 | `CC — one session window` | `actor_session_key = "<copied pseudonym>"` | Event table; use only for a bounded incident and never as an identity lookup |
@@ -94,6 +94,13 @@ query is not an alert. Configure notification rules separately for sustained 5xx
 exceptions, CPU/wall-time regression, scheduled failures, D1 errors, and request-volume anomaly.
 Every alert needs an owner, threshold/window, cooldown, runbook link, acknowledgement path, and
 tested destination.
+
+Before the default-off advisory Queue can activate, extend `CC — AI review` with the bounded
+`ai_review.queue.*` events and add provider-native charts/alerts for queue backlog depth and age,
+retry volume, D1 `needs_attention` count, DLQ depth, consumer failures, and estimated provider
+cost. Application events deliberately omit queue job IDs, trip IDs, messages, prompts, notes,
+and provider bodies; an operator may correlate one opaque job only through the separately
+authorized D1 runbook in `docs/AI-REVIEW-QUEUE.md`.
 
 ## Incident workflow
 

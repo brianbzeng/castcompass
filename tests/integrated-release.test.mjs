@@ -193,7 +193,8 @@ test("the operator runbook enumerates the exact guarded migration sequence", asy
   const documentedMigrations = [...runbook.matchAll(/export RELEASE_MIGRATION=(\d{4}_[A-Za-z0-9_]+\.sql)/g)]
     .map((match) => match[1]);
   assert.deepEqual(documentedMigrations, STAGED_MIGRATIONS);
-  assert.match(runbook, /`0009` through `0017`/);
+  assert.match(runbook, /`0009` through `0018`/);
   assert.match(runbook, /exact nullable\s+text trip-idempotency column/);
   assert.match(operations, /Migration `0017_trip_idempotency\.sql` completed before normal traffic resumed/);
+  assert.match(operations, /Migration `0018_ai_review_queue\.sql` completed before any Queue binding/);
 });

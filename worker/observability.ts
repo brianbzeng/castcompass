@@ -24,7 +24,7 @@ export interface RequestLogContext {
 interface OperationLogContext {
   operationId: string;
   workerVersionId: string | null;
-  environment: "scheduled";
+  environment: "scheduled" | "queue";
   minimumLevel: LogLevel;
 }
 
@@ -210,6 +210,37 @@ export function observeScheduledTask(
         duration_ms: Math.max(0, Math.round((performance.now() - started) * 100) / 100),
         ...safeErrorFields(error, "scheduled_task_failed"),
       });
+    }
+  });
+}
+
+export function observeQueueTask(
+  env: ObservabilityEnv,
+  task: string,
+  callback: () => Promise<unknown>,
+): Promise<void> {
+  const context: OperationLogContext = {
+    operationId: crypto.randomUUID(),
+    workerVersionId: safeIdentifier(env.CF_VERSION_METADATA?.id),
+    environment: "queue",
+    minimumLevel: configuredLogLevel(env.LOG_LEVEL),
+  };
+  return runWithLogContext(context, async () => {
+    const started = performance.now();
+    logEvent("info", "queue.task.started", { task });
+    try {
+      await callback();
+      logEvent("info", "queue.task.completed", {
+        task,
+        duration_ms: Math.max(0, Math.round((performance.now() - started) * 100) / 100),
+      });
+    } catch (error) {
+      logEvent("error", "queue.task.failed", {
+        task,
+        duration_ms: Math.max(0, Math.round((performance.now() - started) * 100) / 100),
+        ...safeErrorFields(error, "queue_task_failed"),
+      });
+      throw error;
     }
   });
 }

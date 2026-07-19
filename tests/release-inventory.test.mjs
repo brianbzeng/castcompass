@@ -12,6 +12,7 @@ const inputPaths = [
   "pipeline/.python-version",
   "pipeline/requirements-ci.lock",
   "security/api-image-policy.json",
+  "security/ai-review-queue-policy.json",
   "security/sbom.cdx.json",
   "services/api/.python-version",
   "services/api/Dockerfile",

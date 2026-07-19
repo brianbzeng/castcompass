@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://castingcompass.com/contracts/ai-review-queue-message.schema.json",
+  "title": "CastingCompass advisory AI review queue message",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "jobId"],
+  "properties": {
+    "version": {
+      "const": "castingcompass.ai-review-queue/1.0.0"
+    },
+    "jobId": {
+      "type": "string",
+      "pattern": "^airj_[a-f0-9]{32}$"
+    }
+  }
+}

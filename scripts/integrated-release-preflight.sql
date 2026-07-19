@@ -19,6 +19,7 @@ WITH expected_legal_columns(table_name, column_name) AS (
     ('signup_age_proofs'),
     ('privacy_deletion_jobs'),
     ('privacy_deletion_tasks'),
+    ('ai_review_jobs'),
     ('forecast_impressions'),
     ('trip_validation_provenance'),
     ('validation_feasibility_activations'),
@@ -58,7 +59,9 @@ WITH expected_legal_columns(table_name, column_name) AS (
     ('trips_reporter_active_created_idx'),
     ('trip_validation_provenance_forecast_trip_idx'),
     ('validation_feasibility_recruitment_user_sequence_idx'),
-    ('validation_feasibility_correction_activation_sequence_idx')
+    ('validation_feasibility_correction_activation_sequence_idx'),
+    ('ai_review_jobs_trip_unique'),
+    ('ai_review_jobs_dispatch_idx')
 )
 SELECT
   COALESCE((

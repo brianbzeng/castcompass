@@ -13,6 +13,7 @@
     "TRIP_PHOTO_UPLOADS_ENABLED": "false",
     "TURNSTILE_ENABLED": "false",
     "RATE_LIMITING_ENABLED": "false",
+    "AI_REVIEW_QUEUE_ENABLED": "false",
     "RELEASE_MAINTENANCE_MODE": "false"
   },
   "ratelimits": [

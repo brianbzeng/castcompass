@@ -408,6 +408,36 @@ export const trips = sqliteTable(
   ],
 );
 
+export const aiReviewJobs = sqliteTable(
+  "ai_review_jobs",
+  {
+    id: text("id").primaryKey(),
+    tripId: text("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
+    state: text("state").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    availableAt: text("available_at").notNull(),
+    leaseExpiresAt: text("lease_expires_at"),
+    lastErrorCode: text("last_error_code"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    completedAt: text("completed_at"),
+  },
+  (table) => [
+    uniqueIndex("ai_review_jobs_trip_unique").on(table.tripId),
+    index("ai_review_jobs_dispatch_idx").on(table.state, table.availableAt, table.leaseExpiresAt),
+    check(
+      "ai_review_jobs_state_check",
+      sql`${table.state} in ('pending', 'queued', 'processing', 'retry', 'completed', 'needs_attention')`,
+    ),
+    check("ai_review_jobs_attempts_check", sql`${table.attempts} >= 0 and ${table.attempts} <= 5`),
+    check(
+      "ai_review_jobs_terminal_check",
+      sql`(${table.state} = 'completed' and ${table.completedAt} is not null)
+        or (${table.state} != 'completed' and ${table.completedAt} is null)`,
+    ),
+  ],
+);
+
 export const forecastImpressions = sqliteTable(
   "forecast_impressions",
   {

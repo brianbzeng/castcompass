@@ -7,6 +7,7 @@ import {
   internalErrorResponse,
   logEvent,
   logRequestCompleted,
+  observeQueueTask,
   observeScheduledTask,
   requestLogContext,
   routeTemplate,
@@ -163,6 +164,30 @@ test("internal failures are generic, non-cacheable, and scheduled errors omit ex
   assert.equal(entries[0][0].event, "scheduled.task.failed");
   assert.equal(entries[0][0].task, "auth_data_cleanup");
   assert.doesNotMatch(JSON.stringify(entries), /private\.angler|bearer-secret-value/);
+});
+
+test("queue failures keep correlation and redaction while propagating for provider retry", async () => {
+  const secretMessage = "private.angler@example.com bearer-queue-secret";
+  const originalLog = console.log;
+  console.log = () => undefined;
+  let entries;
+  try {
+    entries = await capture("error", async () => {
+      await assert.rejects(observeQueueTask(
+        { CF_VERSION_METADATA: { id: "version-safe-queue" } },
+        "ai_review_consumer",
+        async () => { throw new Error(secretMessage); },
+      ), /bearer-queue-secret/);
+    });
+  } finally {
+    console.log = originalLog;
+  }
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0][0].event, "queue.task.failed");
+  assert.equal(entries[0][0].environment, "queue");
+  assert.equal(entries[0][0].task, "ai_review_consumer");
+  assert.equal(entries[0][0].worker_version_id, "version-safe-queue");
+  assert.doesNotMatch(JSON.stringify(entries), /private\.angler|bearer-queue-secret/);
 });
 
 test("Wrangler stores only normalized custom logs and the Worker has one console boundary", async () => {
