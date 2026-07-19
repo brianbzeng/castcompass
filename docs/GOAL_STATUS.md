@@ -13,7 +13,7 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
-## Active seven-step work cycle — production change authorization
+## Completed seven-step work cycle — production change authorization
 
 - [x] Reconcile exact protected `main` and inventory every production mutation entry point.
       Starting `main` is `41e83dff77b8bcca9e42a4ef2f4cdf9e7b58f1d8`; the active, drifted Worker
@@ -37,7 +37,7 @@ by that discovery.
       mapping, policy-lock, and redaction tests; update the authoritative release, moderation,
       deployment, and incident-maintenance runbooks. A valid packet remains only an authorization
       boundary, never provider success, deployed-source, live-host, migration, or release evidence.
-- [ ] Complete the full clean repository verification and publish the exact head through a
+- [x] Complete the full clean repository verification and publish the exact head through a
       protected draft PR without running a production command.
       Local verification is green on exact Node 22.23.1/npm 10.9.8, including a fresh
       `npm ci --ignore-scripts`, Cloudflare build, 395/395 Node tests, 48/48 focused authorization
@@ -46,8 +46,27 @@ by that discovery.
       29/29 API tests on local 3.13.12 plus 18 migrations, 14 critical query plans, and every
       foreign-key child path indexed; Ruff; 81/81 pipeline tests on exact 3.12.13 with one
       documented optional-raster skip; and deterministic smoke. Hosted API CI remains the exact
-      Python 3.13.14 authority. Draft-PR publication and exact-head hosted checks remain open.
-- [ ] Merge only the accepted exact head and add the immutable protected-`main` receipt.
+      Python 3.13.14 authority. Protected draft PR `#111` at exact head
+      `ec543d9be52d4b18fb88f588683df0547f53e9c2` passed PR CI `29695839861`, release
+      provenance `29695839860`, and CodeQL `29695839366`, including 140/140 browser cases.
+      Duplicate branch-push release provenance `29695817251` also passed. Branch-push CI
+      `29695817225` initially passed 139/140 browser cases after one WebKit recovery-state flake;
+      the unchanged head passed the complete PR browser matrix, the isolated case 10/10 locally,
+      and branch-push attempt 2. No source weakening, production command, deployment, D1
+      mutation, or Cloudflare change was used.
+- [x] Merge only the accepted exact head and add the immutable protected-`main` receipt. PR
+      `#111` merged as `3b44c5bc57d30a64c6576be99ebdb85182052013`. Main release provenance
+      `29696345556` and CodeQL `29696345381` passed on their original attempts, including the
+      deterministic release bundle plus release and CycloneDX SBOM attestations. Main CI
+      `29696345544` attempt 1 passed 139/140 browser cases after hosted WebKit returned `NaN` for
+      one computed `paddingTop` read rather than reporting a failed layout boundary; the exact
+      case then passed 30/30 in a local WebKit stress repeat, and unchanged-main attempt 2 passed
+      140/140 browser cases plus API, pipeline, dependency submission, security, lint,
+      TypeScript, and unit gates. Open PRs and Dependabot, code-scanning, and secret-scanning
+      alerts are all zero; issue `#86` remains open by design. Production remains active,
+      drifted, and untouched. The broader P0 provider gate stays open for separately authorized
+      migrations, bindings and feature flags, maintenance mode, source binding, live-host
+      verification, and guarded release acceptance.
 
 ## Completed seven-step work cycle — Cloudflare provider-state hold
 
