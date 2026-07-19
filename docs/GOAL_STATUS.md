@@ -9,7 +9,7 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
-## Active seven-step work cycle — default-off advisory AI review queue
+## Completed seven-step work cycle — default-off advisory AI review queue
 
 - [x] Reconcile exact protected `main`, the owner roadmap, and the highest-risk repository gap.
       Starting `main` is `bb3bdc4cef3bbd38370d14924803adf5ea6ed2b3`; production, Cloudflare,
@@ -24,11 +24,22 @@ also satisfied.
 - [x] Add the strict message schema, policy verifier, migration/query-plan/release guards,
       redacted structured logging, non-executing operator replay plan, owner UI state, threat and
       access-control documentation, and adversarial runtime/policy coverage.
-- [ ] Publish the protected draft PR only after the complete local repository, API, pipeline,
-      supply-chain, migration, and offline operational verification passes on the exact commit.
-- [ ] Accept every exact-head GitHub gate, merge only that accepted head, reconcile protected
-      `main` and alerts, and record the immutable receipt without deploying or configuring a
-      provider queue.
+- [x] Publish protected PR `#100` only after the complete local suite passed on exact head
+      `8b5f4059cf92b1364f856331ea5c3724c88cad7e`. Evidence: Cloudflare build and 366/366
+      Node tests; 29/29 API tests; 18 migrations, 14 critical query plans, and every foreign-key
+      child path indexed; Ruff and 81/81 pipeline tests with one documented optional-raster
+      skip plus deterministic smoke; ESLint; TypeScript; secrets; zero-execution npm policy;
+      exact Python locks; both SBOM gates; both npm audits with zero vulnerabilities; and clean
+      exact-commit privacy-rights and operational-restore drills that correctly remained
+      production-closed. Exact-head CI `29672461273`, release provenance `29672461228`, CodeQL
+      `29672460408`, and native image security `29672461239` passed; 15 checks succeeded, five
+      event-appropriate jobs skipped, and none failed.
+- [x] Merge only the accepted exact head and reconcile protected `main`. PR `#100` merged as
+      `1ffe0bcbd46ebbf518747ca26abb8d348c06624e`; main CI `29672574145`, release provenance
+      `29672574141`, CodeQL `29672574061`, and native image security `29672574136` passed that
+      exact commit. Open PRs and Dependabot, code-scanning, and secret-scanning alerts are all
+      zero; issue `#86` remains open by design. Cloudflare and production remain paused, the
+      queue flag remains false, and no provider queue or binding was created.
 
 ## Completed seven-step work cycle — isolated security-exercise guard
 
