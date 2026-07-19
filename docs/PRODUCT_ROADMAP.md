@@ -315,6 +315,12 @@ after its acceptance checks pass in the intended environment.
   - [ ] Exercise the attack surface in an isolated staging environment with authorized load,
     stress, and penetration tests; remediate critical/high findings and retest before production
     promotion. Never aim stress or intrusive security testing at production user data.
+    Repository preparation is locally complete: the strict private authorization contract,
+    staging-only health identity, permanently blocked production inventory, bounded digest-pinned
+    ZAP runner, adversarial refusal tests, private raw evidence, and aggregate-only receipt are in
+    [SECURITY-TESTING.md](SECURITY-TESTING.md). This item remains open until isolated provider
+    resources, written independent authorization, a real public/authenticated/manual exercise,
+    remediation/retest, and independent acceptance exist.
 - [ ] Complete the privacy lifecycle and deletion policy before broader account recruitment.
   Maintain a data inventory and cascade map covering primary rows, public copies, objects,
   queues, logs, analytics, exports, derived artifacts, and backups; make deletion retries and

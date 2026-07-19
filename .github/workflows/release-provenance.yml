@@ -25,6 +25,7 @@ jobs:
       - run: npm run security:dependencies
       - run: npm run security:sbom
       - run: npm run security:release-sbom
+      - run: npm run security:exercise-policy
       - run: npm run build:cloudflare
       - name: Build deterministic release artifacts
         run: |

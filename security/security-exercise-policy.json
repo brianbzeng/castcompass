@@ -1,0 +1,55 @@
+{
+  "schema_version": "castingcompass.security-exercise-policy/1.0.0",
+  "policy_id": "castingcompass-isolated-security-exercise-v1",
+  "authorization_contract_version": "castingcompass.security-exercise-authorization/1.0.0",
+  "receipt_contract_version": "castingcompass.security-exercise-receipt/1.0.0",
+  "scanner": {
+    "name": "OWASP ZAP",
+    "version": "2.17.0",
+    "image_repository": "ghcr.io/zaproxy/zaproxy",
+    "image_index_digest": "sha256:8d387b1a63e3425beef4846e39719f5af2a787753af2d8b6558c6257d7a577a2",
+    "image_reference": "ghcr.io/zaproxy/zaproxy@sha256:8d387b1a63e3425beef4846e39719f5af2a787753af2d8b6558c6257d7a577a2"
+  },
+  "production_hosts": [
+    "castingcompass.com",
+    "www.castingcompass.com",
+    "castcompass.brianbzeng.com",
+    "contourcast.brianbzeng.com"
+  ],
+  "public_path_patterns": [
+    "^/$",
+    "^/ai-disclosure/?$",
+    "^/privacy/?$",
+    "^/terms/?$",
+    "^/api/health$",
+    "^/robots\\.txt$",
+    "^/sitemap\\.xml$"
+  ],
+  "excluded_path_patterns": [
+    "^/api/(?!health$).*$",
+    "^/profile(?:/.*)?$",
+    "^/_next/image(?:/.*)?$"
+  ],
+  "limits": {
+    "maximum_authorization_window_minutes": 480,
+    "maximum_spider_minutes": 2,
+    "maximum_scan_minutes": 15,
+    "maximum_rule_minutes": 2,
+    "delay_milliseconds": 250,
+    "threads_per_host": 1,
+    "maximum_alerts_per_rule": 5,
+    "active_strength": "Low",
+    "alert_threshold": "Medium",
+    "request_timeout_milliseconds": 5000,
+    "maximum_health_response_bytes": 8192,
+    "maximum_authorization_bytes": 65536,
+    "maximum_report_bytes": 16777216
+  },
+  "production_gates": {
+    "isolated_staging_provisioned": false,
+    "independent_tester_appointed": false,
+    "authenticated_multi_account_testing_completed": false,
+    "critical_high_findings_remediated_and_retested": false,
+    "independent_acceptance_recorded": false
+  }
+}

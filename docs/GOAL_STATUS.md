@@ -9,6 +9,36 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
+## Active seven-step work cycle — isolated security-exercise guard
+
+- [x] Reconcile exact protected `main` and the prioritized roadmap. Starting `main` is
+      `983752ae8950c6611e0a943e3bb33527e7871e3b`; L10 isolated-staging DAST preparation is the
+      highest-risk repository work that can advance without touching paused production.
+- [x] Inventory the dynamic attack surface and preserve the hard boundary: no production host,
+      alias, binding, user data, provider call, deployment, DNS change, load test, or intrusive
+      scan is authorized by this cycle.
+- [x] Freeze the maintained primary scanner approach and supply-chain identity. OWASP ZAP
+      2.17.0 is locked to image-index digest
+      `sha256:8d387b1a63e3425beef4846e39719f5af2a787753af2d8b6558c6257d7a577a2`;
+      the runner uses the Automation Framework with fixed scope, duration, rate, and resource
+      ceilings and never pulls implicitly. The pinned image accepted the generated active plan
+      with `zap.sh -cmd -autocheck` and exit 0 while Docker networking was disabled.
+- [x] Implement the production-refusing private authorization contract, staging-only health
+      marker/version preflight, passive/public-active plan generator, hardened Docker command,
+      private evidence boundary, and aggregate-only receipt that can never claim production
+      readiness by itself.
+- [x] Add adversarial coverage for production aliases/subdomains, hostile URLs, active-loopback
+      and IP targets, stale/oversized windows, every safety assertion, extra/private fields,
+      redirect/header/marker/version mismatch, fixed scan limits, missing confirmation,
+      no-subprocess-on-refusal, private-file permissions/symlinks, and receipt redaction.
+- [ ] Pass the full clean repository/security suite, publish a protected draft PR, and accept
+      every exact-head CI, CodeQL, provenance, dependency, and native-image check without
+      deploying.
+- [ ] Merge only the accepted exact head, reconcile protected `main`, record immutable run and
+      commit evidence here, and leave L10 explicitly open for isolated provider resources,
+      written independent authorization, authenticated/manual testing, remediation/retest, and
+      independent acceptance.
+
 ## Completed seven-step work cycle — privacy-rights case handling
 
 - [x] Reconcile the exact protected `main` after the source-admissibility receipt. Evidence:

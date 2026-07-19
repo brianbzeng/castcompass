@@ -261,18 +261,24 @@ that could become a privacy, integrity, or availability incident.
 - **Owner:** Independent security tester and staging owner.
 - **State:** open.
 - **Evidence:** No DAST acceptance receipt exists. The current
-  [performance policy](PERFORMANCE-READINESS.md) and load harness refuse production and require
-  explicit authorization for remote staging; that safety boundary is preparation, not a DAST
-  pass.
+  [performance policy](PERFORMANCE-READINESS.md) and load harness refuse production. The
+  [isolated security-testing runbook](SECURITY-TESTING.md), strict private authorization schema,
+  immutable ZAP 2.17.0 image digest, staging-only health marker, production-refusing runner,
+  low-impact public-surface plan, private raw evidence, and aggregate-only receipt provide a
+  second fail-closed preparation boundary. They are not a DAST pass and cannot self-approve
+  production readiness.
 - **Alert:** A future signed/immutable DAST report, staging runtime alerts, and a tracked finding
   with severity, owner, deadline, fix commit, and retest receipt.
 - **Recovery:** Block promotion, isolate the staging target, remediate critical/high findings,
   add regression coverage, rebuild, and retest before production.
 - **Residual risk:** The deployed composition has not been attack-tested in an authorized
   isolated environment. This is an explicit launch gate, not a presumed pass.
-- **Next gate:** Create an isolated staging hostname and synthetic dataset, written scope and
-  authorization, tester identity, rate/cost ceilings, emergency stop, and evidence location.
-  Never target `castingcompass.com`, aliases, production bindings, or user data.
+- **Next gate:** Never target `castingcompass.com`, aliases, production bindings, or user data.
+  Create completely separate staging bindings and a synthetic dataset; appoint the
+  independent tester and monitoring operator; record written scope, active authorization,
+  rate/cost ceilings, emergency stop, and private evidence location; inject the matching staging
+  exercise marker; then exercise public, authenticated, multi-account, and manual business-logic
+  scope. Remediate and retest critical/high findings before independent acceptance.
 
 ### L11 — API rate limiting
 

@@ -40,6 +40,7 @@ interface Env extends TripApiEnv, TurnstileEnv, RateLimitEnv, ObservabilityEnv {
   MIMO_MODEL?: string;
   PUBLIC_DISCUSSIONS_ENABLED?: string;
   RELEASE_MAINTENANCE_MODE?: string;
+  SECURITY_EXERCISE_ID?: string;
 }
 
 interface ExecutionContext {

@@ -4,6 +4,7 @@ interface SecurityEnv {
   DB?: D1DatabaseLike;
   CF_VERSION_METADATA?: { id?: string };
   RELEASE_MAINTENANCE_MODE?: string;
+  SECURITY_EXERCISE_ID?: string;
 }
 
 export const API_MUTATION_BODY_LIMIT = 64 * 1024;
@@ -71,11 +72,13 @@ export async function healthResponse(request: Request, env: SecurityEnv): Promis
 
   const status = databaseAvailable ? 200 : 503;
   const workerVersionId = safeWorkerVersionId(env.CF_VERSION_METADATA?.id);
+  const securityExerciseId = safeSecurityExerciseId(env.SECURITY_EXERCISE_ID);
   const body = JSON.stringify({
     status: databaseAvailable ? "ok" : "degraded",
     service: "castingcompass-web",
     workerVersionId,
     releaseMaintenance: releaseMaintenanceEnabled(env),
+    securityExerciseId,
   });
   return new Response(request.method === "HEAD" ? null : body, {
     status,
@@ -170,6 +173,10 @@ function maintenanceDocument() {
 
 function safeWorkerVersionId(value: unknown) {
   return typeof value === "string" && /^[A-Za-z0-9-]{1,128}$/.test(value) ? value : null;
+}
+
+function safeSecurityExerciseId(value: unknown) {
+  return typeof value === "string" && /^sec_[a-f0-9]{32}$/.test(value) ? value : null;
 }
 
 /**

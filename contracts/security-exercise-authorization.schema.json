@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "castingcompass.security-exercise-authorization/1.0.0",
+  "title": "CastingCompass isolated security-exercise authorization",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "exercise_id",
+    "source_commit",
+    "mode",
+    "environment",
+    "target_origin",
+    "expected_worker_version_id",
+    "window_start_at",
+    "window_end_at",
+    "authorization",
+    "safety"
+  ],
+  "properties": {
+    "schema_version": { "const": "castingcompass.security-exercise-authorization/1.0.0" },
+    "exercise_id": { "$ref": "#/$defs/exerciseId" },
+    "source_commit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "mode": { "enum": ["passive-baseline", "active-staging"] },
+    "environment": { "enum": ["local-synthetic", "isolated-staging"] },
+    "target_origin": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 253,
+      "pattern": "^https?://[^/?#]+$"
+    },
+    "expected_worker_version_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9-]{1,128}$"
+    },
+    "window_start_at": { "$ref": "#/$defs/timestamp" },
+    "window_end_at": { "$ref": "#/$defs/timestamp" },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "written_scope_approved",
+        "active_testing_approved",
+        "independent_tester_authorized"
+      ],
+      "properties": {
+        "written_scope_approved": { "type": "boolean" },
+        "active_testing_approved": { "type": "boolean" },
+        "independent_tester_authorized": { "type": "boolean" }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "synthetic_data_only",
+        "production_bindings_attached",
+        "production_user_data_accessible",
+        "external_providers_disabled",
+        "outbound_callbacks_disabled",
+        "monitoring_operator_ready",
+        "emergency_stop_verified"
+      ],
+      "properties": {
+        "synthetic_data_only": { "type": "boolean" },
+        "production_bindings_attached": { "type": "boolean" },
+        "production_user_data_accessible": { "type": "boolean" },
+        "external_providers_disabled": { "type": "boolean" },
+        "outbound_callbacks_disabled": { "type": "boolean" },
+        "monitoring_operator_ready": { "type": "boolean" },
+        "emergency_stop_verified": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "exerciseId": { "type": "string", "pattern": "^sec_[a-f0-9]{32}$" },
+    "timestamp": { "type": "string", "format": "date-time" }
+  }
+}

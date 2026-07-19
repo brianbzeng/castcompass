@@ -39,8 +39,12 @@ test("canonical redirects preserve path and query without redirecting preview ho
   assert.equal(canonicalRedirect(new Request("https://example.com/privacy")), null);
 });
 
-test("health endpoint reports D1 readiness, Worker version, and supports HEAD", async () => {
-  const env = { DB: okDatabase(), CF_VERSION_METADATA: { id: "version-123" } };
+test("health endpoint reports D1 readiness, Worker and staging exercise identity, and supports HEAD", async () => {
+  const env = {
+    DB: okDatabase(),
+    CF_VERSION_METADATA: { id: "version-123" },
+    SECURITY_EXERCISE_ID: "sec_0123456789abcdef0123456789abcdef",
+  };
   const get = await healthResponse(new Request(`${ORIGIN}/api/health`), env);
   assert.equal(get?.status, 200);
   assert.deepEqual(await get?.json(), {
@@ -48,6 +52,7 @@ test("health endpoint reports D1 readiness, Worker version, and supports HEAD", 
     service: "castingcompass-web",
     workerVersionId: "version-123",
     releaseMaintenance: false,
+    securityExerciseId: "sec_0123456789abcdef0123456789abcdef",
   });
   assert.equal(get?.headers.get("Cache-Control"), "no-store");
 
@@ -62,6 +67,7 @@ test("health endpoint reports D1 readiness, Worker version, and supports HEAD", 
     service: "castingcompass-web",
     workerVersionId: null,
     releaseMaintenance: false,
+    securityExerciseId: null,
   });
 
   const post = await healthResponse(new Request(`${ORIGIN}/api/health`, { method: "POST" }), { DB: okDatabase() });
@@ -132,8 +138,11 @@ test("release maintenance stops writes and serves a self-contained browser 503",
   const health = await healthResponse(new Request(`${ORIGIN}/api/health`), {
     ...enabled,
     DB: okDatabase(),
+    SECURITY_EXERCISE_ID: "unsafe-value",
   });
-  assert.equal((await health?.json()).releaseMaintenance, true);
+  const healthBody = await health?.json();
+  assert.equal(healthBody.releaseMaintenance, true);
+  assert.equal(healthBody.securityExerciseId, null);
 });
 
 test("mutation limits are narrow for JSON routes and allow photo multipart routes", () => {
