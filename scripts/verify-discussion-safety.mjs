@@ -31,6 +31,7 @@ export async function verifySourceSafety(root = DEFAULT_ROOT) {
     deployment,
     postMigrationAudit,
     packageJson,
+    releaseWrapper,
   ] = await Promise.all([
     read("wrangler.jsonc"),
     read("worker/trip-review.ts"),
@@ -46,6 +47,7 @@ export async function verifySourceSafety(root = DEFAULT_ROOT) {
     read("docs/CLOUDFLARE_DEPLOYMENT.md"),
     read("scripts/discussion-post-migration-audit.sql"),
     read("package.json"),
+    read("scripts/release-cloudflare.mjs"),
   ]);
   return [
     requirePattern(wrangler, /"PUBLIC_DISCUSSIONS_ENABLED"\s*:\s*"false"/, "public discussions default off"),
@@ -76,10 +78,12 @@ export async function verifySourceSafety(root = DEFAULT_ROOT) {
     requirePattern(worker, /if \(releaseMaintenanceEnabled\(env\)\) return;/, "maintenance suppresses scheduled work"),
     requirePattern(integratedRelease, /migrations_pattern:\s*`drizzle\/\$\{targetMigration\}`/, "staged config exposes one exact migration"),
     requirePattern(integratedRelease, /verifyReleaseCheckout/, "integrated migration wrapper verifies release provenance"),
+    requirePattern(integratedRelease, /verifyProductionChangeAuthorization/, "integrated mutations require private authorization"),
     requirePattern(integratedPreflight, /legal_columns_exact/, "integrated preflight verifies legal-column drift"),
     requirePattern(reconciliation, /INSERT INTO d1_migrations\(name\)/, "0007 ledger reconciliation is explicit"),
     requirePattern(deployment, /must not run migrations automatically/i, "production deployment guidance separates schema changes"),
-    requirePattern(packageJson, /"release:cloudflare"\s*:\s*"[^"]*verify:release-checkout[^"]*build:cloudflare[^"]*wrangler deploy/, "release rebuilds before deployment"),
+    requirePattern(packageJson, /"release:cloudflare"\s*:\s*"[^"]*release-cloudflare\.mjs[^"]*--mode normal/, "release uses the guarded wrapper"),
+    requirePattern(releaseWrapper, /await authorizationVerifier\([\s\S]+npmPath, "ci", "--ignore-scripts"[\s\S]+npmPath, "run", "build:cloudflare"[\s\S]+await authorizationVerifier\([\s\S]+wranglerPath, "deploy"/, "release rebuilds before deployment"),
     requirePattern(packageJson, /"migrate:cloudflare:remote"\s*:\s*"[^"]*integrated-release\.mjs apply/, "migration uses the guarded staged wrapper"),
     requirePattern(postMigrationAudit, /approval_columns_found/, "post-migration approval schema is audited"),
     requirePattern(postMigrationAudit, /rows_with_any_approval_metadata/, "legacy approval metadata is audited"),

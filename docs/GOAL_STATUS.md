@@ -13,6 +13,42 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active seven-step work cycle — production change authorization
+
+- [x] Reconcile exact protected `main` and inventory every production mutation entry point.
+      Starting `main` is `41e83dff77b8bcca9e42a4ef2f4cdf9e7b58f1d8`; the active, drifted Worker
+      and all provider resources remain untouched.
+- [x] Freeze the authorization boundary. Each Worker deploy, `0007` reconciliation, and exact
+      `0009`–`0018` migration requires its own canonical private packet outside every checkout,
+      full reviewed release and gate commits, a window no longer than six hours, distinct operator
+      and independent-reviewer evidence, and the action-specific phase evidence fixed by locked
+      policy. The two commits must match except for the pinned historical safety-floor target.
+- [x] Implement the fail-closed verifier. It rejects fork origins, abbreviated or unreviewed
+      commits, dirty trees, local overrides, missing/expired/future/wrong-action packets, broad
+      permissions, symlinks, duplicate-key JSON, missing or reused evidence hashes, and unsafe
+      public receipt fields.
+- [x] Route every mutable path through the gate before Wrangler. The no-shell Worker wrapper
+      authorizes first, verifies exact npm 10.9.8 and Wrangler 4.112.0, performs a fresh
+      zero-script install and Cloudflare build, and supports the pinned historical safety worktree
+      without asking that old commit to contain the new gate. The staged D1 wrapper maps every
+      mutation to one exact authorization action; both paths reauthorize immediately before the
+      provider write, while read-only preflight/postflight remain separate.
+- [x] Add adversarial authorization, checkout, wrapper-order, environment-sanitization, migration-
+      mapping, policy-lock, and redaction tests; update the authoritative release, moderation,
+      deployment, and incident-maintenance runbooks. A valid packet remains only an authorization
+      boundary, never provider success, deployed-source, live-host, migration, or release evidence.
+- [ ] Complete the full clean repository verification and publish the exact head through a
+      protected draft PR without running a production command.
+      Local verification is green on exact Node 22.23.1/npm 10.9.8, including a fresh
+      `npm ci --ignore-scripts`, Cloudflare build, 395/395 Node tests, 48/48 focused authorization
+      and release tests, 140/140 Chromium/WebKit mobile tests, lint, TypeScript, full security
+      policy/SBOM/provenance checks, and two zero-vulnerability npm audits. Python evidence is
+      29/29 API tests on local 3.13.12 plus 18 migrations, 14 critical query plans, and every
+      foreign-key child path indexed; Ruff; 81/81 pipeline tests on exact 3.12.13 with one
+      documented optional-raster skip; and deterministic smoke. Hosted API CI remains the exact
+      Python 3.13.14 authority. Draft-PR publication and exact-head hosted checks remain open.
+- [ ] Merge only the accepted exact head and add the immutable protected-`main` receipt.
+
 ## Completed seven-step work cycle — Cloudflare provider-state hold
 
 - [x] Reconcile exact protected `main` and the provider state without mutation. Starting `main`

@@ -12,6 +12,10 @@ All command output and identifiers belong in a private evidence directory outsid
 repository. Never store user rows, email addresses, notes, session values, secrets, raw
 object keys, or the Time Travel bookmark in source control.
 
+Every production mutation also requires a separate action-specific, two-role, six-hour private
+packet accepted by [Production change authorization](PRODUCTION-CHANGE-AUTHORIZATION.md).
+Checkout verification, static confirmation flags, or a previous phase's packet cannot replace it.
+
 ## Fixed release boundaries
 
 - Production database: `contourcast-trips` (`DB` in `wrangler.jsonc`).
@@ -99,14 +103,17 @@ they do not create or preserve it for the operator.
 These are production mutations. Run them only after explicit release approval:
 
 ```sh
+export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/migrate-reconcile-0007.json
 npm run reconcile:cloudflare:0007 -- \
   --confirm-primary contourcast-trips --confirm-bookmark-recorded
 
 export RELEASE_MIGRATION=0009_human_discussion_approval.sql
+export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/migrate-0009.json
 npm run migrate:cloudflare:remote -- \
   --confirm-primary contourcast-trips --confirm-bookmark-recorded
 
 export RELEASE_MIGRATION=0010_privacy_durability.sql
+export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/migrate-0010.json
 npm run migrate:cloudflare:remote -- \
   --confirm-primary contourcast-trips --confirm-bookmark-recorded
 ```
@@ -122,6 +129,7 @@ rename a migration, or use the normal `wrangler.jsonc` migration directory direc
 Deploy the full reviewed release with every public feature switch off and maintenance on:
 
 ```sh
+export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/deploy-maintenance.json
 npm run release:cloudflare:maintenance
 ./node_modules/.bin/wrangler deployments status --config wrangler.jsonc --json
 ```
@@ -147,34 +155,42 @@ While the verified maintenance version is at `100%`, apply the remaining exact s
 
 ```sh
 export RELEASE_MIGRATION=0011_species_aware_observations.sql
+export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/migrate-0011.json
 npm run migrate:cloudflare:remote -- \
   --confirm-primary contourcast-trips --confirm-bookmark-recorded
 
 export RELEASE_MIGRATION=0012_validation_protocol.sql
+export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/migrate-0012.json
 npm run migrate:cloudflare:remote -- \
   --confirm-primary contourcast-trips --confirm-bookmark-recorded
 
 export RELEASE_MIGRATION=0013_validation_feasibility_pilot.sql
+export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/migrate-0013.json
 npm run migrate:cloudflare:remote -- \
   --confirm-primary contourcast-trips --confirm-bookmark-recorded
 
 export RELEASE_MIGRATION=0014_validation_feasibility_recruitment_and_corrections.sql
+export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/migrate-0014.json
 npm run migrate:cloudflare:remote -- \
   --confirm-primary contourcast-trips --confirm-bookmark-recorded
 
 export RELEASE_MIGRATION=0015_validation_snapshot_suppression.sql
+export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/migrate-0015.json
 npm run migrate:cloudflare:remote -- \
   --confirm-primary contourcast-trips --confirm-bookmark-recorded
 
 export RELEASE_MIGRATION=0016_data_resilience_indexes.sql
+export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/migrate-0016.json
 npm run migrate:cloudflare:remote -- \
   --confirm-primary contourcast-trips --confirm-bookmark-recorded
 
 export RELEASE_MIGRATION=0017_trip_idempotency.sql
+export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/migrate-0017.json
 npm run migrate:cloudflare:remote -- \
   --confirm-primary contourcast-trips --confirm-bookmark-recorded
 
 export RELEASE_MIGRATION=0018_ai_review_queue.sql
+export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/migrate-0018.json
 npm run migrate:cloudflare:remote -- \
   --confirm-primary contourcast-trips --confirm-bookmark-recorded
 
@@ -199,6 +215,7 @@ then capture the representative `EXPLAIN QUERY PLAN` and rows-read evidence defi
 Deploy the same reviewed commit with the checked-in maintenance switch restored to `false`:
 
 ```sh
+export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/deploy-normal.json
 npm run release:cloudflare
 ./node_modules/.bin/wrangler deployments status --config wrangler.jsonc --json
 ```
@@ -220,6 +237,8 @@ photo uploads, or Turnstile merely because this schema release succeeds.
 The private release record must include:
 
 - UTC timestamp and operator; full and safety source commits;
+- the private packet and redacted authorization receipt for every exact production action,
+  including distinct operator and independent-review evidence;
 - automatic-deployment and snapshot-schedule pause evidence;
 - safety, maintenance, and final deployment/version IDs plus `100%` traffic observations;
 - direct and redirect host lists and every live-verifier result;

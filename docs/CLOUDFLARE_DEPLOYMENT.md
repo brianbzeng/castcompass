@@ -34,9 +34,11 @@ exact primary ledger prefix, and confirmation that a Time Travel bookmark was st
 it can mutate D1. Never invoke raw `wrangler d1 migrations apply` against production.
 
 For a Worker-only release, authenticate Wrangler and provide the exact reviewed commit in
-`RELEASE_COMMIT`. The release and deploy entry points fail before publishing unless the
-checkout is at that commit, the worktree is clean, and no ignored `.env*`/`.dev.vars*`
-override exists:
+`RELEASE_COMMIT` plus the private, action-specific packet in `RELEASE_AUTHORIZATION_FILE`.
+The release and deploy entry points fail before installing, building, or publishing unless
+[production change authorization](PRODUCTION-CHANGE-AUTHORIZATION.md) passes. That gate binds
+the official reviewed source, clean checkout, action, six-hour window, two approval roles, and
+phase evidence; no ignored `.env*`/`.dev.vars*` override may exist.
 
 Use the exact Node version in `.node-version`; do not let a local or Cloudflare default select
 a different major or older patch. The immutable release checks include the dependency audits
@@ -47,6 +49,7 @@ deployment identity separately.
 
 ```bash
 export RELEASE_COMMIT=REVIEWED_COMMIT
+export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/deploy-normal.json
 npm ci --ignore-scripts
 npm run release:cloudflare
 ./node_modules/.bin/wrangler deployments status --config wrangler.jsonc --json
@@ -84,9 +87,10 @@ traffic and checked-in configuration drift, but exact deployment/version/source 
 private and the separate live-host verifier is still required.
 
 If a future protected release workflow replaces the manual path, it must pass an explicitly
-approved immutable commit to the same checkout verifier and must keep D1 migration approval
-separate. Do not configure a Git deploy command that derives `RELEASE_COMMIT` from the checkout
-being deployed; that would turn the provenance check into a tautology.
+approved immutable commit and action-specific private evidence through the same production-
+change verifier, while keeping D1 migration approval separate. Do not configure a Git deploy
+command that derives `RELEASE_COMMIT` from the checkout being deployed; that would turn the
+provenance check into a tautology.
 
 ## Snapshot publication while automatic deploys are off
 

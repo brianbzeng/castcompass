@@ -148,6 +148,16 @@ after its acceptance checks pass in the intended environment.
       live-host evidence. CI performs only offline verification. The 2026-07-19 reconciliation
       found the Worker active with maintenance off and configuration drift; provider repair,
       deployment, migrations, and production acceptance remain open.
+    - [x] Locally require a locked, action-specific production-change authorization before every
+      Worker deployment and staged D1 mutation. The canonical packet stays private and outside all
+      release checkouts, expires within six hours, and binds full official-main release and gate
+      commits (the same commit except for the pinned historical safety-floor target). It requires
+      distinct operator and independent-review evidence and contains only SHA-256 evidence
+      references. The no-shell deploy wrapper authorizes before exact-tool reinstall/build/Wrangler
+      execution, while the migration wrapper maps `0007` and each `0009`–`0018` file to separate
+      actions. This prevents an environment variable or static confirmation alone from reaching
+      Wrangler; it does not supply missing human review, provider evidence, key custody, alerts,
+      migrations, live verification, or production acceptance.
     - [x] Define source-bound, exact, SHA-256-hashed, binary-only optional Geo/PyTorch locks for
       CPython 3.12 on macOS 15+ ARM64/MPS and manylinux_2_28 x86-64/CPU; add scheduled hosted
       execution that checks platform/backend identity, exact package identity, GeoTIFF/CRS

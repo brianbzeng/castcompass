@@ -6,6 +6,14 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const execFile = promisify(execFileCallback);
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const OFFICIAL_REPOSITORY = "brianbzeng/castingcompass";
+const OFFICIAL_ORIGIN_URLS = new Set([
+  "https://github.com/brianbzeng/castingcompass.git",
+  "https://github.com/brianbzeng/castingcompass",
+  "git@github.com:brianbzeng/castingcompass.git",
+  "ssh://git@github.com/brianbzeng/castingcompass.git",
+]);
+const REVIEWED_MAIN_REF = "refs/remotes/origin/main";
 
 async function defaultGitRunner(root, args) {
   const { stdout } = await execFile("git", ["-C", root, ...args], {
@@ -28,8 +36,8 @@ export async function verifyReleaseCheckout({
   gitRunner = defaultGitRunner,
   overrideFinder = defaultOverrideFinder,
 }) {
-  if (!/^[0-9a-f]{7,40}$/i.test(expectedCommit ?? "")) {
-    throw new Error("--expected-commit must be an immutable 7-40 character hexadecimal commit ID.");
+  if (!/^[0-9a-f]{40}$/.test(expectedCommit ?? "")) {
+    throw new Error("--expected-commit must be a full lowercase 40-character commit ID.");
   }
 
   const requestedRoot = await realpath(resolve(root));
@@ -42,6 +50,17 @@ export async function verifyReleaseCheckout({
   const expected = await gitRunner(repositoryRoot, ["rev-parse", "--verify", `${expectedCommit}^{commit}`]);
   if (head !== expected) {
     throw new Error(`Release checkout is at ${head}, not expected commit ${expected}`);
+  }
+
+  const originUrl = await gitRunner(repositoryRoot, ["remote", "get-url", "origin"]);
+  if (!OFFICIAL_ORIGIN_URLS.has(originUrl)) {
+    throw new Error(`Release origin must be the official ${OFFICIAL_REPOSITORY} repository.`);
+  }
+  const originMain = await gitRunner(repositoryRoot, ["rev-parse", "--verify", `${REVIEWED_MAIN_REF}^{commit}`]);
+  try {
+    await gitRunner(repositoryRoot, ["merge-base", "--is-ancestor", expected, REVIEWED_MAIN_REF]);
+  } catch {
+    throw new Error("Release commit is not reachable from the locally reviewed official origin/main ref.");
   }
 
   const status = await gitRunner(repositoryRoot, [
@@ -61,7 +80,15 @@ export async function verifyReleaseCheckout({
     );
   }
 
-  return { root: repositoryRoot, head, expectedCommit: expected, clean: true, overrides: [] };
+  return {
+    root: repositoryRoot,
+    head,
+    expectedCommit: expected,
+    officialRepository: OFFICIAL_REPOSITORY,
+    originMain,
+    clean: true,
+    overrides: [],
+  };
 }
 
 function parseArguments(args) {
@@ -89,7 +116,7 @@ function parseArguments(args) {
 async function main() {
   const options = parseArguments(process.argv.slice(2));
   if (options.help) {
-    process.stdout.write("Usage: node scripts/verify-release-checkout.mjs --root /absolute/worktree --expected-commit COMMIT_ID\n");
+    process.stdout.write("Usage: node scripts/verify-release-checkout.mjs --root /absolute/worktree --expected-commit FULL_40_CHARACTER_COMMIT_ID\n");
     return;
   }
   const result = await verifyReleaseCheckout(options);

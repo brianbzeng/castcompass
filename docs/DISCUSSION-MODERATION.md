@@ -25,7 +25,8 @@ review can write the public table.
    of this runbook:
 
    ```sh
-   export RELEASE_COMMIT=FULL_RELEASE_COMMIT
+   export FULL_RELEASE_COMMIT=FULL_RELEASE_COMMIT
+   export RELEASE_COMMIT="$FULL_RELEASE_COMMIT"
    node scripts/verify-release-checkout.mjs \
      --root /ABSOLUTE/PATH/TO/FULL_RELEASE_WORKTREE \
      --expected-commit "$RELEASE_COMMIT"
@@ -54,17 +55,22 @@ review can write the public table.
      --expected-commit e2c612246fadfdb231e481c405fa72e502458ed1
    ```
 
-   In that verified safety worktree, deploy the Worker **without** running
-   `release:cloudflare` or `deploy:cloudflare`, because both are legacy migration-first
-   commands. Keep Wrangler's structured output in a private evidence directory outside the
-   repository, then inspect the active deployment:
+   The safety commit predates the current authorization gate. Stay in the full release checkout
+   and use its current wrapper against the separately verified safety worktree. The action must
+   have its own private packet and independent review. Keep Wrangler's structured output in a
+   private evidence directory outside the repository, then inspect the active deployment:
 
    ```sh
-   npm ci --ignore-scripts
-   NEXT_PUBLIC_API_URL= npm run build:cloudflare
+   export RELEASE_ROOT=/ABSOLUTE/PATH/TO/SAFETY_WORKTREE
+   export RELEASE_COMMIT=e2c612246fadfdb231e481c405fa72e502458ed1
+   export RELEASE_GATE_COMMIT="$FULL_RELEASE_COMMIT"
+   export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/deploy-safety-floor.json
    export WRANGLER_OUTPUT_FILE_DIRECTORY=/ABSOLUTE/PATH/TO/PRIVATE/RELEASE_EVIDENCE
-   ./node_modules/.bin/wrangler deploy --config wrangler.jsonc
-   ./node_modules/.bin/wrangler deployments status --config wrangler.jsonc --json
+   npm run release:cloudflare:safety-floor
+   /ABSOLUTE/PATH/TO/SAFETY_WORKTREE/node_modules/.bin/wrangler deployments status \
+     --config /ABSOLUTE/PATH/TO/SAFETY_WORKTREE/wrangler.jsonc --json
+   export RELEASE_COMMIT="$FULL_RELEASE_COMMIT"
+   unset RELEASE_ROOT RELEASE_GATE_COMMIT RELEASE_AUTHORIZATION_FILE
    ```
 
    The status must show exactly one version receiving `100%` of traffic. Copy the deployment

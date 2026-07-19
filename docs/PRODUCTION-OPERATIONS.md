@@ -130,9 +130,11 @@ For a reviewed release bridge or a short urgent incident:
 
 1. Disable Cloudflare Git-connected automatic deployments and pause scheduled snapshot
    publication. Record the current deployment/version and the immutable 40-character commit.
-2. Use a clean detached checkout at that exact commit, run `npm ci --ignore-scripts`, export `RELEASE_COMMIT`,
-   and execute `npm run release:cloudflare:maintenance`. Do not edit the checked-in default or
-   use an ad hoc dashboard variable that cannot be tied to reviewed source.
+2. Use a clean detached checkout at that exact commit, run `npm ci --ignore-scripts`, export the
+   exact `RELEASE_COMMIT` and action-specific private `RELEASE_AUTHORIZATION_FILE` described in
+   [Production change authorization](PRODUCTION-CHANGE-AUTHORIZATION.md), and execute
+   `npm run release:cloudflare:maintenance`. Do not edit the checked-in default or use an ad hoc
+   dashboard variable that cannot be tied to reviewed source.
 3. Confirm one maintenance version has `100%` traffic. Run `npm run verify:release-maintenance`
    with the canonical and direct Worker hosts plus the exact version ID. Separately prove all
    aliases redirect to the canonical host.

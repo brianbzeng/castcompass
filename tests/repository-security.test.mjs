@@ -86,6 +86,7 @@ test("production release scripts cannot apply migrations implicitly or bypass th
     "deploy:cloudflare:worker-only",
     "release:cloudflare",
     "release:cloudflare:maintenance",
+    "release:cloudflare:safety-floor",
   ]) {
     const command = packageJson.scripts[name];
     assert.equal(typeof command, "string", `${name} must exist`);
@@ -97,20 +98,40 @@ test("production release scripts cannot apply migrations implicitly or bypass th
   assert.doesNotMatch(packageJson.scripts["reconcile:cloudflare:0007"], /confirm-(primary|bookmark)/);
 });
 
-test("every deploy entry point verifies an operator-supplied immutable commit", () => {
+test("every deploy and migration entry point requires private exact-action authorization", () => {
   const scripts = JSON.parse(readFileSync("package.json", "utf8")).scripts;
 
   assert.match(scripts["verify:release-checkout"], /verify-release-checkout\.mjs/);
   assert.match(scripts["verify:release-checkout"], /\$RELEASE_COMMIT/);
+  assert.match(scripts["verify:production-change"], /verify-production-change-authorization\.mjs verify/);
+  assert.match(scripts["verify:production-change"], /\$RELEASE_COMMIT/);
+  assert.match(scripts["verify:production-change"], /--expected-gate-commit "\$RELEASE_COMMIT"/);
+  assert.match(scripts["verify:production-change"], /\$RELEASE_AUTHORIZATION_FILE/);
   assert.match(scripts["deploy:cloudflare"], /release:cloudflare/);
   assert.match(scripts["deploy:cloudflare:worker-only"], /release:cloudflare/);
   assert.match(
     scripts["release:cloudflare"],
-    /verify:release-checkout.*build:cloudflare.*wrangler deploy/,
+    /release-cloudflare\.mjs.*--mode normal.*\$RELEASE_COMMIT.*\$RELEASE_AUTHORIZATION_FILE/,
   );
-  assert.match(scripts["release:cloudflare:maintenance"], /verify:release-checkout.*build:cloudflare.*wrangler deploy/);
+  assert.match(
+    scripts["release:cloudflare:maintenance"],
+    /release-cloudflare\.mjs.*--mode maintenance.*\$RELEASE_COMMIT.*\$RELEASE_AUTHORIZATION_FILE/,
+  );
+  assert.match(
+    scripts["release:cloudflare:safety-floor"],
+    /release-cloudflare\.mjs.*--mode safety-floor.*\$RELEASE_ROOT.*\$RELEASE_COMMIT.*\$RELEASE_GATE_COMMIT.*\$RELEASE_AUTHORIZATION_FILE/,
+  );
+  const releaseWrapper = readFileSync("scripts/release-cloudflare.mjs", "utf8");
+  assert.match(releaseWrapper, /await authorizationVerifier\([\s\S]+npmPath, "ci", "--ignore-scripts"[\s\S]+npmPath, "run", "build:cloudflare"[\s\S]+await authorizationVerifier\([\s\S]+wranglerPath, "deploy"/);
+  assert.match(releaseWrapper, /shell: false/);
   assert.match(scripts["migrate:cloudflare:remote"], /integrated-release\.mjs apply/);
   assert.match(scripts["reconcile:cloudflare:0007"], /integrated-release\.mjs reconcile-0007/);
+  const integratedRelease = readFileSync("scripts/integrated-release.mjs", "utf8");
+  assert.match(integratedRelease, /verifyProductionChangeAuthorization/);
+  assert.match(integratedRelease, /RELEASE_AUTHORIZATION_FILE/);
+  assert.match(integratedRelease, /await authorizeProductionMutation\(root, options\)/);
+  assert.match(integratedRelease, /runPreflight\(root, runner\)[\s\S]+await authorizeProductionMutation\(root, options\)[\s\S]+executeMutationFile/);
+  assert.match(integratedRelease, /requireMigrationArray\([\s\S]+await reauthorize\(root, options\)[\s\S]+"migrations", "apply"/);
 });
 
 test("release maintenance is default-off and suppresses scheduled database work", () => {

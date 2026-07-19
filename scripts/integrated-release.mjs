@@ -6,6 +6,7 @@ import { dirname, resolve } from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { verifyReleaseCheckout } from "./verify-release-checkout.mjs";
+import { verifyProductionChangeAuthorization } from "./verify-production-change-authorization.mjs";
 
 const execFile = promisify(execFileCallback);
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -402,6 +403,32 @@ function assertMutationConfirmation(options) {
   }
 }
 
+export function productionMutationAction(options) {
+  if (options.command === "reconcile-0007") return "migrate:reconcile-0007";
+  if (options.command === "apply") {
+    expectedMigrationsBefore(options.migration);
+    return `migrate:${options.migration}`;
+  }
+  return null;
+}
+
+export async function authorizeProductionMutation(
+  root,
+  options,
+  authorizationVerifier = verifyProductionChangeAuthorization,
+  environment = process.env,
+) {
+  const action = productionMutationAction(options);
+  if (!action) return null;
+  assertMutationConfirmation(options);
+  return authorizationVerifier({
+    root,
+    expectedCommit: environment.RELEASE_COMMIT,
+    authorizationFile: environment.RELEASE_AUTHORIZATION_FILE,
+    action,
+  });
+}
+
 async function verifyImmutableCheckout(root) {
   await verifyReleaseCheckout({ root, expectedCommit: process.env.RELEASE_COMMIT });
   await verifyLocalMigrationSet(root);
@@ -428,7 +455,12 @@ async function withStagedConfig(root, targetMigration, callback) {
   }
 }
 
-async function applyOneMigration(root, runner, options) {
+async function applyOneMigration(
+  root,
+  runner,
+  options,
+  reauthorize = authorizeProductionMutation,
+) {
   assertMutationConfirmation(options);
   const expectedBefore = expectedMigrationsBefore(options.migration);
   verifyLedgerPayload(await queryLedger(root, runner), expectedBefore);
@@ -439,6 +471,7 @@ async function applyOneMigration(root, runner, options) {
     ]);
     const mentionedMigrations = [...new Set(listOutput.match(/\d{4}_[A-Za-z0-9_.-]+\.sql/g) ?? [])];
     requireMigrationArray("staged Wrangler pending set", mentionedMigrations, [options.migration]);
+    await reauthorize(root, options);
     await runner(root, [
       "d1", "migrations", "apply", PRIMARY_DATABASE, "--remote", "--config", configPath,
     ], { inherit: true });
@@ -478,19 +511,21 @@ async function main({ root = DEFAULT_ROOT, runner = defaultWranglerRunner } = {}
     process.stdout.write(
       "Usage:\n" +
       "  node scripts/integrated-release.mjs preflight\n" +
-      "  node scripts/integrated-release.mjs reconcile-0007 --confirm-primary contourcast-trips --confirm-bookmark-recorded\n" +
-      "  node scripts/integrated-release.mjs apply --migration FILE --confirm-primary contourcast-trips --confirm-bookmark-recorded\n" +
+      "  RELEASE_AUTHORIZATION_FILE=/PRIVATE/PATH.json node scripts/integrated-release.mjs reconcile-0007 --confirm-primary contourcast-trips --confirm-bookmark-recorded\n" +
+      "  RELEASE_AUTHORIZATION_FILE=/PRIVATE/PATH.json node scripts/integrated-release.mjs apply --migration FILE --confirm-primary contourcast-trips --confirm-bookmark-recorded\n" +
       "  node scripts/integrated-release.mjs postflight\n",
     );
     return;
   }
   await verifyImmutableCheckout(root);
+  await authorizeProductionMutation(root, options);
   let result;
   if (options.command === "preflight") {
     result = await runPreflight(root, runner);
   } else if (options.command === "reconcile-0007") {
     assertMutationConfirmation(options);
     const before = await runPreflight(root, runner);
+    await authorizeProductionMutation(root, options);
     const payload = await executeMutationFile(root, runner, "scripts/reconcile-0007-legal-migration.sql");
     verifyReconciliationResult(payload);
     const after = await runPreflight(root, runner, [...BASE_APPLIED_MIGRATIONS, RECONCILED_LEGAL_MIGRATION]);

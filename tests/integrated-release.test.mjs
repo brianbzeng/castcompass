@@ -7,17 +7,20 @@ import {
   BASE_APPLIED_MIGRATIONS,
   RECONCILED_LEGAL_MIGRATION,
   STAGED_MIGRATIONS,
+  authorizeProductionMutation,
   createStagedWranglerConfig,
   expectedMigrationsBefore,
   verifyFinalPostflight,
   verifyInitialPreflight,
   verifyLedgerPayload,
   verifyLocalMigrationSet,
+  productionMutationAction,
   verifyReconciliationResult,
   verifyStageBoundaryPayload,
 } from "../scripts/integrated-release.mjs";
 
 const migrationDirectory = new URL("../drizzle/", import.meta.url);
+const HEAD = "0123456789abcdef0123456789abcdef01234567";
 
 async function applyMigration(sqlite, name) {
   const source = await readFile(new URL(name, migrationDirectory), "utf8");
@@ -197,4 +200,56 @@ test("the operator runbook enumerates the exact guarded migration sequence", asy
   assert.match(runbook, /exact nullable\s+text trip-idempotency column/);
   assert.match(operations, /Migration `0017_trip_idempotency\.sql` completed before normal traffic resumed/);
   assert.match(operations, /Migration `0018_ai_review_queue\.sql` completed before any Queue binding/);
+});
+
+test("every D1 mutation maps to one exact private authorization action before Wrangler", async () => {
+  assert.equal(productionMutationAction({ command: "preflight" }), null);
+  assert.equal(productionMutationAction({ command: "postflight" }), null);
+  assert.equal(productionMutationAction({ command: "reconcile-0007" }), "migrate:reconcile-0007");
+  for (const migration of STAGED_MIGRATIONS) {
+    assert.equal(
+      productionMutationAction({ command: "apply", migration }),
+      `migrate:${migration}`,
+    );
+  }
+  assert.throws(
+    () => productionMutationAction({ command: "apply", migration: "9999_unreviewed.sql" }),
+    /one exact staged filename/,
+  );
+
+  let calls = 0;
+  const result = await authorizeProductionMutation(
+    "/reviewed/root",
+    {
+      command: "apply",
+      migration: STAGED_MIGRATIONS[0],
+      confirmPrimary: "contourcast-trips",
+      confirmBookmarkRecorded: true,
+    },
+    async (options) => {
+      calls += 1;
+      assert.deepEqual(options, {
+        root: "/reviewed/root",
+        expectedCommit: HEAD,
+        authorizationFile: "/private/authorization.json",
+        action: `migrate:${STAGED_MIGRATIONS[0]}`,
+      });
+      return { authorized: true };
+    },
+    {
+      RELEASE_COMMIT: HEAD,
+      RELEASE_AUTHORIZATION_FILE: "/private/authorization.json",
+    },
+  );
+  assert.deepEqual(result, { authorized: true });
+  assert.equal(calls, 1);
+  await assert.rejects(
+    authorizeProductionMutation(
+      "/reviewed/root",
+      { command: "reconcile-0007", confirmPrimary: "wrong", confirmBookmarkRecorded: true },
+      async () => { throw new Error("must not be called"); },
+      {},
+    ),
+    /--confirm-primary/,
+  );
 });

@@ -10,6 +10,8 @@ test("discussion safety source preflight covers the release invariants", async (
   assert.ok(checks.includes("safe rollback floor is documented"));
   assert.ok(checks.includes("patched safety-floor commit is pinned"));
   assert.ok(checks.includes("full release provenance precedes D1 work"));
+  assert.ok(checks.includes("integrated mutations require private authorization"));
+  assert.ok(checks.includes("release uses the guarded wrapper"));
   assert.ok(checks.includes("release rebuilds before deployment"));
   assert.ok(checks.includes("migration uses the guarded staged wrapper"));
   assert.ok(checks.includes("maintenance suppresses scheduled work"));

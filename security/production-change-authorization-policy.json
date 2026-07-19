@@ -1,0 +1,255 @@
+{
+  "schema_version": "castingcompass.production-change-policy/1.0.0",
+  "authorization_schema_version": "castingcompass.production-change-authorization/1.0.0",
+  "receipt_schema_version": "castingcompass.production-change-authorization-receipt/1.0.0",
+  "repository": "brianbzeng/castingcompass",
+  "environment": "production",
+  "worker": "contourcast-halibut",
+  "database": "contourcast-trips",
+  "max_authorization_seconds": 21600,
+  "required_approval_roles": [
+    "operator",
+    "independent_reviewer"
+  ],
+  "actions": {
+    "deploy:safety-floor": {
+      "fixed_release_commit": "e2c612246fadfdb231e481c405fa72e502458ed1",
+      "required_evidence": [
+        "automatic_deployments_disabled",
+        "change_window_approved",
+        "current_provider_state_recorded",
+        "key_custody_reviewed",
+        "notification_path_confirmed",
+        "rollback_path_recorded",
+        "safety_floor_live_verification_plan",
+        "security_alert_inventory_reviewed",
+        "snapshot_schedule_paused",
+        "source_commit_reviewed"
+      ]
+    },
+    "migrate:reconcile-0007": {
+      "fixed_release_commit": null,
+      "required_evidence": [
+        "automatic_deployments_disabled",
+        "change_window_approved",
+        "current_provider_state_recorded",
+        "initial_preflight_passed",
+        "key_custody_reviewed",
+        "notification_path_confirmed",
+        "rollback_path_recorded",
+        "safety_floor_source_bound",
+        "security_alert_inventory_reviewed",
+        "snapshot_schedule_paused",
+        "source_commit_reviewed",
+        "time_travel_bookmark_recorded"
+      ]
+    },
+    "migrate:0009_human_discussion_approval.sql": {
+      "fixed_release_commit": null,
+      "required_evidence": [
+        "automatic_deployments_disabled",
+        "change_window_approved",
+        "current_provider_state_recorded",
+        "initial_preflight_passed",
+        "key_custody_reviewed",
+        "notification_path_confirmed",
+        "previous_ledger_verified",
+        "rollback_path_recorded",
+        "safety_floor_source_bound",
+        "security_alert_inventory_reviewed",
+        "snapshot_schedule_paused",
+        "source_commit_reviewed",
+        "time_travel_bookmark_recorded"
+      ]
+    },
+    "migrate:0010_privacy_durability.sql": {
+      "fixed_release_commit": null,
+      "required_evidence": [
+        "automatic_deployments_disabled",
+        "change_window_approved",
+        "current_provider_state_recorded",
+        "initial_preflight_passed",
+        "key_custody_reviewed",
+        "notification_path_confirmed",
+        "previous_ledger_verified",
+        "rollback_path_recorded",
+        "safety_floor_source_bound",
+        "security_alert_inventory_reviewed",
+        "snapshot_schedule_paused",
+        "source_commit_reviewed",
+        "time_travel_bookmark_recorded"
+      ]
+    },
+    "deploy:maintenance": {
+      "fixed_release_commit": null,
+      "required_evidence": [
+        "automatic_deployments_disabled",
+        "change_window_approved",
+        "current_provider_state_recorded",
+        "key_custody_reviewed",
+        "maintenance_live_verification_plan",
+        "notification_path_confirmed",
+        "rollback_path_recorded",
+        "safety_migrations_verified",
+        "security_alert_inventory_reviewed",
+        "snapshot_schedule_paused",
+        "source_commit_reviewed",
+        "time_travel_bookmark_recorded"
+      ]
+    },
+    "migrate:0011_species_aware_observations.sql": {
+      "fixed_release_commit": null,
+      "required_evidence": [
+        "automatic_deployments_disabled",
+        "change_window_approved",
+        "current_provider_state_recorded",
+        "key_custody_reviewed",
+        "maintenance_version_verified",
+        "notification_path_confirmed",
+        "previous_ledger_verified",
+        "rollback_path_recorded",
+        "security_alert_inventory_reviewed",
+        "snapshot_schedule_paused",
+        "source_commit_reviewed",
+        "time_travel_bookmark_recorded"
+      ]
+    },
+    "migrate:0012_validation_protocol.sql": {
+      "fixed_release_commit": null,
+      "required_evidence": [
+        "automatic_deployments_disabled",
+        "change_window_approved",
+        "current_provider_state_recorded",
+        "key_custody_reviewed",
+        "maintenance_version_verified",
+        "notification_path_confirmed",
+        "previous_ledger_verified",
+        "rollback_path_recorded",
+        "security_alert_inventory_reviewed",
+        "snapshot_schedule_paused",
+        "source_commit_reviewed",
+        "time_travel_bookmark_recorded"
+      ]
+    },
+    "migrate:0013_validation_feasibility_pilot.sql": {
+      "fixed_release_commit": null,
+      "required_evidence": [
+        "automatic_deployments_disabled",
+        "change_window_approved",
+        "current_provider_state_recorded",
+        "key_custody_reviewed",
+        "maintenance_version_verified",
+        "notification_path_confirmed",
+        "previous_ledger_verified",
+        "rollback_path_recorded",
+        "security_alert_inventory_reviewed",
+        "snapshot_schedule_paused",
+        "source_commit_reviewed",
+        "time_travel_bookmark_recorded"
+      ]
+    },
+    "migrate:0014_validation_feasibility_recruitment_and_corrections.sql": {
+      "fixed_release_commit": null,
+      "required_evidence": [
+        "automatic_deployments_disabled",
+        "change_window_approved",
+        "current_provider_state_recorded",
+        "key_custody_reviewed",
+        "maintenance_version_verified",
+        "notification_path_confirmed",
+        "previous_ledger_verified",
+        "rollback_path_recorded",
+        "security_alert_inventory_reviewed",
+        "snapshot_schedule_paused",
+        "source_commit_reviewed",
+        "time_travel_bookmark_recorded"
+      ]
+    },
+    "migrate:0015_validation_snapshot_suppression.sql": {
+      "fixed_release_commit": null,
+      "required_evidence": [
+        "automatic_deployments_disabled",
+        "change_window_approved",
+        "current_provider_state_recorded",
+        "key_custody_reviewed",
+        "maintenance_version_verified",
+        "notification_path_confirmed",
+        "previous_ledger_verified",
+        "rollback_path_recorded",
+        "security_alert_inventory_reviewed",
+        "snapshot_schedule_paused",
+        "source_commit_reviewed",
+        "time_travel_bookmark_recorded"
+      ]
+    },
+    "migrate:0016_data_resilience_indexes.sql": {
+      "fixed_release_commit": null,
+      "required_evidence": [
+        "automatic_deployments_disabled",
+        "change_window_approved",
+        "current_provider_state_recorded",
+        "key_custody_reviewed",
+        "maintenance_version_verified",
+        "notification_path_confirmed",
+        "previous_ledger_verified",
+        "rollback_path_recorded",
+        "security_alert_inventory_reviewed",
+        "snapshot_schedule_paused",
+        "source_commit_reviewed",
+        "time_travel_bookmark_recorded"
+      ]
+    },
+    "migrate:0017_trip_idempotency.sql": {
+      "fixed_release_commit": null,
+      "required_evidence": [
+        "automatic_deployments_disabled",
+        "change_window_approved",
+        "current_provider_state_recorded",
+        "key_custody_reviewed",
+        "maintenance_version_verified",
+        "notification_path_confirmed",
+        "previous_ledger_verified",
+        "rollback_path_recorded",
+        "security_alert_inventory_reviewed",
+        "snapshot_schedule_paused",
+        "source_commit_reviewed",
+        "time_travel_bookmark_recorded"
+      ]
+    },
+    "migrate:0018_ai_review_queue.sql": {
+      "fixed_release_commit": null,
+      "required_evidence": [
+        "automatic_deployments_disabled",
+        "change_window_approved",
+        "current_provider_state_recorded",
+        "key_custody_reviewed",
+        "maintenance_version_verified",
+        "notification_path_confirmed",
+        "previous_ledger_verified",
+        "rollback_path_recorded",
+        "security_alert_inventory_reviewed",
+        "snapshot_schedule_paused",
+        "source_commit_reviewed",
+        "time_travel_bookmark_recorded"
+      ]
+    },
+    "deploy:normal": {
+      "fixed_release_commit": null,
+      "required_evidence": [
+        "automatic_deployments_disabled",
+        "change_window_approved",
+        "current_provider_state_recorded",
+        "final_postflight_passed",
+        "key_custody_reviewed",
+        "maintenance_version_verified",
+        "normal_live_verification_plan",
+        "notification_path_confirmed",
+        "rollback_path_recorded",
+        "security_alert_inventory_reviewed",
+        "snapshot_schedule_paused",
+        "source_commit_reviewed",
+        "time_travel_bookmark_recorded"
+      ]
+    }
+  }
+}
