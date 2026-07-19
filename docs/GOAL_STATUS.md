@@ -1,6 +1,6 @@
 # CastingCompass goal status
 
-Last reconciled: **2026-07-18 UTC**
+Last reconciled: **2026-07-19 UTC**
 
 This is the owner-facing dashboard for the complete goal list. The detailed acceptance
 criteria and immutable receipts remain in [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md); provider
@@ -9,7 +9,7 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
-## Active seven-step work cycle — isolated security-exercise guard
+## Completed seven-step work cycle — isolated security-exercise guard
 
 - [x] Reconcile exact protected `main` and the prioritized roadmap. Starting `main` is
       `983752ae8950c6611e0a943e3bb33527e7871e3b`; L10 isolated-staging DAST preparation is the
@@ -31,13 +31,23 @@ also satisfied.
       and IP targets, stale/oversized windows, every safety assertion, extra/private fields,
       redirect/header/marker/version mismatch, fixed scan limits, missing confirmation,
       no-subprocess-on-refusal, private-file permissions/symlinks, and receipt redaction.
-- [ ] Pass the full clean repository/security suite, publish a protected draft PR, and accept
-      every exact-head CI, CodeQL, provenance, dependency, and native-image check without
-      deploying.
-- [ ] Merge only the accepted exact head, reconcile protected `main`, record immutable run and
-      commit evidence here, and leave L10 explicitly open for isolated provider resources,
-      written independent authorization, authenticated/manual testing, remediation/retest, and
-      independent acceptance.
+- [x] Pass the full clean repository/security suite, publish protected PR `#98` at exact head
+      `c95816d2dc55d4f8a046c1c22d1f4aecab34936d`, and accept every exact-head gate without
+      deploying. Evidence: CI `29669614571` including dependency review, release provenance
+      `29669614572`, CodeQL `29669613529`, and native image security `29669614580` passed; 15
+      checks succeeded, five event-appropriate jobs skipped, and none failed. Local evidence
+      also passed the Cloudflare build and 351/351 Node tests, 29/29 API tests, 81/81 pipeline
+      tests with one documented optional-raster skip, Ruff, ESLint, TypeScript, D1 query plans,
+      secrets, zero-execution install policy, exact Python locks, both SBOM checks, both npm
+      audits with zero vulnerabilities, and the network-disabled pinned-ZAP plan check.
+- [x] Merge only the accepted exact head and reconcile protected `main`. PR `#98` merged as
+      `fb4662cf725c3a1f99b4e918a19c6e72971a6b85`; main CI `29669810196`, release provenance
+      `29669810179`, CodeQL `29669809994`, and native image security `29669810191` passed that
+      exact commit. Open PRs and Dependabot, code-scanning, and secret-scanning alerts are all
+      zero; issue `#86` remains open by design. Cloudflare and production remain paused. L10
+      remains explicitly open for isolated provider resources, written independent
+      authorization, public/authenticated/manual testing, remediation/retest, and independent
+      acceptance.
 
 ## Completed seven-step work cycle — privacy-rights case handling
 

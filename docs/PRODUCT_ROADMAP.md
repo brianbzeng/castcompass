@@ -318,8 +318,11 @@ after its acceptance checks pass in the intended environment.
     Repository preparation is locally complete: the strict private authorization contract,
     staging-only health identity, permanently blocked production inventory, bounded digest-pinned
     ZAP runner, adversarial refusal tests, private raw evidence, and aggregate-only receipt are in
-    [SECURITY-TESTING.md](SECURITY-TESTING.md). This item remains open until isolated provider
-    resources, written independent authorization, a real public/authenticated/manual exercise,
+    [SECURITY-TESTING.md](SECURITY-TESTING.md). PR `#98` merged as
+    `fb4662cf725c3a1f99b4e918a19c6e72971a6b85`; main CI `29669810196`, release provenance
+    `29669810179`, CodeQL `29669809994`, and native image security `29669810191` passed that
+    exact commit without a deployment. This item remains open until isolated provider resources,
+    written independent authorization, a real public/authenticated/manual exercise,
     remediation/retest, and independent acceptance exist.
 - [ ] Complete the privacy lifecycle and deletion policy before broader account recruitment.
   Maintain a data inventory and cascade map covering primary rows, public copies, objects,
