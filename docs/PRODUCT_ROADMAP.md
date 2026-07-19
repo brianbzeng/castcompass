@@ -552,6 +552,15 @@ after its acceptance checks pass in the intended environment.
   registration strategy, trademark/brand protection, patent/trade-secret questions, and third-
   party or AI-assisted material. Surface the evidence in the operator console without exposing
   private keys, personal data, or privileged legal material.
+  - [x] Implement the local public-asset provenance control: strict schema and policy, all 15
+    shipped visual assets hash-bound exactly once, seven evidence-reviewed third-party source and
+    license records, eight explicitly unresolved pre-policy legacy paths, corrected live credits,
+    direct license/change disclosure, deterministic public-safe report, adversarial CI coverage,
+    and the private owner/artist record workflow.
+  - [ ] Obtain and preserve private owner confirmations, source layers, assignments/licenses and
+    contributor agreements; archive accepted public artifacts and release receipts; complete
+    counsel-guided copyright/trademark/patent/trade-secret decisions; then surface only safe
+    evidence in the MFA-protected operator console.
 
 ## P3 — Experience and brand
 

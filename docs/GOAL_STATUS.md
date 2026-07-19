@@ -9,6 +9,38 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
+## Active seven-step work cycle — authorship and public-asset provenance
+
+- [x] Reconcile exact protected `main` and freeze the public/private/legal boundary. Starting
+      `main` is `ea922c8dfbdb7e35a81836d1f6a9e9e35c9081bb`; Git history is custody evidence,
+      not proof of creation or ownership, and this cycle cannot make a copyright, trademark,
+      assignment, counsel, deployment, or production-readiness claim.
+- [x] Inventory all 15 shipped JPG, PNG, SVG, and WebP assets, their local hashes, Git custody
+      history, current live copy, duplicate documentation, seven third-party source pages,
+      creator/license metadata, and eight unresolved legacy brand/texture paths.
+- [x] Freeze the strict JSON Schema, exact pre-policy legacy allowlist, canonical license map,
+      source-review fields, private-evidence boundary, and `productionReadiness: false` policy.
+      New public visual assets cannot inherit the legacy exception.
+- [x] Add the fail-closed verifier and deterministic public-safe report. CI now rejects missing or
+      duplicate records, symlinks, path/hash drift, new legacy exceptions, malformed or unknown
+      licenses, missing source evidence, sensitive record values, live credit/license/change-copy
+      drift, stale documentation, or a stale report.
+- [x] Correct the shipped reference attribution: Frank Kovalchek replaces the incorrect USGS
+      sandbar credit, Sharon Mollerus is the single pilings source, and Town of Chatham is retained
+      in the Fish and Wildlife Service tidal-channel credit. The UI now links source and license
+      separately and states the documented local transformation. Add the safe update process,
+      legacy owner-confirmation questions, and the future artist-agreement checklist without
+      committing contracts or private legal/business records.
+- [ ] Publish a protected draft PR from the exact clean branch. Complete local evidence is green:
+      Cloudflare build and 374/374 Node tests; 29/29 API tests; 18 migrations, 14 critical query
+      plans, and every foreign-key child path indexed; Ruff and 81/81 pipeline tests with one
+      documented optional-raster skip plus deterministic smoke; ESLint; TypeScript; secrets;
+      zero-execution npm policy; exact Python locks; both SBOM gates; both npm audits with zero
+      vulnerabilities; the focused provenance verifier/tests; and 140/140 Chromium/WebKit mobile,
+      offline, recovery, 404, and safe-area cases.
+- [ ] Accept exact-head hosted checks, merge only that head, verify exact post-merge `main`, and
+      add the immutable receipt. Cloudflare and production remain paused throughout.
+
 ## Completed seven-step work cycle — mobile web and API compatibility controls
 
 - [x] Reconcile exact protected `main` and freeze the acceptance boundary. Starting `main` is
@@ -390,7 +422,11 @@ also satisfied.
       license, trademark, counsel/CPA, DMCA/UGC, and insurance review.
 - [ ] Preserve authorship and business evidence: dated decisions, source/asset provenance,
       licenses/assignments, contributor agreements, release hashes, archived public artifacts,
-      and counsel-guided copyright/trademark/patent/trade-secret decisions.
+      and counsel-guided copyright/trademark/patent/trade-secret decisions. **Local public-asset
+      register, strict schema/policy, fail-closed hash/license/live-copy verifier, deterministic
+      public-safe report, and owner/artist workflow are complete;** eight legacy brand/texture
+      paths still need private owner evidence, and agreements, archived public artifacts,
+      counsel decisions, and operator-console integration remain open.
 
 ## P3 — Experience and brand (intentionally last)
 
@@ -418,8 +454,10 @@ also satisfied.
 - [ ] Make a private business-record folder for formation/tax/license questions, counsel/CPA
       notes, trademark research, insurance quotes, contracts, invoices, and renewal dates.
       Treat these as questions for qualified professionals, not completed legal conclusions.
-- [ ] Start an authorship/provenance register: asset or feature, creator, creation date, source,
-      license/assignment, AI assistance if any, release/commit, and storage location.
+- [x] Start an authorship/provenance register: all 15 public visual assets now have exact hashes,
+      source/rights/release fields, AI-assistance state, evidence references, and a strict CI gate.
+      Eight pre-policy brand/texture paths correctly remain `owner_confirmation_required`; keep
+      their private source files, assignments, and legal notes outside Git.
 - [ ] Before using your artist friend’s work, agree in writing on scope, credit, payment,
       ownership/license, modification rights, source-file delivery, and whether portfolio use is
       allowed. Actual visual commissioning can wait until P3.
