@@ -9,7 +9,7 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
-## Active seven-step work cycle — authorship and public-asset provenance
+## Completed seven-step work cycle — authorship and public-asset provenance
 
 - [x] Reconcile exact protected `main` and freeze the public/private/legal boundary. Starting
       `main` is `ea922c8dfbdb7e35a81836d1f6a9e9e35c9081bb`; Git history is custody evidence,
@@ -31,15 +31,28 @@ also satisfied.
       separately and states the documented local transformation. Add the safe update process,
       legacy owner-confirmation questions, and the future artist-agreement checklist without
       committing contracts or private legal/business records.
-- [ ] Publish a protected draft PR from the exact clean branch. Complete local evidence is green:
+- [x] Publish protected PR `#104` from exact head
+      `854f9d249174ed2a01953a0bcde3906477af2af0`. Complete local evidence is green:
       Cloudflare build and 374/374 Node tests; 29/29 API tests; 18 migrations, 14 critical query
       plans, and every foreign-key child path indexed; Ruff and 81/81 pipeline tests with one
       documented optional-raster skip plus deterministic smoke; ESLint; TypeScript; secrets;
       zero-execution npm policy; exact Python locks; both SBOM gates; both npm audits with zero
       vulnerabilities; the focused provenance verifier/tests; and 140/140 Chromium/WebKit mobile,
-      offline, recovery, 404, and safe-area cases.
-- [ ] Accept exact-head hosted checks, merge only that head, verify exact post-merge `main`, and
-      add the immutable receipt. Cloudflare and production remain paused throughout.
+      offline, recovery, 404, and safe-area cases. Exact-head CI `29676342215`, release provenance
+      `29676342222`, CodeQL `29676341710`, and native image security `29676342217` passed. A
+      duplicate push CI initially hit one WebKit map-control wait timeout; failed-job rerun
+      `88165071812` passed on the unchanged head, matching the already-green PR run. No code or
+      test weakening was used, and no deployment or Cloudflare change occurred.
+- [x] Merge only the accepted exact head and reconcile protected `main`. PR `#104` merged as
+      `9cb3bf12524bf17bf699bfc1508575ceee727db6`; main CI `29676832214`, release provenance
+      `29676832217`, CodeQL `29676832077`, and native image security `29676832201` passed that
+      exact commit, including the 140-case browser matrix, dependency submission,
+      release-bundle provenance, release/SBOM attestations, and both image architectures. Open
+      PRs and Dependabot, code-scanning, and secret-scanning alerts are all zero; issue `#86`
+      remains open by design. Cloudflare and production remain paused. The parent business-record
+      goal stays open for owner confirmation of eight legacy assets, private evidence,
+      assignments/contributor agreements, accepted-artifact archives, counsel, and the future
+      operator dashboard.
 
 ## Completed seven-step work cycle — mobile web and API compatibility controls
 
