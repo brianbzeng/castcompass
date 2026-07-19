@@ -25,6 +25,12 @@ Tools dashboards have been created. Repository evidence does not yet prove prope
 ownership, sitemap submission, URL inspection, indexing, or search performance, so
 those milestones remain open.
 
+The four-page audience questions, page purposes, candidate phrases, desired snippets,
+prohibited claims, and secret-free evidence contract are frozen in
+[`SEO_LANGUAGE_AND_EVIDENCE.md`](SEO_LANGUAGE_AND_EVIDENCE.md) and the machine-checked
+[`seo/language-policy.json`](../seo/language-policy.json). The desired snippets are
+preferences only; search engines may select different page text.
+
 ## Milestone 1 — local crawl foundation
 
 - [x] Each public page has one HTTPS self-canonical and route-specific title,

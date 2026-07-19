@@ -623,9 +623,11 @@ by that discovery.
 - [ ] Before using your artist friend’s work, agree in writing on scope, credit, payment,
       ownership/license, modification rights, source-file delivery, and whether portfolio use is
       allowed. Actual visual commissioning can wait until P3.
-- [ ] Prepare an SEO language sheet: audience questions, honest page purpose, candidate search
-      phrases, prohibited accuracy claims, and desired snippets for the four public pages. Do
-      not change DNS or submit URLs until the reviewed crawl foundation is deployed.
+- [x] Prepare an SEO language sheet: all four public pages now have machine-checked audience
+      questions, honest purpose, candidate phrases, current titles/descriptions, desired snippets,
+      useful next actions, and prohibited-claim groups in `seo/language-policy.json`, with the
+      owner workflow in `docs/SEO_LANGUAGE_AND_EVIDENCE.md`. Provider actions remain fail closed;
+      no DNS, dashboard, submission, inspection, indexing, or production change was made.
 - [ ] Record current Google/Bing dashboard ownership and verification status with screenshots
       that contain no secrets. Leave sitemap submission and live URL inspection for deployment.
 - [x] Build the official-data source register for CDFW/CRFS/RecFIN: dataset name, official URL,

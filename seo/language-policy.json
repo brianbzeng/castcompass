@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "reviewedOn": "2026-07-19",
+  "siteOrigin": "https://castingcompass.com",
+  "indexableRoutes": [
+    "/",
+    "/privacy",
+    "/terms",
+    "/ai-disclosure"
+  ],
+  "excludedRoutes": [
+    {
+      "route": "/profile",
+      "indexingIntent": "noindex,nofollow",
+      "sitemapAllowed": false,
+      "indexingRequestAllowed": false,
+      "reason": "Account-only utility page, not a public search landing page."
+    }
+  ],
+  "truthfulLanguage": {
+    "requiredConcepts": [
+      "explainable relative rankings",
+      "heuristic",
+      "public forecast inputs",
+      "uncertainty",
+      "freshness",
+      "verify current conditions, regulations, access, and safety"
+    ],
+    "prohibitedClaimGroups": [
+      {
+        "group": "catch outcomes and superiority",
+        "phrases": [
+          "catch probability",
+          "chance of catching",
+          "guaranteed catch",
+          "guaranteed fish",
+          "best fishing spot",
+          "number one fishing app",
+          "most accurate fishing forecast"
+        ]
+      },
+      {
+        "group": "model validation and training",
+        "phrases": [
+          "scientifically validated",
+          "proven accurate",
+          "trained on catch data",
+          "AI predicts your catch",
+          "validated catch odds"
+        ]
+      },
+      {
+        "group": "freshness, regulations, access, and safety",
+        "phrases": [
+          "real-time regulations",
+          "guaranteed safe",
+          "always legal",
+          "access guaranteed",
+          "complete live conditions"
+        ]
+      },
+      {
+        "group": "agency endorsement",
+        "phrases": [
+          "official CDFW partner",
+          "CDFW approved",
+          "government endorsed"
+        ]
+      },
+      {
+        "group": "search and release status",
+        "phrases": [
+          "guaranteed to rank",
+          "indexed by Google",
+          "indexed by Bing",
+          "production release complete",
+          "production matches this repository"
+        ]
+      }
+    ]
+  },
+  "pages": [
+    {
+      "route": "/",
+      "canonical": "https://castingcompass.com/",
+      "indexingIntent": "index",
+      "pagePurpose": "Help a Bay Area angler compare public California halibut fishing windows using a transparent heuristic relative ranking, its inputs, freshness, and limitations.",
+      "audienceQuestions": [
+        "How can I compare public Bay Area halibut fishing windows?",
+        "Which public shore, beach, jetty, or pier options fit the available forecast inputs?",
+        "Why is one available option ranked above another?"
+      ],
+      "candidateSearchPhrases": [
+        "California halibut fishing planner",
+        "Bay Area halibut shore fishing conditions",
+        "halibut fishing window comparison",
+        "Bay Area pier beach jetty fishing planner"
+      ],
+      "currentTitle": "CastingCompass — California halibut opportunity planner",
+      "currentDescription": "Compare public Bay Area shore, beach, jetty, and pier fishing windows using explainable relative rankings from habitat, seasonality, and current conditions.",
+      "desiredSnippet": "Compare public Bay Area shore, beach, jetty, and pier fishing windows using explainable relative rankings from habitat, seasonality, and current conditions.",
+      "nextAction": "Review the ranking inputs and freshness before choosing a public fishing window."
+    },
+    {
+      "route": "/privacy",
+      "canonical": "https://castingcompass.com/privacy",
+      "indexingIntent": "index",
+      "pagePurpose": "Explain the information CastingCompass collects, why it is used, its service providers and retention practices, and the controls available to a user.",
+      "audienceQuestions": [
+        "What personal information does CastingCompass collect?",
+        "How does CastingCompass use and retain trip and account data?",
+        "How can a CastingCompass user export or delete account data?"
+      ],
+      "candidateSearchPhrases": [
+        "CastingCompass privacy policy",
+        "CastingCompass data collection",
+        "CastingCompass account deletion",
+        "CastingCompass data retention"
+      ],
+      "currentTitle": "Privacy Policy · CastingCompass",
+      "currentDescription": "How CastingCompass collects, uses, shares, retains, and protects information.",
+      "desiredSnippet": "How CastingCompass collects, uses, shares, retains, and protects information.",
+      "nextAction": "Read the policy and use the listed product controls or contact route for a request."
+    },
+    {
+      "route": "/terms",
+      "canonical": "https://castingcompass.com/terms",
+      "indexingIntent": "index",
+      "pagePurpose": "State the conditions for using the public planner and account features, including important limits on forecast, access, regulation, and safety information.",
+      "audienceQuestions": [
+        "What rules apply when using CastingCompass?",
+        "What are the limitations of CastingCompass fishing information?",
+        "What responsibilities remain with the person planning a fishing trip?"
+      ],
+      "candidateSearchPhrases": [
+        "CastingCompass terms of service",
+        "CastingCompass use terms",
+        "CastingCompass forecast limitations",
+        "CastingCompass account terms"
+      ],
+      "currentTitle": "Terms of Service · CastingCompass",
+      "currentDescription": "Terms governing use of the CastingCompass fishing opportunity planner and account features.",
+      "desiredSnippet": "Terms governing use of the CastingCompass fishing opportunity planner and account features.",
+      "nextAction": "Read the terms and verify current regulations, access, conditions, and safety independently."
+    },
+    {
+      "route": "/ai-disclosure",
+      "canonical": "https://castingcompass.com/ai-disclosure",
+      "indexingIntent": "index",
+      "pagePurpose": "Describe the current heuristic relative ranker, public inputs, model research boundary, uncertainty, and human-gated use of AI review without implying trained catch prediction.",
+      "audienceQuestions": [
+        "How does CastingCompass produce its relative rankings?",
+        "Does CastingCompass currently use a trained catch-prediction model?",
+        "Where is AI used and where is human review required?"
+      ],
+      "candidateSearchPhrases": [
+        "CastingCompass AI disclosure",
+        "CastingCompass forecast method",
+        "CastingCompass relative ranking",
+        "CastingCompass fishing model limitations"
+      ],
+      "currentTitle": "AI and Forecast Disclosure · CastingCompass",
+      "currentDescription": "How CastingCompass uses a heuristic relative ranker, public forecast inputs, model research, and human-gated AI review.",
+      "desiredSnippet": "How CastingCompass uses a heuristic relative ranker, public forecast inputs, model research, and human-gated AI review.",
+      "nextAction": "Review the method, freshness, uncertainty, and human-review boundaries before relying on a ranking."
+    }
+  ],
+  "providerBaseline": {
+    "googleSearchConsole": {
+      "dashboardCreation": "operator_reported_2026-07-17",
+      "propertyType": "unverified_in_repository",
+      "ownershipVerified": false,
+      "sitemapSubmitted": false,
+      "sitemapProcessed": false,
+      "liveUrlInspectionComplete": false,
+      "indexingRequested": false,
+      "indexingObserved": false,
+      "performanceBaselineRecorded": false
+    },
+    "bingWebmasterTools": {
+      "dashboardCreation": "operator_reported_2026-07-17",
+      "verificationMethod": "unverified_in_repository",
+      "ownershipVerified": false,
+      "sitemapSubmitted": false,
+      "sitemapProcessed": false,
+      "liveUrlInspectionComplete": false,
+      "indexingRequested": false,
+      "indexingObserved": false,
+      "performanceBaselineRecorded": false
+    }
+  },
+  "providerActionsEnabled": {
+    "dnsVerificationChange": false,
+    "dashboardImport": false,
+    "sitemapSubmission": false,
+    "liveUrlInspection": false,
+    "indexingRequest": false,
+    "indexNow": false
+  },
+  "evidenceContract": {
+    "storage": "private_outside_repository",
+    "states": [
+      "dashboard_created",
+      "ownership_verified",
+      "sitemap_submitted",
+      "sitemap_processed",
+      "live_url_tested",
+      "indexing_requested",
+      "indexed",
+      "performance_observed"
+    ],
+    "allowedFields": [
+      "provider",
+      "property type",
+      "verification method",
+      "operator role",
+      "UTC timestamp",
+      "DNS record name and type",
+      "sitemap URL and processing status",
+      "inspected URL and verdict",
+      "declared and provider-selected canonical",
+      "coverage and performance baseline",
+      "redacted screenshot hash"
+    ],
+    "prohibitedFields": [
+      "DNS verification value",
+      "HTML verification token",
+      "API key",
+      "access token",
+      "session cookie",
+      "authorization header",
+      "account email or identifier",
+      "recovery code",
+      "billing details",
+      "user or trip data"
+    ],
+    "rules": [
+      "A later state never proves an earlier state unless each state has its own evidence.",
+      "Dashboard creation is not ownership verification.",
+      "Sitemap submission is not sitemap processing, crawling, indexing, ranking, or traffic.",
+      "A live URL test is not the indexed result and an indexing request does not guarantee indexing.",
+      "Screenshots remain private and must be redacted before any issue or pull-request reference."
+    ]
+  }
+}
