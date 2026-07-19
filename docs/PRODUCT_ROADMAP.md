@@ -534,6 +534,10 @@ after its acceptance checks pass in the intended environment.
     centrally owned response headers, exact opt-in rejection before expensive work, preserved
     secure-cookie web authentication, an explicit native-PKCE release gate, shared-contract
     inventory, four-edge safe-area handling, and hosted Chromium/WebKit offline coverage.
+  - [x] Stabilize the local map-readiness acceptance after repeated WebKit timing races without
+    increasing the readiness ceiling, enabling global retries, or weakening the exact overlay
+    geometry assertions. The browser test now follows the real explicit-load transition and a
+    20-run WebKit plus 15-run Chromium stress check passed before the full 140-case matrix.
   - [ ] Complete native-client contract/authentication work, isolated staging and provider setup,
     physical-device acceptance, deployment, and production-scale performance/failure evidence.
 

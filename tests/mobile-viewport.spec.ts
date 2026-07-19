@@ -385,14 +385,13 @@ test("safe-area contract keeps fixed controls inside simulated insets", async ({
 test("map overlays do not collide or clip", async ({ page }) => {
   const map = page.locator(".map-wrap");
   const centerButton = page.getByRole("button", { name: /center bay/i });
-  await map.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
-  if (!(await centerButton.isVisible())) {
-    const loadMap = page.getByRole("button", { name: /open interactive map/i });
-    if (await loadMap.isVisible()) {
-      await loadMap.click().catch(() => undefined);
-    }
-  }
-  await expect(centerButton).toBeVisible({ timeout: 15_000 });
+  const loadMap = page.getByRole("button", { name: /open interactive map/i });
+  await map.scrollIntoViewIfNeeded();
+  await expect(async () => {
+    if (await centerButton.isVisible()) return;
+    if (await loadMap.isVisible()) await loadMap.click({ timeout: 1_000 });
+    await expect(centerButton).toBeVisible({ timeout: 1_000 });
+  }).toPass({ intervals: [100, 250, 500], timeout: 15_000 });
 
   const viewportWidth = await page.evaluate(() => window.innerWidth);
   const label = await page.locator(".map-overlay-label").boundingBox();

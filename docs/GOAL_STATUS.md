@@ -9,6 +9,34 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
+## Active seven-step work cycle — deterministic mobile map readiness
+
+- [x] Reconcile exact protected `main` and freeze the acceptance boundary. Starting `main` is
+      `698064d89952f0042ad7dd8853c9982cf3c63464`; Cloudflare and production remain paused, and
+      this test-only cycle cannot claim deployment, provider, native-client, or production
+      readiness.
+- [x] Diagnose the repeated exact failure rather than changing product code. Two WebKit jobs on
+      unchanged product bytes each passed 139/140 cases but timed out waiting for `Center Bay`;
+      independent runs on the same commits passed, isolating a test-readiness race instead of a
+      map geometry regression.
+- [x] Freeze the non-weakening contract: keep the existing 15-second readiness ceiling, retain
+      the exact overlay non-collision and viewport assertions, add no global retries, and exercise
+      the real `Open interactive map` action whenever it is the authoritative visible state.
+- [x] Replace the one-shot state sample and swallowed click failure with a bounded transition
+      assertion. The test now scrolls through Playwright's actionability boundary, observes both
+      loader and loaded states, performs a bounded user click when available, and fails if the map
+      never reaches the real `Center Bay` control.
+- [x] Complete local verification: 20/20 repeated WebKit map cases; 15/15 repeated Chromium map
+      cases across three phone viewports; 140/140 full Chromium/WebKit mobile, offline, recovery,
+      404, and safe-area cases; Cloudflare build and 374/374 Node tests; ESLint; TypeScript; the
+      exact npm 10.9.8 integrated security/SBOM gate with zero audit findings; 29/29 API tests;
+      18 migrations, 14 critical query plans, and every foreign-key child path indexed; Ruff;
+      81/81 pipeline tests with one documented optional-raster skip; and deterministic smoke.
+- [ ] Publish a protected draft PR from the exact clean branch and accept every exact-head hosted
+      check without relying on a rerun to conceal the original outcome.
+- [ ] Merge only the accepted exact head, reconcile protected `main`, and add the immutable
+      receipt. Cloudflare, provider resources, and production remain unchanged throughout.
+
 ## Completed seven-step work cycle — authorship and public-asset provenance
 
 - [x] Reconcile exact protected `main` and freeze the public/private/legal boundary. Starting
