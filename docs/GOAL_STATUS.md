@@ -50,7 +50,19 @@ by that discovery.
       cases. Duplicate branch-push CI `29692868584` and release provenance `29692868625` also
       passed, including a second 140/140 browser matrix. No retry, policy weakening, deployment,
       provider mutation, or Cloudflare change was used.
-- [ ] Merge only the accepted head and add the immutable protected-`main` reconciliation receipt.
+- [x] Merge only the accepted head and reconcile protected `main`. Final acceptance head
+      `357571d2d638d733efea06a5addc2c1e6767180b` passed PR CI `29693134885`, release
+      provenance `29693134884`, and CodeQL `29693133711` on their original attempts; duplicate
+      branch-push CI `29693133460` and release provenance `29693133434` also passed without a
+      retry. PR `#108` merged as `2ae4857a498afa525ecbcaf5bfa2fa53c199a647`; main CI
+      `29693385952`, release provenance `29693385934`, and CodeQL `29693385780` passed that exact
+      commit on their original attempts, including the 140-case browser matrix, hosted Python
+      3.13.14 API and pipeline suites, dependency submission, release-bundle provenance, and
+      release/SBOM attestations. Open PRs and Dependabot, code-scanning, and secret-scanning
+      alerts are all zero; issue `#86` remains open by design. Production remains active,
+      drifted, and untouched. The broader P0 provider deployment gate stays open for ordered
+      migrations, bindings and feature flags, maintenance mode, source binding, live-host
+      verification, and guarded release acceptance.
 
 ## Completed seven-step work cycle — deterministic mobile map readiness
 
