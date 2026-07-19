@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "reviewedOn": "2026-07-19",
+  "status": "draft_only",
+  "researchExecutionAuthorized": false,
+  "claimBoundary": "comprehension_research_only_not_model_validation_or_fishing_outcome_evidence",
+  "participantBoundary": {
+    "accountRequired": false,
+    "recordingAllowed": false,
+    "realTripDisclosureRequired": false,
+    "allowedCapture": [
+      "aggregate non-identifying comprehension tallies"
+    ],
+    "prohibitedCollection": [
+      "names or contact details",
+      "account identifiers",
+      "credentials, cookies, tokens, or recovery codes",
+      "precise fishing locations or coordinates",
+      "real trip notes or fishing history",
+      "photos, files, or device data",
+      "raw quotes, recordings, or participant-level transcripts"
+    ],
+    "volunteeredSensitiveDataResponse": "Interrupt collection, do not copy or summarize the value, ask the participant to return to the fictional scenario, and exclude the affected response from any tally."
+  },
+  "ratingScale": [
+    "understood",
+    "partly_understood",
+    "misunderstood",
+    "not_observed"
+  ],
+  "interviews": [
+    {
+      "id": "relative-ranking",
+      "title": "What the Opportunity Score means",
+      "durationMinutes": 4,
+      "scenario": "Show a fictional screen where Site A has an Opportunity Score of 82 and Site B has 61 for the same species and time window.",
+      "prompts": [
+        "In your own words, what does the score of 82 mean here?",
+        "Would you read 82 as an 82 percent chance of catching a fish, and why?",
+        "What does this comparison not tell you?",
+        "What would you verify somewhere else before deciding whether to go?"
+      ],
+      "expectedConcepts": [
+        "The score is a relative comparison within the displayed options.",
+        "The score is not a catch probability or promise of an outcome.",
+        "The person still needs current safety, access, regulation, and condition checks."
+      ]
+    },
+    {
+      "id": "source-freshness",
+      "title": "Reading source freshness",
+      "durationMinutes": 4,
+      "scenario": "Show a fictional forecast card with one source marked updated two hours ago and another marked stale.",
+      "prompts": [
+        "Which part of this screen tells you how current the information is?",
+        "What would you do after seeing that one source is stale?",
+        "Does a recently updated source guarantee that the displayed conditions are correct, and why?",
+        "What wording or visual treatment would make freshness easier to understand?"
+      ],
+      "expectedConcepts": [
+        "Each source can have a different observation or update time.",
+        "A stale warning should reduce reliance and prompt an outside check.",
+        "Recent data can still be incomplete, delayed, or different from local conditions."
+      ]
+    },
+    {
+      "id": "limitations-safety-legality",
+      "title": "Understanding limitations and outside checks",
+      "durationMinutes": 4,
+      "scenario": "Show a fictional planning card that includes a relative rank, uncertainty copy, and links to official sources.",
+      "prompts": [
+        "Does this screen tell you that a place is safe, legal, open, or accessible?",
+        "Which facts would you verify with official or local sources?",
+        "What uncertainty remains after reading the explanation?",
+        "How would you describe the planner's role to another person?"
+      ],
+      "expectedConcepts": [
+        "The planner does not certify safety, legality, access, or open status.",
+        "Official regulations, forecasts, notices, and local conditions require separate checks.",
+        "The planner helps compare options rather than making the final decision."
+      ]
+    },
+    {
+      "id": "trip-report-privacy",
+      "title": "Trip-report privacy expectations",
+      "durationMinutes": 4,
+      "scenario": "Show a fictional pending trip report and explain that only a human-approved aggregate may become public; no real report should be entered during the interview.",
+      "prompts": [
+        "What would you expect other visitors to see from this pending report?",
+        "Which information should never become public?",
+        "Would you expect the pending report itself to be public before human review, and why?",
+        "What privacy explanation would you want to see before submitting a future report?"
+      ],
+      "expectedConcepts": [
+        "A pending report remains private and cannot publish automatically.",
+        "Raw notes, identity, precise coordinates, and photos do not belong in a public summary.",
+        "Any public output requires explicit human approval and privacy-preserving aggregation."
+      ]
+    },
+    {
+      "id": "combined-comprehension",
+      "title": "Making a decision from the whole screen",
+      "durationMinutes": 5,
+      "scenario": "Show two fictional windows with different relative ranks, source ages, uncertainty messages, and official-source links.",
+      "prompts": [
+        "Which information would you look at first, and why?",
+        "What would make you pause before relying on the higher-ranked option?",
+        "Which decisions can this screen support, and which decisions must stay with you?",
+        "How would you explain the score, freshness, limitations, and privacy boundaries in one sentence?"
+      ],
+      "expectedConcepts": [
+        "Rank, freshness, uncertainty, and outside verification must be considered together.",
+        "A higher rank does not override stale data or safety, access, and legal checks.",
+        "The product supports planning while the person retains responsibility for the trip decision."
+      ]
+    }
+  ]
+}
