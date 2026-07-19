@@ -9,7 +9,7 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
-## Active seven-step work cycle — deterministic mobile map readiness
+## Completed seven-step work cycle — deterministic mobile map readiness
 
 - [x] Reconcile exact protected `main` and freeze the acceptance boundary. Starting `main` is
       `698064d89952f0042ad7dd8853c9982cf3c63464`; Cloudflare and production remain paused, and
@@ -32,10 +32,21 @@ also satisfied.
       exact npm 10.9.8 integrated security/SBOM gate with zero audit findings; 29/29 API tests;
       18 migrations, 14 critical query plans, and every foreign-key child path indexed; Ruff;
       81/81 pipeline tests with one documented optional-raster skip; and deterministic smoke.
-- [ ] Publish a protected draft PR from the exact clean branch and accept every exact-head hosted
-      check without relying on a rerun to conceal the original outcome.
-- [ ] Merge only the accepted exact head, reconcile protected `main`, and add the immutable
-      receipt. Cloudflare, provider resources, and production remain unchanged throughout.
+- [x] Publish protected PR `#106` from exact clean head
+      `76e08f78fe891d3815a0762e0e152a53cf8fb099` after the complete local evidence above passed.
+      Exact-head CI `29690657750`, release provenance `29690657737`, and CodeQL `29690656673`
+      passed; the PR and duplicate branch-push web jobs both passed the full browser matrix on
+      their original attempts. No retry, longer timeout, global retry, weakened assertion,
+      deployment, provider mutation, or Cloudflare change was used.
+- [x] Merge only the accepted exact head and reconcile protected `main`. PR `#106` merged as
+      `172a13b52c2600c4c7d70e6cf18e86f61d6766c9`; main CI `29690916163`, release provenance
+      `29690916184`, and CodeQL `29690916170` passed that exact commit on their original
+      attempts, including the 140-case browser matrix, API and pipeline suites, dependency
+      submission, release-bundle provenance, and release/SBOM attestations. Open PRs and
+      Dependabot, code-scanning, and secret-scanning alerts are all zero; issue `#86` remains
+      open by design. Cloudflare and production remain paused. The broader mobile parent stays
+      open for native PKCE/token work, isolated staging, provider bindings, physical-device
+      acceptance, deployment, and production-scale evidence.
 
 ## Completed seven-step work cycle — authorship and public-asset provenance
 
