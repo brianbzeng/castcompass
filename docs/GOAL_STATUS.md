@@ -9,7 +9,7 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
-## Active seven-step work cycle — mobile web and API compatibility controls
+## Completed seven-step work cycle — mobile web and API compatibility controls
 
 - [x] Reconcile exact protected `main` and freeze the acceptance boundary. Starting `main` is
       `a1dd23c85c9540cc86b52fd35942a7ebceeb53dd`; production and Cloudflare remain paused, issue
@@ -28,11 +28,24 @@ also satisfied.
       and [mobile/API boundary](MOBILE-READINESS.md). The current secure host-cookie web model is
       preserved, browser credential storage remains forbidden, and PKCE/OS-protected token work is
       an explicit precondition for any native release.
-- [ ] Pass the complete local repository/security suite and publish a protected draft PR from the
-      exact reviewed head without deploying or changing Cloudflare.
-- [ ] Accept exact-head hosted CI—including WebKit—then merge only that head and record immutable
-      post-merge receipts. Keep the parent roadmap item open for native, staging, provider,
-      physical-device, and production-scale evidence.
+- [x] Publish protected PR `#102` only after the complete local suite passed on exact head
+      `6af7f91a4ca5f06c182e793818e87393edaeda12`. Evidence: Cloudflare build and 369/369 Node
+      tests; 29/29 API tests; 18 migrations, 14 critical query plans, and every foreign-key child
+      path indexed; Ruff and 81/81 pipeline tests with one documented optional-raster skip plus
+      deterministic smoke; ESLint; TypeScript; secrets; zero-execution npm policy; exact Python
+      locks; both SBOM gates; both npm audits with zero vulnerabilities; 105/105 local Chromium
+      mobile/offline cases; and a 140-case four-project hosted matrix including WebKit. Exact-head
+      CI `29673948911`, release provenance `29673948924`, and CodeQL `29673948165` passed; 13
+      checks succeeded, five event-appropriate jobs skipped, and none failed. No deployment or
+      Cloudflare change occurred.
+- [x] Merge only the accepted exact head and reconcile protected `main`. PR `#102` merged as
+      `fb2c23a254ee40a9d4abb47d905910e8eb66ccfd`; main CI `29674131431`, release provenance
+      `29674131446`, and CodeQL `29674131178` passed that exact commit, including the WebKit
+      matrix, dependency submission, release-bundle provenance, and release/SBOM attestations.
+      Open PRs and Dependabot, code-scanning, and secret-scanning alerts are all zero; issue `#86`
+      remains open by design. Cloudflare and production remain paused. The parent roadmap item
+      stays open for native PKCE/token work, isolated staging, provider bindings, physical-device
+      acceptance, deployment, and production-scale evidence.
 
 ## Completed seven-step work cycle — default-off advisory AI review queue
 
