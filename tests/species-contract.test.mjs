@@ -41,6 +41,7 @@ test("machine contract assets declare the locked IDs and versions", async () => 
     "contracts/model-run.schema.json",
     "contracts/model-governance.schema.json",
     "contracts/source-admissibility.schema.json",
+    "contracts/privacy-rights-case.schema.json",
     "contracts/opportunity.schema.json",
   ].map(async (path) => JSON.parse(await readFile(new URL(path, root), "utf8"))));
   const [
@@ -50,6 +51,7 @@ test("machine contract assets declare the locked IDs and versions", async () => 
     modelRunSchema,
     modelGovernanceSchema,
     sourceAdmissibilitySchema,
+    privacyRightsCaseSchema,
     opportunitySchema,
   ] = files;
   assert.equal(catalog.contract_version, "castingcompass.taxa/1.0.0");
@@ -58,6 +60,7 @@ test("machine contract assets declare the locked IDs and versions", async () => 
   assert.equal(modelRunSchema.$id, "castingcompass.model-run/2.0.0");
   assert.equal(modelGovernanceSchema.$id, "castingcompass.model-governance/1.0.0");
   assert.equal(sourceAdmissibilitySchema.$id, "castingcompass.source-admissibility/1.0.0");
+  assert.equal(privacyRightsCaseSchema.$id, "castingcompass.privacy-rights-case/1.0.0");
   assert.equal(opportunitySchema.$id, "castingcompass.opportunity/2.0.0");
   assert.deepEqual(catalog.taxa.map((taxon) => taxon.taxon_id), [
     "california-halibut",
@@ -88,6 +91,7 @@ test("Ajv 2020 strictly compiles every schema and validates structural fixtures"
     "contracts/model-run.schema.json",
     "contracts/model-governance.schema.json",
     "contracts/source-admissibility.schema.json",
+    "contracts/privacy-rights-case.schema.json",
     "contracts/opportunity.schema.json",
   ];
   const [
@@ -96,6 +100,7 @@ test("Ajv 2020 strictly compiles every schema and validates structural fixtures"
     modelRunSchema,
     modelGovernanceSchema,
     sourceAdmissibilitySchema,
+    privacyRightsCaseSchema,
     opportunitySchema,
   ] = await Promise.all(
     paths.map(async (path) => JSON.parse(await readFile(new URL(path, root), "utf8"))),
@@ -114,6 +119,7 @@ test("Ajv 2020 strictly compiles every schema and validates structural fixtures"
   const validateModelRun = ajv.compile(modelRunSchema);
   const validateModelGovernance = ajv.compile(modelGovernanceSchema);
   const validateSourceAdmissibility = ajv.compile(sourceAdmissibilitySchema);
+  const validatePrivacyRightsCase = ajv.compile(privacyRightsCaseSchema);
   const validateOpportunity = ajv.compile(opportunitySchema);
 
   assert.equal(validateCatalog(catalog), true, JSON.stringify(validateCatalog.errors));
@@ -176,6 +182,56 @@ test("Ajv 2020 strictly compiles every schema and validates structural fixtures"
   const ambiguousSourcePolicy = structuredClone(sourceAdmissibilityPolicy);
   ambiguousSourcePolicy.unreviewed_escape_hatch = true;
   assert.equal(validateSourceAdmissibility(ambiguousSourcePolicy), false);
+  const privacyCase = {
+    schema_version: "castingcompass.privacy-rights-case/1.0.0",
+    case_id: "prc_00000000000000000000000000000000",
+    synthetic: true,
+    source_commit: digest.slice(0, 40),
+    received_at: "2026-07-16T18:00:00.000Z",
+    acknowledged_at: null,
+    responded_at: null,
+    closed_at: null,
+    channel: "authenticated-self-service",
+    jurisdiction_volunteered: "not-volunteered",
+    rights: ["access"],
+    applied_clock: "unassessed",
+    extension: { status: "none", notified_at: null, reason_code: "none", extended_due_at: null },
+    identity: { status: "pending", method: "not-completed", completed_at: null },
+    status: "received",
+    systems: [
+      "active-d1", "deletion-ledger", "private-r2", "browser-state",
+      "validation-artifacts", "operational-logs", "encrypted-backups", "processors",
+    ].map((system) => ({ system, result: "unresolved", record_count: 0, action_count: 0 })),
+    processors: ["cloudflare", "resend", "xiaomi-mimo", "hibp", "turnstile"]
+      .map((processor) => ({ processor, result: "unresolved", action_count: 0 })),
+    delivery: { status: "pending", channel: "none", delivered_at: null, export_section_count: 0 },
+    disposition: {
+      outcome: "pending",
+      reason_code: "none",
+      active_row_count: 0,
+      object_task_completed_count: 0,
+      object_task_pending_count: 0,
+      retained_category_count: 0,
+      deletion_completed_at: null,
+      challenge_information_provided: false,
+      legal_exception_recorded: false,
+    },
+    safety_checks: {
+      cross_account_data_absent: false,
+      secrets_absent: false,
+      internal_locators_absent: false,
+      deleted_content_absent: false,
+      raw_identifiers_absent: true,
+      restore_suppression_verified: false,
+    },
+    review: {
+      legal_clock_review_completed: false,
+      privacy_case_review_completed: false,
+      second_person_review_completed: false,
+    },
+  };
+  assert.equal(validatePrivacyRightsCase(privacyCase), true, JSON.stringify(validatePrivacyRightsCase.errors));
+  assert.equal(validatePrivacyRightsCase({ ...privacyCase, email: "fixture@example.invalid" }), false);
 
   const opportunityCommon = {
     id: "pier--20260716T1800Z",

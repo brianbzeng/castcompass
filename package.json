@@ -39,6 +39,8 @@
     "load:smoke": "node scripts/load-test.mjs --profile smoke",
     "load:test": "node scripts/load-test.mjs",
     "drill:restore:offline": "node scripts/run-operational-restore-drill.mjs",
+    "verify:privacy-rights": "node scripts/privacy-rights-case.mjs verify-policy",
+    "drill:privacy-rights:offline": "node scripts/privacy-rights-case.mjs drill",
     "verify:discussion-safety": "node scripts/verify-discussion-safety.mjs",
     "verify:validation-successor": "node scripts/verify-validation-successor.mjs",
     "data:refresh": "PYTHONPATH=. python3 scripts/generate_snapshot.py && PYTHONPATH=. python3 scripts/generate_opportunity_attestations.py",

@@ -1,0 +1,106 @@
+{
+  "schema_version": "castingcompass.privacy-rights-policy/1.0.0",
+  "policy_id": "castingcompass-privacy-rights-v1",
+  "policy_version": "1.0.0",
+  "case_contract_version": "castingcompass.privacy-rights-case/1.0.0",
+  "decision_contract_version": "castingcompass.privacy-rights-decision/1.0.0",
+  "drill_receipt_contract_version": "castingcompass.privacy-rights-drill-receipt/1.0.0",
+  "current_deletion_semantics": {
+    "active_account_removal": "immediate-and-nonrecoverable",
+    "recovery_window_authorized": false,
+    "deletion_receipt_is_recovery_credential": false,
+    "completed_tombstone_retention_days": 90,
+    "operational_backup_retention_candidate_days": 89
+  },
+  "internal_service_level": {
+    "response_target_calendar_days": 28,
+    "law_applicability_must_not_be_inferred": true,
+    "ordinary_self_service_must_not_be_delayed": true
+  },
+  "reviewed_clock_references": [
+    {
+      "rule": "eu-gdpr-articles-15-through-22",
+      "acknowledgement_business_days": null,
+      "response_kind": "calendar-months",
+      "response_value": 1,
+      "maximum_extension_kind": "calendar-months",
+      "maximum_extension_value": 2,
+      "source_url": "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
+    },
+    {
+      "rule": "uk-gdpr-subject-access",
+      "acknowledgement_business_days": null,
+      "response_kind": "calendar-months",
+      "response_value": 1,
+      "maximum_extension_kind": "calendar-months",
+      "maximum_extension_value": 2,
+      "source_url": "https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/subject-access-requests/a-guide-to-subject-access/"
+    },
+    {
+      "rule": "california-know-delete-correct",
+      "acknowledgement_business_days": 10,
+      "response_kind": "calendar-days",
+      "response_value": 45,
+      "maximum_extension_kind": "calendar-days",
+      "maximum_extension_value": 45,
+      "source_url": "https://cppa.ca.gov/faq.html"
+    },
+    {
+      "rule": "california-opt-out-limit",
+      "acknowledgement_business_days": null,
+      "response_kind": "business-days",
+      "response_value": 15,
+      "maximum_extension_kind": "none",
+      "maximum_extension_value": 0,
+      "source_url": "https://cppa.ca.gov/faq.html"
+    }
+  ],
+  "required_systems": [
+    "active-d1",
+    "deletion-ledger",
+    "private-r2",
+    "browser-state",
+    "validation-artifacts",
+    "operational-logs",
+    "encrypted-backups",
+    "processors"
+  ],
+  "processor_inventory": [
+    "cloudflare",
+    "resend",
+    "xiaomi-mimo",
+    "hibp",
+    "turnstile"
+  ],
+  "forbidden_case_fields": [
+    "name",
+    "email",
+    "address",
+    "phone",
+    "password",
+    "token",
+    "cookie",
+    "user_id",
+    "account_id",
+    "ip",
+    "ip_address",
+    "user_agent",
+    "latitude",
+    "longitude",
+    "coordinates",
+    "trip_notes",
+    "photo",
+    "photo_key",
+    "object_key",
+    "request_text",
+    "response_text",
+    "free_text"
+  ],
+  "production_gates": {
+    "privacy_counsel_approval": false,
+    "processor_retention_review": false,
+    "provider_case_system_activated": false,
+    "production_shaped_drill_witnessed": false,
+    "independent_review_accepted": false
+  }
+}

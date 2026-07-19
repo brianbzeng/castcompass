@@ -324,6 +324,11 @@ after its acceptance checks pass in the intended environment.
     non-recoverable current behavior, and a privacy-minimized EU/UK/California-aware request
     workflow. Production-shaped drills, processor execution, dashboard case controls, and
     privacy/counsel approval remain open.
+  - [x] Freeze a strict PII-minimized case schema, default-deny clock/deletion policy, semantic
+    evaluator, safe CLI, and deterministic synthetic access/portability/export-before-erasure
+    drill. The aggregate receipt deliberately refuses production readiness while counsel,
+    processor-retention review, an approved case provider, a witnessed production-shaped drill,
+    and independent acceptance remain absent.
   - [ ] Decide with privacy/counsel review whether an ordinary account closure may offer a
     clearly disclosed 30-day recovery window. If adopted, revoke access immediately, isolate
     recovery data from active/public use, automatically hard-delete it at day 30, and let a

@@ -9,6 +9,34 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
+## Active seven-step work cycle — privacy-rights case handling
+
+- [x] Reconcile the exact protected `main` after the source-admissibility receipt. Evidence:
+      `main` is `9ad0ab8aa4bafd3e73253f382a5f23bb363358f7`; CI `29665671557`, release
+      provenance `29665671589`, and CodeQL `29665671354` passed; open PRs and all three alert
+      classes were empty; issue `#86` remains open by design.
+- [x] Audit active-row, public-copy, object, ledger, browser, validation, log, provider, and
+      backup deletion semantics. Immediate active deletion is already the stronger public
+      promise; no recoverable 30-day account copy is currently authorized.
+- [x] Recheck primary EU, UK, and California clock sources and freeze a conservative rule:
+      always use the 28-calendar-day internal target, never infer jurisdictional applicability,
+      and require recorded legal review before selecting a statute-specific clock reference.
+- [x] Freeze a strict case schema and default-deny policy that reject extra fields and prohibit
+      raw identifiers, contact details, credentials, precise location, notes, photos, object
+      locators, and request/response text. Canonical policy SHA-256:
+      `a87dee0cf45f35e9da35c4557ee0fff9040c02e0a333996383919b52c1592334`.
+- [x] Implement the non-mutating evaluator/CLI and synthetic offline drill. Focused evidence:
+      21/21 schema, lifecycle, cross-contract, chronology, export-before-erasure, closure,
+      private-file, aggregate-receipt, and fail-closed production-gate tests pass.
+- [ ] Publish the protected draft PR and accept every exact-head check without deploying or
+      changing Cloudflare. Local prerequisites pass: Cloudflare build and 338/338 Node tests,
+      29/29 API tests with all 13 critical query plans, Ruff, 81/81 pipeline tests with one
+      documented optional-raster skip, deterministic smoke, 102/102 mobile-browser tests, lint,
+      TypeScript, secrets, zero-execution install policy, every exact Python lock, both SBOM
+      checks, and both npm audits with zero vulnerabilities.
+- [ ] Merge only after all required checks pass, then reconcile exact `main`, post-merge runs,
+      PR/issue/alert state, and an immutable receipt update. Cloudflare remains paused.
+
 ## Completed seven-step work cycle — source admissibility
 
 - [x] Reconcile the exact protected `main` after the model-governance receipt cycle. Evidence:

@@ -1,0 +1,264 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "castingcompass.privacy-rights-case/1.0.0",
+  "title": "CastingCompass privacy-rights case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "synthetic",
+    "source_commit",
+    "received_at",
+    "acknowledged_at",
+    "responded_at",
+    "closed_at",
+    "channel",
+    "jurisdiction_volunteered",
+    "rights",
+    "applied_clock",
+    "extension",
+    "identity",
+    "status",
+    "systems",
+    "processors",
+    "delivery",
+    "disposition",
+    "safety_checks",
+    "review"
+  ],
+  "properties": {
+    "schema_version": { "const": "castingcompass.privacy-rights-case/1.0.0" },
+    "case_id": { "type": "string", "pattern": "^prc_[a-f0-9]{32}$" },
+    "synthetic": { "type": "boolean" },
+    "source_commit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "received_at": { "$ref": "#/$defs/timestamp" },
+    "acknowledged_at": { "$ref": "#/$defs/nullableTimestamp" },
+    "responded_at": { "$ref": "#/$defs/nullableTimestamp" },
+    "closed_at": { "$ref": "#/$defs/nullableTimestamp" },
+    "channel": {
+      "enum": [
+        "authenticated-self-service",
+        "verified-account-email",
+        "authorized-agent"
+      ]
+    },
+    "jurisdiction_volunteered": {
+      "enum": ["not-volunteered", "eu-eea", "united-kingdom", "california", "other"]
+    },
+    "rights": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "access",
+          "portability",
+          "correction",
+          "erasure",
+          "restriction",
+          "objection",
+          "appeal",
+          "opt-out-sale-sharing",
+          "limit-sensitive-use"
+        ]
+      }
+    },
+    "applied_clock": {
+      "enum": [
+        "unassessed",
+        "eu-gdpr-articles-15-through-22",
+        "uk-gdpr-subject-access",
+        "california-know-delete-correct",
+        "california-opt-out-limit"
+      ]
+    },
+    "extension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "notified_at", "reason_code", "extended_due_at"],
+      "properties": {
+        "status": { "enum": ["none", "approved"] },
+        "notified_at": { "$ref": "#/$defs/nullableTimestamp" },
+        "reason_code": { "enum": ["none", "complexity", "request-volume"] },
+        "extended_due_at": { "$ref": "#/$defs/nullableTimestamp" }
+      }
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "method", "completed_at"],
+      "properties": {
+        "status": { "enum": ["pending", "verified", "rejected"] },
+        "method": {
+          "enum": [
+            "authenticated-session-and-reauthentication",
+            "single-use-verified-account-email",
+            "reviewed-authorized-agent-proof",
+            "not-completed"
+          ]
+        },
+        "completed_at": { "$ref": "#/$defs/nullableTimestamp" }
+      }
+    },
+    "status": {
+      "enum": [
+        "received",
+        "identity-pending",
+        "in-progress",
+        "response-pending",
+        "closed",
+        "refused",
+        "withdrawn"
+      ]
+    },
+    "systems": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/systemOutcome" }
+    },
+    "processors": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": { "$ref": "#/$defs/processorOutcome" }
+    },
+    "delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "channel", "delivered_at", "export_section_count"],
+      "properties": {
+        "status": { "enum": ["not-required", "pending", "delivered", "channel-exhausted"] },
+        "channel": { "enum": ["authenticated-response", "short-lived-controlled-channel", "none"] },
+        "delivered_at": { "$ref": "#/$defs/nullableTimestamp" },
+        "export_section_count": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "disposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "reason_code",
+        "active_row_count",
+        "object_task_completed_count",
+        "object_task_pending_count",
+        "retained_category_count",
+        "deletion_completed_at",
+        "challenge_information_provided",
+        "legal_exception_recorded"
+      ],
+      "properties": {
+        "outcome": { "enum": ["pending", "completed", "partially-completed", "refused", "withdrawn"] },
+        "reason_code": {
+          "enum": [
+            "none",
+            "requester-withdrew",
+            "identity-not-verified",
+            "legal-retention-exception",
+            "manifestly-unfounded-or-excessive",
+            "technical-remediation-pending"
+          ]
+        },
+        "active_row_count": { "type": "integer", "minimum": 0 },
+        "object_task_completed_count": { "type": "integer", "minimum": 0 },
+        "object_task_pending_count": { "type": "integer", "minimum": 0 },
+        "retained_category_count": { "type": "integer", "minimum": 0 },
+        "deletion_completed_at": { "$ref": "#/$defs/nullableTimestamp" },
+        "challenge_information_provided": { "type": "boolean" },
+        "legal_exception_recorded": { "type": "boolean" }
+      }
+    },
+    "safety_checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cross_account_data_absent",
+        "secrets_absent",
+        "internal_locators_absent",
+        "deleted_content_absent",
+        "raw_identifiers_absent",
+        "restore_suppression_verified"
+      ],
+      "properties": {
+        "cross_account_data_absent": { "type": "boolean" },
+        "secrets_absent": { "type": "boolean" },
+        "internal_locators_absent": { "type": "boolean" },
+        "deleted_content_absent": { "type": "boolean" },
+        "raw_identifiers_absent": { "type": "boolean" },
+        "restore_suppression_verified": { "type": "boolean" }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "legal_clock_review_completed",
+        "privacy_case_review_completed",
+        "second_person_review_completed"
+      ],
+      "properties": {
+        "legal_clock_review_completed": { "type": "boolean" },
+        "privacy_case_review_completed": { "type": "boolean" },
+        "second_person_review_completed": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "timestamp": { "type": "string", "format": "date-time" },
+    "nullableTimestamp": {
+      "oneOf": [
+        { "$ref": "#/$defs/timestamp" },
+        { "type": "null" }
+      ]
+    },
+    "systemOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["system", "result", "record_count", "action_count"],
+      "properties": {
+        "system": {
+          "enum": [
+            "active-d1",
+            "deletion-ledger",
+            "private-r2",
+            "browser-state",
+            "validation-artifacts",
+            "operational-logs",
+            "encrypted-backups",
+            "processors"
+          ]
+        },
+        "result": {
+          "enum": [
+            "checked-not-found",
+            "checked-found-and-acted",
+            "retention-documented",
+            "unresolved"
+          ]
+        },
+        "record_count": { "type": "integer", "minimum": 0 },
+        "action_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "processorOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["processor", "result", "action_count"],
+      "properties": {
+        "processor": { "enum": ["cloudflare", "resend", "xiaomi-mimo", "hibp", "turnstile"] },
+        "result": {
+          "enum": [
+            "not-applicable",
+            "request-sent",
+            "confirmed",
+            "retention-documented",
+            "unresolved"
+          ]
+        },
+        "action_count": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

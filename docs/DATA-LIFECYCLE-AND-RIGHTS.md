@@ -1,7 +1,7 @@
 # CastingCompass data lifecycle and privacy-rights operations
 
 Status: locally verified engineering baseline; not legal advice or production evidence
-Last reviewed: 2026-07-17
+Last reviewed: 2026-07-18
 
 This document is the cascade map and operator procedure for access, portability,
 correction, restriction/objection, and deletion requests. It covers the current repository
@@ -182,10 +182,82 @@ Repository tests prove the local map and deletion invariants only. Keep the road
 until a witnessed production-shaped access/correction/export/deletion drill, provider review,
 alerting, key custody, and counsel review are complete.
 
+## Machine case boundary and local drill
+
+The repository now freezes a default-deny local control around the procedure above:
+
+- `contracts/privacy-rights-case.schema.json` accepts only a random case identifier, aggregate
+  counts, enumerated outcomes, canonical timestamps, case state, and review flags. It rejects
+  extra fields. The companion policy separately forbids names, email addresses, account IDs,
+  contact details, credentials, cookies, network identifiers, precise location, notes, photos,
+  object locators, and request/response text.
+- `privacy/rights-policy.json` preserves immediate, non-recoverable active-account removal. It
+  does not authorize a 30-day recovery copy, treat the cleanup receipt as a recovery credential,
+  infer legal applicability from a volunteered location, or delay ordinary self-service.
+- `scripts/privacy-rights-case.mjs` validates the schema and chronology, requires export delivery
+  before irreversible erasure, checks the complete system and processor inventories, refuses to
+  close unresolved cleanup, and returns only gap codes and aggregate state. It never executes a
+  user-data search, disclosure, correction, deletion, provider request, or legal decision.
+- A real case JSON file must be outside the repository, be a regular non-symlink file, be no more
+  than 256 KiB, and have no group/other permissions. Request content and the identifier-to-person
+  link belong only in a separately approved private case system. Do not commit even the minimized
+  case file.
+- The deterministic synthetic drill exercises access, portability, export-before-erasure,
+  system/processor disposition, response delivery, safety assertions, and second-person case
+  review. Its receipt contains no case ID or content. A local pass remains
+  `production_ready: false` while privacy/counsel approval, processor-retention review, an
+  approved provider case system, witnessed production-shaped drill, and independent acceptance
+  are absent.
+
+Verify the locked policy:
+
+```sh
+npm run verify:privacy-rights
+```
+
+Evaluate a private minimized case without echoing its case ID:
+
+```sh
+chmod 600 /private/path/privacy-case.json
+node scripts/privacy-rights-case.mjs evaluate --case /private/path/privacy-case.json
+```
+
+Run the synthetic offline drill from an exact clean commit and keep its aggregate receipt outside
+the repository:
+
+```sh
+npm run drill:privacy-rights:offline -- \
+  --output-dir /private/path/new-private-evidence-directory \
+  --source-commit 0123456789abcdef0123456789abcdef01234567
+```
+
+Canonical policy SHA-256:
+`a87dee0cf45f35e9da35c4557ee0fff9040c02e0a333996383919b52c1592334`.
+
+## Clock-source review
+
+The references were rechecked on 2026-07-18. They are operator prompts, not a conclusion that a
+law applies or a substitute for qualified advice:
+
+- EU GDPR Article 12 requires action information without undue delay and generally within one
+  month; a necessary extension can add up to two months, with notice during the first month.
+- The UK ICO subject-access guide, updated 2026-07-16, likewise uses a one-month response period,
+  proportionate identity checks and searches, secure disclosure, and a possible extension of up
+  to two months for complex or numerous requests with timely notice.
+- The California Privacy Protection Agency says know/delete/correct requests generally receive
+  confirmation within 10 business days and a substantive response within 45 calendar days, with
+  a possible additional 45 days and notice. Sale/share opt-out and sensitive-use limitation
+  requests are described as due as soon as feasibly possible and no later than 15 business days.
+
+The evaluator always applies the 28-calendar-day internal target. A statute-specific reference
+cannot be selected unless the minimized case records legal-clock review. Its business-day alarm
+counts weekdays without a holiday calendar, deliberately producing an earlier engineering alert
+when a holiday applies; it must not be presented as an authoritative statutory calculation.
+
 ## Primary rights references
 
 - [EU GDPR text](https://eur-lex.europa.eu/eli/reg/2016/679/oj)
 - [European Commission: individual rights](https://commission.europa.eu/law/law-topic/data-protection/information-individuals_en)
 - [European Commission: dealing with individual requests](https://commission.europa.eu/law/law-topic/data-protection/rules-business-and-organisations/dealing-individuals-requests_en)
 - [UK ICO: subject access guide](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/subject-access-requests/a-guide-to-subject-access/)
-- [California Privacy Protection Agency FAQ](https://cppa.ca.gov/faq)
+- [California Privacy Protection Agency FAQ](https://cppa.ca.gov/faq.html)
