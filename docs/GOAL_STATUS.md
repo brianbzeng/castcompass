@@ -43,8 +43,13 @@ by that discovery.
       tests with one documented optional-raster skip; and deterministic smoke. Exact Python
       3.13.14 execution remains a hosted-CI gate because that local Homebrew interpreter is
       damaged, not because of a repository failure.
-- [ ] Publish the exact clean head through a protected draft PR and accept all hosted checks
-      without weakening the policy or test boundary.
+- [x] Publish protected draft PR `#108` from exact clean implementation head
+      `32583bd7c21431d5ea772850e35d55d60eb595b4`. PR CI `29692895468`, release provenance
+      `29692895484`, and CodeQL `29692894421` passed on their original attempts, including exact
+      hosted Python 3.13.14, the new offline policy gate, the release bundle, and 140/140 browser
+      cases. Duplicate branch-push CI `29692868584` and release provenance `29692868625` also
+      passed, including a second 140/140 browser matrix. No retry, policy weakening, deployment,
+      provider mutation, or Cloudflare change was used.
 - [ ] Merge only the accepted head and add the immutable protected-`main` reconciliation receipt.
 
 ## Completed seven-step work cycle — deterministic mobile map readiness
