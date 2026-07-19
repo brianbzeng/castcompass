@@ -9,7 +9,7 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
-## Active seven-step work cycle — privacy-rights case handling
+## Completed seven-step work cycle — privacy-rights case handling
 
 - [x] Reconcile the exact protected `main` after the source-admissibility receipt. Evidence:
       `main` is `9ad0ab8aa4bafd3e73253f382a5f23bb363358f7`; CI `29665671557`, release
@@ -27,15 +27,26 @@ also satisfied.
       `a87dee0cf45f35e9da35c4557ee0fff9040c02e0a333996383919b52c1592334`.
 - [x] Implement the non-mutating evaluator/CLI and synthetic offline drill. Focused evidence:
       21/21 schema, lifecycle, cross-contract, chronology, export-before-erasure, closure,
-      private-file, aggregate-receipt, and fail-closed production-gate tests pass.
-- [ ] Publish the protected draft PR and accept every exact-head check without deploying or
-      changing Cloudflare. Local prerequisites pass: Cloudflare build and 338/338 Node tests,
-      29/29 API tests with all 13 critical query plans, Ruff, 81/81 pipeline tests with one
-      documented optional-raster skip, deterministic smoke, 102/102 mobile-browser tests, lint,
-      TypeScript, secrets, zero-execution install policy, every exact Python lock, both SBOM
-      checks, and both npm audits with zero vulnerabilities.
-- [ ] Merge only after all required checks pass, then reconcile exact `main`, post-merge runs,
-      PR/issue/alert state, and an immutable receipt update. Cloudflare remains paused.
+      private-file, aggregate-receipt, and fail-closed production-gate tests pass. The clean,
+      exact implementation commit `140c45da18bf1fdd87780c450a16139ee60a9a71` produced a private
+      aggregate-only drill receipt with SHA-256
+      `98aee26f45a1ad3351c4cb7da81887220d9b5522e0900b0667e91c454748d1b1` and
+      `production_ready: false`.
+- [x] Publish protected PR `#96` and accept every exact-head check without deploying or changing
+      Cloudflare. Exact head `140c45da18bf1fdd87780c450a16139ee60a9a71` passed CI
+      `29666895832`, release provenance `29666895835`, CodeQL `29666895407`, and native image
+      security `29666895825`; 15 checks passed, five event-appropriate jobs skipped, and none
+      failed. Local evidence also passed the Cloudflare build and 338/338 Node tests, 29/29 API
+      tests with all 13 critical query plans, Ruff, 81/81 pipeline tests with one documented
+      optional-raster skip, deterministic smoke, 102/102 mobile-browser tests, lint, TypeScript,
+      secrets, zero-execution install policy, every exact Python lock, both SBOM checks, and both
+      npm audits with zero vulnerabilities.
+- [x] Merge only after all required checks pass, then reconcile exact `main`, post-merge runs,
+      PR/issue/alert state, and an immutable receipt update. PR `#96` merged as
+      `b0931deaefc43e434eb28d5f43b55da9599901c1`; main CI `29667029304`, release provenance
+      `29667029303`, CodeQL `29667029205`, and native image security `29667029297` passed that
+      exact commit. Open PRs and Dependabot, code-scanning, and secret-scanning alerts are all
+      zero; issue `#86` remains open by design. Cloudflare and production remain paused.
 
 ## Completed seven-step work cycle — source admissibility
 
