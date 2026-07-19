@@ -101,7 +101,39 @@ test("private profile and provider actions stay fail closed", async () => {
     indexingRequestAllowed: false,
     reason: "Account-only utility page, not a public search landing page.",
   }]);
+  assert.deepEqual(keys(value.providerActionsEnabled), [
+    "dashboardImport",
+    "dnsVerificationChange",
+    "indexNow",
+    "indexingRequest",
+    "liveUrlInspection",
+    "sitemapSubmission",
+  ]);
   assert.ok(Object.values(value.providerActionsEnabled).every((enabled) => enabled === false));
+
+  assert.deepEqual(keys(value.providerBaseline), ["bingWebmasterTools", "googleSearchConsole"]);
+  assert.deepEqual(keys(value.providerBaseline.googleSearchConsole), [
+    "dashboardCreation",
+    "indexingObserved",
+    "indexingRequested",
+    "liveUrlInspectionComplete",
+    "ownershipVerified",
+    "performanceBaselineRecorded",
+    "propertyType",
+    "sitemapProcessed",
+    "sitemapSubmitted",
+  ]);
+  assert.deepEqual(keys(value.providerBaseline.bingWebmasterTools), [
+    "dashboardCreation",
+    "indexingObserved",
+    "indexingRequested",
+    "liveUrlInspectionComplete",
+    "ownershipVerified",
+    "performanceBaselineRecorded",
+    "sitemapProcessed",
+    "sitemapSubmitted",
+    "verificationMethod",
+  ]);
 
   for (const [provider, baseline] of Object.entries(value.providerBaseline)) {
     assert.match(baseline.dashboardCreation, /^operator_reported_2026-07-17$/u, provider);
@@ -167,6 +199,13 @@ test("strategy content rejects prohibited claims and secret material", async () 
 
 test("evidence states stay independent and documentation stays truthful", async () => {
   const value = await policy();
+  assert.deepEqual(keys(value.evidenceContract), [
+    "allowedFields",
+    "prohibitedFields",
+    "rules",
+    "states",
+    "storage",
+  ]);
   assert.deepEqual(value.evidenceContract.states, [
     "dashboard_created",
     "ownership_verified",
@@ -178,6 +217,8 @@ test("evidence states stay independent and documentation stays truthful", async 
     "performance_observed",
   ]);
   assert.equal(value.evidenceContract.storage, "private_outside_repository");
+  assert.equal(new Set(value.evidenceContract.allowedFields).size, value.evidenceContract.allowedFields.length);
+  assert.equal(new Set(value.evidenceContract.prohibitedFields).size, value.evidenceContract.prohibitedFields.length);
   assert.ok(value.evidenceContract.prohibitedFields.includes("DNS verification value"));
   assert.ok(value.evidenceContract.prohibitedFields.includes("session cookie"));
   assert.ok(value.evidenceContract.prohibitedFields.includes("user or trip data"));
