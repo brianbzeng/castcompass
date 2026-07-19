@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "castingcompass.authorship-provenance-report/1.0.0",
+  "registerSchemaVersion": "castingcompass.authorship-provenance/1.0.0",
+  "policyEffectiveCommit": "ea922c8dfbdb7e35a81836d1f6a9e9e35c9081bb",
+  "reviewedAt": "2026-07-19",
+  "recordCount": 12,
+  "visualAssetCount": 15,
+  "thirdPartyRecordCount": 7,
+  "legacyReviewRequiredRecordCount": 5,
+  "legacyReviewRequiredPaths": [
+    "public/castingcompass-icon.png",
+    "public/favicon.svg",
+    "public/icon.svg",
+    "public/icons/icon-192.png",
+    "public/icons/icon-512.png",
+    "public/og.png",
+    "public/topography-contours-v2.webp",
+    "public/topography-contours.webp"
+  ],
+  "rightsBasisCounts": {
+    "cc_by": 3,
+    "cc_by_sa": 1,
+    "cc0": 1,
+    "derived_from_registered_legacy": 1,
+    "owner_confirmation_required": 4,
+    "source_public_domain_assertion": 2
+  },
+  "licenseIds": [
+    "CC-BY-2.0",
+    "CC-BY-4.0",
+    "CC-BY-SA-4.0",
+    "CC0-1.0",
+    "LicenseRef-Commons-PD-USGov-FWS",
+    "LicenseRef-Commons-PD-USGov-USACE"
+  ],
+  "allVisualAssetsRegistered": true,
+  "liveAttributionVerified": true,
+  "privateEvidenceIncluded": false,
+  "productionReadiness": false,
+  "limitations": [
+    "Repository and Git evidence do not independently prove copyright ownership or legal clearance.",
+    "Legacy brand, icon, social-card, and topography assets remain subject to owner confirmation.",
+    "Private agreements, privileged advice, identities, personal data, and secret material are intentionally excluded.",
+    "This source-bound report is not deployment evidence and does not authorize production release."
+  ],
+  "inputSha256": {
+    "app/data/structure-images.json": "179cb5ed047f0874090637c96cee690f85a2bce8ac188b67494971686c735516",
+    "contracts/authorship-provenance.schema.json": "68b39e1a0db7fd65e210961137c95e09ee61b559e1846609184750873e46f057",
+    "governance/authorship-provenance.json": "59ac18e2d9a1133a93c868471cf177f5077e13a1ec4ee6a03463de2469832270",
+    "security/authorship-provenance-policy.json": "a757a8edb26dfdb86752f6f10303c92236f267cc45f382c354d58074019a9ef5"
+  }
+}

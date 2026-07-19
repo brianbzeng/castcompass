@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://castingcompass.com/contracts/authorship-provenance/1.0.0",
+  "title": "CastingCompass public authorship and asset provenance register",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "reviewed_at",
+    "policy_effective_commit",
+    "private_evidence_boundary",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "castingcompass.authorship-provenance/1.0.0"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "policy_effective_commit": {
+      "$ref": "#/$defs/gitSha"
+    },
+    "private_evidence_boundary": {
+      "const": "Private agreements, legal advice, identities, personal data, and secret material stay outside this repository; this register may contain only non-sensitive receipt identifiers."
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    }
+  },
+  "$defs": {
+    "gitSha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "nullableString": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nullableUri": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nullableDate": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nullableSha1": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "assetPath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^public/[A-Za-z0-9][A-Za-z0-9._/-]*\\.(?:jpg|png|svg|webp)$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "kind",
+        "paths",
+        "creator_display",
+        "creation_date",
+        "source_url",
+        "source_remote_sha1",
+        "source_reviewed_at",
+        "license_id",
+        "license_label",
+        "license_url",
+        "rights_basis",
+        "attribution_required",
+        "share_alike",
+        "attribution_text",
+        "modifications",
+        "ai_assistance",
+        "rights_review",
+        "release_state",
+        "upstream_record_id",
+        "release_commit",
+        "evidence_refs",
+        "private_evidence_receipt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "maxLength": 80
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "kind": {
+          "enum": [
+            "third_party_reference",
+            "first_party_legacy",
+            "derived_legacy"
+          ]
+        },
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/assetPath"
+          }
+        },
+        "creator_display": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "creation_date": {
+          "$ref": "#/$defs/nullableDate"
+        },
+        "source_url": {
+          "$ref": "#/$defs/nullableUri"
+        },
+        "source_remote_sha1": {
+          "$ref": "#/$defs/nullableSha1"
+        },
+        "source_reviewed_at": {
+          "$ref": "#/$defs/nullableDate"
+        },
+        "license_id": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "license_label": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "license_url": {
+          "$ref": "#/$defs/nullableUri"
+        },
+        "rights_basis": {
+          "enum": [
+            "cc0",
+            "cc_by",
+            "cc_by_sa",
+            "source_public_domain_assertion",
+            "owner_confirmation_required",
+            "derived_from_registered_legacy"
+          ]
+        },
+        "attribution_required": {
+          "type": "boolean"
+        },
+        "share_alike": {
+          "type": "boolean"
+        },
+        "attribution_text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "modifications": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "ai_assistance": {
+          "enum": [
+            "none_declared",
+            "not_disclosed_by_source",
+            "unknown_legacy",
+            "disclosed"
+          ]
+        },
+        "rights_review": {
+          "enum": [
+            "verified_source_license",
+            "source_public_domain_assertion",
+            "owner_confirmation_required",
+            "derived_from_registered_legacy"
+          ]
+        },
+        "release_state": {
+          "enum": [
+            "approved_existing_use",
+            "legacy_review_required"
+          ]
+        },
+        "upstream_record_id": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "release_commit": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "private_evidence_receipt": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^receipt_[a-f0-9]{32}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

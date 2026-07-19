@@ -1,0 +1,423 @@
+{
+  "schema_version": "castingcompass.authorship-provenance/1.0.0",
+  "reviewed_at": "2026-07-19",
+  "policy_effective_commit": "ea922c8dfbdb7e35a81836d1f6a9e9e35c9081bb",
+  "private_evidence_boundary": "Private agreements, legal advice, identities, personal data, and secret material stay outside this repository; this register may contain only non-sensitive receipt identifiers.",
+  "records": [
+    {
+      "id": "brand-raster-mark",
+      "title": "CastingCompass raster compass and hook mark",
+      "kind": "first_party_legacy",
+      "paths": [
+        {
+          "path": "public/castingcompass-icon.png",
+          "sha256": "5d209f34401f8f816da636ddced72982493d21b058ff30feb1667b9fecf5d71a"
+        }
+      ],
+      "creator_display": "Creator confirmation required",
+      "creation_date": null,
+      "source_url": null,
+      "source_remote_sha1": null,
+      "source_reviewed_at": null,
+      "license_id": null,
+      "license_label": null,
+      "license_url": null,
+      "rights_basis": "owner_confirmation_required",
+      "attribution_required": false,
+      "share_alike": false,
+      "attribution_text": "CastingCompass",
+      "modifications": "Repository history records a July 2026 refresh; the original source file and transformation history still require owner confirmation.",
+      "ai_assistance": "unknown_legacy",
+      "rights_review": "owner_confirmation_required",
+      "release_state": "legacy_review_required",
+      "upstream_record_id": null,
+      "release_commit": "b80b8310b564dcadec30590fae8c115f3021afed",
+      "evidence_refs": [
+        "git:b80b8310b564dcadec30590fae8c115f3021afed",
+        "Git author/custody history is not proof of creation or rights ownership."
+      ],
+      "private_evidence_receipt": null
+    },
+    {
+      "id": "brand-vector-marks",
+      "title": "CastingCompass SVG marks",
+      "kind": "first_party_legacy",
+      "paths": [
+        {
+          "path": "public/favicon.svg",
+          "sha256": "e811f5592d979fbd36b9ae066cbe24faf36570baf52492d1addff28ecd2e29aa"
+        },
+        {
+          "path": "public/icon.svg",
+          "sha256": "cbfec46ded22e0299ac317825b9a83d807111664a01edad79761889774c4db2b"
+        }
+      ],
+      "creator_display": "Creator confirmation required",
+      "creation_date": null,
+      "source_url": null,
+      "source_remote_sha1": null,
+      "source_reviewed_at": null,
+      "license_id": null,
+      "license_label": null,
+      "license_url": null,
+      "rights_basis": "owner_confirmation_required",
+      "attribution_required": false,
+      "share_alike": false,
+      "attribution_text": "CastingCompass",
+      "modifications": "Existing repository assets; the original design files and transformation history require owner confirmation.",
+      "ai_assistance": "unknown_legacy",
+      "rights_review": "owner_confirmation_required",
+      "release_state": "legacy_review_required",
+      "upstream_record_id": null,
+      "release_commit": "3027f2f44d16a547ddacb2d6e40c88ef55453bd9",
+      "evidence_refs": [
+        "git:3027f2f44d16a547ddacb2d6e40c88ef55453bd9",
+        "Git author/custody history is not proof of creation or rights ownership."
+      ],
+      "private_evidence_receipt": null
+    },
+    {
+      "id": "pwa-raster-variants",
+      "title": "CastingCompass PWA icon variants",
+      "kind": "derived_legacy",
+      "paths": [
+        {
+          "path": "public/icons/icon-192.png",
+          "sha256": "d2e30f88ff27831781d8057258abdf6924b01eb64e5526e82b3148c06dd0aa79"
+        },
+        {
+          "path": "public/icons/icon-512.png",
+          "sha256": "0aa9ec04eed16ef4727a39bcb7c64d17d855d0d2ea7b55c9c06857ec1f499f56"
+        }
+      ],
+      "creator_display": "Creator confirmation required",
+      "creation_date": null,
+      "source_url": null,
+      "source_remote_sha1": null,
+      "source_reviewed_at": null,
+      "license_id": null,
+      "license_label": null,
+      "license_url": null,
+      "rights_basis": "derived_from_registered_legacy",
+      "attribution_required": false,
+      "share_alike": false,
+      "attribution_text": "CastingCompass",
+      "modifications": "Repository-sized PWA variants associated with the raster brand mark; the exact generation process requires owner confirmation.",
+      "ai_assistance": "unknown_legacy",
+      "rights_review": "derived_from_registered_legacy",
+      "release_state": "legacy_review_required",
+      "upstream_record_id": "brand-raster-mark",
+      "release_commit": "b80b8310b564dcadec30590fae8c115f3021afed",
+      "evidence_refs": [
+        "git:b80b8310b564dcadec30590fae8c115f3021afed",
+        "Visual association is recorded as repository provenance, not a legal ownership conclusion."
+      ],
+      "private_evidence_receipt": null
+    },
+    {
+      "id": "social-preview-card",
+      "title": "CastingCompass social preview card",
+      "kind": "first_party_legacy",
+      "paths": [
+        {
+          "path": "public/og.png",
+          "sha256": "2f8c7a3e445999037c3804467fb8401a9439e4b48815bc083ad86cdce967947e"
+        }
+      ],
+      "creator_display": "Creator confirmation required",
+      "creation_date": null,
+      "source_url": null,
+      "source_remote_sha1": null,
+      "source_reviewed_at": null,
+      "license_id": null,
+      "license_label": null,
+      "license_url": null,
+      "rights_basis": "owner_confirmation_required",
+      "attribution_required": false,
+      "share_alike": false,
+      "attribution_text": "CastingCompass",
+      "modifications": "Repository history records an initial card and later brand-name refinements; source layers and assistance history require owner confirmation.",
+      "ai_assistance": "unknown_legacy",
+      "rights_review": "owner_confirmation_required",
+      "release_state": "legacy_review_required",
+      "upstream_record_id": null,
+      "release_commit": "6db802cfa82d451793e62290dd3861093cc18198",
+      "evidence_refs": [
+        "git:3027f2f44d16a547ddacb2d6e40c88ef55453bd9",
+        "git:6db802cfa82d451793e62290dd3861093cc18198",
+        "Git author/custody history is not proof of creation or rights ownership."
+      ],
+      "private_evidence_receipt": null
+    },
+    {
+      "id": "structure-eelgrass",
+      "title": "Eelgrass structure reference",
+      "kind": "third_party_reference",
+      "paths": [
+        {
+          "path": "public/structure-guides/eelgrass.jpg",
+          "sha256": "899bbc2fae685145507c0eb88bdafd8a49aa0e628d252f50697dcb2bcb7c7b85"
+        }
+      ],
+      "creator_display": "Olivier Dugornay, Ifremer / Wikimedia Commons",
+      "creation_date": null,
+      "source_url": "https://commons.wikimedia.org/wiki/File:Pr%C3%A9l%C3%A8vement_d%27herbiers_de_zost%C3%A8res_dans_le_golfe_du_Morbihan_(Ifremer_00560-67191_-_42945).jpg",
+      "source_remote_sha1": "01fc1ea2ccd6234671d4d74f73abea46ce57b4b5",
+      "source_reviewed_at": "2026-07-19",
+      "license_id": "CC-BY-4.0",
+      "license_label": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "rights_basis": "cc_by",
+      "attribution_required": true,
+      "share_alike": false,
+      "attribution_text": "Olivier Dugornay, Ifremer / Wikimedia Commons",
+      "modifications": "Resized and re-encoded as JPEG for the app; no other changes are documented.",
+      "ai_assistance": "not_disclosed_by_source",
+      "rights_review": "verified_source_license",
+      "release_state": "approved_existing_use",
+      "upstream_record_id": null,
+      "release_commit": "a8f3c55b7baf7675d81d7289883e9f5f4295d809",
+      "evidence_refs": [
+        "Wikimedia Commons source page and MediaWiki imageinfo/extmetadata reviewed 2026-07-19."
+      ],
+      "private_evidence_receipt": null
+    },
+    {
+      "id": "structure-estuary",
+      "title": "Estuary-mouth structure reference",
+      "kind": "third_party_reference",
+      "paths": [
+        {
+          "path": "public/structure-guides/estuary.jpg",
+          "sha256": "5c1d2f7dbc8a10ef8b47a8acca9416f6600cd6f78fd2ba85f4984e0010ddd768"
+        }
+      ],
+      "creator_display": "U.S. Army Corps of Engineers / Wikimedia Commons",
+      "creation_date": null,
+      "source_url": "https://commons.wikimedia.org/wiki/File:Klamath_River_mouth_aerial_view.jpg",
+      "source_remote_sha1": "042d2608c39583249d994999d95287042ef2a60f",
+      "source_reviewed_at": "2026-07-19",
+      "license_id": "LicenseRef-Commons-PD-USGov-USACE",
+      "license_label": "Public-domain assertion (U.S. Army Corps of Engineers)",
+      "license_url": "https://commons.wikimedia.org/wiki/Template:PD-USGov-USACE",
+      "rights_basis": "source_public_domain_assertion",
+      "attribution_required": false,
+      "share_alike": false,
+      "attribution_text": "U.S. Army Corps of Engineers / Wikimedia Commons",
+      "modifications": "Resized and re-encoded as JPEG for the app; no other changes are documented.",
+      "ai_assistance": "not_disclosed_by_source",
+      "rights_review": "source_public_domain_assertion",
+      "release_state": "approved_existing_use",
+      "upstream_record_id": null,
+      "release_commit": "a8f3c55b7baf7675d81d7289883e9f5f4295d809",
+      "evidence_refs": [
+        "Wikimedia Commons source page and MediaWiki imageinfo/extmetadata reviewed 2026-07-19; this records the source assertion, not an independent legal determination."
+      ],
+      "private_evidence_receipt": null
+    },
+    {
+      "id": "structure-jetty",
+      "title": "Jetty structure reference",
+      "kind": "third_party_reference",
+      "paths": [
+        {
+          "path": "public/structure-guides/jetty.jpg",
+          "sha256": "ff8e7f23b270ee5176fa01ff03ed7e3e8cb00ac020d1f3c9798d629e80c8dbec"
+        }
+      ],
+      "creator_display": "Hirho / Wikimedia Commons",
+      "creation_date": null,
+      "source_url": "https://commons.wikimedia.org/wiki/File:Seaside_Momochi_Seaside_Park_breakwater_jetty_area_around_Momochi-hama_4-ch%C5%8Dme_Sawara-ku_Fukuoka_20230106.jpg",
+      "source_remote_sha1": "75aba5c4629c67ccc5ebf6ecb5a8eb27c70a65a7",
+      "source_reviewed_at": "2026-07-19",
+      "license_id": "CC-BY-SA-4.0",
+      "license_label": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "rights_basis": "cc_by_sa",
+      "attribution_required": true,
+      "share_alike": true,
+      "attribution_text": "Hirho / Wikimedia Commons",
+      "modifications": "Resized and re-encoded as JPEG for the app; no other changes are documented.",
+      "ai_assistance": "not_disclosed_by_source",
+      "rights_review": "verified_source_license",
+      "release_state": "approved_existing_use",
+      "upstream_record_id": null,
+      "release_commit": "a8f3c55b7baf7675d81d7289883e9f5f4295d809",
+      "evidence_refs": [
+        "Wikimedia Commons source page and MediaWiki imageinfo/extmetadata reviewed 2026-07-19."
+      ],
+      "private_evidence_receipt": null
+    },
+    {
+      "id": "structure-pilings",
+      "title": "Pier-pilings structure reference",
+      "kind": "third_party_reference",
+      "paths": [
+        {
+          "path": "public/structure-guides/pilings.jpg",
+          "sha256": "4d073a5b102b41b36fcffb702162da9a31a5b8fef94a953824bd2a924aaadaa6"
+        }
+      ],
+      "creator_display": "Sharon Mollerus / Wikimedia Commons",
+      "creation_date": null,
+      "source_url": "https://commons.wikimedia.org/wiki/File:Pier_Pilings_(1495162510).jpg",
+      "source_remote_sha1": "6e078a86bbf85ac62b771da9b5be5d29f10a45d6",
+      "source_reviewed_at": "2026-07-19",
+      "license_id": "CC-BY-2.0",
+      "license_label": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "rights_basis": "cc_by",
+      "attribution_required": true,
+      "share_alike": false,
+      "attribution_text": "Sharon Mollerus / Wikimedia Commons",
+      "modifications": "Resized and re-encoded as JPEG for the app; no other changes are documented.",
+      "ai_assistance": "not_disclosed_by_source",
+      "rights_review": "verified_source_license",
+      "release_state": "approved_existing_use",
+      "upstream_record_id": null,
+      "release_commit": "c7cbe6d4bea5c77db4643ad26cef23161d4f195d",
+      "evidence_refs": [
+        "Wikimedia Commons source page and MediaWiki imageinfo/extmetadata reviewed 2026-07-19."
+      ],
+      "private_evidence_receipt": null
+    },
+    {
+      "id": "structure-riprap",
+      "title": "Riprap structure reference",
+      "kind": "third_party_reference",
+      "paths": [
+        {
+          "path": "public/structure-guides/riprap.jpg",
+          "sha256": "dd38ac43ae6330023316d89e73f69efa8e3b377f290b4df52df4f87f54937753"
+        }
+      ],
+      "creator_display": "Greekswax / Wikimedia Commons",
+      "creation_date": null,
+      "source_url": "https://commons.wikimedia.org/wiki/File:Enrochement_Sopot.jpg",
+      "source_remote_sha1": "43d9942c3396295f2ce9071c19a0b5bd199547da",
+      "source_reviewed_at": "2026-07-19",
+      "license_id": "CC0-1.0",
+      "license_label": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "rights_basis": "cc0",
+      "attribution_required": false,
+      "share_alike": false,
+      "attribution_text": "Greekswax / Wikimedia Commons",
+      "modifications": "Resized and re-encoded as JPEG for the app; no other changes are documented.",
+      "ai_assistance": "not_disclosed_by_source",
+      "rights_review": "verified_source_license",
+      "release_state": "approved_existing_use",
+      "upstream_record_id": null,
+      "release_commit": "a8f3c55b7baf7675d81d7289883e9f5f4295d809",
+      "evidence_refs": [
+        "Wikimedia Commons source page and MediaWiki imageinfo/extmetadata reviewed 2026-07-19."
+      ],
+      "private_evidence_receipt": null
+    },
+    {
+      "id": "structure-sandbar",
+      "title": "Sandbar structure reference",
+      "kind": "third_party_reference",
+      "paths": [
+        {
+          "path": "public/structure-guides/sandbar.jpg",
+          "sha256": "d153a950f95bf4d3650d49266de4db387aa97c95e85af81eeeebe5ac69fca556"
+        }
+      ],
+      "creator_display": "Frank Kovalchek / Wikimedia Commons",
+      "creation_date": null,
+      "source_url": "https://commons.wikimedia.org/wiki/File:Aerial_shot_of_sandbars_near_Bay_St.Louis,_MS_(5593961735).jpg",
+      "source_remote_sha1": "0b2f83edcf04f23844fcdb1c0429f43d92ecfa26",
+      "source_reviewed_at": "2026-07-19",
+      "license_id": "CC-BY-2.0",
+      "license_label": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "rights_basis": "cc_by",
+      "attribution_required": true,
+      "share_alike": false,
+      "attribution_text": "Frank Kovalchek / Wikimedia Commons",
+      "modifications": "Resized and re-encoded as JPEG for the app; no other changes are documented.",
+      "ai_assistance": "not_disclosed_by_source",
+      "rights_review": "verified_source_license",
+      "release_state": "approved_existing_use",
+      "upstream_record_id": null,
+      "release_commit": "a8f3c55b7baf7675d81d7289883e9f5f4295d809",
+      "evidence_refs": [
+        "Wikimedia Commons source page and MediaWiki imageinfo/extmetadata reviewed 2026-07-19."
+      ],
+      "private_evidence_receipt": null
+    },
+    {
+      "id": "structure-tidal-channel",
+      "title": "Tidal-channel structure reference",
+      "kind": "third_party_reference",
+      "paths": [
+        {
+          "path": "public/structure-guides/tidal-channel.jpg",
+          "sha256": "c992a2724207c6b857e8574926a12efc1f7b40f399a22a02c025d06b6bb1c8c8"
+        }
+      ],
+      "creator_display": "Town of Chatham; distributed by U.S. Fish and Wildlife Service / Wikimedia Commons",
+      "creation_date": null,
+      "source_url": "https://commons.wikimedia.org/wiki/File:Aerial_view_of_Muddy_Creek_wetland_restoration_project._(26212443183).png",
+      "source_remote_sha1": "fdb82e4f1673d740d31be56f8221a3cfee6af025",
+      "source_reviewed_at": "2026-07-19",
+      "license_id": "LicenseRef-Commons-PD-USGov-FWS",
+      "license_label": "Public-domain assertion (U.S. Fish and Wildlife Service)",
+      "license_url": "https://commons.wikimedia.org/wiki/Template:PD-USGov-FWS",
+      "rights_basis": "source_public_domain_assertion",
+      "attribution_required": false,
+      "share_alike": false,
+      "attribution_text": "Town of Chatham; distributed by U.S. Fish and Wildlife Service / Wikimedia Commons",
+      "modifications": "Converted from PNG, resized, and re-encoded as JPEG for the app; no other changes are documented.",
+      "ai_assistance": "not_disclosed_by_source",
+      "rights_review": "source_public_domain_assertion",
+      "release_state": "approved_existing_use",
+      "upstream_record_id": null,
+      "release_commit": "a8f3c55b7baf7675d81d7289883e9f5f4295d809",
+      "evidence_refs": [
+        "Wikimedia Commons source page and MediaWiki imageinfo/extmetadata reviewed 2026-07-19; this records the source assertion, including the Town of Chatham photo credit, not an independent legal determination."
+      ],
+      "private_evidence_receipt": null
+    },
+    {
+      "id": "topography-textures",
+      "title": "CastingCompass topographic contour textures",
+      "kind": "first_party_legacy",
+      "paths": [
+        {
+          "path": "public/topography-contours-v2.webp",
+          "sha256": "93868bfcbd7ae184f3bec9bce51d73e1fea9b137a7bd6636736fe2a47ad573f5"
+        },
+        {
+          "path": "public/topography-contours.webp",
+          "sha256": "ab57d9c7fadddaee1c17b81bf94246b5094289dec71b87f36e6f0d3310d78cda"
+        }
+      ],
+      "creator_display": "Creator confirmation required",
+      "creation_date": null,
+      "source_url": null,
+      "source_remote_sha1": null,
+      "source_reviewed_at": null,
+      "license_id": null,
+      "license_label": null,
+      "license_url": null,
+      "rights_basis": "owner_confirmation_required",
+      "attribution_required": false,
+      "share_alike": false,
+      "attribution_text": "CastingCompass",
+      "modifications": "Existing repository texture variants; source layers, source data, and assistance history require owner confirmation.",
+      "ai_assistance": "unknown_legacy",
+      "rights_review": "owner_confirmation_required",
+      "release_state": "legacy_review_required",
+      "upstream_record_id": null,
+      "release_commit": "3a5ab24a8bac7f7a325edfa0b28f04ecf458fa1d",
+      "evidence_refs": [
+        "git:3027f2f44d16a547ddacb2d6e40c88ef55453bd9",
+        "git:3a5ab24a8bac7f7a325edfa0b28f04ecf458fa1d",
+        "Git author/custody history is not proof of creation or rights ownership."
+      ],
+      "private_evidence_receipt": null
+    }
+  ]
+}

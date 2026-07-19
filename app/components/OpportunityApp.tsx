@@ -39,6 +39,7 @@ import {
   hasLiveForecastInputs,
   sourceStatusTone,
 } from "../lib/forecast-freshness";
+import structureImages from "../data/structure-images.json";
 
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
 const ContourMap = lazy(() => import("./ContourMap").then((module) => ({ default: module.ContourMap })));
@@ -610,59 +611,12 @@ interface StructureImage {
   credit: string;
   sourceUrl: string;
   license: string;
+  licenseUrl: string;
+  modifications: string;
+  provenanceRecordId: string;
 }
 
-const STRUCTURE_IMAGES: Record<string, StructureImage> = {
-  riprap: {
-    src: "/structure-guides/riprap.jpg",
-    alt: "Large riprap rocks meeting the shoreline and shallow water",
-    credit: "Greekswax / Wikimedia Commons",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Enrochement_Sopot.jpg",
-    license: "CC0",
-  },
-  "eelgrass-edge": {
-    src: "/structure-guides/eelgrass.jpg",
-    alt: "An underwater eelgrass meadow growing across the seafloor",
-    credit: "Olivier Dugornay, Ifremer / Wikimedia Commons",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Pr%C3%A9l%C3%A8vement_d%27herbiers_de_zost%C3%A8res_dans_le_golfe_du_Morbihan_(Ifremer_00560-67191_-_42945).jpg",
-    license: "CC BY 4.0",
-  },
-  "pier-pilings": {
-    src: "/structure-guides/pilings.jpg",
-    alt: "Concrete pier pilings standing in shallow coastal water",
-    credit: "Sharon Mollerus / Wikimedia Commons",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Pier_Pilings_(1495162510).jpg",
-    license: "CC BY 2.0",
-  },
-  "sand-bar": {
-    src: "/structure-guides/sandbar.jpg",
-    alt: "Aerial view showing pale sandbars and deeper channels",
-    credit: "U.S. Geological Survey / Wikimedia Commons",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Aerial_shot_of_sandbars_near_Bay_St.Louis,_MS_(5593961735).jpg",
-    license: "CC BY 2.0",
-  },
-  jetty: {
-    src: "/structure-guides/jetty.jpg",
-    alt: "A stone jetty extending across shallow coastal water",
-    credit: "Hirho / Wikimedia Commons",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Seaside_Momochi_Seaside_Park_breakwater_jetty_area_around_Momochi-hama_4-ch%C5%8Dme_Sawara-ku_Fukuoka_20230106.jpg",
-    license: "CC BY-SA 4.0",
-  },
-  "tidal-channel": {
-    src: "/structure-guides/tidal-channel.jpg",
-    alt: "Aerial view of winding tidal channels through a wetland",
-    credit: "U.S. Fish and Wildlife Service / Wikimedia Commons",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Aerial_view_of_Muddy_Creek_wetland_restoration_project._(26212443183).png",
-    license: "Public domain",
-  },
-  "estuary-mouth": {
-    src: "/structure-guides/estuary.jpg",
-    alt: "Aerial view of a river mouth opening into the ocean",
-    credit: "U.S. Army Corps of Engineers / Wikimedia Commons",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Klamath_River_mouth_aerial_view.jpg",
-    license: "Public domain",
-  },
-};
+const STRUCTURE_IMAGES: Record<string, StructureImage> = structureImages;
 
 const STRUCTURE_IMAGE_ALIASES: Record<string, keyof typeof STRUCTURE_IMAGES> = {
   "channel-approach": "tidal-channel",
@@ -1946,7 +1900,7 @@ export function OpportunityApp() {
                           <figure>
                             <Image src={guide.image.src} alt={guide.image.alt} width={1000} height={650} loading="lazy" unoptimized />
                             <figcaption>
-                              Reference example—not this exact spot. <a href={guide.image.sourceUrl} target="_blank" rel="noreferrer">{guide.image.credit} · {guide.image.license} ↗</a>
+                              Reference example—not this exact spot. Source: <a href={guide.image.sourceUrl} target="_blank" rel="noreferrer">{guide.image.credit} ↗</a>. License: <a href={guide.image.licenseUrl} target="_blank" rel="noreferrer">{guide.image.license} ↗</a>. Changes: {guide.image.modifications}
                             </figcaption>
                           </figure>
                         </details>

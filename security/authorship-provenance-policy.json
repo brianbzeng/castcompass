@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "castingcompass.authorship-provenance-policy/1.0.0",
+  "registerPath": "governance/authorship-provenance.json",
+  "schemaPath": "contracts/authorship-provenance.schema.json",
+  "reportPath": "security/authorship-provenance-report.json",
+  "assetDiscovery": {
+    "roots": [
+      "public"
+    ],
+    "extensions": [
+      ".jpg",
+      ".png",
+      ".svg",
+      ".webp"
+    ],
+    "maximumFileBytes": 10485760
+  },
+  "legacyBoundary": {
+    "effectiveCommit": "ea922c8dfbdb7e35a81836d1f6a9e9e35c9081bb",
+    "exactUnresolvedPaths": [
+      "public/castingcompass-icon.png",
+      "public/favicon.svg",
+      "public/icon.svg",
+      "public/icons/icon-192.png",
+      "public/icons/icon-512.png",
+      "public/og.png",
+      "public/topography-contours-v2.webp",
+      "public/topography-contours.webp"
+    ]
+  },
+  "licenses": {
+    "CC0-1.0": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "CC-BY-2.0": "https://creativecommons.org/licenses/by/2.0/",
+    "CC-BY-4.0": "https://creativecommons.org/licenses/by/4.0/",
+    "CC-BY-SA-4.0": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "LicenseRef-Commons-PD-USGov-FWS": "https://commons.wikimedia.org/wiki/Template:PD-USGov-FWS",
+    "LicenseRef-Commons-PD-USGov-USACE": "https://commons.wikimedia.org/wiki/Template:PD-USGov-USACE"
+  },
+  "liveAttribution": {
+    "dataPath": "app/data/structure-images.json",
+    "documentationPaths": [
+      "docs/structure-image-audit.md",
+      "docs/STRUCTURE_IMAGE_SOURCES.md"
+    ]
+  },
+  "privacy": {
+    "maximumJsonBytes": 524288,
+    "forbiddenRecordValuePatterns": [
+      "(?:^|/)Users/",
+      "(?:^|/)private/tmp/",
+      "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}",
+      "(?:api[_-]?key|password|private[_-]?key|bearer\\s+|secret[_-]?value)"
+    ]
+  },
+  "productionReadiness": false
+}
