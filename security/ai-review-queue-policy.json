@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "castingcompass.ai-review-queue-policy/1.0.0",
+  "messageContract": "castingcompass.ai-review-queue/1.0.0",
+  "featureFlag": "AI_REVIEW_QUEUE_ENABLED",
+  "productionDefault": "false",
+  "producerBinding": "AI_REVIEW_QUEUE",
+  "consumer": {
+    "maxBatchSize": 5,
+    "maxBatchTimeoutSeconds": 10,
+    "maxRetries": 8,
+    "maxConcurrency": 1,
+    "deadLetterQueueRequired": true
+  },
+  "application": {
+    "maximumAttempts": 5,
+    "leaseSeconds": 60,
+    "redispatchAfterSeconds": 900,
+    "maximumRetryDelaySeconds": 3600,
+    "messageContainsOnly": ["version", "jobId"],
+    "authoritativeState": "D1 ai_review_jobs ledger"
+  }
+}

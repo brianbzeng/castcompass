@@ -29,6 +29,7 @@ const MIGRATIONS = [
   "0015_validation_snapshot_suppression.sql",
   "0016_data_resilience_indexes.sql",
   "0017_trip_idempotency.sql",
+  "0018_ai_review_queue.sql",
 ];
 
 let tripRequestSequence = 0;

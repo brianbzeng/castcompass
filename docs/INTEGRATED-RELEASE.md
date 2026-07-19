@@ -1,7 +1,7 @@
 # Integrated production release
 
 This runbook is the authoritative path for the first release containing migrations
-`0009` through `0017`. It exists because production has a known, narrowly bounded drift:
+`0009` through `0018`. It exists because production has a known, narrowly bounded drift:
 the eight nullable `0007_legal_acceptance.sql` columns are already present, while the D1
 migration ledger records only `0000` through `0006`. Running Wrangler against the normal
 `drizzle` directory would try `0007` again and then every later migration. Do not run raw
@@ -36,8 +36,8 @@ object keys, or the Time Travel bookmark in source control.
 | Phase | Worker serving traffic | Permitted schema state | Safe recovery |
 | --- | --- | --- | --- |
 | A | pinned discussion safety floor | through `0010` | route back to the recorded safety version |
-| B | reviewed full release with maintenance on | `0010` through `0015` | remain on the recorded maintenance version and fix forward |
-| C | reviewed full release with maintenance off | exactly through `0015` | re-enable the same release's maintenance version while investigating |
+| B | reviewed full release with maintenance on | `0010` through `0018` | remain on the recorded maintenance version and fix forward |
+| C | reviewed full release with maintenance off | exactly through `0018` | re-enable the same release's maintenance version while investigating |
 
 The safety-floor Worker is not a valid normal-traffic rollback after `0011`: the species
 contract adds completion guards that older trip writes do not satisfy. A Time Travel restore
@@ -88,7 +88,7 @@ npm run preflight:cloudflare:remote
 ```
 
 Stop unless the preflight succeeds. It must observe the exact `0000`–`0006` ledger; all eight
-`0007` columns; no `0009`–`0017` release schema or indexes; no photo locators; no
+`0007` columns; no `0009`–`0018` release schema or indexes; no photo locators; no
 foreign-key violations; and
 only aggregate user, trip, and discussion counts. Preserve its aggregate evidence hash and
 output. The confirmation flags in later commands assert that the bookmark was already stored;
@@ -174,12 +174,17 @@ export RELEASE_MIGRATION=0017_trip_idempotency.sql
 npm run migrate:cloudflare:remote -- \
   --confirm-primary contourcast-trips --confirm-bookmark-recorded
 
+export RELEASE_MIGRATION=0018_ai_review_queue.sql
+npm run migrate:cloudflare:remote -- \
+  --confirm-primary contourcast-trips --confirm-bookmark-recorded
+
 npm run postflight:cloudflare:remote
 ```
 
 The postflight must prove the exact full ledger; approval, privacy, species, validation, and
 snapshot-suppression schema; all 15 workload-backed data-resilience indexes; the exact nullable
-text trip-idempotency column; every pre-release trip classified `legacy_unverified`; zero photo
+text trip-idempotency column; the exact empty advisory-review job table and its two indexes;
+every pre-release trip classified `legacy_unverified`; zero photo
 locators; zero discussion approval metadata; zero validation activations/events; and no
 foreign-key violations. Preserve its aggregate evidence hash. Once `0011` begins, never route
 ordinary traffic to the older safety Worker. On failure, keep the maintenance bridge active

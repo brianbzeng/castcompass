@@ -351,6 +351,7 @@ that could become a privacy, integrity, or availability incident.
 | Privacy deletion, restore, migration, or backup failure | L05, L07, L09, L13 | Atomic deletion, tombstones/tasks, aggregate receipts, restore suppression, synthetic drill | Production migration/provider/custody and independent review |
 | Request flood, DDoS, cost exhaustion, or provider saturation | L03, L11, L12, L13 | Local endpoint ceilings, bounded retries/cost contracts, production-refusing harness | Active edge controls, isolated load/attack evidence, live alerts |
 | Monitoring, support, or operator access leaking private data | L07, L09, L13 | Structured redacted events, no raw URLs/content, no application admin route | Provider IAM/retention, named roles, delivered incident drill |
+| Duplicate, poisoned, exhausted, or privacy-stale AI queue work | L01, L05, L07, L11, L13 | Exact opaque message schema, D1 authority and unique trip job, atomic lease, deletion recheck/cascade, five-attempt attention state, batch/cost ceilings, maintenance/disable recovery, state-guarded replay plan | Apply migration; provision and verify Queue/DLQ/IAM/alerts; isolated failure/rollback drill; separate default-off activation review |
 
 ## Acceptance boundary
 

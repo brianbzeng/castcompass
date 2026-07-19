@@ -23,7 +23,7 @@ test("MiMo strictly validates gear and prepares a bounded human-gated discussion
   assert.doesNotMatch(review, /publishTripDiscussion|site_discussion_posts/);
   assert.match(review, /reviewTripBacklog/);
   assert.match(worker, /scheduled/);
-  assert.match(worker, /reviewTripBacklog/);
+  assert.match(worker, /dispatchAiReviewBacklog/);
 });
 
 test("public location discussions expose summaries without raw notes or identity", () => {

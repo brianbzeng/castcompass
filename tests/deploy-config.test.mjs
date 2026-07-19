@@ -21,9 +21,11 @@ test("generated Cloudflare configuration keeps discussions off and exposes versi
   assert.equal(config.vars?.PUBLIC_DISCUSSIONS_ENABLED, "false");
   assert.equal(config.vars?.TRIP_PHOTO_UPLOADS_ENABLED, "false");
   assert.equal(config.vars?.TURNSTILE_ENABLED, "false");
+  assert.equal(config.vars?.AI_REVIEW_QUEUE_ENABLED, "false");
   assert.equal(config.vars?.TURNSTILE_SITE_KEY, undefined);
   assert.equal(config.vars?.TURNSTILE_SECRET_KEY, undefined);
   assert.equal(config.version_metadata?.binding, "CF_VERSION_METADATA");
+  assert.deepEqual(config.queues, { producers: [], consumers: [] });
 });
 
 test("production build omits disabled photo controls and preserves static header rules", async () => {

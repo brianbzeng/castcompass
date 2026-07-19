@@ -398,6 +398,7 @@ function tripReviewLabel(trip: ProfileTrip) {
   if (trip.ai_review_status === "processing") return "Checking note privacy and relevance…";
   if (trip.ai_review_status === "queued") return "Note review queued";
   if (trip.ai_review_status === "retry") return "Note review will retry automatically";
+  if (trip.ai_review_status === "needs_attention") return "Note review paused for support review";
   return "Note review pending";
 }
 

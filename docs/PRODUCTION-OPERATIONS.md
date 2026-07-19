@@ -258,6 +258,10 @@ prove that the object is either attached to a live trip or durably queued for cl
 - [ ] Migration `0017_trip_idempotency.sql` completed before normal traffic resumed; postflight
       verified its exact nullable text column and synthetic start, completion, and past-report
       retries returned the original operation/trip receipt after a simulated lost response.
+- [ ] Migration `0018_ai_review_queue.sql` completed before any Queue binding or feature
+      activation; postflight verified its exact table, unique-trip and dispatch indexes, zero
+      initial jobs, and foreign-key cascade. The production flag and bindings remain off until
+      every provider/staging/rollback/alert gate in `docs/AI-REVIEW-QUEUE.md` passes.
 - [ ] Privacy pre/postflight counts match; the missing-age and legal-reacceptance cohorts have
       an explicit support decision, while export and account deletion remain available.
 - [ ] Canonical, redirect-alias, and `workers.dev` smoke checks passed.

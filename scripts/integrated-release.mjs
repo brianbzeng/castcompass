@@ -31,6 +31,7 @@ export const STAGED_MIGRATIONS = Object.freeze([
   "0015_validation_snapshot_suppression.sql",
   "0016_data_resilience_indexes.sql",
   "0017_trip_idempotency.sql",
+  "0018_ai_review_queue.sql",
 ]);
 export const ALL_RELEASE_MIGRATIONS = Object.freeze([
   ...BASE_APPLIED_MIGRATIONS,
@@ -113,6 +114,14 @@ const STAGE_ABSENCE_QUERIES = Object.freeze({
     SELECT COUNT(*) AS target_artifacts_found
     FROM pragma_table_info('trips')
     WHERE name = 'idempotency_key_hash'`,
+  "0018_ai_review_queue.sql": `
+    SELECT
+      (SELECT COUNT(*) FROM sqlite_master
+        WHERE type = 'table' AND name = 'ai_review_jobs')
+      + (SELECT COUNT(*) FROM sqlite_master
+        WHERE type = 'index' AND name IN (
+          'ai_review_jobs_trip_unique', 'ai_review_jobs_dispatch_idx'
+        )) AS target_artifacts_found`,
 });
 
 function fail(label, expected, actual) {
@@ -249,6 +258,9 @@ export function verifyFinalPostflight(payload) {
     snapshot_suppression_columns: 2,
     data_resilience_indexes: 15,
     exact_trip_idempotency_columns: 1,
+    ai_review_queue_tables: 1,
+    ai_review_queue_indexes: 2,
+    ai_review_queue_rows: 0,
     non_legacy_trip_rows: 0,
     trip_photo_locators: 0,
     discussion_rows_with_approval_metadata: 0,

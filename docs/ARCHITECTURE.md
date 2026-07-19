@@ -16,8 +16,12 @@ flowchart TB
 
     subgraph Validation["Cloudflare validation storage"]
       D1["D1 trip reports"]
+      JOBS["D1 advisory-review outbox"]
+      QUEUE["Default-off managed review queue"]
       R2["R2 processed photos"]
       REVIEW["Pending moderation state"]
+      D1 --> JOBS --> QUEUE
+      QUEUE --> D1
       D1 --> REVIEW
       R2 --> REVIEW
     end
@@ -70,6 +74,12 @@ flowchart TB
     FISH --> INGEST
     GATE -->|"versioned artifact + metrics"| API
 ```
+
+The managed advisory-review edge is repository-complete but production-disabled. Queue messages
+carry only a version and opaque job ID; the D1 outbox/trip row remains authoritative under
+at-least-once delivery. Provider bindings, the DLQ, migration, alerts, staging failure drills,
+and activation remain gated by `docs/AI-REVIEW-QUEUE.md`. Authorization and trip writes never
+move into the queue.
 
 ## Species-contract boundary
 

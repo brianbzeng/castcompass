@@ -1,7 +1,7 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:ae9c0d8b-9cc8-5397-b0a2-77a89dce5f77",
+  "serialNumber": "urn:uuid:0c21ec43-5e3f-5bdf-b2d6-762e8bc4f1ea",
   "version": 1,
   "metadata": {
     "component": {
@@ -33,7 +33,7 @@
         },
         {
           "name": "castingcompass:input-sha256",
-          "value": "package.json:c737125048988f60a7c9255e37f9bc6da01b04b23cfb7b628474de9c8f861ea0"
+          "value": "package.json:b5e9f8f381cc0308b3a96c7dcbf1b2ea9cf6430d9411327ce7d1ace894888c5f"
         },
         {
           "name": "castingcompass:input-sha256",
@@ -42,6 +42,10 @@
         {
           "name": "castingcompass:input-sha256",
           "value": "pipeline/requirements-ci.lock:cc5dc54a4434aa143abdad44cde47e368cd8d6a880f7eb26fb1d836e6fd60fda"
+        },
+        {
+          "name": "castingcompass:input-sha256",
+          "value": "security/ai-review-queue-policy.json:18a707e1c8547fafd132fee66cf3e817c902f5980dbd687b7b5199fddea53671"
         },
         {
           "name": "castingcompass:input-sha256",
@@ -69,7 +73,7 @@
         },
         {
           "name": "castingcompass:input-sha256",
-          "value": "wrangler.jsonc:28cf7b0a5900e08204e1935c19b0c5e6b54ef67661a23740288f98bd3d22eac9"
+          "value": "wrangler.jsonc:57493d2f0a0e4e85461e2c2e46d4994e38054b5fc96d81129db60fc57d5dfba8"
         }
       ],
       "purl": "pkg:generic/castingcompass-release@0.1.0"
@@ -7571,7 +7575,7 @@
         },
         {
           "name": "castingcompass:wrangler-sha256",
-          "value": "28cf7b0a5900e08204e1935c19b0c5e6b54ef67661a23740288f98bd3d22eac9"
+          "value": "57493d2f0a0e4e85461e2c2e46d4994e38054b5fc96d81129db60fc57d5dfba8"
         },
         {
           "name": "castingcompass:version-metadata-binding",

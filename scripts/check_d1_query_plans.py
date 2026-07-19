@@ -78,6 +78,18 @@ CHECKS = (
         ("trips_ai_review_backlog_idx",),
     ),
     PlanCheck(
+        "AI review queue dispatch",
+        """SELECT id FROM ai_review_jobs
+           WHERE ((state = 'pending' OR state = 'retry' OR state = 'queued')
+                  AND available_at <= ?)
+              OR (state = 'processing'
+                  AND (lease_expires_at IS NULL OR lease_expires_at <= ?))
+           ORDER BY available_at, created_at LIMIT ?""",
+        ("2026-07-17T00:00:00.000Z", "2026-07-17T00:00:00.000Z", 10),
+        ("ai_review_jobs_dispatch_idx",),
+        reject_temporary_sort=False,
+    ),
+    PlanCheck(
         "active-trip abuse ceiling",
         """SELECT COUNT(*) FROM trips
            WHERE reporter_key_hash = ? AND status = 'active' AND created_at >= ?""",
@@ -118,8 +130,8 @@ CHECKS = (
 
 def apply_migrations(connection: sqlite3.Connection) -> list[Path]:
     migrations = sorted(MIGRATIONS.glob("*.sql"))
-    if not migrations or migrations[-1].name != "0017_trip_idempotency.sql":
-        raise AssertionError("0017_trip_idempotency.sql must be the latest D1 migration")
+    if not migrations or migrations[-1].name != "0018_ai_review_queue.sql":
+        raise AssertionError("0018_ai_review_queue.sql must be the latest D1 migration")
     connection.execute("PRAGMA foreign_keys = ON")
     for path in migrations:
         sql = path.read_text(encoding="utf-8").replace("--> statement-breakpoint", "")

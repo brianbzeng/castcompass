@@ -9,6 +9,27 @@ its complete acceptance boundary passed. “Local complete” means the reposito
 but the parent stays open until its production, provider, legal, or independent-review gate is
 also satisfied.
 
+## Active seven-step work cycle — default-off advisory AI review queue
+
+- [x] Reconcile exact protected `main`, the owner roadmap, and the highest-risk repository gap.
+      Starting `main` is `bb3bdc4cef3bbd38370d14924803adf5ea6ed2b3`; production, Cloudflare,
+      provider resources, and issue `#86` remain unchanged.
+- [x] Recheck Cloudflare's current at-least-once delivery, explicit acknowledgement/retry,
+      batching, retry ceiling, concurrency, and dead-letter behavior from primary documentation.
+- [x] Inventory the complete advisory-review lifecycle across request creation, provider work,
+      retries, deletion, maintenance, operator recovery, release migration, and observability.
+- [x] Implement a fail-closed, production-default-off D1 outbox/lease consumer. Queue messages
+      contain only an opaque job ID; work is idempotent, attempts are bounded at five, deletion
+      wins, expired leases recover, and terminal failure becomes explicit `needs_attention`.
+- [x] Add the strict message schema, policy verifier, migration/query-plan/release guards,
+      redacted structured logging, non-executing operator replay plan, owner UI state, threat and
+      access-control documentation, and adversarial runtime/policy coverage.
+- [ ] Publish the protected draft PR only after the complete local repository, API, pipeline,
+      supply-chain, migration, and offline operational verification passes on the exact commit.
+- [ ] Accept every exact-head GitHub gate, merge only that accepted head, reconcile protected
+      `main` and alerts, and record the immutable receipt without deploying or configuring a
+      provider queue.
+
 ## Completed seven-step work cycle — isolated security-exercise guard
 
 - [x] Reconcile exact protected `main` and the prioritized roadmap. Starting `main` is
@@ -271,9 +292,12 @@ also satisfied.
       and delivered-alert evidence remain. PostHog remains deferred pending privacy review.
 - [ ] Make data and execution paths measurably scalable: query plans/indexes, bounded access,
       cache matrix, justified asynchronous work, D1-managed connections, optional API pooling,
-      and isolated load/soak/spike/failure tests. **Local query/index/cache/connection contracts
-      and production-refusing harness complete;** migrations, staging measurements, queues,
-      failure injection, and authorized penetration testing remain.
+      and isolated load/soak/spike/failure tests. **Local query/index/cache/connection contracts,
+      production-refusing harness, and the default-off advisory Queue adapter with its opaque
+      message, D1 outbox/lease/attention ledger, bounded retries, deletion/maintenance recovery,
+      DLQ policy, and guarded replay planner are complete;** migrations, provider Queue/DLQ
+      bindings, IAM/alerts, staging measurements, failure injection, rollback evidence, and
+      authorized penetration testing remain.
 - [ ] Freeze and deploy the species-aware observation/model-run contract. **Local contract
       complete;** production migration, legacy-row audit, and first approved ingestion manifest
       remain.

@@ -79,6 +79,15 @@ SELECT
       AND lower(type) = 'text' AND "notnull" = 0
       AND dflt_value IS NULL AND pk = 0
   ) AS exact_trip_idempotency_columns,
+  (SELECT COUNT(*) FROM sqlite_master
+    WHERE type = 'table' AND name = 'ai_review_jobs'
+  ) AS ai_review_queue_tables,
+  (SELECT COUNT(*) FROM sqlite_master
+    WHERE type = 'index' AND name IN (
+      'ai_review_jobs_trip_unique', 'ai_review_jobs_dispatch_idx'
+    )
+  ) AS ai_review_queue_indexes,
+  (SELECT COUNT(*) FROM ai_review_jobs) AS ai_review_queue_rows,
   (SELECT COUNT(*) FROM users) AS users,
   (SELECT COUNT(*) FROM users WHERE age_eligibility_confirmed_at IS NULL) AS users_missing_age_eligibility,
   (SELECT COUNT(*) FROM users
