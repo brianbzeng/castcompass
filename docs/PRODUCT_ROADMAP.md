@@ -472,9 +472,12 @@ after its acceptance checks pass in the intended environment.
     paths plus every foreign-key child index, remove the public-site N+1 behind a bounded cache,
     publish the cache/async/connection contracts, add a bounded Postgres process pool only for
     the optional API, and provide a read-only load harness that permanently refuses production.
-    The default-off advisory Queue path and D1 ledger are locally implemented. Migration
-    application, `PRAGMA optimize`, production-shaped staging measurements, Queue/DLQ provider
-    activation, failure injection, and authorized penetration testing remain open.
+    The actual built Worker also passed a 2,835-request, zero-failure smoke against a disposable
+    local D1 database after all 18 migrations (18.51 ms p95; 32.79 ms p99). The default-off
+    advisory Queue path and D1 ledger are locally implemented. This developer-machine smoke is
+    not staging evidence: provider migration application, `PRAGMA optimize`, production-shaped
+    staging measurements, Queue/DLQ activation, failure injection, and authorized penetration
+    testing remain open.
 
 - [ ] Freeze the species-aware observation and model-run contract before new ingestion or
   recruitment: canonical/versioned taxa or explicit complexes; one primary target per

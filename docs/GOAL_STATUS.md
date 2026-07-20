@@ -60,9 +60,21 @@ by that discovery.
 - [x] Publish protected draft PR `#125` at exact head
       `0808c732c8210bd4d2f47e4f37a38c2f03361f55`; all applicable hosted checks passed. No
       deployment, D1 migration, provider query, or production mutation was part of that receipt.
-- [ ] Publish the local account-ceiling follow-up on `#125` and record its new exact-head hosted
-      CI, provenance, CodeQL, and native image receipts. The local evidence is not a hosted
-      receipt, and this step does not authorize a deployment or provider mutation.
+- [x] Publish the local account-ceiling and bounded-retention follow-up on draft PR `#125` at
+      exact implementation head `fe54c2d2152cabd793c7b83996b35584d9d06672`. Push and pull-request
+      CI runs `29787542366` and `29787543587`, release-provenance runs `29787542385` and
+      `29787543547`, and CodeQL run `29787542188` passed. The path-filtered native workflow was
+      also dispatched explicitly at that exact head: run `29787982359` built, health-checked,
+      inventoried, and policy-scanned both `linux/amd64` and `linux/arm64`. Its three known high
+      CPython findings match the reviewed, module-removal-backed exceptions that expire
+      2026-08-08; no new exception was added. The draft remains unmerged and no deployment, D1
+      migration, Cloudflare change, or production mutation occurred.
+- [x] Exercise the actual built Worker against a disposable local D1 database with all 18
+      migrations, not the earlier synthetic HTTP server. Wrangler local HTTPS returned the
+      hardened D1-backed health response and the bounded smoke profile completed 2,835 requests
+      with zero failures, 18.51 ms p95, and 32.79 ms p99. This is developer-machine evidence only;
+      isolated production-shaped staging load, soak, spike, failure injection, provider metrics,
+      and cost evidence remain open.
 
 ## Completed work cycle — independent operational restore review handoff
 
