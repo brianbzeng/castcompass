@@ -1,0 +1,86 @@
+{
+  "schema_version": "castingcompass.observability-activation-policy/1.0.0",
+  "policy_id": "castingcompass-observability-activation-v1",
+  "limits": {
+    "maximum_evidence_bytes": 262144,
+    "maximum_evidence_age_hours": 72,
+    "maximum_future_skew_minutes": 5,
+    "minimum_retention_days": 1,
+    "maximum_retention_days": 30,
+    "maximum_estimated_monthly_events": 1000000000,
+    "maximum_monthly_cost_ceiling_usd": 1000000
+  },
+  "required_saved_views": [
+    "CC — current failures",
+    "CC — latency by route",
+    "CC — rate-limit controls",
+    "CC — privacy jobs",
+    "CC — AI review",
+    "CC — email delivery",
+    "CC — one request",
+    "CC — one session window",
+    "CC — scheduled failures"
+  ],
+  "required_alert_drills": [
+    "sustained-5xx",
+    "latency-regression",
+    "scheduled-failure",
+    "d1-error",
+    "request-volume-anomaly"
+  ],
+  "required_uptime_checks": [
+    "canonical-health",
+    "canonical-page",
+    "alias-redirects"
+  ],
+  "required_reconstruction_drills": [
+    "preview-request",
+    "preview-queue",
+    "preview-scheduled",
+    "production-request",
+    "production-queue",
+    "production-scheduled"
+  ],
+  "blocker_codes": [
+    "access-evidence-missing",
+    "alert-drill-evidence-missing",
+    "dashboard-evidence-missing",
+    "evidence-expired",
+    "evidence-not-yet-valid",
+    "log-hygiene-evidence-missing",
+    "posthog-policy-violated",
+    "pseudonym-key-evidence-missing",
+    "reconstruction-evidence-missing",
+    "release-binding-evidence-missing",
+    "retention-cost-evidence-missing",
+    "uptime-evidence-missing"
+  ],
+  "public_receipt": {
+    "schema_version": "castingcompass.observability-activation-receipt/1.0.0",
+    "allowed_top_level_fields": [
+      "schema_version",
+      "evaluated_at",
+      "evidence_observed_at",
+      "policy_id",
+      "read_only",
+      "provider_query_performed",
+      "production_change_authorized",
+      "checks",
+      "activation_ready",
+      "blockers"
+    ],
+    "allowed_check_fields": [
+      "access",
+      "alerts",
+      "dashboards",
+      "evidence_fresh",
+      "log_hygiene",
+      "posthog_deferred",
+      "pseudonym_key",
+      "reconstruction",
+      "release_binding",
+      "retention_and_cost",
+      "uptime"
+    ]
+  }
+}

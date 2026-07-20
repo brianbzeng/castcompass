@@ -135,6 +135,34 @@ uptime, D1/R2/provider coverage, or incident recovery. Repeat the same reconstru
 minimum redacted preview export, then capture provider evidence through the guarded production
 process. Never place an exported production log file in the repository or pass it through Codex.
 
+## Fail-closed activation receipt
+
+`npm run security:observability-activation` verifies the locked repository policy in CI without
+reading a provider account. After an authorized operator completes the provider checklist, place
+a private aggregate evidence manifest outside every checkout, set its permissions to owner-only,
+and run:
+
+```sh
+OBSERVABILITY_EVIDENCE_FILE=/absolute/private/path/observability-evidence.json \
+  npm run verify:observability:activation
+```
+
+The exact manifest schema is enforced by
+`scripts/verify-observability-activation.mjs`. It accepts only a canonical observation time,
+the reviewed 40-character commit, SHA-256 references to the separately retained private evidence
+packet, bounded retention/volume/cost facts, and boolean outcomes for each named release binding,
+log-hygiene, saved-view, access, alert, uptime, reconstruction, pseudonym-key, and PostHog gate.
+It rejects unknown fields, provider/account identifiers, URLs, raw event data, stale or
+future-dated evidence, files inside Git, symlinks, group/world-readable files, and any claim that
+the manifest authorizes a production change.
+
+The printed receipt is aggregate-only: no commit, evidence digest, saved-view name, provider ID,
+actor pseudonym, payload, account detail, or secret is copied into it. A ready receipt requires
+all exact gates within 72 hours. A dashboard screenshot alone therefore cannot prove alert
+delivery, MFA/least privilege, retention/cost ownership, uptime, redaction, or incident
+reconstruction. The verifier is read-only, performs no provider query, and always records
+`production_change_authorized: false`.
+
 ## External activation evidence still required
 
 - [ ] Confirm Workers Logs receives only the structured schema and raw invocation logs are absent

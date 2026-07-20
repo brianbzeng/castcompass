@@ -170,6 +170,12 @@ Do not put emails, request bodies, raw notes, session cookies, verification code
 locations, or provider response bodies in logs or alert payloads. Run a synthetic failure and
 confirm both delivery and redaction before launch.
 
+After completing those checks, create the private aggregate manifest described in
+`docs/OBSERVABILITY.md` and run `npm run verify:observability:activation`. A ready aggregate
+receipt is required evidence, but is not a release authorization and does not replace review of
+the separately retained screenshots, exports, IAM state, alert deliveries, or exact deployment.
+The verifier makes no provider query and always leaves production unchanged.
+
 ## Backup and restore drill
 
 D1 Time Travel is the first migration/incident recovery point, not an independent backup.

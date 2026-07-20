@@ -591,9 +591,14 @@ by that discovery.
       structured logs, request IDs, redaction, searchable failures, alerts, backup/privacy-job
       views, immutable changes, and a separately authorized future financial domain. **Local
       logging schema/runbook and fail-closed offline request/Queue/scheduled reconstruction drill
-      complete;** the deterministic aggregate receipt omits actor pseudonyms and raw payloads.
-      Preview/production stream reconstruction, provider dashboard, access, retention, cost,
-      uptime, and delivered-alert evidence remain. PostHog remains deferred pending privacy review.
+      plus the source-bound activation-evidence verifier are complete;** their aggregate receipts
+      omit commits, evidence hashes, saved-view names, actor pseudonyms, and raw payloads. The
+      activation verifier requires exact release binding, structured-only logs, access review,
+      retention/cost ownership, delivered/acknowledged/closed/redaction-tested alerts, uptime,
+      preview/production reconstruction, and pseudonym-key separation within 72 hours; it neither
+      queries a provider nor authorizes production. Preview/production evidence, provider
+      dashboard, access, retention, cost, uptime, and delivered-alert evidence remain. PostHog
+      remains deferred pending privacy review.
 - [ ] Make data and execution paths measurably scalable: query plans/indexes, bounded access,
       cache matrix, justified asynchronous work, D1-managed connections, optional API pooling,
       and isolated load/soak/spike/failure tests. **Local query/index/cache/connection contracts,

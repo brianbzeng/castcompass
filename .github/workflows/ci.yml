@@ -36,6 +36,7 @@ jobs:
       - run: npm run security:release-sbom
       - run: npm run security:exercise-policy
       - run: npm run security:cloudflare-provider-state
+      - run: npm run security:observability-activation
       - run: npm run security:production-change-policy
       - run: npm run lint
       - run: npm run typecheck
