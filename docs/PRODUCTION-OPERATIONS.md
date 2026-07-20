@@ -328,6 +328,9 @@ prove that the object is either attached to a live trip or durably queued for cl
       `ff60f51a34be01d73dfc2a8182d174d4386e6bf03ede2ad71fdf0365d7f5b96c`.
       The packet explicitly records no production data/provider use, no production backup
       restore, no approved key custody, no independent review, and no production-gate pass.
+      The source-bound, privacy-minimized second-person review workflow is separately prepared in
+      `docs/OPERATIONAL-RESTORE-REVIEW.md`; it verifies the immutable packet and a distinct
+      owner-only review record but has not been supplied with a real independent review.
 - [ ] The backup/Time Travel window is shorter than the 90-day deletion-tombstone window.
 - [ ] A restore drill preserved the current deletion ledger and proved that deleted account,
       trip, public-discussion, and pending-photo records could not reappear in service.

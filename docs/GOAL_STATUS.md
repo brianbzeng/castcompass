@@ -13,6 +13,39 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active work cycle — independent operational restore review handoff
+
+- [x] Reconcile protected `main`, draft regional PR `#118`, the owner roadmap, and the existing
+      synthetic restore/deletion-replay evidence boundary. Starting `main` is
+      `80b347c2a24dbab82543c107effd5a8b8d3c55fa`; production and provider state remain untouched.
+- [x] Identify the earliest repository-actionable P0 gap. The synthetic restore packet existed,
+      but no locked workflow could bind a separately supplied source commit, private packet,
+      independent reviewer, strict review chronology, and privacy-minimized public receipt while
+      keeping every production authorization claim false.
+- [x] Freeze the independent-review boundary in a versioned policy and exact JSON Schema. The
+      policy permits only the three expected packet files and audit identities, requires all
+      acceptance checks and separation attestations, limits the review window to seven days, and
+      prohibits reviewer identity, paths, provider details, audit content, and private evidence
+      hashes from the public receipt.
+- [x] Implement the offline verifier, operator/reviewer runbook, deterministic safe receipt, and
+      adversarial tests. Canonical JSON, full source identity, file ownership/mode/type/link
+      boundaries, immutable packet hashes, audit chronology/hash chain, reviewer separation, and
+      private-note independence all fail closed. The verifier performs no network or provider
+      action and cannot approve key custody, provider evidence, deployment, or production release.
+- [x] Complete clean local verification. A fresh zero-script npm install audited 534 packages
+      with zero vulnerabilities; Cloudflare build, 436/436 Node tests, 140/140 Chromium/WebKit
+      mobile cases, ESLint, TypeScript, every offline security/SBOM gate, five Python lock graphs,
+      and both npm audits passed. The exact Python graphs passed 29/29 API tests, 81/81 pipeline
+      tests with one documented optional-raster skip, Ruff, the deterministic synthetic smoke,
+      18 migrations, and 14 critical query plans.
+- [ ] Publish the exact accepted implementation head through protected CI, release provenance,
+      and CodeQL without deployment or provider mutation; then reconcile the immutable hosted
+      receipt.
+- [ ] Obtain a real second-person review of the private historical packet outside Git. Until that
+      reviewer supplies a valid private record and the verifier accepts it, independent review,
+      production key custody, provider evidence, the restore gate, and release authorization all
+      remain open.
+
 ## Completed work cycle — API image upstream watch
 
 - [x] Reconcile protected `main`, draft regional PR `#118`, the owner roadmap, and GitHub work.

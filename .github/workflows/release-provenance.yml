@@ -30,6 +30,7 @@ jobs:
       - run: npm run security:cloudflare-provider-state
       - run: npm run security:observability-activation
       - run: npm run security:production-change-policy
+      - run: npm run security:operational-restore-review
       - run: npm run build:cloudflare
       - name: Build deterministic release artifacts
         run: |

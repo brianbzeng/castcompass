@@ -15,6 +15,7 @@ const inputPaths = [
   "security/ai-review-queue-policy.json",
   "security/cloudflare-provider-state-policy.json",
   "security/observability-activation-policy.json",
+  "security/operational-restore-review-policy.json",
   "security/production-change-authorization-policy.json",
   "security/sbom.cdx.json",
   "services/api/.python-version",

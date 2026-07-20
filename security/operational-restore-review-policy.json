@@ -1,0 +1,117 @@
+{
+  "schema_version": "castingcompass.operational-restore-review-policy/1.0.0",
+  "acceptance_schema_version": "castingcompass.offline-operational-restore-acceptance/1.0.0",
+  "restore_evidence_schema_version": "castingcompass.operational-restore-evidence/1.0.0",
+  "storage_audit_schema_version": "castingcompass.operational-storage-audit/1.0.0",
+  "review_schema_version": "castingcompass.operational-restore-independent-review/1.0.0",
+  "receipt_schema_version": "castingcompass.operational-restore-independent-review-receipt/1.0.0",
+  "packet_scope": "synthetic-production-shaped-non-production",
+  "limits": {
+    "maximum_packet_bytes": 1048576,
+    "maximum_review_bytes": 65536,
+    "maximum_review_delay_hours": 168,
+    "maximum_future_skew_minutes": 5
+  },
+  "required_packet_files": [
+    "acceptance-record.json",
+    "operational-restore-evidence.json",
+    "storage-audit.ndjson"
+  ],
+  "required_audit_events": [
+    {
+      "event_type": "snapshot_sealed",
+      "operator_role": "data-steward"
+    },
+    {
+      "event_type": "privacy_ledger_sealed",
+      "operator_role": "privacy-reviewer"
+    },
+    {
+      "event_type": "restore_drill_completed",
+      "operator_role": "data-steward"
+    }
+  ],
+  "required_acceptance_checks": [
+    "aggregate_only_evidence",
+    "completed_object_task_preserved",
+    "current_deletion_ledger_replayed",
+    "deleted_account_suppressed",
+    "deleted_public_discussion_suppressed",
+    "deleted_trip_suppressed",
+    "encrypted_fixture_artifacts_destroyed",
+    "foreign_key_check_passed",
+    "operational_restore_passed",
+    "pending_object_task_preserved",
+    "plaintext_sources_destroyed",
+    "restored_database_destroyed",
+    "source_checkout_verified_clean",
+    "sqlite_integrity_passed",
+    "tampered_artifact_rejected",
+    "temporary_keys_destroyed",
+    "wrong_key_rejected"
+  ],
+  "required_false_boundaries": [
+    "production_backup_restored",
+    "production_data_used",
+    "production_key_custody_approved",
+    "production_privacy_ledger_used",
+    "production_provider_accessed",
+    "production_restore_gate_passed",
+    "second_person_reviewed",
+    "validation_snapshot_governance_approved"
+  ],
+  "required_review_checks": [
+    "acceptance_boundaries_understood",
+    "aggregate_only_evidence_confirmed",
+    "no_production_authority_granted",
+    "packet_integrity_confirmed",
+    "source_binding_confirmed"
+  ],
+  "remaining_approvals_before_review": [
+    "independent-second-person-review",
+    "production-key-custody-policy",
+    "provider-and-production-release-evidence",
+    "validation-snapshot-governance"
+  ],
+  "remaining_approvals_after_review": [
+    "production-key-custody-policy",
+    "provider-and-production-release-evidence",
+    "validation-snapshot-governance"
+  ],
+  "prohibited_evidence_fields": [
+    "account_id",
+    "cookie",
+    "email",
+    "ip",
+    "ip_address",
+    "latitude",
+    "longitude",
+    "notes",
+    "object_key",
+    "password",
+    "photo_key",
+    "precise_location",
+    "prompt",
+    "provider_id",
+    "raw_payload",
+    "session",
+    "token",
+    "trip_id",
+    "user_id",
+    "worker_version_id"
+  ],
+  "prohibited_public_receipt_fields": [
+    "activation_id",
+    "architecture",
+    "audit_head_sha256",
+    "evidence_payload_sha256",
+    "file_path",
+    "platform",
+    "provider_id",
+    "review_evidence_sha256",
+    "review_id",
+    "reviewer_id",
+    "runtime",
+    "storage_audit_sha256"
+  ]
+}

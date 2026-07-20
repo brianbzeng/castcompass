@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://castingcompass.com/contracts/operational-restore-independent-review.schema.json",
+  "title": "CastingCompass private operational restore independent review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "review_id",
+    "packet_source_commit",
+    "packet_acceptance_sha256",
+    "packet_restore_evidence_sha256",
+    "packet_storage_audit_sha256",
+    "reviewed_at",
+    "reviewer_role",
+    "reviewer_was_not_drill_operator",
+    "review_checklist",
+    "review_evidence_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "castingcompass.operational-restore-independent-review/1.0.0"
+    },
+    "review_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$"
+    },
+    "packet_source_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "packet_acceptance_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "packet_restore_evidence_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "packet_storage_audit_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reviewer_role": {
+      "const": "independent_reviewer"
+    },
+    "reviewer_was_not_drill_operator": {
+      "const": true
+    },
+    "review_checklist": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "acceptance_boundaries_understood",
+        "aggregate_only_evidence_confirmed",
+        "no_production_authority_granted",
+        "packet_integrity_confirmed",
+        "source_binding_confirmed"
+      ],
+      "properties": {
+        "acceptance_boundaries_understood": {
+          "const": true
+        },
+        "aggregate_only_evidence_confirmed": {
+          "const": true
+        },
+        "no_production_authority_granted": {
+          "const": true
+        },
+        "packet_integrity_confirmed": {
+          "const": true
+        },
+        "source_binding_confirmed": {
+          "const": true
+        }
+      }
+    },
+    "review_evidence_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

@@ -63,6 +63,11 @@ after its acceptance checks pass in the intended environment.
     - [ ] Obtain independent review of the aggregate packet, approve production key custody,
       and complete the provider/deployment evidence without using this synthetic receipt as a
       substitute for the real encrypted backup or a current production deletion ledger.
+      - [x] Prepare the fail-closed independent-review handoff: a locked policy and schema,
+        immutable three-file packet verification, independently supplied source binding, strict
+        audit chronology/hash validation, distinct owner-only review evidence, a minimized
+        non-authorizing receipt, and adversarial path/disclosure tests. The actual second-person
+        review, key-custody approval, and provider/production evidence remain open.
 - [ ] Make account privacy promises durable: deletion queue/tombstones for photos and public
   copies, truthful completion semantics, and an age-only first step before email/password.
   - [x] Implement and locally verify single-use age proofs, consent-safe reacceptance,
