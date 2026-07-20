@@ -23,6 +23,8 @@ const inputPaths = [
   "security/api-image-policy.json",
   "security/ai-review-queue-policy.json",
   "security/cloudflare-provider-state-policy.json",
+  "security/d1-query-inventory-policy.json",
+  "security/d1-query-inventory.json",
   "security/observability-activation-policy.json",
   "security/operational-restore-review-policy.json",
   "security/production-change-authorization-policy.json",

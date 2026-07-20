@@ -55,6 +55,12 @@ CHECKS = (
         ("saved_sites_user_created_idx",),
     ),
     PlanCheck(
+        "gear-profile ordering",
+        "SELECT id FROM gear_profiles WHERE user_id = ? ORDER BY updated_at DESC",
+        ("user_fixture",),
+        ("gear_profiles_user_updated_idx",),
+    ),
+    PlanCheck(
         "profile trip history",
         """SELECT id FROM trips
            WHERE user_id = ? AND status = 'completed'

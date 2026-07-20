@@ -424,6 +424,16 @@ after its acceptance checks pass in the intended environment.
   - [ ] Inventory every production query, capture representative `EXPLAIN QUERY PLAN` evidence,
     add only workload-justified indexes, bound scans/pagination, eliminate N+1 patterns, verify
     cross-account predicates, and regression-test query latency and migration cost.
+    - [x] Add a deterministic AST-backed inventory for all 186 Worker `.prepare()` sites across
+      seven files, including exact review contracts for 25 nonliteral expressions and 15 literal
+      multi-row reads without `LIMIT`. CI and release provenance fail closed on inventory drift,
+      computed/aliased prepare access, unreviewed dynamic SQL, unscoped literal writes, and
+      unreviewed multi-row reads; the policy and generated ledger are SBOM-bound release inputs.
+    - [ ] Resolve the four explicitly disclosed `open-account-cardinality` saved-site/gear UI
+      reads with usable pagination or a hard resource ceiling; preserve complete privacy exports,
+      move large export packaging off the request path, and batch-limit scheduled retention
+      deletion. Then capture production-shaped latency, rows-read, and migration-cost evidence in
+      isolated staging. The static inventory is not that performance evidence.
   - [ ] Publish a cache matrix by asset/data class with owner, privacy classification, cache key,
     TTL, invalidation trigger, stale policy, and failure behavior. Never share-cache personalized
     or authenticated responses; test purge, version skew, offline/service-worker upgrades, and
@@ -444,7 +454,7 @@ after its acceptance checks pass in the intended environment.
   - [ ] Define performance budgets and run isolated load, soak, spike, and failure-injection
     tests with production-shaped synthetic data. Record saturation points, tail latency, error
     rates, queue depth, database contention, cache effectiveness, cost, and a safe rollback plan.
-  - [x] Locally add workload-backed D1 indexes, machine-check 14 critical `EXPLAIN QUERY PLAN`
+  - [x] Locally add workload-backed D1 indexes, machine-check 15 critical `EXPLAIN QUERY PLAN`
     paths plus every foreign-key child index, remove the public-site N+1 behind a bounded cache,
     publish the cache/async/connection contracts, add a bounded Postgres process pool only for
     the optional API, and provide a read-only load harness that permanently refuses production.

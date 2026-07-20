@@ -13,7 +13,37 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
-## Active work cycle — independent operational restore review handoff
+## Active work cycle — complete D1 query inventory
+
+- [x] Reconcile protected `main`, draft regional PR `#118`, open issue `#86`, and the scale
+      roadmap without touching Cloudflare or production. Starting `main` is
+      `7ed0f97c499e853b6a3d1a5b6f8c9ef82e70ef2d`; `#118` remains the only open PR.
+- [x] Identify the earliest repository-actionable P1 gap. Existing evidence covered 14
+      representative plans but did not inventory every production D1 statement, so query source
+      coverage and remaining unbounded reads could not be independently audited.
+- [x] Implement a deterministic TypeScript-AST inventory for all 186 direct Worker `.prepare()`
+      sites across seven files: 161 literal statements, 25 exact reviewed nonliteral expressions,
+      and 15 reviewed literal multi-row reads without `LIMIT`. The gate rejects source drift,
+      computed/aliased prepare access, unreviewed dynamic SQL, unscoped literal writes, and
+      unreviewed multi-row reads.
+- [x] Preserve truthful scale boundaries. Nine reads are complete authenticated rights exports,
+      two are owner-lifecycle cleanup reads, and four saved-site/gear UI reads remain explicitly
+      `open-account-cardinality`; complete export packaging, scheduled-cleanup batching, and
+      isolated latency/load evidence remain open.
+- [x] Bind the policy and generated query ledger into CI, the combined release SBOM, and the
+      deterministic release archive; add a 15th representative query-plan check for gear-profile
+      ordering. Focused adversarial tests, ESLint, and all 15 plans pass.
+- [x] Complete the full locked verification matrix. A fresh zero-script npm install audited 534
+      packages with zero vulnerabilities; every offline security/SBOM gate, both npm audits,
+      ESLint, TypeScript, the Cloudflare build, 439/439 Node tests, and 140/140 Chromium/WebKit
+      mobile cases passed. Exact locked Python graphs passed 29/29 API tests, 81/81 pipeline tests
+      with one documented optional-raster skip, Ruff, the deterministic synthetic smoke, 18
+      migrations, 15 representative query plans, and every foreign-key child index contract.
+- [ ] Publish an exact-head protected draft PR and record hosted CI, provenance, CodeQL, and
+      native image receipts. No deployment, D1 migration, provider query, or production mutation
+      is part of this cycle.
+
+## Completed work cycle — independent operational restore review handoff
 
 - [x] Reconcile protected `main`, draft regional PR `#118`, the owner roadmap, and the existing
       synthetic restore/deletion-replay evidence boundary. Starting `main` is
@@ -38,13 +68,12 @@ by that discovery.
       and both npm audits passed. The exact Python graphs passed 29/29 API tests, 81/81 pipeline
       tests with one documented optional-raster skip, Ruff, the deterministic synthetic smoke,
       18 migrations, and 14 critical query plans.
-- [x] Publish the exact accepted implementation head without deployment or provider mutation.
-      Draft PR `#124` head `ac65e788f1eb08c913a1883d58a01b97553c527c` passed branch-push CI
-      `29721479936` and release provenance `29721479889`, PR CI `29721522454` and release
-      provenance `29721522444`, CodeQL `29721520911`, and native API-image security
-      `29721522455`. Fifteen checks succeeded and five event-appropriate jobs skipped; both web
-      runs completed all 140 Chromium/WebKit cases and both native image architectures passed.
-      The PR is still a mergeable draft with no comments or reviews, and no Cloudflare, D1, DNS,
+- [x] Publish and merge the accepted implementation without deployment or provider mutation.
+      PR `#124` final head `04f808f7fe165b856898c951fcac440cd2ba101d` merged as protected-main
+      commit `7ed0f97c499e853b6a3d1a5b6f8c9ef82e70ef2d`. Main CI `29722159901`, release
+      provenance and attestations `29722159925`, native API-image security `29722159912`, and
+      CodeQL `29722159592` passed; both web engines, all three CodeQL languages, both image
+      architectures, and dependency submission completed successfully. No Cloudflare, D1, DNS,
       deployment, migration, provider query, or production mutation ran.
 - [ ] Obtain a real second-person review of the private historical packet outside Git. Until that
       reviewer supplies a valid private record and the verifier accepts it, independent review,
@@ -716,12 +745,14 @@ by that discovery.
       remains deferred pending privacy review.
 - [ ] Make data and execution paths measurably scalable: query plans/indexes, bounded access,
       cache matrix, justified asynchronous work, D1-managed connections, optional API pooling,
-      and isolated load/soak/spike/failure tests. **Local query/index/cache/connection contracts,
+      and isolated load/soak/spike/failure tests. **A complete static inventory now covers all 186
+      Worker prepare sites, while local query/index/cache/connection contracts,
       production-refusing harness, and the default-off advisory Queue adapter with its opaque
       message, D1 outbox/lease/attention ledger, bounded retries, deletion/maintenance recovery,
       DLQ policy, and guarded replay planner are complete;** migrations, provider Queue/DLQ
-      bindings, IAM/alerts, staging measurements, failure injection, rollback evidence, and
-      authorized penetration testing remain.
+      bindings, IAM/alerts, four account-list pagination/ceiling decisions, asynchronous complete
+      export packaging, batch-limited scheduled cleanup, staging measurements, failure injection,
+      rollback evidence, and authorized penetration testing remain.
 - [ ] Freeze and deploy the species-aware observation/model-run contract. **Local contract
       complete;** production migration, legacy-row audit, and first approved ingestion manifest
       remain.

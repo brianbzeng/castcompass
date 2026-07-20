@@ -7,16 +7,32 @@ accounts, or production data.
 
 ## D1 query inventory
 
-The Worker uses prepared, bound D1 statements. `scripts/check_d1_query_plans.py` applies every
-migration to an in-memory SQLite database, runs representative `EXPLAIN QUERY PLAN` checks, and
-rejects missing leftmost indexes for every foreign-key child path. The checked plans cover the
-highest-frequency or growth-sensitive access patterns:
+`scripts/generate-d1-query-inventory.mjs` parses every Worker TypeScript source file and records
+all 186 direct `.prepare()` sites: 161 literal statements and 25 separately reviewed nonliteral
+expressions across seven source files. The committed policy and generated inventory are
+source-hash and call-site bound. CI rejects source-file/count drift, computed or aliased
+`prepare` access, a nonliteral expression without its exact static-authority review, an unscoped
+literal `UPDATE` or `DELETE`, and a literal multi-row `SELECT` without a reviewed ownership and
+cardinality contract. No database or provider is queried while generating the inventory.
+
+The inventory exposes rather than conceals the remaining scale boundaries. Nine unbounded
+multi-row reads are intentional complete authenticated privacy exports, two are complete
+owner-lifecycle cleanup reads, and four account-facing saved-site/gear reads remain explicitly
+`open-account-cardinality` until a hard resource ceiling or usable pagination contract is added.
+The complete privacy export also still needs asynchronous packaging for large accounts. An
+inventory proves source coverage and review identity; it does not prove query latency, production
+index selection, or safe load capacity.
+
+`scripts/check_d1_query_plans.py` separately applies every migration to an in-memory SQLite
+database, runs 15 representative `EXPLAIN QUERY PLAN` checks, and rejects missing leftmost
+indexes for every foreign-key child path. The checked plans cover the highest-frequency or
+growth-sensitive access patterns:
 
 | Workload | Bound / ordering | Required access path |
 | --- | --- | --- |
-| Session, email-challenge, auth-attempt, and age-proof retention | Scheduled deletion by time; privacy cleanup remains policy-bounded | Dedicated leading time indexes; the two age-proof predicates use SQLite's multi-index OR plan |
+| Session, email-challenge, auth-attempt, and age-proof retention | Scheduled deletion by time; an invocation row ceiling remains open | Dedicated leading time indexes; the two age-proof predicates use SQLite's multi-index OR plan |
 | Login and email abuse ceilings | One email pseudonym/address plus a fixed time window | Existing `(email_hash, attempted_at)` and `(email, created_at)` indexes |
-| Saved sites and gear profiles | One authenticated user; saved sites and gear are naturally account-bounded | `(user_id, created_at)` and existing `(user_id, updated_at)` ordering indexes |
+| Saved sites and gear profiles | One authenticated user; cross-account predicates are closed, but four UI reads still need pagination or a hard ceiling | `(user_id, created_at)` and `(user_id, updated_at)` ordering indexes |
 | Profile trip history | One authenticated user, completed rows only, `LIMIT 100` | Partial expression index over user and effective completion time; no temporary sort |
 | Complete account trip export | One authenticated user; intentionally complete rather than silently truncated | `(user_id, created_at)` index. Rare cross-child export ordering may sort; no speculative indexes are added solely for exports |
 | Trip submission ceilings | One reporter pseudonym and hour/day windows; active rows have a strict product ceiling | Existing reporter-time index plus a smaller partial active-trip index |
@@ -26,10 +42,13 @@ highest-frequency or growth-sensitive access patterns:
 | Privacy deletion receipts, tombstones, jobs, and tasks | Receipt lookup, subject/owner lookup, bounded worker claims, completed-job retention | Unique receipt, scope/subject, owner/state, state/completion, task retry, and job/object indexes |
 | Validation exports and cascades | Activation, trip, or user predicates with append-only sequence order | Existing activation/trip indexes plus user recruitment, activation correction, and forecast/trip foreign-key indexes |
 
-The migration adds indexes only where a current query, ordered result, retention scan, or foreign
-key enforcement path justifies their write/storage cost. Cloudflare recommends validating D1
-indexes with `EXPLAIN QUERY PLAN` and notes that multi-column indexes require the predicate to use
-the leftmost columns: [D1 index guidance](https://developers.cloudflare.com/d1/best-practices/use-indexes/).
+The inventory policy and generated artifact are inputs to the combined release SBOM and are
+included in the deterministic release bundle, so a release candidate cannot silently substitute
+a narrower query ledger. The migration adds indexes only where a current query, ordered result,
+retention scan, or foreign key enforcement path justifies their write/storage cost. Cloudflare
+recommends validating D1 indexes with `EXPLAIN QUERY PLAN` and notes that multi-column indexes
+require the predicate to use the leftmost columns:
+[D1 index guidance](https://developers.cloudflare.com/d1/best-practices/use-indexes/).
 
 After migration `0016_data_resilience_indexes.sql` is reviewed and applied through the guarded
 release procedure, run `PRAGMA optimize` as a separate recorded production operation, capture the

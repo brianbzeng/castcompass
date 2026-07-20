@@ -6,6 +6,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const inputPaths = [
   ".node-version",
+  ".npmrc",
   ".python-version",
   "package-lock.json",
   "package.json",
@@ -14,9 +15,12 @@ const inputPaths = [
   "security/api-image-policy.json",
   "security/ai-review-queue-policy.json",
   "security/cloudflare-provider-state-policy.json",
+  "security/d1-query-inventory-policy.json",
+  "security/d1-query-inventory.json",
   "security/observability-activation-policy.json",
   "security/operational-restore-review-policy.json",
   "security/production-change-authorization-policy.json",
+  "security/npm-install-policy.json",
   "security/sbom.cdx.json",
   "services/api/.python-version",
   "services/api/Dockerfile",
@@ -57,6 +61,7 @@ test("the combined release SBOM is deterministic, input-bound, complete, and exp
   const inputBindings = new Set(inventory.metadata.component.properties
     .filter(({ name }) => name === "castingcompass:input-sha256")
     .map(({ value }) => value));
+  assert.equal(inputBindings.size, inputPaths.length);
   for (let index = 0; index < inputPaths.length; index += 1) {
     assert.equal(inputBindings.has(`${inputPaths[index]}:${sha256(inputBytes[index])}`), true);
   }
@@ -116,8 +121,9 @@ test("CI verifies the combined inventory and the signer rejects a narrowed hando
     readFile(new URL(".github/workflows/release-provenance.yml", root), "utf8"),
   ]);
   assert.match(manifest, /"security:release-sbom": "node scripts\/generate-release-sbom\.mjs --check"/u);
-  assert.match(ci, /npm run security:sbom\n\s+- run: npm run security:release-sbom/u);
-  assert.match(release, /npm run security:sbom\n\s+- run: npm run security:release-sbom/u);
+  assert.match(manifest, /"security:d1-query-inventory": "node scripts\/generate-d1-query-inventory\.mjs --check"/u);
+  assert.match(ci, /npm run security:sbom\n\s+- run: npm run security:d1-query-inventory\n\s+- run: npm run security:release-sbom/u);
+  assert.match(release, /npm run security:sbom\n\s+- run: npm run security:d1-query-inventory\n\s+- run: npm run security:release-sbom/u);
   const signingJob = release.slice(release.indexOf("  attest-release:"));
   assert.match(signingJob, /castingcompass-release[\s\S]+not Cloudflare deployment provenance/u);
   assert.match(signingJob, /\.type == "container"[\s\S]+\.type == "operating-system"[\s\S]+pkg:pypi\//u);
