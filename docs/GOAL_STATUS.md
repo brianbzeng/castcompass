@@ -590,8 +590,10 @@ by that discovery.
 - [ ] Establish privacy-preserving production observability and an operator console, including
       structured logs, request IDs, redaction, searchable failures, alerts, backup/privacy-job
       views, immutable changes, and a separately authorized future financial domain. **Local
-      logging schema/runbook complete;** provider dashboard, access, retention, cost, uptime,
-      and delivered-alert evidence remain. PostHog remains deferred pending privacy review.
+      logging schema/runbook and fail-closed offline request/Queue/scheduled reconstruction drill
+      complete;** the deterministic aggregate receipt omits actor pseudonyms and raw payloads.
+      Preview/production stream reconstruction, provider dashboard, access, retention, cost,
+      uptime, and delivered-alert evidence remain. PostHog remains deferred pending privacy review.
 - [ ] Make data and execution paths measurably scalable: query plans/indexes, bounded access,
       cache matrix, justified asynchronous work, D1-managed connections, optional API pooling,
       and isolated load/soak/spike/failure tests. **Local query/index/cache/connection contracts,

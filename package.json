@@ -52,6 +52,7 @@
     "load:smoke": "node scripts/load-test.mjs --profile smoke",
     "load:test": "node scripts/load-test.mjs",
     "drill:restore:offline": "node scripts/run-operational-restore-drill.mjs",
+    "drill:observability:offline": "node scripts/run-observability-incident-drill.mjs",
     "verify:privacy-rights": "node scripts/privacy-rights-case.mjs verify-policy",
     "drill:privacy-rights:offline": "node scripts/privacy-rights-case.mjs drill",
     "verify:discussion-safety": "node scripts/verify-discussion-safety.mjs",

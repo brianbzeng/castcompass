@@ -120,6 +120,21 @@ authorized D1 runbook in `docs/AI-REVIEW-QUEUE.md`.
 6. Close only after a synthetic non-sensitive reproduction proves both recovery and log
    redaction. Link the exact commit, deployment, alert, and follow-up owner.
 
+## Offline incident-reconstruction drill
+
+Run `npm run drill:observability:offline` before configuring provider views or after changing the
+event contract. The drill ingests only the committed non-sensitive NDJSON fixture, validates every
+event against `castingcompass.log/1.0.0`, rejects unsupported or high-risk fields and values,
+requires normalized route templates, and reconstructs complete request, Queue, and scheduled-task
+timelines. Its deterministic JSON receipt contains aggregate counts and correlation metadata only;
+it deliberately excludes actor-session pseudonyms and raw event payloads.
+
+This is a repository-level contract and runbook exercise. It makes no network request and proves
+neither production log contents nor dashboard, IAM, retention, cost, alert delivery, escalation,
+uptime, D1/R2/provider coverage, or incident recovery. Repeat the same reconstruction against a
+minimum redacted preview export, then capture provider evidence through the guarded production
+process. Never place an exported production log file in the repository or pass it through Codex.
+
 ## External activation evidence still required
 
 - [ ] Confirm Workers Logs receives only the structured schema and raw invocation logs are absent
@@ -130,8 +145,12 @@ authorized D1 runbook in `docs/AI-REVIEW-QUEUE.md`.
       who reviews them.
 - [ ] Deliver synthetic 5xx, latency, scheduled-failure, D1, and volume alerts to the real
       escalation destination; acknowledge and close them through the runbook.
-- [ ] Prove a request-ID reconstruction with fixtures and verify that email, raw account/trip
-      identifiers, cookies, tokens, IPs, prompts, notes, coordinates, and provider bodies are absent.
+- [x] Prove repository-level request/Queue/scheduled reconstruction with a non-sensitive fixture;
+      fail closed on email/raw identifiers, cookies/tokens, IPs, prompts, notes, coordinates,
+      provider bodies, unnormalized routes, and incomplete correlation chains; omit rotating actor
+      pseudonyms from the deterministic aggregate receipt.
+- [ ] Repeat the minimum redacted reconstruction against the exact preview and production log
+      streams, proving that only the structured schema arrived and no raw invocation event leaked.
 - [ ] Decide whether short native retention is sufficient. If not, approve an OTLP/Logpush
       destination with encryption, region, access control, deletion, cost, and processor review
       before enabling export.

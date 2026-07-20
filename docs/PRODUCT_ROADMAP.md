@@ -397,9 +397,11 @@ after its acceptance checks pass in the intended environment.
   - [x] Locally centralize Worker logging behind a schema-enforcing module, add server-generated
     request IDs and secret-keyed session pseudonyms, normalize dynamic/unknown routes, replace
     ad hoc console output, correlate scheduled work, disable raw URL invocation logs, and publish
-    the Cloudflare dashboard/query/incident recipe plus the PostHog privacy decision. Production
-    dashboard creation, IAM/retention/cost evidence, external uptime checks, and delivered alert
-    drills remain open.
+    the Cloudflare dashboard/query/incident recipe plus the PostHog privacy decision. A fail-closed
+    offline drill now reconstructs request, Queue, and scheduled-task timelines from a bounded
+    non-sensitive fixture and emits a deterministic aggregate receipt without actor pseudonyms or
+    raw payloads. Production/preview stream reconstruction, dashboard creation,
+    IAM/retention/cost evidence, external uptime checks, and delivered alert drills remain open.
 - [ ] Make the data and execution paths measurably scalable before a traffic campaign.
   - [ ] Inventory every production query, capture representative `EXPLAIN QUERY PLAN` evidence,
     add only workload-justified indexes, bound scans/pagination, eliminate N+1 patterns, verify
