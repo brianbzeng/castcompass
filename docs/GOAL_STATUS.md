@@ -1,6 +1,6 @@
 # CastingCompass goal status
 
-Last reconciled: **2026-07-19 UTC**
+Last reconciled: **2026-07-20 UTC**
 
 This is the owner-facing dashboard for the complete goal list. The detailed acceptance
 criteria and immutable receipts remain in [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md); provider
@@ -12,6 +12,44 @@ also satisfied.
 Current provider truth overrides historical “paused” language in completed receipts below. The
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
+
+## Completed seven-step work cycle — privacy-safe observability evidence
+
+- [x] Reconcile protected `main`, draft PR `#119`, the owner roadmap, and the current API-image
+      exception schedule. Starting `main` was
+      `127841eeb34134a4d32cdbb4853852486ec6b4c5`; Python `3.13.14` remains the current stable
+      `3.13` image target and the bounded issue `#86` review is not yet due. Production and
+      provider state remained untouched.
+- [x] Audit the offline incident drill and activation verifier against their exact public claims.
+      The prior draft accepted a completion before later request events, a terminal operation
+      before its start, equal timestamps, and a reviewed commit asserted only inside the private
+      manifest. Green tests for that head therefore did not prove chronology or independent
+      release binding.
+- [x] Make reconstruction fail closed: timestamps must increase strictly within every correlation
+      identity, request completion must be last, operation start/terminal events must be first and
+      last, and every terminal event must contain its bounded duration. Adversarial tests cover
+      late request events, terminal-before-start operations, and equal timestamps.
+- [x] Bind activation evidence to an independently supplied full Git commit, refuse missing,
+      malformed, mismatched, or widened evaluation options, expose the reviewed commit in the
+      public-safe receipt, and continue excluding private evidence hashes, provider identifiers,
+      saved-view names, actor pseudonyms, and raw payloads. Every boolean is validated even when
+      an earlier gate is false, so malformed later claims cannot hide behind short-circuit logic.
+- [x] Verify exact implementation head `986271b9bed89a1adc5c977ec2037383c5f5f19f`
+      locally: 15/15 focused observability tests, the deterministic 10-event/2-request/3-operation
+      drill receipt `97ad05561b2221b816d7cd01091d752458de7a3903698ce44726680835c81a94`,
+      Cloudflare build and 425/425 Node tests, ESLint, TypeScript, every offline security gate,
+      both SBOMs, five Python lock graphs, and both npm audits with zero vulnerabilities passed.
+- [x] Publish only that accepted head and merge after every hosted gate passed. PR `#119` CI
+      `29713750801` and `29713751946`, release provenance `29713750823` and `29713751885`, and
+      CodeQL `29713750743` passed; 13 checks succeeded, five event-appropriate jobs skipped, and
+      none failed. No workflow deployed or queried Cloudflare.
+- [x] Reconcile protected `main` after the merge. PR `#119` merged normally as
+      `d71f17cad8642c09c8f64460ce3c8ef1cba55555`; main CI `29714019076`, release provenance
+      `29714019090`, and CodeQL `29714018857` passed that exact commit, including the hosted
+      Chromium/WebKit mobile matrix and dependency submission. Dependabot, code-scanning, and
+      secret-scanning alerts are all zero. The provider dashboard, IAM/retention/cost evidence,
+      uptime checks, delivered alerts, preview/production reconstruction, and production release
+      remain open; this repository receipt does not authorize them.
 
 ## Completed seven-step work cycle — SEO language and provider evidence
 

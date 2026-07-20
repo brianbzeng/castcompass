@@ -405,8 +405,12 @@ after its acceptance checks pass in the intended environment.
     source-bound activation manifest against an independently supplied expected commit and emits a
     public-safe receipt containing that commit plus aggregate readiness/blocker state; it cannot
     query Cloudflare or authorize production. Production/preview stream reconstruction, dashboard
-    creation,
-    IAM/retention/cost evidence, external uptime checks, and delivered alert drills remain open.
+    creation, IAM/retention/cost evidence, external uptime checks, and delivered alert drills
+    remain open. PR `#119` merged exact accepted head
+    `986271b9bed89a1adc5c977ec2037383c5f5f19f` as protected-main commit
+    `d71f17cad8642c09c8f64460ce3c8ef1cba55555`; exact-head and merge-commit CI, release
+    provenance, CodeQL, hosted mobile, and dependency-submission evidence passed without a
+    deployment or provider query.
 - [ ] Make the data and execution paths measurably scalable before a traffic campaign.
   - [ ] Inventory every production query, capture representative `EXPLAIN QUERY PLAN` evidence,
     add only workload-justified indexes, bound scans/pagination, eliminate N+1 patterns, verify
