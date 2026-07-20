@@ -67,14 +67,19 @@ by that discovery.
       also dispatched explicitly at that exact head: run `29787982359` built, health-checked,
       inventoried, and policy-scanned both `linux/amd64` and `linux/arm64`. Its three known high
       CPython findings match the reviewed, module-removal-backed exceptions that expire
-      2026-08-08; no new exception was added. The draft remains unmerged and no deployment, D1
-      migration, Cloudflare change, or production mutation occurred.
+      2026-08-08; no new exception was added. No deployment, D1 migration, Cloudflare change, or
+      production mutation occurred during that exact-head receipt.
 - [x] Exercise the actual built Worker against a disposable local D1 database with all 18
       migrations, not the earlier synthetic HTTP server. Wrangler local HTTPS returned the
       hardened D1-backed health response and the bounded smoke profile completed 2,835 requests
       with zero failures, 18.51 ms p95, and 32.79 ms p99. This is developer-machine evidence only;
       isolated production-shaped staging load, soak, spike, failure injection, provider metrics,
       and cost evidence remain open.
+- [x] Merge accepted PR `#125` as protected-main commit
+      `cd5aa41a4e01bda59bbbd44b968730e1ba956785`. Main CI `29788509904`, release provenance
+      `29788509895`, and all three CodeQL languages plus aggregate upload in `29788509768` passed.
+      The merge did not run a deployment command, migration, provider query, or production
+      mutation and is not evidence that the live Worker changed.
 
 ## Completed work cycle — independent operational restore review handoff
 
