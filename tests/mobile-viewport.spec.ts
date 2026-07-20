@@ -384,7 +384,7 @@ test("safe-area contract keeps fixed controls inside simulated insets", async ({
 
 test("map overlays do not collide or clip", async ({ page }) => {
   const map = page.locator(".map-wrap");
-  const centerButton = page.getByRole("button", { name: /center bay/i });
+  const centerButton = page.getByRole("button", { name: /fit sites/i });
   const loadMap = page.getByRole("button", { name: /open interactive map/i });
   await map.scrollIntoViewIfNeeded();
   await expect(async () => {
