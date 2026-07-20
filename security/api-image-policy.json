@@ -17,6 +17,19 @@
       "https://github.com/docker-library/official-images/blob/master/library/python"
     ]
   },
+  "upstreamWatch": {
+    "schemaVersion": 1,
+    "series": "3.13",
+    "variant": "alpine3.24",
+    "maximumScheduleIntervalHours": 24,
+    "requestTimeoutMilliseconds": 15000,
+    "maximumResponseBytes": 1048576,
+    "sources": {
+      "versions": "https://raw.githubusercontent.com/docker-library/python/master/versions.json",
+      "dockerfile": "https://raw.githubusercontent.com/docker-library/python/master/3.13/alpine3.24/Dockerfile",
+      "officialImages": "https://raw.githubusercontent.com/docker-library/official-images/master/library/python"
+    }
+  },
   "baseImage": {
     "repository": "python",
     "tag": "3.13.14-alpine3.24",

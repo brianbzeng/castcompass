@@ -13,6 +13,32 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active work cycle — API image upstream watch
+
+- [x] Reconcile protected `main`, draft regional PR `#118`, the owner roadmap, and GitHub work.
+      Starting `main` is `4f20a786c8a88cce7104be7a73f012fca1440f02`; `#118` remains the only
+      open PR and issue `#86` remains the only open issue. Production is untouched.
+- [x] Identify the earliest repository-actionable P0 gap. The weekly native image scan runs on
+      Monday, while Python 3.13.15 is scheduled for Tuesday 2026-08-04 and the bounded exception
+      expires Saturday 2026-08-08, leaving a detection gap during the replacement window.
+- [x] Implement a dependency-free daily/manual, read-only primary-source watch with bounded
+      requests. Offline policy and adversarial fixture tests pass 5/5; a live 2026-07-20 check
+      confirms Python `3.13.14`, source SHA-256
+      `639e43243c620a308f968213df9e00f2f8f62332f7adbaa7a7eeb9783057c690`, source revision
+      `f79aea5b8f6b2d65b31ba2bb3f69c0c2083345c8`, and AMD64/ARM64 publication remain current.
+- [x] Regenerate the deterministic release inventory and pass the complete clean local gate.
+      A fresh zero-script npm install audited 534 packages with zero vulnerabilities; the
+      Cloudflare build, 430/430 Node tests, 140/140 Chromium/WebKit mobile cases, ESLint,
+      TypeScript, every offline security/SBOM gate, five Python lock graphs, and both npm audits
+      passed. Fresh hash-locked Python graphs passed 29/29 API tests and 81/81 pipeline tests
+      with one documented optional-raster skip, 14 critical query plans, Ruff, and deterministic
+      smoke. The local Homebrew Python 3.13.14 `pyexpat`/system-library mismatch prevents a clean
+      exact-runtime API environment, so hosted CI remains the exact Python 3.13.14 authority.
+- [ ] Publish the exact accepted head through protected CI, provenance, CodeQL, and native image
+      checks without deployment or provider mutation.
+- [ ] Merge only accepted evidence and reconcile exact protected `main`, workflows, alerts, and
+      issue `#86`. The issue must remain open until a fixed image passes both native architectures.
+
 ## Completed seven-step work cycle — privacy-safe observability evidence
 
 - [x] Reconcile protected `main`, draft PR `#119`, the owner roadmap, and the current API-image
