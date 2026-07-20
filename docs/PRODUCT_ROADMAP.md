@@ -220,7 +220,11 @@ after its acceptance checks pass in the intended environment.
       `29653146497`, release-provenance `29653146479`, and CodeQL `29653146307` passed, followed
       by zero open dependency, code-scanning, or secret-scanning alerts. Issue `#86` stays open
       and fails closed after the bounded renewal unless the first fixed stable official image is
-      adopted and natively re-verified.
+      adopted and natively re-verified. A dependency-free daily official-source watch now closes
+      the Monday-native-scan/Tuesday-release cadence gap and fails on maintained-version,
+      checksum, source-revision, tag, directory, or AMD64/ARM64 publication drift. This is early
+      detection only; it neither closes `#86` nor substitutes for the required two-architecture
+      native replacement scan.
     - [x] Enable live `main` protection with pull requests, strict app-bound GitHub Actions and
       Advanced Security `CodeQL` checks, resolved conversations, administrator enforcement, and
       force-push/deletion denial; enable Dependabot security updates, secret-scanning push

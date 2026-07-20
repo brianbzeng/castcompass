@@ -27,7 +27,7 @@ path so security fixes are not frozen out.
 | Static analysis | GitHub-managed CodeQL default setup scans Actions, JavaScript/TypeScript, and Python; the Advanced Security `CodeQL` merge result is required on `main`, and findings are reviewed individually rather than bulk-dismissed | GitHub controls the analyzer/runtime and its default query updates; release evidence still records the alert state and each dismissal rationale |
 | Production npm SBOM | `security/sbom.cdx.json` is a deterministic CycloneDX 1.5 inventory of the lock-resolved production graph, including cross-platform optional variants, and embeds the SHA-256 of `package-lock.json` | It remains the focused npm input to the combined release inventory; neither document proves the bytes Cloudflare actually ran |
 | Combined release inventory | `security/release-sbom.cdx.json` deterministically combines the production npm graph, exact hashed API-runtime and pipeline-CI Python graphs, their distinct Python runtimes, pinned Node/API-image/Alpine identities, the image-security policy, and the repository-declared Worker/D1/assets service contract; every source file is SHA-256-bound and CI rejects drift | Main-branch signing acceptance is recorded below; the OS entry remains identity-level while native package reports are separate workflow evidence, and the Worker entries remain repository contracts rather than deployed-version evidence |
-| Native API image evidence | A read-only weekly/change-triggered workflow builds the exact image natively on GitHub's fixed Ubuntu 24.04 AMD64 and ARM64 runners, verifies non-root/minimized runtime behavior and live health, then uses SHA-pinned Syft 1.42.3 and Grype 0.110.0 actions to preserve source-commit-bound raw CycloneDX, vulnerability, and normalized policy reports | PR `#81` and the merged `main` run are accepted below. A 2026-07-18 primary-source re-review found no stable 3.13 fix; the owner-bound renewal requires re-review on 2026-08-04 and expires 2026-08-08 while preserving the affected-module removal/import guards |
+| Native API image evidence | A read-only weekly/change-triggered workflow builds the exact image natively on GitHub's fixed Ubuntu 24.04 AMD64 and ARM64 runners, verifies non-root/minimized runtime behavior and live health, then uses SHA-pinned Syft 1.42.3 and Grype 0.110.0 actions to preserve source-commit-bound raw CycloneDX, vulnerability, and normalized policy reports. A separate dependency-free daily watch compares the reviewed Python version, checksum, source revision, and AMD64/ARM64 publication against Docker Library's primary sources | PR `#81` and the merged `main` run are accepted below. A 2026-07-18 primary-source re-review found no stable 3.13 fix; the owner-bound renewal requires re-review on 2026-08-04 and expires 2026-08-08 while preserving the affected-module removal/import guards. The lightweight watch detects drift but cannot replace the two-architecture native scan required for acceptance |
 | Secrets and private reporting | Repository secret scanning and provider-pattern tests run before dependency installation in CI; GitHub secret scanning, push protection, and private vulnerability reporting are enabled | GitHub's extra non-provider-pattern and validity-check options were unavailable in the current account configuration; rotation, IAM, and incident drills still require provider evidence |
 
 The exact Node release is the current patched release selected for the maintained 22.x line,
@@ -412,6 +412,16 @@ surface-reduction controls, not a sandbox or trust guarantee.
   Official Image publication plus native AMD64/ARM64 verification. The verifier rejects a
   missing owner, non-primary sources, a mismatched runtime, a later-series gap, an unbound
   exception date, or more than seven days of post-release grace.
+
+  The heavy native workflow runs on Monday. Because the scheduled 3.13.15 release is Tuesday
+  and the four-day adoption boundary ends Saturday, a separate daily watch closes that cadence
+  gap. It fetches only the reviewed raw Docker Library `versions.json`, exact-variant Dockerfile,
+  and Official Images manifest with time and response-size bounds; installs no dependencies,
+  pulls no image, grants no write authority, and fails immediately if the maintained version,
+  source checksum, source revision, publication directory, required aliases, or AMD64/ARM64
+  coverage drifts. A passing watch means only that the pinned upstream identity is unchanged.
+  A fixed image still requires policy replacement plus fresh native evidence on both
+  architectures, so issue `#86` remains open through that acceptance.
 
   The bounded renewal is accepted at PR `#90`, whose exact final head
   `f20c210bb8014baee62c9bf09010a3d5a99c5d97` merged as

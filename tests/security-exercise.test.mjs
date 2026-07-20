@@ -113,7 +113,10 @@ test("CI and release provenance verify the fail-closed exercise policy without r
     "utf8",
   );
   for (const workflow of [ci, release]) {
-    assert.match(workflow, /npm run security:release-sbom\n\s+- run: npm run security:exercise-policy/u);
+    assert.match(
+      workflow,
+      /npm run security:release-sbom\n\s+- run: npm run security:api-image-upstream-watch\n\s+- run: npm run security:exercise-policy/u,
+    );
     assert.doesNotMatch(workflow, /security:exercise-(?:plan|run)/u);
   }
 });
