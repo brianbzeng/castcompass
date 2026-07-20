@@ -574,6 +574,18 @@ after its acceptance checks pass in the intended environment.
 
 ## P2 — Species and business expansion
 
+- [ ] Incorporate pollution and water-quality conditions into a separately versioned score
+  component only after its intended meaning is frozen (fishing-quality context versus human-health
+  advisory), official or explicitly licensed sources are inventoried, spatial/temporal support and
+  freshness are preserved, missing or stale inputs fail closed, and the contribution is validated
+  against frozen baselines. Keep agency advisories visible and authoritative; never imply that a
+  fishing score proves water, contact, or seafood-consumption safety.
+- [ ] Build the map location by location until every available location has a reviewed inventory
+  of notable structure and useful depth levels. Bind each feature to a reproducible official or
+  licensed bathymetry/chart source, units, vertical datum, resolution, retrieval date, checksum,
+  uncertainty, and permitted display/model use; reject false precision and protect sensitive
+  habitat or access information. Ship each location only after visual and data acceptance, while
+  keeping unmapped locations explicitly incomplete.
 - [ ] Add striped bass as the first new beta using a distinct estuary/migration model.
 - [ ] Define and evaluate explicit shore-relevant rockfish species/complexes next; then model
   cabezon as its own taxon; then split surfperch into defensible habitat/taxon groups. Each beta

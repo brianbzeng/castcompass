@@ -721,6 +721,16 @@ by that discovery.
 
 ## P2 — Species and business expansion
 
+- [ ] Add pollution and water-quality conditions to a separately versioned score component only
+      after its meaning, official/licensed sources, spatial and temporal support, freshness,
+      uncertainty, missing-data behavior, and validation gates are frozen. Agency advisories stay
+      authoritative; the product must not turn a fishing score into a water-contact or seafood-
+      consumption safety claim.
+- [ ] Enrich the map one available location at a time with reviewed notable structure and useful
+      depth levels. Every feature needs reproducible official/licensed source provenance, units,
+      vertical datum, resolution, retrieval date, checksum, uncertainty, allowed use, sensitive-
+      habitat review, and per-location visual/data acceptance; unmapped locations remain clearly
+      incomplete instead of receiving invented detail.
 - [ ] Add striped bass as the first distinct estuary/migration beta.
 - [ ] Add defensible rockfish complexes, cabezon, and surfperch groups, each with its own source
       inventory, model card, validation gate, and regulation treatment.
