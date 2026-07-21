@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-07-21T10:38:30Z",
+  "capturedAt": "2026-07-21T11:15:36Z",
   "schemaVersion": "castingcompass.noaa-enc-approach-source/1.0.0",
   "serviceErrorCategory": null,
   "serviceMetadata": {
@@ -62,6 +62,491 @@
   },
   "serviceUrl": "https://encdirect.noaa.gov/arcgis/rest/services/encdirect/enc_approach/MapServer",
   "sites": {
+    "albany-bulb": {
+      "queries": {
+        "depthAreas:sector": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DRVAL1": -1.7,
+                "DRVAL2": 0.0,
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "QUASOU": null,
+                "SCAMIN": null,
+                "SORDAT": null,
+                "SORIND": null,
+                "SOUACC": null,
+                "VERDAT": null
+              },
+              "geometrySha256": "180402027d0929c2b20ce6be52bbef1bb8354f57c7be0868b733f429159f0d0c"
+            },
+            {
+              "attributes": {
+                "DRVAL1": -1.7,
+                "DRVAL2": 0.0,
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "QUASOU": null,
+                "SCAMIN": null,
+                "SORDAT": null,
+                "SORIND": null,
+                "SOUACC": null,
+                "VERDAT": null
+              },
+              "geometrySha256": "68a077c0159e62a24ffd5f0a61e0f36040a41d371e93c10094b5062487890fe5"
+            },
+            {
+              "attributes": {
+                "DRVAL1": -1.7,
+                "DRVAL2": 0.0,
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "QUASOU": null,
+                "SCAMIN": null,
+                "SORDAT": null,
+                "SORIND": null,
+                "SOUACC": null,
+                "VERDAT": null
+              },
+              "geometrySha256": "a0faa3a8cee3a7f3bf372960274621797b083d1384f886250bb169c1c8f69d4c"
+            },
+            {
+              "attributes": {
+                "DRVAL1": -1.7,
+                "DRVAL2": 0.0,
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "QUASOU": null,
+                "SCAMIN": null,
+                "SORDAT": null,
+                "SORIND": null,
+                "SOUACC": null,
+                "VERDAT": null
+              },
+              "geometrySha256": "ce0d68a7ef6afc4dcccea0a6b6bf703db80e5f2e357edb0229251a187c522906"
+            },
+            {
+              "attributes": {
+                "DRVAL1": 0.0,
+                "DRVAL2": 1.8,
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "QUASOU": null,
+                "SCAMIN": null,
+                "SORDAT": null,
+                "SORIND": null,
+                "SOUACC": null,
+                "VERDAT": null
+              },
+              "geometrySha256": "96073ea1605969e5e90bf548dd896395b0e8934094c4a4dd387dc376895b4632"
+            }
+          ],
+          "layerId": 232,
+          "layerKey": "depthAreas",
+          "scope": "sector"
+        },
+        "depthContours:sector": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "SCAMIN": 179999,
+                "SORDAT": null,
+                "SORIND": null,
+                "VALDCO": 0.0,
+                "VERDAT": null
+              },
+              "geometrySha256": "2c1c23aba309ef535de61f9e580821a0d0ba1922548e7c272b20277a3990b117"
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "SCAMIN": 179999,
+                "SORDAT": null,
+                "SORIND": null,
+                "VALDCO": 0.0,
+                "VERDAT": null
+              },
+              "geometrySha256": "4365d5c9d74d408158f439c2463890c2ecd3f4bd882ff915e8235c290e8cc176"
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "SCAMIN": 179999,
+                "SORDAT": null,
+                "SORIND": null,
+                "VALDCO": 0.0,
+                "VERDAT": null
+              },
+              "geometrySha256": "715c2358535803dd4012da768d12c7086298d855d57fe999b711610fa4e2bc82"
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "SCAMIN": 179999,
+                "SORDAT": null,
+                "SORIND": null,
+                "VALDCO": 0.0,
+                "VERDAT": null
+              },
+              "geometrySha256": "b55c61b9e524d29659829945ee37adc5920ac3581b371086455ec259263236f0"
+            }
+          ],
+          "layerId": 108,
+          "layerKey": "depthContours",
+          "scope": "sector"
+        },
+        "dredgedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 233,
+          "layerKey": "dredgedAreas",
+          "scope": "context"
+        },
+        "obstructionPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 36,
+          "layerKey": "obstructionPoints",
+          "scope": "context"
+        },
+        "pilePoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 62,
+          "layerKey": "pilePoints",
+          "scope": "context"
+        },
+        "seabedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 205,
+          "layerKey": "seabedAreas",
+          "scope": "context"
+        },
+        "seabedPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 75,
+          "layerKey": "seabedPoints",
+          "scope": "context"
+        },
+        "shorelineConstructionAreas:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "f697e7c291b7ab7c991db67a906686d72a60057543bab9e1b736c0f2e62e8d4b"
+            }
+          ],
+          "layerId": 143,
+          "layerKey": "shorelineConstructionAreas",
+          "scope": "context"
+        },
+        "shorelineConstructionLines:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "5019c4310335a6cd1f11ce2758ea62724a9dc918cbedd893f3824e7ea776d70c"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "dac5e0f92d85cefd27d47240cb4f05aa82227d38a01338fe4478d1a0c57293d8"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "6cd88d0310645568f74c9a338919617bbef0be4337dc2c5c71522a5977be9668"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "77a2efb9490d31618d193564111531bb8304dfb2bba4465aeb34836142db9659"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "9d6fd9bcd9986a2081cfba3f7f1cf4619ac2ccda2e0fca4c0c558e8488665c9e"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "9eada060507d2a58589006384b75a46ca725ba27dd14f3ce685ea062ed87b2c4"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "dd0f7c1c9449b84df1d2969a1198532418f950b71aef4e38eeba953e607ccf99"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "f5977533c547c0f9719f426284e519d5a0ec113e8acaf93ef68b5f3ed074ad18"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "f70d0e0848c0c2249e42a5a3581549590b7dd14d5723e875cb1f77abe807009f"
+            }
+          ],
+          "layerId": 89,
+          "layerKey": "shorelineConstructionLines",
+          "scope": "context"
+        },
+        "shorelineConstructionPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 20,
+          "layerKey": "shorelineConstructionPoints",
+          "scope": "context"
+        },
+        "soundings:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315213,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.8
+              },
+              "point": [
+                -122.3317748,
+                37.8862093
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315214,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.5
+              },
+              "point": [
+                -122.33144,
+                37.892322
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315218,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.5
+              },
+              "point": [
+                -122.3281664,
+                37.8852651
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315221,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.2
+              },
+              "point": [
+                -122.3272776,
+                37.8964549
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315224,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.9
+              },
+              "point": [
+                -122.3218061,
+                37.8931563
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315225,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.1
+              },
+              "point": [
+                -122.3214944,
+                37.8950425
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315373,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 1.2
+              },
+              "point": [
+                -122.3224445,
+                37.8822806
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315374,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 1.2
+              },
+              "point": [
+                -122.3220795,
+                37.8882561
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315377,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 1.2
+              },
+              "point": [
+                -122.3177396,
+                37.8847373
+              ]
+            }
+          ],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "context"
+        },
+        "soundings:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "sector"
+        },
+        "vegetationAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 244,
+          "layerKey": "vegetationAreas",
+          "scope": "context"
+        },
+        "wreckPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 39,
+          "layerKey": "wreckPoints",
+          "scope": "context"
+        }
+      }
+    },
     "arroyo-burro-beach": {
       "queries": {
         "depthAreas:sector": {
@@ -1016,6 +1501,493 @@
         }
       }
     },
+    "berkeley-marina-north-basin": {
+      "queries": {
+        "depthAreas:sector": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DRVAL1": 0.0,
+                "DRVAL2": 1.8,
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "QUASOU": null,
+                "SCAMIN": null,
+                "SORDAT": null,
+                "SORIND": null,
+                "SOUACC": null,
+                "VERDAT": null
+              },
+              "geometrySha256": "96073ea1605969e5e90bf548dd896395b0e8934094c4a4dd387dc376895b4632"
+            }
+          ],
+          "layerId": 232,
+          "layerKey": "depthAreas",
+          "scope": "sector"
+        },
+        "depthContours:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 108,
+          "layerKey": "depthContours",
+          "scope": "sector"
+        },
+        "dredgedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 233,
+          "layerKey": "dredgedAreas",
+          "scope": "context"
+        },
+        "obstructionPoints:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATOBS": "snag/stump",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATSUR": null,
+                "OBJNAM": null,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "VALSOU": null
+              },
+              "geometrySha256": "9f98578049ba4126004f00b2f8a0b2f765bed873f19059aef83a2870c9df3b40"
+            }
+          ],
+          "layerId": 36,
+          "layerKey": "obstructionPoints",
+          "scope": "context"
+        },
+        "pilePoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 62,
+          "layerKey": "pilePoints",
+          "scope": "context"
+        },
+        "seabedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 205,
+          "layerKey": "seabedAreas",
+          "scope": "context"
+        },
+        "seabedPoints:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATQUA": null,
+                "NATSUR": "mud",
+                "OBJNAM": null,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653"
+              },
+              "geometrySha256": "ef7943aba58dc398a38d0dffa8a04fad17b83ba97c5f88f4ae19bbe1e103f4fd"
+            }
+          ],
+          "layerId": 75,
+          "layerKey": "seabedPoints",
+          "scope": "context"
+        },
+        "shorelineConstructionAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 143,
+          "layerKey": "shorelineConstructionAreas",
+          "scope": "context"
+        },
+        "shorelineConstructionLines:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATSLC": "",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "2e69a7eb6774a75942cdd90235de65ea91752d893631ae1ec4a5c708fec70596"
+            },
+            {
+              "attributes": {
+                "CATSLC": "",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "d04725276cf9dcf32aaf103599887fc6549b079afde345f726093790b202096f"
+            },
+            {
+              "attributes": {
+                "CATSLC": "",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "e0e216ddde3a953ecfe39280179cfe66064030114744c07f8a7db9790ab650ad"
+            },
+            {
+              "attributes": {
+                "CATSLC": "breakwater",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "3a644c4409eb50a8a465e5bcb1f4829ff42cf52991e06c18e74fc9f3d78eb72e"
+            },
+            {
+              "attributes": {
+                "CATSLC": "breakwater",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "eb70ac9dfc27e89fc0c9babd8c671a688d4d0250421cbcd5ab69d71e80c3936c"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "e7f1db73c2b6f0e1eddb3182c9184a1698a940c7dfb7f7227da2e073ac3c5ead"
+            },
+            {
+              "attributes": {
+                "CATSLC": "ramp",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "98113f4d6670478c2b47500cd7367e27c49849f8feca42560d325e251acdbf6e"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "0a1b3b57b551015c7a152c3d286a6f8104cb3895d798478f785df2be1f188d0f"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "22465a6f0d75e9a3774b73248e99e7c096cf2bce5d521baa34945d380131c05b"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "3bf56cacf19c711457af81d66c339f3733634f87169b7472da0812af50b93e3d"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "5eee290cb87c7a10f9b646dedc8f8876b209470ef6de8dbc0c2d5bf080e571b4"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "645775a09df6f0da2df49d27899f116510fe72df8ccb67b6554f976fd11e7490"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "9f188e685f708731997f31ba77f39920c8a25db0cb8298ca115356b3096e8855"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "abef6ff5273adca48fa2d940108c228b37b36e13bdee06872f8fb9af7ca5394f"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "bea57615b1bfad37696ad57bc74d27fbf4ffee32b29590ae1e9e5804c2aa2316"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "ea44267c9ac6ae77ab15fc61933981939163405b281b313bb9145afe5c6aca94"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "d9403b9bf97d3d82a1ea6f90209c9a2846c9d4bd573cc8c04cb729f0a54cead8"
+            }
+          ],
+          "layerId": 89,
+          "layerKey": "shorelineConstructionLines",
+          "scope": "context"
+        },
+        "shorelineConstructionPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 20,
+          "layerKey": "shorelineConstructionPoints",
+          "scope": "context"
+        },
+        "soundings:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315223,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.8
+              },
+              "point": [
+                -122.3230504,
+                37.8709132
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315376,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 1.2
+              },
+              "point": [
+                -122.3198633,
+                37.8762091
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315378,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 0.6
+              },
+              "point": [
+                -122.3164621,
+                37.8754348
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315380,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 0.6
+              },
+              "point": [
+                -122.3136712,
+                37.8810302
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315382,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 0.9
+              },
+              "point": [
+                -122.3128686,
+                37.8775423
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315384,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 0.3
+              },
+              "point": [
+                -122.3104433,
+                37.8705541
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315417,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "201210",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.3
+              },
+              "point": [
+                -122.3193092,
+                37.8662383
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315419,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "201210",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.2
+              },
+              "point": [
+                -122.313722,
+                37.8733339
+              ]
+            }
+          ],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "context"
+        },
+        "soundings:sector": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315419,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "201210",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.2
+              },
+              "point": [
+                -122.313722,
+                37.8733339
+              ]
+            }
+          ],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "sector"
+        },
+        "vegetationAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 244,
+          "layerKey": "vegetationAreas",
+          "scope": "context"
+        },
+        "wreckPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 39,
+          "layerKey": "wreckPoints",
+          "scope": "context"
+        }
+      }
+    },
     "bolinas-beach": {
       "queries": {
         "depthAreas:sector": {
@@ -1597,6 +2569,564 @@
               ]
             }
           ],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "sector"
+        },
+        "vegetationAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 244,
+          "layerKey": "vegetationAreas",
+          "scope": "context"
+        },
+        "wreckPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 39,
+          "layerKey": "wreckPoints",
+          "scope": "context"
+        }
+      }
+    },
+    "cesar-chavez-park": {
+      "queries": {
+        "depthAreas:sector": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DRVAL1": 0.0,
+                "DRVAL2": 1.8,
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "QUASOU": null,
+                "SCAMIN": null,
+                "SORDAT": null,
+                "SORIND": null,
+                "SOUACC": null,
+                "VERDAT": null
+              },
+              "geometrySha256": "96073ea1605969e5e90bf548dd896395b0e8934094c4a4dd387dc376895b4632"
+            }
+          ],
+          "layerId": 232,
+          "layerKey": "depthAreas",
+          "scope": "sector"
+        },
+        "depthContours:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 108,
+          "layerKey": "depthContours",
+          "scope": "sector"
+        },
+        "dredgedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 233,
+          "layerKey": "dredgedAreas",
+          "scope": "context"
+        },
+        "obstructionPoints:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATOBS": "snag/stump",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATSUR": null,
+                "OBJNAM": null,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "VALSOU": null
+              },
+              "geometrySha256": "9f98578049ba4126004f00b2f8a0b2f765bed873f19059aef83a2870c9df3b40"
+            }
+          ],
+          "layerId": 36,
+          "layerKey": "obstructionPoints",
+          "scope": "context"
+        },
+        "pilePoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 62,
+          "layerKey": "pilePoints",
+          "scope": "context"
+        },
+        "seabedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 205,
+          "layerKey": "seabedAreas",
+          "scope": "context"
+        },
+        "seabedPoints:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATQUA": null,
+                "NATSUR": "mud",
+                "OBJNAM": null,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653"
+              },
+              "geometrySha256": "ef7943aba58dc398a38d0dffa8a04fad17b83ba97c5f88f4ae19bbe1e103f4fd"
+            }
+          ],
+          "layerId": 75,
+          "layerKey": "seabedPoints",
+          "scope": "context"
+        },
+        "shorelineConstructionAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 143,
+          "layerKey": "shorelineConstructionAreas",
+          "scope": "context"
+        },
+        "shorelineConstructionLines:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATSLC": "",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "2e69a7eb6774a75942cdd90235de65ea91752d893631ae1ec4a5c708fec70596"
+            },
+            {
+              "attributes": {
+                "CATSLC": "",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "d04725276cf9dcf32aaf103599887fc6549b079afde345f726093790b202096f"
+            },
+            {
+              "attributes": {
+                "CATSLC": "",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "e0e216ddde3a953ecfe39280179cfe66064030114744c07f8a7db9790ab650ad"
+            },
+            {
+              "attributes": {
+                "CATSLC": "breakwater",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "3a644c4409eb50a8a465e5bcb1f4829ff42cf52991e06c18e74fc9f3d78eb72e"
+            },
+            {
+              "attributes": {
+                "CATSLC": "breakwater",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "eb70ac9dfc27e89fc0c9babd8c671a688d4d0250421cbcd5ab69d71e80c3936c"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "e7f1db73c2b6f0e1eddb3182c9184a1698a940c7dfb7f7227da2e073ac3c5ead"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "fa82f82262ed966321670f5fa0aad5c0c17e6362f6bacb6af4a69a6ed8f4a245"
+            },
+            {
+              "attributes": {
+                "CATSLC": "ramp",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "98113f4d6670478c2b47500cd7367e27c49849f8feca42560d325e251acdbf6e"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "22465a6f0d75e9a3774b73248e99e7c096cf2bce5d521baa34945d380131c05b"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "3bf56cacf19c711457af81d66c339f3733634f87169b7472da0812af50b93e3d"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "5eee290cb87c7a10f9b646dedc8f8876b209470ef6de8dbc0c2d5bf080e571b4"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "645775a09df6f0da2df49d27899f116510fe72df8ccb67b6554f976fd11e7490"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "6a155851f5985da4203024442298fd832f9abeb3f325055ac45dd00a6c8c30a1"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "9f188e685f708731997f31ba77f39920c8a25db0cb8298ca115356b3096e8855"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "abef6ff5273adca48fa2d940108c228b37b36e13bdee06872f8fb9af7ca5394f"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "bea57615b1bfad37696ad57bc74d27fbf4ffee32b29590ae1e9e5804c2aa2316"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "ea44267c9ac6ae77ab15fc61933981939163405b281b313bb9145afe5c6aca94"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "d9403b9bf97d3d82a1ea6f90209c9a2846c9d4bd573cc8c04cb729f0a54cead8"
+            }
+          ],
+          "layerId": 89,
+          "layerKey": "shorelineConstructionLines",
+          "scope": "context"
+        },
+        "shorelineConstructionPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 20,
+          "layerKey": "shorelineConstructionPoints",
+          "scope": "context"
+        },
+        "soundings:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315223,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.8
+              },
+              "point": [
+                -122.3230504,
+                37.8709132
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315369,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 1.8
+              },
+              "point": [
+                -122.3269139,
+                37.8763801
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315371,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 1.8
+              },
+              "point": [
+                -122.3263192,
+                37.8707999
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315372,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 1.5
+              },
+              "point": [
+                -122.3240095,
+                37.8773459
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315375,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 1.8
+              },
+              "point": [
+                -122.3202858,
+                37.8798895
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315376,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 1.2
+              },
+              "point": [
+                -122.3198633,
+                37.8762091
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315378,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 0.6
+              },
+              "point": [
+                -122.3164621,
+                37.8754348
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315382,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 0.9
+              },
+              "point": [
+                -122.3128686,
+                37.8775423
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315384,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20030922",
+                "SORIND": "US,US,graph,BP-181921",
+                "Z": 0.3
+              },
+              "point": [
+                -122.3104433,
+                37.8705541
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315416,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "201210",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.8
+              },
+              "point": [
+                -122.3238202,
+                37.8666825
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315417,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "201210",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.3
+              },
+              "point": [
+                -122.3193092,
+                37.8662383
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315418,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "201210",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.5
+              },
+              "point": [
+                -122.3184393,
+                37.8634896
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315419,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "201210",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.2
+              },
+              "point": [
+                -122.313722,
+                37.8733339
+              ]
+            }
+          ],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "context"
+        },
+        "soundings:sector": {
+          "errorCategory": null,
+          "features": [],
           "layerId": 80,
           "layerKey": "soundings",
           "scope": "sector"
@@ -4634,6 +6164,1534 @@
         }
       }
     },
+    "emeryville-marina-pier": {
+      "queries": {
+        "depthAreas:sector": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DRVAL1": 0.0,
+                "DRVAL2": 1.8,
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "QUASOU": null,
+                "SCAMIN": null,
+                "SORDAT": null,
+                "SORIND": null,
+                "SOUACC": null,
+                "VERDAT": null
+              },
+              "geometrySha256": "daf2bd29733c5e5b9bca50679c506a06d05e6587666566e9a3069c0c7e95c562"
+            }
+          ],
+          "layerId": 232,
+          "layerKey": "depthAreas",
+          "scope": "sector"
+        },
+        "depthContours:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 108,
+          "layerKey": "depthContours",
+          "scope": "sector"
+        },
+        "dredgedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 233,
+          "layerKey": "dredgedAreas",
+          "scope": "context"
+        },
+        "obstructionPoints:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATOBS": "snag/stump",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATSUR": null,
+                "OBJNAM": null,
+                "SORDAT": "20130502",
+                "SORIND": "US,US,graph,GC-11223, DD-28258(CEF)",
+                "VALSOU": null
+              },
+              "geometrySha256": "0caf2b14e77e5e85561bbbf611d6a6fb9bcbd8bbe21be42a7a360eda7804a79d"
+            },
+            {
+              "attributes": {
+                "CATOBS": "snag/stump",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATSUR": null,
+                "OBJNAM": null,
+                "SORDAT": "20130502",
+                "SORIND": "US,US,graph,GC-11223, DD-28258(CEF)",
+                "VALSOU": null
+              },
+              "geometrySha256": "3464ed641f989932fc4ac6009687fe66d98c259d3ae9faf816ad29d71e38655f"
+            },
+            {
+              "attributes": {
+                "CATOBS": "snag/stump",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATSUR": null,
+                "OBJNAM": null,
+                "SORDAT": "20130502",
+                "SORIND": "US,US,graph,GC-11223, DD-28258(CEF)",
+                "VALSOU": null
+              },
+              "geometrySha256": "3f04fc3eb8fd2ebbc39e4b0415f43798cb32e28321af1e9e144a605c660aa804"
+            },
+            {
+              "attributes": {
+                "CATOBS": "snag/stump",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATSUR": null,
+                "OBJNAM": null,
+                "SORDAT": "20130502",
+                "SORIND": "US,US,graph,GC-11223, DD-28258(CEF)",
+                "VALSOU": null
+              },
+              "geometrySha256": "6c6bb8a516589a019582efc13bac761f1fafdaffc0b6f0879d69e8bfeb6c0ae8"
+            }
+          ],
+          "layerId": 36,
+          "layerKey": "obstructionPoints",
+          "scope": "context"
+        },
+        "pilePoints:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATPLE": "post",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "OBJNAM": null,
+                "SORDAT": "20030218",
+                "SORIND": "US,US,graph,GC-10575,DD-6886(CEF)"
+              },
+              "geometrySha256": "3f04fc3eb8fd2ebbc39e4b0415f43798cb32e28321af1e9e144a605c660aa804"
+            },
+            {
+              "attributes": {
+                "CATPLE": "post",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "OBJNAM": null,
+                "SORDAT": "20030218",
+                "SORIND": "US,US,graph,GC-10575,DD-6886(CEF)"
+              },
+              "geometrySha256": "6b000bd06b9a58c6e4541dcce30658f436fc93fd7516e69bd7acd278f0f7c9e7"
+            }
+          ],
+          "layerId": 62,
+          "layerKey": "pilePoints",
+          "scope": "context"
+        },
+        "seabedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 205,
+          "layerKey": "seabedAreas",
+          "scope": "context"
+        },
+        "seabedPoints:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATQUA": null,
+                "NATSUR": "mud",
+                "OBJNAM": null,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650"
+              },
+              "geometrySha256": "28532c9ea8f1304d312ec3154c39e4387a401e5005a6b1f7821f6d07f85b38af"
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATQUA": null,
+                "NATSUR": "mud",
+                "OBJNAM": null,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650"
+              },
+              "geometrySha256": "f13200a9981a8995807f3e43db2b7fd214033fb2da0c5307dc61ebdafc7ae18c"
+            }
+          ],
+          "layerId": 75,
+          "layerKey": "seabedPoints",
+          "scope": "context"
+        },
+        "shorelineConstructionAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 143,
+          "layerKey": "shorelineConstructionAreas",
+          "scope": "context"
+        },
+        "shorelineConstructionLines:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATSLC": "breakwater",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130502",
+                "SORIND": "US,US,graph,GC-11223"
+              },
+              "geometrySha256": "14024e010992102fcb2b276b1757837f299eaedf46263ce4a5c3a0ea21265615"
+            },
+            {
+              "attributes": {
+                "CATSLC": "breakwater",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130502",
+                "SORIND": "US,US,graph,GC-11223"
+              },
+              "geometrySha256": "40596c0549b3f6da4d4582976c426265b538688a44fa9b47ca77b1d60230d60b"
+            },
+            {
+              "attributes": {
+                "CATSLC": "breakwater",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130502",
+                "SORIND": "US,US,graph,GC-11223"
+              },
+              "geometrySha256": "e20b7fa646416aca0003d3e7a6b567aa9851e359a8f589ea9ab83fdce511a418"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130428",
+                "SORIND": "US,US,graph,GC-11018"
+              },
+              "geometrySha256": "fb6785ff582fc5bb5075fbf1a1455c4523df760ad4c8bc45a7c6a1ff5441a4dc"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130502",
+                "SORIND": "US,US,graph,GC-11223"
+              },
+              "geometrySha256": "0a6296dd0253951442d90a71498e9d6c35b08452da2962494ffcf04f10264632"
+            },
+            {
+              "attributes": {
+                "CATSLC": "ramp",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130502",
+                "SORIND": "US,US,graph,GC-11223"
+              },
+              "geometrySha256": "fe4a1eebf109a177e8dc0102f0f8f13e5c026ba8351d23f5dd86b8d9cb6272fb"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130502",
+                "SORIND": "US,US,graph,GC-11223"
+              },
+              "geometrySha256": "34b6e8b6f252d53aba1abfceaa45c350b0d95a1d5b13d78fef3589f533914e3e"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130502",
+                "SORIND": "US,US,graph,GC-11223"
+              },
+              "geometrySha256": "7cbc9d62b35b06308fa27ef16c9825c2e64f53d7c4285bae2a07a3ae2a1029f4"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130502",
+                "SORIND": "US,US,graph,GC-11223"
+              },
+              "geometrySha256": "9013ac878828616312238678f133085d46cbae7f2b5a63e4d801618191445e72"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130502",
+                "SORIND": "US,US,graph,GC-11223"
+              },
+              "geometrySha256": "c3ca3f2ce1556032920ecf3d56830d5f7ef3b4845a2705578989288f6c9052b2"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130502",
+                "SORIND": "US,US,graph,GC-11223"
+              },
+              "geometrySha256": "5ec0dbb8504cc450a91d05ce3cb0738315ac32be1f08a14876d6c09f400b6297"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130502",
+                "SORIND": "US,US,graph,GC-11223"
+              },
+              "geometrySha256": "991b4e652f0b99bb2f6bc3d66b63e028f04402f3a34ad495832fd8b3af024a71"
+            }
+          ],
+          "layerId": 89,
+          "layerKey": "shorelineConstructionLines",
+          "scope": "context"
+        },
+        "shorelineConstructionPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 20,
+          "layerKey": "shorelineConstructionPoints",
+          "scope": "context"
+        },
+        "soundings:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174314493,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 2.1
+              },
+              "point": [
+                -122.3232071,
+                37.8388014
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174314494,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 7.9
+              },
+              "point": [
+                -122.3230965,
+                37.843538
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174314498,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 1.8
+              },
+              "point": [
+                -122.3208382,
+                37.8336861
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174314499,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 1.2
+              },
+              "point": [
+                -122.3203935,
+                37.8475964
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174314500,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 1.8
+              },
+              "point": [
+                -122.3202414,
+                37.8370178
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174314502,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 1.8
+              },
+              "point": [
+                -122.3178864,
+                37.8396786
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174314504,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 1.5
+              },
+              "point": [
+                -122.3168126,
+                37.8362082
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174314507,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 1.2
+              },
+              "point": [
+                -122.3152849,
+                37.848108
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174314508,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 1.2
+              },
+              "point": [
+                -122.3131856,
+                37.8335418
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174314510,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 1.5
+              },
+              "point": [
+                -122.3099388,
+                37.8455334
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174314511,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 0.9
+              },
+              "point": [
+                -122.3098858,
+                37.8357641
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174314515,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 0.3
+              },
+              "point": [
+                -122.3066135,
+                37.8365045
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174314516,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 1.2
+              },
+              "point": [
+                -122.306116,
+                37.8444882
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315518,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20011203",
+                "SORIND": "US,US,graph,BP-192381",
+                "Z": 0.9
+              },
+              "point": [
+                -122.314676,
+                37.8438592
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315519,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20011203",
+                "SORIND": "US,US,graph,BP-192381",
+                "Z": 0.6
+              },
+              "point": [
+                -122.3098484,
+                37.841956
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315535,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "200909",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 0.9
+              },
+              "point": [
+                -122.3181251,
+                37.843661
+              ]
+            }
+          ],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "context"
+        },
+        "soundings:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "sector"
+        },
+        "vegetationAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 244,
+          "layerKey": "vegetationAreas",
+          "scope": "context"
+        },
+        "wreckPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 39,
+          "layerKey": "wreckPoints",
+          "scope": "context"
+        }
+      }
+    },
+    "ferry-point-pier": {
+      "queries": {
+        "depthAreas:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 232,
+          "layerKey": "depthAreas",
+          "scope": "sector"
+        },
+        "depthContours:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 108,
+          "layerKey": "depthContours",
+          "scope": "sector"
+        },
+        "dredgedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 233,
+          "layerKey": "dredgedAreas",
+          "scope": "context"
+        },
+        "obstructionPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 36,
+          "layerKey": "obstructionPoints",
+          "scope": "context"
+        },
+        "pilePoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 62,
+          "layerKey": "pilePoints",
+          "scope": "context"
+        },
+        "seabedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 205,
+          "layerKey": "seabedAreas",
+          "scope": "context"
+        },
+        "seabedPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 75,
+          "layerKey": "seabedPoints",
+          "scope": "context"
+        },
+        "shorelineConstructionAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 143,
+          "layerKey": "shorelineConstructionAreas",
+          "scope": "context"
+        },
+        "shorelineConstructionLines:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "5c8b59e7ff89e46087ab9f99a66b0fa2d9677d7e9f0e8a6d34533cb321cc819b"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "9cf68a09ef227cf830fb609644016f592eb1964b4b3993d7ae17c28e03f5d7fc"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "02f540ea681e4855c89342ea02b8ae539c0169b6667c9ad88842c3c43dffe4f4"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "4cdad5379d6441b56dab11e3f48f426dfb5c0dff723f36a5154f486420c80b59"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "c4624f40c59fd821e9c17734de12c5812423f73aeb7d8e4d8dba008658d1a6b8"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "cea92f78aa483362ada8eaa2a86056de3bb1462473e4662c3876a49c9c3d2d6d"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "e2d212ce4e0102d33cb1e801e6b9faceb8ea01cbe6da05ec831a6224ce54f95d"
+            }
+          ],
+          "layerId": 89,
+          "layerKey": "shorelineConstructionLines",
+          "scope": "context"
+        },
+        "shorelineConstructionPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 20,
+          "layerKey": "shorelineConstructionPoints",
+          "scope": "context"
+        },
+        "soundings:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315037,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.9
+              },
+              "point": [
+                -122.3948331,
+                37.9277867
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315038,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.5
+              },
+              "point": [
+                -122.3946023,
+                37.9218012
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315041,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.2
+              },
+              "point": [
+                -122.3941957,
+                37.9247056
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315055,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.9
+              },
+              "point": [
+                -122.3891885,
+                37.9183592
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315056,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.6
+              },
+              "point": [
+                -122.3884613,
+                37.9213037
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315493,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20121116",
+                "SORIND": "US,US,graph,DD-22623",
+                "Z": 8.5
+              },
+              "point": [
+                -122.3757738,
+                37.9239353
+              ]
+            }
+          ],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "context"
+        },
+        "soundings:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "sector"
+        },
+        "vegetationAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 244,
+          "layerKey": "vegetationAreas",
+          "scope": "context"
+        },
+        "wreckPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 39,
+          "layerKey": "wreckPoints",
+          "scope": "context"
+        }
+      }
+    },
+    "fort-baker-pier": {
+      "queries": {
+        "depthAreas:sector": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DRVAL1": 0.0,
+                "DRVAL2": 3.6,
+                "DSNM": "US4CA11M.000",
+                "INFORM": null,
+                "QUASOU": null,
+                "SCAMIN": null,
+                "SORDAT": null,
+                "SORIND": null,
+                "SOUACC": null,
+                "VERDAT": null
+              },
+              "geometrySha256": "3bfb521e586c0b337594c002ad5b042f9b8d813d16b180751f047deaf513841e"
+            },
+            {
+              "attributes": {
+                "DRVAL1": 0.0,
+                "DRVAL2": 5.4,
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "QUASOU": null,
+                "SCAMIN": null,
+                "SORDAT": null,
+                "SORIND": null,
+                "SOUACC": null,
+                "VERDAT": null
+              },
+              "geometrySha256": "29acf77210986a8cb8141095820c4fea8371b5601e59724aeece89b63fd83e20"
+            },
+            {
+              "attributes": {
+                "DRVAL1": 5.4,
+                "DRVAL2": 9.1,
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "QUASOU": null,
+                "SCAMIN": null,
+                "SORDAT": null,
+                "SORIND": null,
+                "SOUACC": null,
+                "VERDAT": null
+              },
+              "geometrySha256": "7a8a50d4c9e8ffe9118e392fab438c471525aea253dd061103d6aacbc4e85967"
+            }
+          ],
+          "layerId": 232,
+          "layerKey": "depthAreas",
+          "scope": "sector"
+        },
+        "depthContours:sector": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "SCAMIN": 89999,
+                "SORDAT": null,
+                "SORIND": null,
+                "VALDCO": 5.4,
+                "VERDAT": null
+              },
+              "geometrySha256": "bf09216d55b969b20c0f656a74ee559cebe01e60506abb1515530ec6ef47aa98"
+            }
+          ],
+          "layerId": 108,
+          "layerKey": "depthContours",
+          "scope": "sector"
+        },
+        "dredgedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 233,
+          "layerKey": "dredgedAreas",
+          "scope": "context"
+        },
+        "obstructionPoints:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATOBS": "snag/stump",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATSUR": null,
+                "OBJNAM": null,
+                "SORDAT": "200909",
+                "SORIND": "US,US,graph,Chart 18650",
+                "VALSOU": null
+              },
+              "geometrySha256": "eb8a6c3a8e0b7e05d0d137cfe7ecc2e032edb791f9db07d9422d4a45a248ec4f"
+            }
+          ],
+          "layerId": 36,
+          "layerKey": "obstructionPoints",
+          "scope": "context"
+        },
+        "pilePoints:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATPLE": "post",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "OBJNAM": null,
+                "SORDAT": "20130905",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "411180756d21f06d31ab1ca2a01033b16c27682d8c6ef175571469d99dfef997"
+            }
+          ],
+          "layerId": 62,
+          "layerKey": "pilePoints",
+          "scope": "context"
+        },
+        "seabedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 205,
+          "layerKey": "seabedAreas",
+          "scope": "context"
+        },
+        "seabedPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 75,
+          "layerKey": "seabedPoints",
+          "scope": "context"
+        },
+        "shorelineConstructionAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 143,
+          "layerKey": "shorelineConstructionAreas",
+          "scope": "context"
+        },
+        "shorelineConstructionLines:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATSLC": "breakwater",
+                "DSNM": "US4CA11M.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130905",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "e7c69cd8a59701cc4904c5961844088245b109955981701cfcb044ccb40aa174"
+            },
+            {
+              "attributes": {
+                "CATSLC": "breakwater",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130430",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "3964ce493029b082291b948e27c9165151e8d2c81c17e712df7cce34bc30c982"
+            },
+            {
+              "attributes": {
+                "CATSLC": "breakwater",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130430",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "c53542406958f3642fe52975a4396a2e60f88c4a82d22b5825b6bafe2c283062"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA11M.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130905",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "5edc770c8829ea306abeb3b05cd2c624a8a649d6a7502ec89a37bfa29692aa32"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA11M.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130905",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "6a518f177a9662340d12950e51dff52bff5f78049b61a954ae05e0ce668af960"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650"
+              },
+              "geometrySha256": "fc5f571a7d1ff10e10453766cb2971cbaa91a76918646893af2cff720cdf39c0"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130430",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "3cc3ca3967ecae67b8f5b00631341c233a32eb914088a0293af2325fa562b1be"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130430",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "ae42a2d063d96a9618e6d6130a1bd49ed80b04c8086379a2953890df10ca6587"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130430",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "c299d847b9f4746d34242158ddd7ed4df5b93419633274981e670e30a925382b"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130430",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "cae68c4470c3a7eb6ceca3172e17ad1db1f982d0b74ae9233e7088103eb851ff"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130430",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "d331f9435aa86fab6fb678ba303acc66e7c041dd8cb18abe9dc4147a7f79ff76"
+            },
+            {
+              "attributes": {
+                "CATSLC": "ramp",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130430",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "9d4172bb5dfcff591cb7cb99266340abe11c1f5778a088368d4b00be1ef75ad9"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA11M.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130905",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "465d0914fdc199f5726c6e3a979a4e1b6ee683d6b89481b84ec83c5b5a7d58b3"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA11M.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130905",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "5d6db496cb758f71ef5878bbb9e10117572afe9720d48abde1ec102563d04c5a"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA11M.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130905",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "8ac8ab636aca76381703e236e403b97a456d1c3052488cd72848f32c4dc807b9"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA11M.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130905",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "cd9733960b0d31b72616f3dd4cb07cc83ede012a1467fc2f0c670aaa32b5ffdf"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130430",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "100980939bf7a67236a167dc2f8e0a1823aa1b4fa09606bf58e4398da5ba7160"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130430",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "7d73dbbd27ae70b7fe2154636cffc45155143eaf7e42873f4086b0e172db6730"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130430",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "bd50f21838e177cc172e8776c1a424325160eb996f3c122c6219cdf61a79cbe0"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130430",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "ed93c2b27edfc3d8b2110b5d9387cf42baa52d3bbf8bdb67e972335a18fd6168"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA11M.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130905",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "d8397004fc53c312401489544d0a3942e220ce6e3efa1a5ef4d90ff932bcc93f"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130430",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "02ebe4b4673ebe3bef0d52b2c264fc3eabe7dc5174465174bc1c7b58b1ceeca4"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130430",
+                "SORIND": "US,US,graph,GC-11477"
+              },
+              "geometrySha256": "69ca1154eab5b04c2581bcc6a93335cfc8e68ba52819a9e735764c1e11ba1cbd"
+            }
+          ],
+          "layerId": 89,
+          "layerKey": "shorelineConstructionLines",
+          "scope": "context"
+        },
+        "shorelineConstructionPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 20,
+          "layerKey": "shorelineConstructionPoints",
+          "scope": "context"
+        },
+        "soundings:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312479,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 2.7
+              },
+              "point": [
+                -122.4837376,
+                37.8263962
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312480,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 2.7
+              },
+              "point": [
+                -122.4781964,
+                37.8274709
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312484,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 2.4
+              },
+              "point": [
+                -122.4760558,
+                37.8330217
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312485,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 49.3
+              },
+              "point": [
+                -122.475301,
+                37.8278012
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312488,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 0.3
+              },
+              "point": [
+                -122.4735104,
+                37.839094
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312491,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19990501",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 1.2
+              },
+              "point": [
+                -122.4710211,
+                37.8363434
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174313994,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20020617",
+                "SORIND": "US,US,graph,BP-193267,W-00126",
+                "Z": 32.0
+              },
+              "point": [
+                -122.472304,
+                37.82758
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174313995,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20020617",
+                "SORIND": "US,US,graph,BP-193267,W-00126",
+                "Z": 19.8
+              },
+              "point": [
+                -122.4720826,
+                37.8304713
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174313997,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20020617",
+                "SORIND": "US,US,graph,BP-193267,W-00126",
+                "Z": 43.8
+              },
+              "point": [
+                -122.4698512,
+                37.8320114
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174313998,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20020617",
+                "SORIND": "US,US,graph,BP-193267,W-00126",
+                "Z": 53.9
+              },
+              "point": [
+                -122.4675197,
+                37.8290086
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174314133,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "201312",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 15.8
+              },
+              "point": [
+                -122.4803204,
+                37.8247472
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174314209,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "200909",
+                "SORIND": "US,US,graph,Chart 18650",
+                "Z": 49.9
+              },
+              "point": [
+                -122.4660047,
+                37.8353237
+              ]
+            }
+          ],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "context"
+        },
+        "soundings:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "sector"
+        },
+        "vegetationAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 244,
+          "layerKey": "vegetationAreas",
+          "scope": "context"
+        },
+        "wreckPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 39,
+          "layerKey": "wreckPoints",
+          "scope": "context"
+        }
+      }
+    },
     "francis-state-beach": {
       "queries": {
         "depthAreas:sector": {
@@ -6840,6 +9898,304 @@
         }
       }
     },
+    "keller-beach": {
+      "queries": {
+        "depthAreas:sector": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DRVAL1": -1.7,
+                "DRVAL2": 0.0,
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "QUASOU": null,
+                "SCAMIN": null,
+                "SORDAT": null,
+                "SORIND": null,
+                "SOUACC": null,
+                "VERDAT": null
+              },
+              "geometrySha256": "8469697781c837ed356909b0025b7bd39c2c48f92af41b79a9ca92fba560427f"
+            },
+            {
+              "attributes": {
+                "DRVAL1": 0.0,
+                "DRVAL2": 1.8,
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "QUASOU": null,
+                "SCAMIN": null,
+                "SORDAT": null,
+                "SORIND": null,
+                "SOUACC": null,
+                "VERDAT": null
+              },
+              "geometrySha256": "ca275f0ef4d2977ddec061791bc4199a63543b3946b0a9924d6a9a1111e8414e"
+            }
+          ],
+          "layerId": 232,
+          "layerKey": "depthAreas",
+          "scope": "sector"
+        },
+        "depthContours:sector": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "SCAMIN": 179999,
+                "SORDAT": null,
+                "SORIND": null,
+                "VALDCO": 0.0,
+                "VERDAT": null
+              },
+              "geometrySha256": "22a994a9f029f896b6c9d93603b7989a8f66c47944c3599fa9128d1430292d94"
+            }
+          ],
+          "layerId": 108,
+          "layerKey": "depthContours",
+          "scope": "sector"
+        },
+        "dredgedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 233,
+          "layerKey": "dredgedAreas",
+          "scope": "context"
+        },
+        "obstructionPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 36,
+          "layerKey": "obstructionPoints",
+          "scope": "context"
+        },
+        "pilePoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 62,
+          "layerKey": "pilePoints",
+          "scope": "context"
+        },
+        "seabedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 205,
+          "layerKey": "seabedAreas",
+          "scope": "context"
+        },
+        "seabedPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 75,
+          "layerKey": "seabedPoints",
+          "scope": "context"
+        },
+        "shorelineConstructionAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 143,
+          "layerKey": "shorelineConstructionAreas",
+          "scope": "context"
+        },
+        "shorelineConstructionLines:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "5c8b59e7ff89e46087ab9f99a66b0fa2d9677d7e9f0e8a6d34533cb321cc819b"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "02f540ea681e4855c89342ea02b8ae539c0169b6667c9ad88842c3c43dffe4f4"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "4cdad5379d6441b56dab11e3f48f426dfb5c0dff723f36a5154f486420c80b59"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "c4624f40c59fd821e9c17734de12c5812423f73aeb7d8e4d8dba008658d1a6b8"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "cea92f78aa483362ada8eaa2a86056de3bb1462473e4662c3876a49c9c3d2d6d"
+            }
+          ],
+          "layerId": 89,
+          "layerKey": "shorelineConstructionLines",
+          "scope": "context"
+        },
+        "shorelineConstructionPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 20,
+          "layerKey": "shorelineConstructionPoints",
+          "scope": "context"
+        },
+        "soundings:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315032,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.5
+              },
+              "point": [
+                -122.3958535,
+                37.9168504
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315038,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.5
+              },
+              "point": [
+                -122.3946023,
+                37.9218012
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315041,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.2
+              },
+              "point": [
+                -122.3941957,
+                37.9247056
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315055,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.9
+              },
+              "point": [
+                -122.3891885,
+                37.9183592
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315056,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.6
+              },
+              "point": [
+                -122.3884613,
+                37.9213037
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315493,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20121116",
+                "SORIND": "US,US,graph,DD-22623",
+                "Z": 8.5
+              },
+              "point": [
+                -122.3757738,
+                37.9239353
+              ]
+            }
+          ],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "context"
+        },
+        "soundings:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "sector"
+        },
+        "vegetationAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 244,
+          "layerKey": "vegetationAreas",
+          "scope": "context"
+        },
+        "wreckPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 39,
+          "layerKey": "wreckPoints",
+          "scope": "context"
+        }
+      }
+    },
     "leadbetter-beach": {
       "queries": {
         "depthAreas:sector": {
@@ -8353,6 +11709,332 @@
               ]
             }
           ],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "sector"
+        },
+        "vegetationAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 244,
+          "layerKey": "vegetationAreas",
+          "scope": "context"
+        },
+        "wreckPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 39,
+          "layerKey": "wreckPoints",
+          "scope": "context"
+        }
+      }
+    },
+    "mcnears-beach-pier": {
+      "queries": {
+        "depthAreas:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 232,
+          "layerKey": "depthAreas",
+          "scope": "sector"
+        },
+        "depthContours:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 108,
+          "layerKey": "depthContours",
+          "scope": "sector"
+        },
+        "dredgedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 233,
+          "layerKey": "dredgedAreas",
+          "scope": "context"
+        },
+        "obstructionPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 36,
+          "layerKey": "obstructionPoints",
+          "scope": "context"
+        },
+        "pilePoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 62,
+          "layerKey": "pilePoints",
+          "scope": "context"
+        },
+        "seabedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 205,
+          "layerKey": "seabedAreas",
+          "scope": "context"
+        },
+        "seabedPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 75,
+          "layerKey": "seabedPoints",
+          "scope": "context"
+        },
+        "shorelineConstructionAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 143,
+          "layerKey": "shorelineConstructionAreas",
+          "scope": "context"
+        },
+        "shorelineConstructionLines:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "19991030",
+                "SORIND": "US,US,graph,Chart 18654"
+              },
+              "geometrySha256": "39ff282ab88fbc91abd560483dfca02dfea82c93c084b95fa5ad4546f0af0ad5"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "19991030",
+                "SORIND": "US,US,graph,Chart 18654"
+              },
+              "geometrySha256": "70a17345d475de36c26c671d6adea6074ce8cfe321d5304ba68b0c81b6ec0f90"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "19991030",
+                "SORIND": "US,US,graph,Chart 18654"
+              },
+              "geometrySha256": "70c2fec2c070a9a3ef1e10353ea3d70f1cda9ff1b03068df442dbf40dfb316da"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "19991030",
+                "SORIND": "US,US,graph,Chart 18654"
+              },
+              "geometrySha256": "7b8440e16552d31e4ed50843ed05c88b253f5dcff6bf529070d81a81489cb520"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "19991030",
+                "SORIND": "US,US,graph,Chart 18654"
+              },
+              "geometrySha256": "800e9596976665ef8a2bc95fbd49459ee3fe86054d6384eed729615ac196473b"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "19991030",
+                "SORIND": "US,US,graph,Chart 18654"
+              },
+              "geometrySha256": "96ddf5efdc86bfc0b540c58048348577e45fd6d7bed6affdff932301d4a0ec69"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "d48817489d795e853dbcc95e7bfc6f86a374ee63dfb5314e697ae95599383b84"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "e5a3ff6b0d0370d1a087a2a4590c0df2e4507f6976afc072d15ba2cff714fbe1"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130903",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "93f9263f027133e184c4718071f7ec9e5756ca98645fcaf64f81727010bf640e"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "4a70a0acb973c1b7c55f530178533fe0d00d0b76dc959e0065c292e2f301d6f9"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "d8a9980403a525f2a784222dcff6b31f7d158d3370a9f068026ba4e84d299fab"
+            }
+          ],
+          "layerId": 89,
+          "layerKey": "shorelineConstructionLines",
+          "scope": "context"
+        },
+        "shorelineConstructionPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 20,
+          "layerKey": "shorelineConstructionPoints",
+          "scope": "context"
+        },
+        "soundings:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174313004,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19991030",
+                "SORIND": "US,US,graph,Chart 18654",
+                "Z": 1.2
+              },
+              "point": [
+                -122.459404,
+                38.001839
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174313009,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19991030",
+                "SORIND": "US,US,graph,Chart 18654",
+                "Z": 2.1
+              },
+              "point": [
+                -122.457953,
+                38.002712
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174313022,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19991030",
+                "SORIND": "US,US,graph,Chart 18654",
+                "Z": 0.9
+              },
+              "point": [
+                -122.4540892,
+                37.9960845
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174313026,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19991030",
+                "SORIND": "US,US,graph,Chart 18654",
+                "Z": 2.1
+              },
+              "point": [
+                -122.453527,
+                37.99886
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174313036,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19991030",
+                "SORIND": "US,US,graph,Chart 18654",
+                "Z": 2.4
+              },
+              "point": [
+                -122.450152,
+                37.996113
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174313040,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "19991030",
+                "SORIND": "US,US,graph,Chart 18654",
+                "Z": 0.6
+              },
+              "point": [
+                -122.449429,
+                37.991476
+              ]
+            }
+          ],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "context"
+        },
+        "soundings:sector": {
+          "errorCategory": null,
+          "features": [],
           "layerId": 80,
           "layerKey": "soundings",
           "scope": "sector"
@@ -10465,6 +14147,885 @@
               "point": [
                 -122.5045288,
                 37.6024937
+              ]
+            }
+          ],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "context"
+        },
+        "soundings:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "sector"
+        },
+        "vegetationAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 244,
+          "layerKey": "vegetationAreas",
+          "scope": "context"
+        },
+        "wreckPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 39,
+          "layerKey": "wreckPoints",
+          "scope": "context"
+        }
+      }
+    },
+    "paradise-beach-pier": {
+      "queries": {
+        "depthAreas:sector": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DRVAL1": 0.0,
+                "DRVAL2": 1.8,
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "QUASOU": null,
+                "SCAMIN": null,
+                "SORDAT": null,
+                "SORIND": null,
+                "SOUACC": null,
+                "VERDAT": null
+              },
+              "geometrySha256": "a0be6924e07c7552726b4ec03d3304a2ca41d1679b62844ddc6bc9f216c4614f"
+            }
+          ],
+          "layerId": 232,
+          "layerKey": "depthAreas",
+          "scope": "sector"
+        },
+        "depthContours:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 108,
+          "layerKey": "depthContours",
+          "scope": "sector"
+        },
+        "dredgedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 233,
+          "layerKey": "dredgedAreas",
+          "scope": "context"
+        },
+        "obstructionPoints:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATOBS": "snag/stump",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATSUR": null,
+                "OBJNAM": null,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "VALSOU": null
+              },
+              "geometrySha256": "cdd0b4097bc8ced3031e33b6699dca709ec71ef9e3a67dff992e73fa0094c0dc"
+            }
+          ],
+          "layerId": 36,
+          "layerKey": "obstructionPoints",
+          "scope": "context"
+        },
+        "pilePoints:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATPLE": "",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "OBJNAM": null,
+                "SORDAT": "201210",
+                "SORIND": "US,US,graph,Chart 18653"
+              },
+              "geometrySha256": "5a91ca9f6d150fd201e5487a6f7a081fbba30df5b2ff6e9302cea2f844ea46fe"
+            },
+            {
+              "attributes": {
+                "CATPLE": "post",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": "Two piles",
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "ea63d32002aafd2866c20b07ad6716fb0d17215965b4cb1ede3490ccef69a41f"
+            },
+            {
+              "attributes": {
+                "CATPLE": "post",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "3b23b12daa0768d08d3609d44265b4e331601501bff6adce639ccdea9f2115ab"
+            },
+            {
+              "attributes": {
+                "CATPLE": "post",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "4ceb8227e6ea3488add50407587d3444c354970ac68bb1d1c904fc1e1f4ddf52"
+            },
+            {
+              "attributes": {
+                "CATPLE": "post",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "c1b734200df3b94e05ab7a24b9eb026cf58ff12f832cceac6a56c0ea3cbc2086"
+            }
+          ],
+          "layerId": 62,
+          "layerKey": "pilePoints",
+          "scope": "context"
+        },
+        "seabedAreas:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATQUA": null,
+                "NATSUR": "rock",
+                "OBJNAM": null,
+                "SORDAT": "201210",
+                "SORIND": "US,US,graph,Chart 18653"
+              },
+              "geometrySha256": "5fe5ae9b58b8b30ef3af947b95d12f7e329e06d904bc23cb24e13f5fb94f1e7e"
+            }
+          ],
+          "layerId": 205,
+          "layerKey": "seabedAreas",
+          "scope": "context"
+        },
+        "seabedPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 75,
+          "layerKey": "seabedPoints",
+          "scope": "context"
+        },
+        "shorelineConstructionAreas:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "201210",
+                "SORIND": "US,US,graph,Chart 18653"
+              },
+              "geometrySha256": "3a58ca73ca30e503c04bbc3af8b589d1453f9b625a0a13b2d28793e3f0c29eb9"
+            }
+          ],
+          "layerId": 143,
+          "layerKey": "shorelineConstructionAreas",
+          "scope": "context"
+        },
+        "shorelineConstructionLines:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATSLC": "",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "2c993cb3572078b7157fee4c1e675898cce1777d7a3c2ab05fc747bdf1fadf4f"
+            },
+            {
+              "attributes": {
+                "CATSLC": "",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "9a525b0d8f28bf271a1798f3d644046f451798a946f3c00c13f7763473cf2309"
+            },
+            {
+              "attributes": {
+                "CATSLC": "breakwater",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "f5c68c683340f6e6341649f033ca9ed4e21537db4a6a5ad3fb2ff54ca1326b8a"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653"
+              },
+              "geometrySha256": "84f576c6894030e6a7a34bce5312f79983836243c76b98da9fc91d0034db636a"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653"
+              },
+              "geometrySha256": "afa58946ee4dfae46a0dc6942255700fff0751763e356889a4cb3a95f2267aa1"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "18d7c6bc990de2abb6070d1a1cc9da4357e456ecd4efdccba5975ddd1bddabab"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "c3672db6380bd4ec720ccc3176ffe6d65e1af48540ac6dae40905913a1e86179"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "fd00d5d49ccc5989e9dce160fb8e585718bbe9e181115f1b02c841aaec5a208a"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "09bf43af29dedfddcfe1112316019ea4f9a786e2ac50da205583deee9bc406a7"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "0b9bbe0a0e96ae66480cce9908ce76cc0d21bd5f4f764f6f871a4332df7f923a"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "1df734929bd010bc642460dc077ddc76c90236d245f5c76d5f92fa0e9a7b7215"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "2b842b1fdbb0b0b41fb9de24d7829fc72d8939c2c0c9dd5f72124898b88cc9e8"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "3bc01b3a1bc775b0faa4faa8d594903b62f3aff9c1de2673dbd1b526b358ec13"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "4d8bf4eb24074c93822518c735df15e7bd8f07897e2ca2e09a3b0eaad4448611"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "529bf7727960cf3baa368fa74e393152f0b399642e239124d526a0fa014bcce5"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "543945819c12f4c98cd28fe4a5e67bbb96981d2b6d04376bad659f03ff94b4f5"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "57f598da430941363625b3a0976001db79a024a5a7fdf8cb3e08ad0918be34c9"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "7de7808e45d0e1560f68d2a9452ec96849898e1fb4b6c42d6ff03a45d46f51e2"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "80da56c000a33637cecc745fa8f8f76de6e02a754f02f280f0c00416a0409f91"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "8efc8b1fe4faa9ecd67205af939c5026775144234b7d49364e377b6f1cd66f88"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "a3d90a49fbdd3fc1e0eccf7fb99a8f3aebfe59169522bb88b2fd64646d6d9084"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "a51706430e016a10f847f04ce40738f0a9f3ec7b95959c3e8f493a3612928ec1"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "afb8b0148162a128fa2d4f083f7a049253e2233cd66da3b3ec4b8ad667a1cc2c"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "b6cf38d64bf32c967676faad8e0fcb6646708b4740173d919789bd74c43cdb25"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "cd020696ff87c0ccee327d924b40ddb17683862d70c5a496414a929c41cb34d8"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "3d0d86d022fc1c0e6ab99f9cce6254e66064293ed89bd34f5ac6d31f30268ba6"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "57971a8427719abc18f99fce0e119e70219434ec5200b727bcb64571aa6d0ff9"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "72d4d192f2f462fe590a2546dbdb0d8fc79bdf5faa36c68331819b7c086ce26c"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "8040e2d8357491cf67898d3e8d366a58d49868a08cc9c746376c7a38e46f3e1f"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "9799ff23937436a9ecfe7845aa69c465e7f0455c9b42c12b8d33975085b24324"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "9acd492647d6aa6ac0ade711dfec0e36760787dc8f4cf40248f5ae727415eb70"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "cf1d7aca60219747b51764e9f74f407b435d4e85463f3fcc0183718b0bd2b02f"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "d562f5da3fb59cd10de075a9f6a449419fc5fc3901e5144d20d05730014068e2"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "dbde4c57f374d17e2b3d76ae773b56b01049ac0eb3bab280ddf6045fddca89ed"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "df539b82f8ccd26a61f22550aab8e328ff891f1dbc1592c07451113a1a9513a2"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "e24134a5184374a7b0aa73dbe6fd60950368c84dda01d7fafa98069ac47c4ca5"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "ecc42b75fde90964f866a7020e818d661ea557a797fb6a3691f2726c99650d69"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "f0495f2db891ddfeb5ed4ad88a018794a07c5bebebca58687aa79059f803b88f"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CJ.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130501",
+                "SORIND": "US,US,graph,GC-11567"
+              },
+              "geometrySha256": "fdd2e40a720f457563113f2ea326daaf8cae316bad8ccac59e0a0c8ef04ece8b"
+            }
+          ],
+          "layerId": 89,
+          "layerKey": "shorelineConstructionLines",
+          "scope": "context"
+        },
+        "shorelineConstructionPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 20,
+          "layerKey": "shorelineConstructionPoints",
+          "scope": "context"
+        },
+        "soundings:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312648,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.3
+              },
+              "point": [
+                -122.4804561,
+                37.9191054
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312663,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.3
+              },
+              "point": [
+                -122.4778035,
+                37.9178746
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312667,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.9
+              },
+              "point": [
+                -122.4773556,
+                37.9204039
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312684,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 2.4
+              },
+              "point": [
+                -122.4743382,
+                37.918116
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312687,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.3
+              },
+              "point": [
+                -122.4737541,
+                37.9055942
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312691,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.2
+              },
+              "point": [
+                -122.4735879,
+                37.9147745
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312699,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.5
+              },
+              "point": [
+                -122.4715956,
+                37.9099568
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312701,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 2.7
+              },
+              "point": [
+                -122.4713601,
+                37.9125523
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312704,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 4.5
+              },
+              "point": [
+                -122.4709514,
+                37.9194803
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312715,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 2.7
+              },
+              "point": [
+                -122.4687675,
+                37.9068088
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312721,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 5.1
+              },
+              "point": [
+                -122.4668165,
+                37.9162522
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174312730,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 5.7
+              },
+              "point": [
+                -122.4652711,
+                37.9084467
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CJ.000",
+                "OBJECTID": 174313839,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "201210",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.9
+              },
+              "point": [
+                -122.4751618,
+                37.9093918
               ]
             }
           ],
@@ -13676,6 +18237,435 @@
               "point": [
                 -122.4770511,
                 37.5009304
+              ]
+            }
+          ],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "context"
+        },
+        "soundings:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 80,
+          "layerKey": "soundings",
+          "scope": "sector"
+        },
+        "vegetationAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 244,
+          "layerKey": "vegetationAreas",
+          "scope": "context"
+        },
+        "wreckPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 39,
+          "layerKey": "wreckPoints",
+          "scope": "context"
+        }
+      }
+    },
+    "point-isabel-shoreline": {
+      "queries": {
+        "depthAreas:sector": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DRVAL1": 0.0,
+                "DRVAL2": 1.8,
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "QUASOU": null,
+                "SCAMIN": null,
+                "SORDAT": null,
+                "SORIND": null,
+                "SOUACC": null,
+                "VERDAT": null
+              },
+              "geometrySha256": "96073ea1605969e5e90bf548dd896395b0e8934094c4a4dd387dc376895b4632"
+            }
+          ],
+          "layerId": 232,
+          "layerKey": "depthAreas",
+          "scope": "sector"
+        },
+        "depthContours:sector": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 108,
+          "layerKey": "depthContours",
+          "scope": "sector"
+        },
+        "dredgedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 233,
+          "layerKey": "dredgedAreas",
+          "scope": "context"
+        },
+        "obstructionPoints:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATOBS": "",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": "Stake",
+                "NATSUR": null,
+                "OBJNAM": null,
+                "SORDAT": "201210",
+                "SORIND": "US,US,graph,Chart 18653",
+                "VALSOU": null
+              },
+              "geometrySha256": "f01cbdf025663a5b6a898eb48f84281f188c9182f37f9f1921218a66b4342b69"
+            }
+          ],
+          "layerId": 36,
+          "layerKey": "obstructionPoints",
+          "scope": "context"
+        },
+        "pilePoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 62,
+          "layerKey": "pilePoints",
+          "scope": "context"
+        },
+        "seabedAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 205,
+          "layerKey": "seabedAreas",
+          "scope": "context"
+        },
+        "seabedPoints:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATQUA": null,
+                "NATSUR": "mud",
+                "OBJNAM": null,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653"
+              },
+              "geometrySha256": "f2592204a30015b9a063bb64f61f69c3ecaca3b0ed3b8a2e909abcce4f584126"
+            }
+          ],
+          "layerId": 75,
+          "layerKey": "seabedPoints",
+          "scope": "context"
+        },
+        "shorelineConstructionAreas:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 143,
+          "layerKey": "shorelineConstructionAreas",
+          "scope": "context"
+        },
+        "shorelineConstructionLines:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "CATSLC": "breakwater",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "4855af605b6c4cc5bbda5680f4999ef6c05dc088672fb470303b159daf459315"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "5019c4310335a6cd1f11ce2758ea62724a9dc918cbedd893f3824e7ea776d70c"
+            },
+            {
+              "attributes": {
+                "CATSLC": "pier",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "dac5e0f92d85cefd27d47240cb4f05aa82227d38a01338fe4478d1a0c57293d8"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "0db4d372e24b0dcead238fb5c09094933d92e3aff165b35bb62bee3f75ee1961"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "623e77ebdd55f64c4759ece151c9d61025490849c996f8df2ce845b6625c258e"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "9d6fd9bcd9986a2081cfba3f7f1cf4619ac2ccda2e0fca4c0c558e8488665c9e"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "9eada060507d2a58589006384b75a46ca725ba27dd14f3ce685ea062ed87b2c4"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "bd432e38319e7cddc6018f055af4842c5bac3a6a284cac419d3c7e41b890c3b7"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "dd0f7c1c9449b84df1d2969a1198532418f950b71aef4e38eeba953e607ccf99"
+            },
+            {
+              "attributes": {
+                "CATSLC": "rip rap",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "f5977533c547c0f9719f426284e519d5a0ec113e8acaf93ef68b5f3ed074ad18"
+            },
+            {
+              "attributes": {
+                "CATSLC": "seawall",
+                "DSNM": "US4CA2CK.000",
+                "INFORM": null,
+                "NATCON": null,
+                "OBJNAM": null,
+                "SORDAT": "20130826",
+                "SORIND": "US,US,graph,GC-11227"
+              },
+              "geometrySha256": "f70d0e0848c0c2249e42a5a3581549590b7dd14d5723e875cb1f77abe807009f"
+            }
+          ],
+          "layerId": 89,
+          "layerKey": "shorelineConstructionLines",
+          "scope": "context"
+        },
+        "shorelineConstructionPoints:context": {
+          "errorCategory": null,
+          "features": [],
+          "layerId": 20,
+          "layerKey": "shorelineConstructionPoints",
+          "scope": "context"
+        },
+        "soundings:context": {
+          "errorCategory": null,
+          "features": [
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315208,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.2
+              },
+              "point": [
+                -122.3341758,
+                37.8990453
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315210,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.3
+              },
+              "point": [
+                -122.3332339,
+                37.9052686
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315211,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.2
+              },
+              "point": [
+                -122.3329614,
+                37.9018333
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315214,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.5
+              },
+              "point": [
+                -122.33144,
+                37.892322
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315216,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.2
+              },
+              "point": [
+                -122.3306436,
+                37.8972781
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315220,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.3
+              },
+              "point": [
+                -122.3278524,
+                37.9039351
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315221,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 1.2
+              },
+              "point": [
+                -122.3272776,
+                37.8964549
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315222,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.6
+              },
+              "point": [
+                -122.3256546,
+                37.9009845
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315224,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.9
+              },
+              "point": [
+                -122.3218061,
+                37.8931563
+              ]
+            },
+            {
+              "attributes": {
+                "DSNM": "US4CA2CK.000",
+                "OBJECTID": 174315225,
+                "QUASOU": null,
+                "SCAMIN": 59999,
+                "SORDAT": "20001205",
+                "SORIND": "US,US,graph,Chart 18653",
+                "Z": 0.1
+              },
+              "point": [
+                -122.3214944,
+                37.8950425
               ]
             }
           ],

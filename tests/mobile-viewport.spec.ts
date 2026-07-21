@@ -198,7 +198,8 @@ test.beforeEach(async ({ page }, testInfo) => {
   const structureDepthEvidenceTest = testTitle.includes("source-bound Santa Barbara chart context")
     || testTitle.includes("source-bound San Francisco chart context")
     || testTitle.includes("source-bound San Mateo Coast")
-    || testTitle.includes("source-bound Marin Coast");
+    || testTitle.includes("source-bound Marin Coast")
+    || testTitle.includes("source-bound North and East Bay");
   if (structureDepthEvidenceTest) {
     // Keep the committed opportunity fixture selectable so the stable site deep link opens its
     // detail sheet instead of expiring as wall-clock time advances.
@@ -599,6 +600,33 @@ test("source-bound Marin Coast chart context preserves Point Reyes date precisio
   await expect(evidence).toContainText("0–3.6 m");
   await expect(evidence).toContainText("0.4–9.6 m across 14 deduplicated records within 1,000 m");
   await expect(evidence).toContainText("Charted seabed description");
+  await expect(evidence).toContainText("some dates have year/month precision");
+  await expect(evidence).toContainText("some records have no source date");
+  await expect(evidence).toContainText("does not change the fishing score");
+  await expectSelectorInsideViewport(page, ".structure-depth-evidence");
+});
+
+test("source-bound North and East Bay chart context keeps a missing sector band explicitly partial", async ({ page }) => {
+  await page.goto("/?site=mcnears-beach-pier");
+  const evidence = page.locator(".structure-depth-evidence");
+
+  await expect(evidence).toBeVisible();
+  await expect(evidence).toContainText("No reviewed NOAA depth-area band intersected this configured sector");
+  await expect(evidence).toContainText("0.6–2.4 m across 6 deduplicated records within 1,000 m");
+  await expect(evidence).toContainText("Charted shoreline construction");
+  await expect(evidence).toContainText("the gap is not proof of shallow water, safe access, or castability");
+  await expect(evidence).toContainText("does not change the fishing score");
+  await expectSelectorInsideViewport(page, ".structure-depth-evidence");
+});
+
+test("source-bound North and East Bay chart context preserves Berkeley date precision", async ({ page }) => {
+  await page.goto("/?site=berkeley-marina-north-basin");
+  const evidence = page.locator(".structure-depth-evidence");
+
+  await expect(evidence).toBeVisible();
+  await expect(evidence).toContainText("0–1.8 m");
+  await expect(evidence).toContainText("0.3–1.8 m across 8 deduplicated records within 1,000 m");
+  await expect(evidence).toContainText("Charted obstruction");
   await expect(evidence).toContainText("some dates have year/month precision");
   await expect(evidence).toContainText("some records have no source date");
   await expect(evidence).toContainText("does not change the fishing score");

@@ -26,7 +26,7 @@ POLICY_PATH = ROOT / "structure-depth" / "policy.json"
 SITES_PATH = ROOT / "data" / "sites.json"
 DEFAULT_OUTPUT = ROOT / "public" / "data" / "structure-depth.json"
 SNAPSHOT_SCHEMA = "castingcompass.noaa-enc-approach-source/1.0.0"
-ARTIFACT_SCHEMA = "castingcompass.structure-depth-evidence/1.3.0"
+ARTIFACT_SCHEMA = "castingcompass.structure-depth-evidence/1.4.0"
 EXPECTED_POLICY_SCHEMA = "castingcompass.structure-depth-policy/1.0.0"
 USER_AGENT = "CastingCompass/0.1 (public-data planning context; contact: bzeng0000@gmail.com)"
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
@@ -129,8 +129,8 @@ def load_inputs() -> tuple[dict[str, Any], list[dict[str, Any]], bytes, bytes]:
     expected_ids = policy.get("covered_site_ids")
     if (
         not isinstance(expected_ids, list)
-        or len(expected_ids) != 41
-        or len(set(expected_ids)) != 41
+        or len(expected_ids) != 51
+        or len(set(expected_ids)) != 51
         or any(not isinstance(site_id, str) or not SAFE_TAG_PATTERN.fullmatch(site_id) for site_id in expected_ids)
         or any(site_id not in site_by_id for site_id in expected_ids)
     ):

@@ -1,10 +1,10 @@
 {
-  "collectorSha256": "51cf7f2cc30ec99648c3d9209dc2989ab46295b7d9a8638126b3653a32dcd2a7",
-  "generatedAt": "2026-07-21T10:38:30Z",
+  "collectorSha256": "20a4e045efec6731d39aa2e351a020345760d79ef928b99b3fd903b9d0f07931",
+  "generatedAt": "2026-07-21T11:15:36Z",
   "meaning": "source-bound planning context for nearby charted depths and selected chart features at reviewed California catalog locations; never a casting-depth guarantee, navigation product, safety claim, or catch-probability input",
-  "policySha256": "1f987574e751ec3b83b4776a2e8f8be8d7844e0f244e84ff2316fd1f828bd50e",
-  "policyVersion": "castingcompass.california-enc-approach/0.4.0",
-  "schemaVersion": "castingcompass.structure-depth-evidence/1.3.0",
+  "policySha256": "fced163864e6982edb12f3c99edfa6a0cfdec4a342543c3386f0741136a8e956",
+  "policyVersion": "castingcompass.california-enc-approach/0.5.0",
+  "schemaVersion": "castingcompass.structure-depth-evidence/1.4.0",
   "scoreContribution": {
     "catalogMutationAllowed": false,
     "mode": "excluded-pending-site-review-and-validation",
@@ -12,6 +12,92 @@
   },
   "siteCatalogSha256": "a7145a66368c6dd5dd13b6bec421d430d228a3082d2fa8ad31941fc84e14078d",
   "sites": {
+    "albany-bulb": {
+      "coordinates": {
+        "latitude": 37.8892,
+        "longitude": -122.3244
+      },
+      "depth": {
+        "chartedBandsMeters": [
+          [
+            -1.7,
+            0.0
+          ],
+          [
+            0.0,
+            1.8
+          ]
+        ],
+        "contextSoundingCount": 9,
+        "contextSoundingDepthRangeMeters": [
+          0.1,
+          1.8
+        ],
+        "contourDepthsMeters": [
+          0.0
+        ],
+        "detail": "NOAA ENC depth areas intersect the configured 350 m offshore sector. Context soundings are limited to 1,000 m and are not a shore-reachable or casting-depth guarantee. The selected service layers publish no numeric uncertainty, and source dates can be old.",
+        "hasUndatedRecords": true,
+        "nearestContextSoundingDistanceMeters": 229.1,
+        "partialSourceDates": [],
+        "sectorSoundingDepthsMeters": [],
+        "sourceCells": [
+          "US4CA2CK.000"
+        ],
+        "sourceDates": [
+          "2000-12-05",
+          "2003-09-22"
+        ],
+        "status": "charted-sector-bands",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 255,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 350
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "albany-bulb",
+      "siteName": "Albany Bulb Shoreline",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "charted-context",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "riprap"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "slope-break"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "sand-mud-flat"
+          }
+        ],
+        "chartedFeatures": [
+          {
+            "category": "charted-shoreline-construction",
+            "hasUndatedRecords": false,
+            "label": "Charted shoreline construction",
+            "partialSourceDates": [],
+            "recordCount": 10,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": [
+              "2013-08-26"
+            ]
+          }
+        ],
+        "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
+        "status": "charted-features-present"
+      }
+    },
     "arroyo-burro-beach": {
       "coordinates": {
         "latitude": 34.4024,
@@ -214,6 +300,116 @@
         "status": "charted-features-present"
       }
     },
+    "berkeley-marina-north-basin": {
+      "coordinates": {
+        "latitude": 37.8729,
+        "longitude": -122.3124
+      },
+      "depth": {
+        "chartedBandsMeters": [
+          [
+            0.0,
+            1.8
+          ]
+        ],
+        "contextSoundingCount": 8,
+        "contextSoundingDepthRangeMeters": [
+          0.3,
+          1.8
+        ],
+        "contourDepthsMeters": [],
+        "detail": "NOAA ENC depth areas intersect the configured 300 m offshore sector. Context soundings are limited to 1,000 m and are not a shore-reachable or casting-depth guarantee. The selected service layers publish no numeric uncertainty, and source dates can be old.",
+        "hasUndatedRecords": true,
+        "nearestContextSoundingDistanceMeters": 125.7,
+        "partialSourceDates": [
+          "2012-10"
+        ],
+        "sectorSoundingDepthsMeters": [
+          1.2
+        ],
+        "sourceCells": [
+          "US4CA2CK.000"
+        ],
+        "sourceDates": [
+          "2000-12-05",
+          "2003-09-22"
+        ],
+        "status": "charted-sector-bands",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 285,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 300
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "berkeley-marina-north-basin",
+      "siteName": "Berkeley Marina North Basin Shore",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "charted-context",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "riprap"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "dredged-edge"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "marina-mouth"
+          }
+        ],
+        "chartedFeatures": [
+          {
+            "category": "charted-obstruction",
+            "hasUndatedRecords": false,
+            "label": "Charted obstruction",
+            "partialSourceDates": [],
+            "recordCount": 1,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": [
+              "2000-12-05"
+            ]
+          },
+          {
+            "category": "charted-seabed-description",
+            "hasUndatedRecords": false,
+            "label": "Charted seabed description",
+            "partialSourceDates": [],
+            "recordCount": 1,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": [
+              "2000-12-05"
+            ]
+          },
+          {
+            "category": "charted-shoreline-construction",
+            "hasUndatedRecords": false,
+            "label": "Charted shoreline construction",
+            "partialSourceDates": [],
+            "recordCount": 17,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": [
+              "2013-08-26"
+            ]
+          }
+        ],
+        "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
+        "status": "charted-features-present"
+      }
+    },
     "bolinas-beach": {
       "coordinates": {
         "latitude": 37.9087,
@@ -381,6 +577,114 @@
             ],
             "sourceDates": [
               "2003-04-22"
+            ]
+          }
+        ],
+        "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
+        "status": "charted-features-present"
+      }
+    },
+    "cesar-chavez-park": {
+      "coordinates": {
+        "latitude": 37.872,
+        "longitude": -122.3182
+      },
+      "depth": {
+        "chartedBandsMeters": [
+          [
+            0.0,
+            1.8
+          ]
+        ],
+        "contextSoundingCount": 13,
+        "contextSoundingDepthRangeMeters": [
+          0.3,
+          1.8
+        ],
+        "contourDepthsMeters": [],
+        "detail": "NOAA ENC depth areas intersect the configured 360 m offshore sector. Context soundings are limited to 1,000 m and are not a shore-reachable or casting-depth guarantee. The selected service layers publish no numeric uncertainty, and source dates can be old.",
+        "hasUndatedRecords": true,
+        "nearestContextSoundingDistanceMeters": 411.3,
+        "partialSourceDates": [
+          "2012-10"
+        ],
+        "sectorSoundingDepthsMeters": [],
+        "sourceCells": [
+          "US4CA2CK.000"
+        ],
+        "sourceDates": [
+          "2000-12-05",
+          "2003-09-22"
+        ],
+        "status": "charted-sector-bands",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 275,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 360
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "cesar-chavez-park",
+      "siteName": "Cesar Chavez Park Shoreline",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "charted-context",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "riprap"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "slope-break"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "sand-mud-flat"
+          }
+        ],
+        "chartedFeatures": [
+          {
+            "category": "charted-obstruction",
+            "hasUndatedRecords": false,
+            "label": "Charted obstruction",
+            "partialSourceDates": [],
+            "recordCount": 1,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": [
+              "2000-12-05"
+            ]
+          },
+          {
+            "category": "charted-seabed-description",
+            "hasUndatedRecords": false,
+            "label": "Charted seabed description",
+            "partialSourceDates": [],
+            "recordCount": 1,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": [
+              "2000-12-05"
+            ]
+          },
+          {
+            "category": "charted-shoreline-construction",
+            "hasUndatedRecords": false,
+            "label": "Charted shoreline construction",
+            "partialSourceDates": [],
+            "recordCount": 18,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": [
+              "2013-08-26"
             ]
           }
         ],
@@ -1048,6 +1352,326 @@
         "status": "no-selected-feature-records"
       }
     },
+    "emeryville-marina-pier": {
+      "coordinates": {
+        "latitude": 37.84,
+        "longitude": -122.3151
+      },
+      "depth": {
+        "chartedBandsMeters": [
+          [
+            0.0,
+            1.8
+          ]
+        ],
+        "contextSoundingCount": 16,
+        "contextSoundingDepthRangeMeters": [
+          0.3,
+          7.9
+        ],
+        "contourDepthsMeters": [],
+        "detail": "NOAA ENC depth areas intersect the configured 180 m offshore sector. Context soundings are limited to 1,000 m and are not a shore-reachable or casting-depth guarantee. The selected service layers publish no numeric uncertainty, and source dates can be old.",
+        "hasUndatedRecords": true,
+        "nearestContextSoundingDistanceMeters": 247.3,
+        "partialSourceDates": [
+          "2009-09"
+        ],
+        "sectorSoundingDepthsMeters": [],
+        "sourceCells": [
+          "US4CA2CK.000"
+        ],
+        "sourceDates": [
+          "1999-05-01",
+          "2001-12-03"
+        ],
+        "status": "charted-sector-bands",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 255,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 180
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "emeryville-marina-pier",
+      "siteName": "Emeryville Marina Fishing Pier",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "charted-context",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "pier-pilings"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "dredged-edge"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "riprap"
+          }
+        ],
+        "chartedFeatures": [
+          {
+            "category": "charted-obstruction",
+            "hasUndatedRecords": false,
+            "label": "Charted obstruction",
+            "partialSourceDates": [],
+            "recordCount": 4,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": [
+              "2013-05-02"
+            ]
+          },
+          {
+            "category": "charted-pile",
+            "hasUndatedRecords": false,
+            "label": "Charted pile or piling",
+            "partialSourceDates": [],
+            "recordCount": 2,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": [
+              "2003-02-18"
+            ]
+          },
+          {
+            "category": "charted-seabed-description",
+            "hasUndatedRecords": false,
+            "label": "Charted seabed description",
+            "partialSourceDates": [],
+            "recordCount": 2,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": [
+              "1999-05-01"
+            ]
+          },
+          {
+            "category": "charted-shoreline-construction",
+            "hasUndatedRecords": false,
+            "label": "Charted shoreline construction",
+            "partialSourceDates": [],
+            "recordCount": 12,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": [
+              "2013-04-28",
+              "2013-05-02"
+            ]
+          }
+        ],
+        "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
+        "status": "charted-features-present"
+      }
+    },
+    "ferry-point-pier": {
+      "coordinates": {
+        "latitude": 37.9253,
+        "longitude": -122.385
+      },
+      "depth": {
+        "chartedBandsMeters": [],
+        "contextSoundingCount": 6,
+        "contextSoundingDepthRangeMeters": [
+          0.6,
+          8.5
+        ],
+        "contourDepthsMeters": [],
+        "detail": "No reviewed NOAA ENC depth-area record intersected the configured offshore sector. That is an evidence gap, not proof of shallow water or safe access.",
+        "hasUndatedRecords": false,
+        "nearestContextSoundingDistanceMeters": 538.2,
+        "partialSourceDates": [],
+        "sectorSoundingDepthsMeters": [],
+        "sourceCells": [
+          "US4CA2CK.000"
+        ],
+        "sourceDates": [
+          "2000-12-05",
+          "2012-11-16"
+        ],
+        "status": "no-charted-sector-band",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 225,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 180
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "ferry-point-pier",
+      "siteName": "Ferry Point Fishing Pier",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "partial",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "pier-pilings"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "channel-edge"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "sand-mud-flat"
+          }
+        ],
+        "chartedFeatures": [
+          {
+            "category": "charted-shoreline-construction",
+            "hasUndatedRecords": false,
+            "label": "Charted shoreline construction",
+            "partialSourceDates": [],
+            "recordCount": 7,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": [
+              "2013-08-26"
+            ]
+          }
+        ],
+        "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
+        "status": "charted-features-present"
+      }
+    },
+    "fort-baker-pier": {
+      "coordinates": {
+        "latitude": 37.8328,
+        "longitude": -122.4759
+      },
+      "depth": {
+        "chartedBandsMeters": [
+          [
+            0.0,
+            3.6
+          ],
+          [
+            0.0,
+            5.4
+          ],
+          [
+            5.4,
+            9.1
+          ]
+        ],
+        "contextSoundingCount": 12,
+        "contextSoundingDepthRangeMeters": [
+          0.3,
+          53.9
+        ],
+        "contourDepthsMeters": [
+          5.4
+        ],
+        "detail": "NOAA ENC depth areas intersect the configured 170 m offshore sector. Context soundings are limited to 1,000 m and are not a shore-reachable or casting-depth guarantee. The selected service layers publish no numeric uncertainty, and source dates can be old.",
+        "hasUndatedRecords": true,
+        "nearestContextSoundingDistanceMeters": 28.2,
+        "partialSourceDates": [
+          "2009-09",
+          "2013-12"
+        ],
+        "sectorSoundingDepthsMeters": [],
+        "sourceCells": [
+          "US4CA11M.000",
+          "US4CA2CJ.000"
+        ],
+        "sourceDates": [
+          "1999-05-01",
+          "2002-06-17"
+        ],
+        "status": "charted-sector-bands",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 145,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 170
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "fort-baker-pier",
+      "siteName": "Fort Baker Fishing Pier",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "charted-context",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "pier-pilings"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "channel-edge"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "rock-sand-edge"
+          }
+        ],
+        "chartedFeatures": [
+          {
+            "category": "charted-obstruction",
+            "hasUndatedRecords": false,
+            "label": "Charted obstruction",
+            "partialSourceDates": [
+              "2009-09"
+            ],
+            "recordCount": 1,
+            "sourceCells": [
+              "US4CA2CJ.000"
+            ],
+            "sourceDates": []
+          },
+          {
+            "category": "charted-pile",
+            "hasUndatedRecords": false,
+            "label": "Charted pile or piling",
+            "partialSourceDates": [],
+            "recordCount": 1,
+            "sourceCells": [
+              "US4CA2CJ.000"
+            ],
+            "sourceDates": [
+              "2013-09-05"
+            ]
+          },
+          {
+            "category": "charted-shoreline-construction",
+            "hasUndatedRecords": false,
+            "label": "Charted shoreline construction",
+            "partialSourceDates": [],
+            "recordCount": 23,
+            "sourceCells": [
+              "US4CA11M.000",
+              "US4CA2CJ.000"
+            ],
+            "sourceDates": [
+              "1999-05-01",
+              "2013-04-30",
+              "2013-09-05"
+            ]
+          }
+        ],
+        "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
+        "status": "charted-features-present"
+      }
+    },
     "francis-state-beach": {
       "coordinates": {
         "latitude": 37.4685,
@@ -1554,6 +2178,92 @@
         "status": "charted-features-present"
       }
     },
+    "keller-beach": {
+      "coordinates": {
+        "latitude": 37.921,
+        "longitude": -122.3859
+      },
+      "depth": {
+        "chartedBandsMeters": [
+          [
+            -1.7,
+            0.0
+          ],
+          [
+            0.0,
+            1.8
+          ]
+        ],
+        "contextSoundingCount": 6,
+        "contextSoundingDepthRangeMeters": [
+          0.6,
+          8.5
+        ],
+        "contourDepthsMeters": [
+          0.0
+        ],
+        "detail": "NOAA ENC depth areas intersect the configured 300 m offshore sector. Context soundings are limited to 1,000 m and are not a shore-reachable or casting-depth guarantee. The selected service layers publish no numeric uncertainty, and source dates can be old.",
+        "hasUndatedRecords": true,
+        "nearestContextSoundingDistanceMeters": 227.2,
+        "partialSourceDates": [],
+        "sectorSoundingDepthsMeters": [],
+        "sourceCells": [
+          "US4CA2CK.000"
+        ],
+        "sourceDates": [
+          "2000-12-05",
+          "2012-11-16"
+        ],
+        "status": "charted-sector-bands",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 220,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 300
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "keller-beach",
+      "siteName": "Keller Beach",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "charted-context",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "cove"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "rock-sand-edge"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "sand-flat"
+          }
+        ],
+        "chartedFeatures": [
+          {
+            "category": "charted-shoreline-construction",
+            "hasUndatedRecords": false,
+            "label": "Charted shoreline construction",
+            "partialSourceDates": [],
+            "recordCount": 5,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": [
+              "2013-08-26"
+            ]
+          }
+        ],
+        "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
+        "status": "charted-features-present"
+      }
+    },
     "leadbetter-beach": {
       "coordinates": {
         "latitude": 34.4015,
@@ -1794,6 +2504,82 @@
               "US4CA2CI.000"
             ],
             "sourceDates": []
+          }
+        ],
+        "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
+        "status": "charted-features-present"
+      }
+    },
+    "mcnears-beach-pier": {
+      "coordinates": {
+        "latitude": 37.9941,
+        "longitude": -122.4573
+      },
+      "depth": {
+        "chartedBandsMeters": [],
+        "contextSoundingCount": 6,
+        "contextSoundingDepthRangeMeters": [
+          0.6,
+          2.4
+        ],
+        "contourDepthsMeters": [],
+        "detail": "No reviewed NOAA ENC depth-area record intersected the configured offshore sector. That is an evidence gap, not proof of shallow water or safe access.",
+        "hasUndatedRecords": false,
+        "nearestContextSoundingDistanceMeters": 357.6,
+        "partialSourceDates": [],
+        "sectorSoundingDepthsMeters": [],
+        "sourceCells": [
+          "US4CA2CJ.000"
+        ],
+        "sourceDates": [
+          "1999-10-30"
+        ],
+        "status": "no-charted-sector-band",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 80,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 150
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "mcnears-beach-pier",
+      "siteName": "McNears Beach Pier",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "partial",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "pier-pilings"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "mud-sand-flat"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "channel-edge"
+          }
+        ],
+        "chartedFeatures": [
+          {
+            "category": "charted-shoreline-construction",
+            "hasUndatedRecords": false,
+            "label": "Charted shoreline construction",
+            "partialSourceDates": [],
+            "recordCount": 11,
+            "sourceCells": [
+              "US4CA2CJ.000"
+            ],
+            "sourceDates": [
+              "1999-10-30",
+              "2013-05-01",
+              "2013-09-03"
+            ]
           }
         ],
         "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
@@ -2413,6 +3199,131 @@
         "status": "charted-features-present"
       }
     },
+    "paradise-beach-pier": {
+      "coordinates": {
+        "latitude": 37.912,
+        "longitude": -122.475
+      },
+      "depth": {
+        "chartedBandsMeters": [
+          [
+            0.0,
+            1.8
+          ]
+        ],
+        "contextSoundingCount": 13,
+        "contextSoundingDepthRangeMeters": [
+          0.3,
+          5.7
+        ],
+        "contourDepthsMeters": [],
+        "detail": "NOAA ENC depth areas intersect the configured 170 m offshore sector. Context soundings are limited to 1,000 m and are not a shore-reachable or casting-depth guarantee. The selected service layers publish no numeric uncertainty, and source dates can be old.",
+        "hasUndatedRecords": true,
+        "nearestContextSoundingDistanceMeters": 290.4,
+        "partialSourceDates": [
+          "2012-10"
+        ],
+        "sectorSoundingDepthsMeters": [],
+        "sourceCells": [
+          "US4CA2CJ.000"
+        ],
+        "sourceDates": [
+          "2000-12-05"
+        ],
+        "status": "charted-sector-bands",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 105,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 170
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "paradise-beach-pier",
+      "siteName": "Paradise Beach Pier",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "charted-context",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "pier-pilings"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "rock-sand-edge"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "slope-break"
+          }
+        ],
+        "chartedFeatures": [
+          {
+            "category": "charted-obstruction",
+            "hasUndatedRecords": false,
+            "label": "Charted obstruction",
+            "partialSourceDates": [],
+            "recordCount": 1,
+            "sourceCells": [
+              "US4CA2CJ.000"
+            ],
+            "sourceDates": [
+              "2000-12-05"
+            ]
+          },
+          {
+            "category": "charted-pile",
+            "hasUndatedRecords": false,
+            "label": "Charted pile or piling",
+            "partialSourceDates": [
+              "2012-10"
+            ],
+            "recordCount": 5,
+            "sourceCells": [
+              "US4CA2CJ.000"
+            ],
+            "sourceDates": [
+              "2013-05-01"
+            ]
+          },
+          {
+            "category": "charted-seabed-description",
+            "hasUndatedRecords": false,
+            "label": "Charted seabed description",
+            "partialSourceDates": [
+              "2012-10"
+            ],
+            "recordCount": 1,
+            "sourceCells": [
+              "US4CA2CJ.000"
+            ],
+            "sourceDates": []
+          },
+          {
+            "category": "charted-shoreline-construction",
+            "hasUndatedRecords": false,
+            "label": "Charted shoreline construction",
+            "partialSourceDates": [
+              "2012-10"
+            ],
+            "recordCount": 40,
+            "sourceCells": [
+              "US4CA2CJ.000"
+            ],
+            "sourceDates": [
+              "2000-12-05",
+              "2013-05-01"
+            ]
+          }
+        ],
+        "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
+        "status": "charted-features-present"
+      }
+    },
     "pier-14": {
       "coordinates": {
         "latitude": 37.7936,
@@ -2851,6 +3762,111 @@
               "US4CA2BJ.000"
             ],
             "sourceDates": []
+          }
+        ],
+        "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
+        "status": "charted-features-present"
+      }
+    },
+    "point-isabel-shoreline": {
+      "coordinates": {
+        "latitude": 37.8989,
+        "longitude": -122.3258
+      },
+      "depth": {
+        "chartedBandsMeters": [
+          [
+            0.0,
+            1.8
+          ]
+        ],
+        "contextSoundingCount": 10,
+        "contextSoundingDepthRangeMeters": [
+          0.1,
+          1.5
+        ],
+        "contourDepthsMeters": [],
+        "detail": "NOAA ENC depth areas intersect the configured 280 m offshore sector. Context soundings are limited to 1,000 m and are not a shore-reachable or casting-depth guarantee. The selected service layers publish no numeric uncertainty, and source dates can be old.",
+        "hasUndatedRecords": true,
+        "nearestContextSoundingDistanceMeters": 232.1,
+        "partialSourceDates": [],
+        "sectorSoundingDepthsMeters": [],
+        "sourceCells": [
+          "US4CA2CK.000"
+        ],
+        "sourceDates": [
+          "2000-12-05"
+        ],
+        "status": "charted-sector-bands",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 250,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 280
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "point-isabel-shoreline",
+      "siteName": "Point Isabel Shoreline",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "charted-context",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "mud-sand-flat"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "tidal-drain"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "riprap"
+          }
+        ],
+        "chartedFeatures": [
+          {
+            "category": "charted-obstruction",
+            "hasUndatedRecords": false,
+            "label": "Charted obstruction",
+            "partialSourceDates": [
+              "2012-10"
+            ],
+            "recordCount": 1,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": []
+          },
+          {
+            "category": "charted-seabed-description",
+            "hasUndatedRecords": false,
+            "label": "Charted seabed description",
+            "partialSourceDates": [],
+            "recordCount": 1,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": [
+              "2000-12-05"
+            ]
+          },
+          {
+            "category": "charted-shoreline-construction",
+            "hasUndatedRecords": false,
+            "label": "Charted shoreline construction",
+            "partialSourceDates": [],
+            "recordCount": 11,
+            "sourceCells": [
+              "US4CA2CK.000"
+            ],
+            "sourceDates": [
+              "2013-08-26"
+            ]
           }
         ],
         "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
@@ -4250,7 +5266,7 @@
   },
   "source": {
     "agency": "NOAA Office of Coast Survey",
-    "capturedAt": "2026-07-21T10:38:30Z",
+    "capturedAt": "2026-07-21T11:15:36Z",
     "depthUnits": "meters",
     "errorCategory": null,
     "notForNavigation": true,
@@ -4265,6 +5281,6 @@
     "verticalDatum": "Mean Lower Low Water (MLLW)",
     "verticalDatumBasis": "NOAA states that tidal nautical-chart depths use MLLW; the selected ENC Direct feature records do not consistently expose VERDAT"
   },
-  "sourceSnapshotSha256": "3202f95977975e4229fc5cce7760a27965bb3e04af0f1f088eb356f430ff6389",
+  "sourceSnapshotSha256": "72e49bc69cb67b10e49f8079b649aa5ebdae1b7ecb430b3cb49e305b7c95d388",
   "status": "partial"
 }

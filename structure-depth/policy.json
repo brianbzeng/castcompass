@@ -1,6 +1,6 @@
 {
   "schema_version": "castingcompass.structure-depth-policy/1.0.0",
-  "policy_version": "castingcompass.california-enc-approach/0.4.0",
+  "policy_version": "castingcompass.california-enc-approach/0.5.0",
   "meaning": "source-bound planning context for nearby charted depths and selected chart features at reviewed California catalog locations; never a casting-depth guarantee, navigation product, safety claim, or catch-probability input",
   "score_contribution": "excluded-pending-site-review-and-validation",
   "catalog_mutation": "forbidden",
@@ -156,10 +156,20 @@
     "bolinas-beach",
     "stinson-beach",
     "muir-beach",
-    "rodeo-beach"
+    "rodeo-beach",
+    "mcnears-beach-pier",
+    "paradise-beach-pier",
+    "fort-baker-pier",
+    "ferry-point-pier",
+    "keller-beach",
+    "point-isabel-shoreline",
+    "albany-bulb",
+    "berkeley-marina-north-basin",
+    "cesar-chavez-park",
+    "emeryville-marina-pier"
   ],
   "source_selection_receipt": {
-    "reviewed_at": "2026-07-21T10:38:30Z",
+    "reviewed_at": "2026-07-21T11:15:36Z",
     "blue_topo": {
       "tile_scheme_url": "https://noaa-ocs-nationalbathymetry-pds.s3.amazonaws.com/BlueTopo/_BlueTopo_Tile_Scheme/BlueTopo_Tile_Scheme_20260626_132625.gpkg",
       "tile_scheme_sha256": "dc854cc98608eaae19e5cc8e4ccf92f9f61af998cc135c61c649d2052c3fc319",
@@ -176,7 +186,7 @@
       "selection_result": "retained-as-future-secondary-reference-not-used-as-complete-regional-baseline"
     },
     "noaa_enc_direct": {
-      "configured_sector_depth_area_site_count": 38,
+      "configured_sector_depth_area_site_count": 46,
       "selection_result": "selected-as-consistent-reviewed-location-chart-context"
     },
     "san_francisco_extension": {
@@ -218,6 +228,21 @@
         "stinson-beach",
         "muir-beach",
         "rodeo-beach"
+      ],
+      "selection_result": "accepted-with-two-explicit-partial-depth-sectors"
+    },
+    "north_east_bay_extension": {
+      "site_ids": [
+        "mcnears-beach-pier",
+        "paradise-beach-pier",
+        "fort-baker-pier",
+        "ferry-point-pier",
+        "keller-beach",
+        "point-isabel-shoreline",
+        "albany-bulb",
+        "berkeley-marina-north-basin",
+        "cesar-chavez-park",
+        "emeryville-marina-pier"
       ],
       "selection_result": "accepted-with-two-explicit-partial-depth-sectors"
     }

@@ -11,7 +11,7 @@ import addFormats from "ajv-formats";
 const root = new URL("../", import.meta.url);
 const snapshotPath = "structure-depth/noaa-enc-approach-snapshot.json";
 const artifactPath = "public/data/structure-depth.json";
-const fixedAsOf = "2026-07-21T10:38:30Z";
+const fixedAsOf = "2026-07-21T11:15:36Z";
 
 async function readJson(path) {
   return JSON.parse(await readFile(new URL(path, root), "utf8"));
@@ -41,7 +41,7 @@ function runCollector(output, sourceSnapshot = snapshotPath) {
   );
 }
 
-test("published 41-site chart context is contract-bound, display-only, and non-navigational", async () => {
+test("published 51-site chart context is contract-bound, display-only, and non-navigational", async () => {
   const [schema, policy, sites, artifact, policyBytes, collectorBytes, siteBytes, snapshotBytes, interfaceSource, disclosure] = await Promise.all([
     readJson("contracts/structure-depth-evidence.schema.json"),
     readJson("structure-depth/policy.json"),
@@ -72,7 +72,13 @@ test("published 41-site chart context is contract-bound, display-only, and non-n
   assert.equal(artifact.source.uncertaintyStatus, "not-exposed-by-selected-service-layers");
 
   const sitesById = new Map(sites.map((site) => [site.id, site]));
-  const partialDepthSiteIds = new Set(["crane-cove-park", "bolinas-beach", "muir-beach"]);
+  const partialDepthSiteIds = new Set([
+    "crane-cove-park",
+    "bolinas-beach",
+    "muir-beach",
+    "mcnears-beach-pier",
+    "ferry-point-pier",
+  ]);
   for (const siteId of policy.covered_site_ids) {
     const evidence = artifact.sites[siteId];
     const site = sitesById.get(siteId);
@@ -196,6 +202,46 @@ test("Marin coast chart context keeps two missing sector bands explicit and rema
   assert.equal(drakes.depth.hasUndatedRecords, true);
 });
 
+test("North and East Bay chart context keeps two missing sector bands explicit and remains display-only", async () => {
+  const artifact = await readJson(artifactPath);
+  const siteIds = [
+    "mcnears-beach-pier",
+    "paradise-beach-pier",
+    "fort-baker-pier",
+    "ferry-point-pier",
+    "keller-beach",
+    "point-isabel-shoreline",
+    "albany-bulb",
+    "berkeley-marina-north-basin",
+    "cesar-chavez-park",
+    "emeryville-marina-pier",
+  ];
+  const partialIds = new Set(["mcnears-beach-pier", "ferry-point-pier"]);
+  const chartedIds = siteIds.filter((siteId) => !partialIds.has(siteId));
+  assert.ok(chartedIds.every((siteId) => artifact.sites[siteId].status === "charted-context"));
+  assert.ok(chartedIds.every((siteId) => artifact.sites[siteId].depth.status === "charted-sector-bands"));
+  assert.ok(siteIds.every((siteId) => artifact.sites[siteId].scoreDelta === null));
+  assert.ok(siteIds.every((siteId) => artifact.sites[siteId].navigationUseAllowed === false));
+
+  const mcnears = artifact.sites["mcnears-beach-pier"];
+  assert.equal(mcnears.status, "partial");
+  assert.equal(mcnears.depth.status, "no-charted-sector-band");
+  assert.deepEqual(mcnears.depth.chartedBandsMeters, []);
+  assert.deepEqual(mcnears.depth.contextSoundingDepthRangeMeters, [0.6, 2.4]);
+  assert.equal(mcnears.depth.contextSoundingCount, 6);
+
+  const ferryPoint = artifact.sites["ferry-point-pier"];
+  assert.equal(ferryPoint.status, "partial");
+  assert.equal(ferryPoint.depth.status, "no-charted-sector-band");
+  assert.deepEqual(ferryPoint.depth.contextSoundingDepthRangeMeters, [0.6, 8.5]);
+  assert.equal(ferryPoint.depth.contextSoundingCount, 6);
+
+  const berkeley = artifact.sites["berkeley-marina-north-basin"];
+  assert.deepEqual(berkeley.depth.chartedBandsMeters, [[0, 1.8]]);
+  assert.deepEqual(berkeley.depth.partialSourceDates, ["2012-10"]);
+  assert.equal(berkeley.depth.hasUndatedRecords, true);
+});
+
 test("one required site query fails only that evidence slice closed", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "castingcompass-structure-depth-partial-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
@@ -265,13 +311,15 @@ test("source-selection receipt preserves incomplete alternatives instead of over
   ]);
   assert.equal(receipt.blue_topo.unpublished_site_count, 11);
   assert.equal(receipt.usgs_santa_barbara_channel_10m.configured_sector_coverage_site_count, 6);
-  assert.equal(receipt.noaa_enc_direct.configured_sector_depth_area_site_count, 38);
+  assert.equal(receipt.noaa_enc_direct.configured_sector_depth_area_site_count, 46);
   assert.equal(receipt.san_francisco_extension.site_ids.length, 10);
   assert.equal(receipt.san_francisco_extension.selection_result, "accepted-with-one-explicit-partial-depth-sector");
   assert.equal(receipt.san_mateo_coast_extension.site_ids.length, 10);
   assert.equal(receipt.san_mateo_coast_extension.selection_result, "accepted-with-all-ten-configured-sectors");
   assert.equal(receipt.marin_coast_extension.site_ids.length, 7);
   assert.equal(receipt.marin_coast_extension.selection_result, "accepted-with-two-explicit-partial-depth-sectors");
+  assert.equal(receipt.north_east_bay_extension.site_ids.length, 10);
+  assert.equal(receipt.north_east_bay_extension.selection_result, "accepted-with-two-explicit-partial-depth-sectors");
   assert.match(receipt.blue_topo.tile_scheme_sha256, /^[a-f0-9]{64}$/);
   assert.match(receipt.usgs_santa_barbara_channel_10m.archive_sha256, /^[a-f0-9]{64}$/);
 });

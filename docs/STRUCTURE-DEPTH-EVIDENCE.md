@@ -4,12 +4,12 @@
 
 ## Frozen meaning
 
-`castingcompass.structure-depth-evidence/1.3.0` is planning context for 41
+`castingcompass.structure-depth-evidence/1.4.0` is planning context for 51
 reviewed catalog locations: all 14 Santa Barbara South Coast locations, ten San
 Francisco coast and waterfront locations, ten San Mateo Coast/Half Moon Bay
-locations, and seven Point Reyes/Marin Coast locations. It shows broad NOAA
-chart depth bands intersecting a configured offshore sector and selected
-chart-feature classes within one kilometer. It is not:
+locations, seven Point Reyes/Marin Coast locations, and ten North/East Bay
+locations. It shows broad NOAA chart depth bands intersecting a configured
+offshore sector and selected chart-feature classes within one kilometer. It is not:
 
 - an exact depth at the map marker;
 - a promise that a depth is shore-reachable or castable;
@@ -67,6 +67,13 @@ area records. Bolinas Beach and Muir Beach do not; each remains explicitly
 record exist. Neither catalog clues nor soundings are substituted for the
 missing area-band evidence.
 
+The North/East Bay extension uses the same fixed service and layer inventory.
+Eight of ten configured sectors intersect one or more depth-area records.
+McNears Beach Pier and Ferry Point Fishing Pier do not; each remains explicitly
+`partial`, even though nearby point soundings and charted shoreline-construction
+records exist. Neither catalog clues nor soundings are substituted for the
+missing area-band evidence.
+
 ## Geometry and interpretation
 
 For each site, the collector constructs a WGS84 sector from the public catalog
@@ -89,9 +96,9 @@ selected layers also do not publish numeric positional accuracy or vertical
 uncertainty. Those fields therefore remain explicit `not-exposed` states rather
 than zeros.
 
-## Captured 41-site inventory
+## Captured 51-site inventory
 
-The normalized source snapshot was captured at `2026-07-21T10:38:30Z` from the
+The normalized source snapshot was captured at `2026-07-21T11:15:36Z` from the
 fixed NOAA `enc_approach` ArcGIS service. Point-sounding counts are deduplicated
 across overlapping ENC cells. “No selected feature record” never means “no
 structure.”
@@ -149,9 +156,22 @@ structure.”
 | Muir Beach | Partial | No intersecting depth-area band | 9 | Seabed description |
 | Rodeo Beach | Charted context | -1.8–0 m; -1.5–0 m; 0–9.1 m; 3.6–10.9 m; 9.1–10.9 m | 13 | No selected feature record |
 
+| North / East Bay location | Evidence status | ENC bands intersecting sector | Deduplicated soundings within 1 km | Selected chart-feature classes within 1 km |
+| --- | --- | --- | ---: | --- |
+| McNears Beach Pier | Partial | No intersecting depth-area band | 6 | Shoreline construction |
+| Paradise Beach Pier | Charted context | 0–1.8 m | 13 | Obstruction; pile/piling; seabed description; shoreline construction |
+| Fort Baker Fishing Pier | Charted context | 0–3.6 m; 0–5.4 m; 5.4–9.1 m | 12 | Obstruction; pile/piling; shoreline construction |
+| Ferry Point Fishing Pier | Partial | No intersecting depth-area band | 6 | Shoreline construction |
+| Keller Beach | Charted context | -1.7–0 m; 0–1.8 m | 6 | Shoreline construction |
+| Point Isabel Shoreline | Charted context | 0–1.8 m | 10 | Obstruction; seabed description; shoreline construction |
+| Albany Bulb Shoreline | Charted context | -1.7–0 m; 0–1.8 m | 9 | Shoreline construction |
+| Berkeley Marina North Basin Shore | Charted context | 0–1.8 m | 8 | Obstruction; seabed description; shoreline construction |
+| Cesar Chavez Park Shoreline | Charted context | 0–1.8 m | 13 | Obstruction; seabed description; shoreline construction |
+| Emeryville Marina Fishing Pier | Charted context | 0–1.8 m | 16 | Obstruction; pile/piling; seabed description; shoreline construction |
+
 The exact full-date depth records range from 1999 through 2025. The source also
 publishes valid month-precision values such as `2013-06` and a year-only `2005`
-for the charted wreck near Stearns Wharf. Contract version 1.3 preserves those
+for the charted wreck near Stearns Wharf. Contract version 1.4 preserves those
 values separately in `partialSourceDates`; it never invents a day. A record with
 no `SORDAT` sets `hasUndatedRecords`. Source age and precision are displayed
 because a current service response does not make an old underlying survey new.
@@ -178,14 +198,14 @@ because a current service response does not make an old underlying survey new.
 Any required depth-query failure makes that site's depth unavailable. Any
 selected structure-query failure makes the structure section unavailable while
 retaining catalog clues as explicitly unvalidated. Service metadata drift makes
-all 41 sites unavailable. Errors are fixed categories and never expose local
+all 51 sites unavailable. Errors are fixed categories and never expose local
 paths or exception text.
 
 ## Remaining acceptance work
 
-This completes the San Francisco, San Mateo, and Point Reyes/Marin coastal
-extensions of the source-bound inventory, not the parent map goal. Before a
-location can be called fully reviewed:
+This completes the San Francisco, San Mateo, Point Reyes/Marin, and North/East
+Bay extensions of the source-bound inventory, not the parent map goal. Before
+a location can be called fully reviewed:
 
 1. a local reviewer must confirm the sector orientation, public access context,
    and whether the displayed chart classes are useful rather than misleading;

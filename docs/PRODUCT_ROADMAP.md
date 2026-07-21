@@ -707,11 +707,17 @@ after its acceptance checks pass in the intended environment.
     depth-area band intersects either configured sector; charted seabed records and catalog clues
     are not substitutes. Contract version 1.3 binds exactly 41 reviewed sites without changing a
     score, catalog prior, access decision, or navigation boundary.
+  - [x] Extend the same contract to ten North and East Bay locations. The fixed 2026-07-21 source
+    snapshot provides depth-area bands at eight configured sectors and nearby soundings at all ten.
+    McNears Beach Pier and Ferry Point Fishing Pier remain explicitly partial because no reviewed
+    depth-area band intersects either configured sector; charted shoreline records and catalog
+    clues are not substitutes. Contract version 1.4 binds exactly 51 reviewed sites without
+    changing a score, catalog prior, access decision, or navigation boundary.
   - [ ] Obtain location-by-location local-angler and independent chart review; verify sector
     orientation and usefulness; source dynamic bars, troughs, reef, vegetation, and other catalog
     clues separately or leave them explicitly unvalidated; add BlueTopo or another qualified
     uncertainty-bearing source only where coverage permits; extend the same contract to the
-    remaining 20 launch-catalog locations; and collect protected, guarded deployment plus post-deployment
+    remaining 10 launch-catalog locations; and collect protected, guarded deployment plus post-deployment
     evidence before calling any location fully reviewed or using this evidence in a score.
 - [ ] Add striped bass as the first new beta using a distinct estuary/migration model.
 - [ ] Define and evaluate explicit shore-relevant rockfish species/complexes next; then model

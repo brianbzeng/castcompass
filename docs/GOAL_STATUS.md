@@ -13,6 +13,39 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — North and East Bay source-bound chart context
+
+- [x] Preserve draft PR `#136` at exact final receipt head
+      `d5c25d747e7b4a65915632ca78e3bfd5eecb366b` as the reviewed stacked base. This
+      follow-up uses another isolated worktree and does not merge, deploy, mutate Cloudflare or
+      D1, change a catalog prior, or alter the attested fishing score.
+- [x] Select the coherent ten-site North/East Bay cohort: McNears Beach Pier, Paradise Beach Pier,
+      Fort Baker Fishing Pier, Ferry Point Fishing Pier, Keller Beach, Point Isabel Shoreline,
+      Albany Bulb Shoreline, Berkeley Marina North Basin Shore, Cesar Chavez Park Shoreline, and
+      Emeryville Marina Fishing Pier. The same NOAA ENC Direct `Approach` source, 13-layer
+      inventory, meters/MLLW meaning, bounded geometry, and fail-closed drift rules apply.
+- [x] Capture and normalize a fixed `2026-07-21T11:15:36Z` source snapshot for all 51 covered
+      sites using 714 bounded layer queries. Eight new sectors have one or more depth-area bands.
+      McNears and Ferry Point remain explicitly `partial`: both have nearby soundings and charted
+      shoreline-construction records, but no reviewed depth-area band intersects the configured
+      offshore sector. The prior 41 site records and reviewed service metadata are unchanged.
+- [x] Extend the strict artifact/schema/type contract to version 1.4 and add deterministic cohort,
+      partial-depth, partial-date, score-exclusion, navigation-exclusion, and mobile truthfulness
+      coverage. All ten locations retain `scoreDelta: null`; chart context cannot authorize access
+      or imply shore-reachable depth, castability, wading safety, or navigation use.
+- [x] Complete the fresh full local release matrix under pinned Node `22.23.1` and the
+      hash-locked Python environments: fresh zero-script installation, both zero-vulnerability
+      npm audits, Cloudflare build, 486/486 Node tests, ESLint, TypeScript, the complete
+      security/SBOM/source-integrity chain, 11 deterministic/adversarial structure-depth tests,
+      Python syntax/Ruff, 29/29 API tests, 83/83 pipeline tests with one documented optional-
+      `rasterio` skip, deterministic synthetic smoke, and all 19 critical D1 query plans passed.
+      The complete CI-profile Chromium/WebKit phone matrix passed 180/180 cases. McNears partial
+      evidence and Berkeley chart/date evidence were visually inspected from the production build
+      at iPhone width.
+- [ ] Publish a protected stacked draft PR, obtain exact-head hosted receipts, and keep CodeQL,
+      independent location/chart review, merge, deployment, provider/database mutation, and
+      production activation as explicit separate gates.
+
 ## Active checkpoint — Point Reyes and Marin Coast source-bound chart context
 
 - [x] Preserve draft PR `#135` at exact final receipt head

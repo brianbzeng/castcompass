@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "castingcompass.structure-depth-evidence/1.3.0",
+  "$id": "castingcompass.structure-depth-evidence/1.4.0",
   "title": "CastingCompass source-bound structure and depth planning context",
   "type": "object",
   "required": [
@@ -18,7 +18,7 @@
     "sites"
   ],
   "properties": {
-    "schemaVersion": { "const": "castingcompass.structure-depth-evidence/1.3.0" },
+    "schemaVersion": { "const": "castingcompass.structure-depth-evidence/1.4.0" },
     "policyVersion": { "type": "string", "minLength": 1, "maxLength": 160 },
     "policySha256": { "$ref": "#/$defs/sha256" },
     "collectorSha256": { "$ref": "#/$defs/sha256" },
@@ -40,8 +40,8 @@
     "source": { "$ref": "#/$defs/source" },
     "sites": {
       "type": "object",
-      "minProperties": 41,
-      "maxProperties": 41,
+      "minProperties": 51,
+      "maxProperties": 51,
       "propertyNames": { "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
       "additionalProperties": { "$ref": "#/$defs/siteEvidence" }
     }
