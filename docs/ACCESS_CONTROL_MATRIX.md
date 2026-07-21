@@ -32,7 +32,7 @@ output never grants authority.
 | Session | `token_hash = sha256(cookie)` and `expires_at > now` | Authentication atomically replaces any session presented by that browser and HTTPS uses `__Host-cc_session`; the prior cookie is accepted only for migration and rotated on session refresh; logout revokes presented sessions, while password reset and account deletion revoke every session for the account |
 | Saved site | `user_id = authenticated_user.id` | Owner may add/remove only their row |
 | Gear profile | `id = requested_id AND user_id = authenticated_user.id` | Owner may create, patch, or delete; an unknown or other-owned ID is `404` |
-| Trip/profile record | `id = requested_id AND user_id = authenticated_user.id` | Owner may patch/delete only while `moderation_status = 'pending'`; active completion and cancellation bind `id`, `user_id`, `status = 'active'`, and `token_hash` together in the final D1 statement; server-controlled contract fields cannot be overridden |
+| Trip/profile record | `id = requested_id AND user_id = authenticated_user.id`; enrollment, forecast-impression, feasibility-start, and prior-recruitment sidecars repeat the owner predicate directly or through the parent trip | Owner may patch/delete only while `moderation_status = 'pending'`; active completion and cancellation bind `id`, `user_id`, `status = 'active'`, and `token_hash` together in the final D1 statement; server-controlled contract fields cannot be overridden |
 | Stored trip photo | Trip predicate above before any R2 key is read | Owner-only authenticated download with `no-store`; object key is never accepted from the URL or request body |
 | Account export | Every account-linked query and status/download lookup binds `authenticated_user.id`; asynchronous Queue messages contain only an opaque job ID | Export is owner-only and omits internal object locators and moderator identity. The default-off package is private, expires after 24 hours, and is canceled/adopted atomically by account deletion |
 | Deletion receipt | Hash of a high-entropy, path-scoped `HttpOnly` receipt cookie | Exposes aggregate status only; receipt can be cleared and expires; it cannot restore content or authenticate an account |
@@ -82,7 +82,12 @@ trip-owner gate. Object-level ownership and cross-account behavior remain covere
 the runtime privacy and trip suites. The terminal-trip regression supplies the exact
 token from a second authenticated account and also changes ownership between the
 handler pre-read and final update; cancellation and completion both remain `404`, and
-the final D1 predicates leave the active row unchanged.
+the final D1 predicates leave the active row unchanged. All owner-path TripStore reads
+now receive the server-derived account identity, including validation sidecars and prior
+recruitment reuse; profile-edit feasibility start/completion/correction reads repeat the
+same parent-owner predicate. The one intentionally global trip-ID query selects only the constant
+`1` by primary key so a random client identity collision remains a generic `409`; it
+cannot project a trip field, account identity, or validation record.
 
 ## Open gates
 

@@ -1016,6 +1016,9 @@ test("active trip completion and cancellation bind the authenticated account eve
   assert.equal((await deniedCancel.json()).error.code, "trip_not_found");
   const store = createTripStore(d1);
   await store.initialize();
+  assert.equal(await store.isTripIdentityReserved(started.trip.id), true);
+  assert.equal(await store.getTrip(started.trip.id, other.id), null);
+  assert.equal((await store.getTrip(started.trip.id, owner.id))?.id, started.trip.id);
   assert.equal(await store.cancelTrip?.(
     started.trip.id,
     await sha256(started.token),

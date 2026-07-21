@@ -125,6 +125,14 @@ after its acceptance checks pass in the intended environment.
       account ID, active state, and token hash atomically; exact-token cross-account and
       ownership-change race regressions prove mismatched identity remains an indistinguishable
       `404` without completing or canceling the row.
+    - [x] Remove fetch-then-check reads from owner trip flows. Trip rows and their enrollment,
+      forecast-impression, feasibility-start, feasibility-recruitment, and prior-recruitment
+      context now bind the server-derived account in the query itself. Profile-edit reads for
+      feasibility start, completion, and correction state repeat the parent-trip owner gate.
+      A separately named
+      collision check returns only constant `1` by random client-trip ID so duplicate identities
+      remain a generic `409` without projecting another account's row or sidecars. The complete
+      D1 inventory machine-checks all nine owner reads and this narrow opaque exception.
   - [ ] Verify strict schema/size/type validation, contextual output encoding, safe database
     binding, upload signature and metadata checks, and AI prompt-injection boundaries. Model
     instructions and user content remain data, never authority; models receive no ambient

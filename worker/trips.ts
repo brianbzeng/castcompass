@@ -557,23 +557,35 @@ export interface TripStore {
     feasibilityStart?: FeasibilityEventRecord | null,
     feasibilityRecruitment?: FeasibilityRecruitmentRecord | null,
   ): Promise<TripRow>;
-  getTrip(id: string): Promise<TripRow | null>;
-  getValidationEnrollment?(tripId: string): Promise<StoredValidationEnrollment | null>;
-  getForecastImpression?(tripId: string): Promise<StoredForecastImpression | null>;
+  getTrip(id: string, accountId: string | null): Promise<TripRow | null>;
+  isTripIdentityReserved(id: string): Promise<boolean>;
+  getValidationEnrollment?(
+    tripId: string,
+    accountId: string | null,
+  ): Promise<StoredValidationEnrollment | null>;
+  getForecastImpression?(
+    tripId: string,
+    accountId: string | null,
+  ): Promise<StoredForecastImpression | null>;
   getRecruitmentEvent?(
     participantGroupId: string,
     activation: ValidationActivationRecord,
+    accountId: string | null,
   ): Promise<StoredRecruitmentEvent | null>;
   getFeasibilityActivation?(activationId: string): Promise<StoredFeasibilityActivation | null>;
   getFeasibilityRecruitment?(
     activationId: string,
     participantGroupId: string,
+    accountId: string | null,
   ): Promise<StoredFeasibilityRecruitment | null>;
   getFeasibilityRecruitmentCampaign?(
     activationId: string,
     campaignId: string,
   ): Promise<StoredFeasibilityRecruitmentCampaign | null>;
-  getFeasibilityStart?(tripId: string): Promise<StoredFeasibilityStart | null>;
+  getFeasibilityStart?(
+    tripId: string,
+    accountId: string | null,
+  ): Promise<StoredFeasibilityStart | null>;
   completeTrip(
     id: string,
     tokenHash: string,
@@ -1500,8 +1512,10 @@ export function createTripStore(db: D1DatabaseLike): TripStore {
     await pending;
   };
 
-  const getTrip = async (id: string) =>
-    db.prepare("SELECT * FROM trips WHERE id = ? LIMIT 1").bind(id).first<TripRow>();
+  const getTrip = async (id: string, accountId: string | null) =>
+    db.prepare("SELECT * FROM trips WHERE id = ? AND user_id IS ? LIMIT 1")
+      .bind(id, accountId)
+      .first<TripRow>();
 
   return {
     initialize,
@@ -1601,12 +1615,19 @@ export function createTripStore(db: D1DatabaseLike): TripStore {
       if (feasibilityStart) statements.push(prepareFeasibilityEventInsert(db, feasibilityStart));
       await db.batch(statements);
 
-      const inserted = await getTrip(record.id);
+      const inserted = await getTrip(record.id, record.userId);
       if (!inserted) throw new Error("Trip insert did not return a record");
       return inserted;
     },
 
     getTrip,
+
+    async isTripIdentityReserved(id) {
+      const row = await db.prepare("SELECT 1 AS reserved FROM trips WHERE id = ? LIMIT 1")
+        .bind(id)
+        .first<{ reserved: number }>();
+      return Number(row?.reserved ?? 0) === 1;
+    },
 
     async getFeasibilityActivation(activationId) {
       return db.prepare(`SELECT id, protocol_id, protocol_version, protocol_sha256,
@@ -1619,14 +1640,14 @@ export function createTripStore(db: D1DatabaseLike): TripStore {
         .first<StoredFeasibilityActivation>();
     },
 
-    async getFeasibilityRecruitment(activationId, participantGroupId) {
+    async getFeasibilityRecruitment(activationId, participantGroupId, accountId) {
       return db.prepare(`SELECT event_id, activation_id, user_id, participant_group_id,
           event_contract_version, recruitment_frame_id, recruitment_source_id,
           selection_method, recruited_at, campaign_id, invite_issued_at, invite_expires_at,
           community_approval_sha256, event_sha256, created_at, snapshot_suppression_sha256
         FROM validation_feasibility_recruitment_events
-        WHERE activation_id = ? AND participant_group_id = ? LIMIT 1`)
-        .bind(activationId, participantGroupId)
+        WHERE activation_id = ? AND participant_group_id = ? AND user_id IS ? LIMIT 1`)
+        .bind(activationId, participantGroupId, accountId)
         .first<StoredFeasibilityRecruitment>();
     },
 
@@ -1640,20 +1661,25 @@ export function createTripStore(db: D1DatabaseLike): TripStore {
         .first<StoredFeasibilityRecruitmentCampaign>();
     },
 
-    async getFeasibilityStart(tripId) {
+    async getFeasibilityStart(tripId, accountId) {
       return db.prepare(`SELECT activation_id, trip_id, event_sha256, source_record_sha256,
           participant_group_id, recruitment_frame_id, recruitment_source_id, selection_method,
           score_influenced_choice, study_consent_version, study_consented_at, target_taxon_id,
           site_id, geographic_panel, mode, segment_start_at, angler_count,
           scoring_system_kind, scoring_system_version, scoring_system_sha256,
           opportunity_score, opportunity_window_id, snapshot_sha256, snapshot_suppression_sha256
-        FROM validation_feasibility_events
-        WHERE trip_id = ? AND event_type = 'started' LIMIT 1`)
-        .bind(tripId)
+        FROM validation_feasibility_events AS event
+        WHERE event.trip_id = ? AND event.event_type = 'started'
+          AND EXISTS (
+            SELECT 1 FROM trips AS owner_trip
+            WHERE owner_trip.id = event.trip_id AND owner_trip.user_id IS ?
+          )
+        LIMIT 1`)
+        .bind(tripId, accountId)
         .first<StoredFeasibilityStart>();
     },
 
-    async getValidationEnrollment(tripId) {
+    async getValidationEnrollment(tripId, accountId) {
       return db.prepare(`SELECT collection_contract_version, source_role, cohort_id,
           validation_protocol_id, activation_manifest_sha256, activated_at,
           activation_scoring_system_sha256, participant_group_id, recruitment_frame_id,
@@ -1665,28 +1691,36 @@ export function createTripStore(db: D1DatabaseLike): TripStore {
           complete_attempt_confirmed, mode_at_enrollment, consent_version,
           consented_at, score_influenced_choice, forecast_impression_id,
           attestation_status
-        FROM trip_validation_provenance
-        WHERE trip_id = ? AND event_type = 'enrollment'
-        ORDER BY created_at ASC LIMIT 1`)
-        .bind(tripId)
+        FROM trip_validation_provenance AS provenance
+        WHERE provenance.trip_id = ? AND provenance.event_type = 'enrollment'
+          AND EXISTS (
+            SELECT 1 FROM trips AS owner_trip
+            WHERE owner_trip.id = provenance.trip_id AND owner_trip.user_id IS ?
+          )
+        ORDER BY provenance.created_at ASC LIMIT 1`)
+        .bind(tripId, accountId)
         .first<StoredValidationEnrollment>();
     },
 
-    async getRecruitmentEvent(participantGroupId, activation) {
+    async getRecruitmentEvent(participantGroupId, activation, accountId) {
       return db.prepare(`SELECT participant_group_id, recruitment_frame_id,
           recruitment_source_id, recruitment_event_contract_version,
           recruitment_event_at, recruitment_event_sha256, community_approval_sha256
-        FROM trip_validation_provenance
-        WHERE participant_group_id = ?
-          AND event_type = 'enrollment'
-          AND source_role = 'prospective_secondary'
-          AND validation_protocol_id = ?
-          AND activation_manifest_sha256 = ?
-          AND activated_at = ?
-          AND activation_scoring_system_sha256 = ?
-          AND recruitment_frame_id = ?
-          AND recruitment_event_sha256 IS NOT NULL
-        ORDER BY recruitment_event_at ASC, created_at ASC LIMIT 1`)
+        FROM trip_validation_provenance AS provenance
+        WHERE provenance.participant_group_id = ?
+          AND provenance.event_type = 'enrollment'
+          AND provenance.source_role = 'prospective_secondary'
+          AND provenance.validation_protocol_id = ?
+          AND provenance.activation_manifest_sha256 = ?
+          AND provenance.activated_at = ?
+          AND provenance.activation_scoring_system_sha256 = ?
+          AND provenance.recruitment_frame_id = ?
+          AND provenance.recruitment_event_sha256 IS NOT NULL
+          AND EXISTS (
+            SELECT 1 FROM trips AS owner_trip
+            WHERE owner_trip.id = provenance.trip_id AND owner_trip.user_id IS ?
+          )
+        ORDER BY provenance.recruitment_event_at ASC, provenance.created_at ASC LIMIT 1`)
         .bind(
           participantGroupId,
           activation.protocolId,
@@ -1694,14 +1728,21 @@ export function createTripStore(db: D1DatabaseLike): TripStore {
           activation.activatedAt,
           activation.scoringSystemSha256,
           RECRUITMENT_FRAME_ID,
+          accountId,
         )
         .first<StoredRecruitmentEvent>();
     },
 
-    async getForecastImpression(tripId) {
+    async getForecastImpression(tripId, accountId) {
       return db.prepare(`SELECT id, window_start, window_end, site_id
-        FROM forecast_impressions WHERE trip_id = ? LIMIT 1`)
-        .bind(tripId)
+        FROM forecast_impressions AS impression
+        WHERE impression.trip_id = ?
+          AND EXISTS (
+            SELECT 1 FROM trips AS owner_trip
+            WHERE owner_trip.id = impression.trip_id AND owner_trip.user_id IS ?
+          )
+        LIMIT 1`)
+        .bind(tripId, accountId)
         .first<StoredForecastImpression>();
     },
 
@@ -1797,7 +1838,7 @@ export function createTripStore(db: D1DatabaseLike): TripStore {
       const result = results[0] as { meta?: { changes?: number } } | undefined;
 
       if (Number(result?.meta?.changes ?? 0) !== 1) return null;
-      return getTrip(id);
+      return getTrip(id, accountId);
     },
 
     async cancelTrip(id, tokenHash, accountId, timestamp, feasibilityTerminal) {
@@ -2149,8 +2190,9 @@ async function prepareOrganicRecruitmentEvent(
   participantGroupId: string,
   timestamp: string,
   activation: ValidationActivationRecord,
+  accountId: string | null,
 ): Promise<RecruitmentEventRecord | null> {
-  const existing = await store.getRecruitmentEvent?.(participantGroupId, activation);
+  const existing = await store.getRecruitmentEvent?.(participantGroupId, activation, accountId);
   if (existing) {
     const event: RecruitmentEventRecord = {
       participantGroupId: existing.participant_group_id,
@@ -2637,7 +2679,7 @@ export async function handleTripRequest(
       const id = parseClientTripId(body.clientTripId);
       const token = parseRequestToken(body.requestToken);
       const idempotencyKeyHash = await sha256(token);
-      const existingRequest = await store.getTrip(id);
+      const existingRequest = await store.getTrip(id, options.accountId ?? null);
       if (existingRequest) {
         if (isMatchingLiveStart(existingRequest, idempotencyKeyHash, reporter.hash, options.accountId)) {
           return jsonResponse({
@@ -2646,6 +2688,9 @@ export async function handleTripRequest(
             receipt: { operation: "start", tripId: id },
           }, 201, reporter.setCookie);
         }
+        throw new ApiError(409, "trip_request_conflict", "This trip request identity cannot be reused.");
+      }
+      if (await store.isTripIdentityReserved(id)) {
         throw new ApiError(409, "trip_request_conflict", "This trip request identity cannot be reused.");
       }
       await store.assertSubmissionAllowed(reporter.hash, now);
@@ -2705,6 +2750,7 @@ export async function handleTripRequest(
         const existingRecruitment = await store.getFeasibilityRecruitment(
           activationId,
           context.participantGroupId,
+          options.accountId,
         );
         const recruitmentToken = optionalText(body.recruitmentToken, "recruitmentToken", 2_048);
         const campaignReference = recruitmentToken && !existingRecruitment
@@ -2769,7 +2815,13 @@ export async function handleTripRequest(
         ? `participant-${await sha256(`${VALIDATION_PARTICIPANT_TOKEN_DOMAIN}\u0000${reporter.hash}`)}`
         : null;
       const recruitmentEvent = activation && participantGroupId
-        ? await prepareOrganicRecruitmentEvent(store, participantGroupId, timestamp, activation)
+        ? await prepareOrganicRecruitmentEvent(
+            store,
+            participantGroupId,
+            timestamp,
+            activation,
+            options.accountId ?? null,
+          )
         : null;
       const collectionIdentity = activation && recruitmentEvent
         ? await validationCollectionIdentity(id, activation.protocolId)
@@ -2832,8 +2884,11 @@ export async function handleTripRequest(
           completedAt: null,
         }, validation, feasibilityStart, feasibilityRecruitment);
       } catch (error) {
-        const racedTrip = await store.getTrip(id);
+        const racedTrip = await store.getTrip(id, options.accountId ?? null);
         if (!racedTrip || !isMatchingLiveStart(racedTrip, idempotencyKeyHash, reporter.hash, options.accountId)) {
+          if (await store.isTripIdentityReserved(id)) {
+            throw new ApiError(409, "trip_request_conflict", "This trip request identity cannot be reused.");
+          }
           throw error;
         }
         trip = racedTrip;
@@ -2861,13 +2916,15 @@ export async function handleTripRequest(
         throw new ApiError(404, "trip_not_found", "The active trip could not be found.");
       }
       const reason = parseSafeCancellationReason(body.reason);
-      const existing = await store.getTrip(id);
+      const existing = await store.getTrip(id, options.accountId ?? null);
       if (!existing || existing.status !== "active"
         || !sameTripAccount(existing, options.accountId) || !store.cancelTrip) {
         throw new ApiError(404, "trip_not_found", "The active trip could not be found.");
       }
       const timestamp = now.toISOString();
-      const feasibilityStart = await (store.getFeasibilityStart?.(id) ?? Promise.resolve(null));
+      const feasibilityStart = await (
+        store.getFeasibilityStart?.(id, options.accountId ?? null) ?? Promise.resolve(null)
+      );
       const feasibilityTerminal = feasibilityStart
         ? await buildFeasibilityCancellationEvent({ start: feasibilityStart, timestamp, reason })
         : null;
@@ -2905,7 +2962,7 @@ export async function handleTripRequest(
         throw new ApiError(404, "trip_not_found", "The active trip could not be found.");
       }
 
-      const existing = await store.getTrip(id);
+      const existing = await store.getTrip(id, options.accountId ?? null);
       const tokenHash = await sha256(token);
       if (
         existing?.status === "completed" && existing.source === "live" &&
@@ -2915,7 +2972,9 @@ export async function handleTripRequest(
         if (!sameTripPrincipal(existing, reporter.hash, options.accountId)) {
           throw new ApiError(404, "trip_not_found", "The active trip could not be found.");
         }
-        const originalForecastImpression = await (store.getForecastImpression?.(id) ?? Promise.resolve(null));
+        const originalForecastImpression = await (
+          store.getForecastImpression?.(id, options.accountId ?? null) ?? Promise.resolve(null)
+        );
         return jsonResponse({
           trip: publicTrip(existing),
           forecastAttributionCleared: Boolean(originalForecastImpression) && existing.opportunity_window_id === null,
@@ -2960,8 +3019,8 @@ export async function handleTripRequest(
         otherCatchCount: details.otherCatchCount,
       });
       const [validationEnrollment, forecastImpression] = await Promise.all([
-        store.getValidationEnrollment?.(id) ?? Promise.resolve(null),
-        store.getForecastImpression?.(id) ?? Promise.resolve(null),
+        store.getValidationEnrollment?.(id, options.accountId ?? null) ?? Promise.resolve(null),
+        store.getForecastImpression?.(id, options.accountId ?? null) ?? Promise.resolve(null),
       ]);
       const completionProvenance = await buildCompletionProvenance({
         trip: existing,
@@ -2972,7 +3031,9 @@ export async function handleTripRequest(
         enrollment: validationEnrollment,
         impression: forecastImpression,
       });
-      const feasibilityStart = await (store.getFeasibilityStart?.(id) ?? Promise.resolve(null));
+      const feasibilityStart = await (
+        store.getFeasibilityStart?.(id, options.accountId ?? null) ?? Promise.resolve(null)
+      );
       if (feasibilityStart && mode !== feasibilityStart.mode) {
         throw new ApiError(
           422,
@@ -3019,7 +3080,7 @@ export async function handleTripRequest(
         }, completionProvenance, feasibilityTerminal);
 
         if (!completed) {
-          const racedTrip = await store.getTrip(id);
+          const racedTrip = await store.getTrip(id, options.accountId ?? null);
           const retryReporter = await getOrCreateReporter(request, form.get("reporterKey"));
           if (
             !racedTrip || racedTrip.status !== "completed" || racedTrip.source !== "live" ||
@@ -3031,7 +3092,9 @@ export async function handleTripRequest(
           if (uploaded && racedTrip.photo_key !== uploaded.key) {
             await env.TRIP_PHOTOS?.delete(uploaded.key).catch(() => undefined);
           }
-          const originalForecastImpression = await (store.getForecastImpression?.(id) ?? Promise.resolve(null));
+          const originalForecastImpression = await (
+            store.getForecastImpression?.(id, options.accountId ?? null) ?? Promise.resolve(null)
+          );
           return jsonResponse({
             trip: publicTrip(racedTrip),
             forecastAttributionCleared: Boolean(originalForecastImpression) && racedTrip.opportunity_window_id === null,
@@ -3048,7 +3111,7 @@ export async function handleTripRequest(
         let committedTrip: TripRow | null = null;
         if (uploaded) {
           try {
-            committedTrip = await store.getTrip(id);
+            committedTrip = await store.getTrip(id, options.accountId ?? null);
           } catch {
             // A failed reconciliation read cannot prove that the write rolled back.
             // Keep the object for the idempotent retry/deletion ledger to reconcile.
@@ -3077,7 +3140,7 @@ export async function handleTripRequest(
       const id = parseClientTripId(form.get("clientTripId"));
       const requestToken = parseRequestToken(form.get("requestToken"));
       const idempotencyKeyHash = await sha256(requestToken);
-      const existingRequest = await store.getTrip(id);
+      const existingRequest = await store.getTrip(id, options.accountId ?? null);
       if (existingRequest) {
         if (isMatchingPastReport(existingRequest, idempotencyKeyHash, reporter.hash, options.accountId)) {
           return jsonResponse({
@@ -3085,6 +3148,9 @@ export async function handleTripRequest(
             receipt: { operation: "past", tripId: id },
           }, 201, reporter.setCookie);
         }
+        throw new ApiError(409, "trip_request_conflict", "This trip request identity cannot be reused.");
+      }
+      if (await store.isTripIdentityReserved(id)) {
         throw new ApiError(409, "trip_request_conflict", "This trip request identity cannot be reused.");
       }
       await store.assertSubmissionAllowed(reporter.hash, now);
@@ -3172,7 +3238,7 @@ export async function handleTripRequest(
           receipt: { operation: "past", tripId: id },
         }, 201, reporter.setCookie);
       } catch (error) {
-        const racedTrip = await store.getTrip(id);
+        const racedTrip = await store.getTrip(id, options.accountId ?? null);
         if (racedTrip && isMatchingPastReport(racedTrip, idempotencyKeyHash, reporter.hash, options.accountId)) {
           if (uploaded && racedTrip.photo_key !== uploaded.key) {
             await env.TRIP_PHOTOS?.delete(uploaded.key).catch(() => undefined);
@@ -3181,6 +3247,10 @@ export async function handleTripRequest(
             trip: publicTrip(racedTrip),
             receipt: { operation: "past", tripId: id },
           }, 201, reporter.setCookie);
+        }
+        if (await store.isTripIdentityReserved(id)) {
+          if (uploaded) await env.TRIP_PHOTOS?.delete(uploaded.key).catch(() => undefined);
+          throw new ApiError(409, "trip_request_conflict", "This trip request identity cannot be reused.");
         }
         if (uploaded && racedTrip?.photo_key !== uploaded.key) {
           await env.TRIP_PHOTOS?.delete(uploaded.key).catch(() => undefined);

@@ -56,13 +56,13 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
   validatePolicy(policy, inventory);
   assert.deepEqual(JSON.parse(committed), inventory);
   assert.deepEqual(inventory.summary, {
-    prepareCallCount: 221,
-    literalCallCount: 195,
+    prepareCallCount: 222,
+    literalCallCount: 196,
     nonLiteralCallCount: 26,
     multiRowLiteralWithoutLimitCount: 12,
   });
   assert.equal(inventory.sourceFiles.length, 8);
-  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 221);
+  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 222);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "open-account-cardinality").length, 0);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "complete-rights-export").length, 9);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "owner-lifecycle-cleanup").length, 3);
@@ -91,6 +91,36 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
   assert.ok(terminalTripWrites.some(({ sql }) => /status = 'completed'/u.test(sql ?? "")));
   assert.ok(terminalTripWrites.some(({ sql }) =>
     sql === "UPDATE trips SET token_hash = NULL, updated_at = ? WHERE id = ? AND user_id IS ? AND status = 'active' AND token_hash = ?"));
+
+  const exactOwnerTripRead = inventory.queries.find(({ sql }) =>
+    sql === "SELECT * FROM trips WHERE id = ? AND user_id IS ? LIMIT 1");
+  assert.equal(exactOwnerTripRead?.executionMode, "first");
+  assert.equal(inventory.queries.some(({ sql }) => sql === "SELECT * FROM trips WHERE id = ? LIMIT 1"), false);
+
+  const ownerSidecarReads = inventory.queries.filter(({ file, executionMode, sql }) =>
+    file === "worker/trips.ts"
+      && executionMode === "first"
+      && /FROM (?:validation_feasibility_recruitment_events|validation_feasibility_events AS event|trip_validation_provenance AS provenance|forecast_impressions AS impression)/u.test(sql ?? "")
+      && /user_id IS \?/u.test(sql ?? ""));
+  assert.equal(ownerSidecarReads.length, 5);
+  assert.ok(ownerSidecarReads.some(({ sql }) =>
+    /FROM validation_feasibility_recruitment_events .* user_id IS \? LIMIT 1$/u.test(sql ?? "")));
+  assert.equal(ownerSidecarReads.filter(({ sql }) => /owner_trip\.user_id IS \?/u.test(sql ?? "")).length, 4);
+
+  const ownerProfileSidecarReads = inventory.queries.filter(({ file, executionMode, sql }) =>
+    file === "worker/auth.ts"
+      && executionMode === "first"
+      && /FROM (?:validation_feasibility_events AS event|validation_feasibility_corrections AS correction)/u.test(sql ?? "")
+      && /owner_trip\.user_id = \?/u.test(sql ?? ""));
+  assert.equal(ownerProfileSidecarReads.length, 3);
+  assert.equal(ownerProfileSidecarReads.filter(({ sql }) => /event_type = '(?:started|completed)'/u.test(sql ?? "")).length, 2);
+  assert.ok(ownerProfileSidecarReads.some(({ sql }) =>
+    /ORDER BY correction\.sequence DESC LIMIT 1$/u.test(sql ?? "")));
+
+  const opaqueTripIdentityRead = inventory.queries.find(({ sql }) =>
+    sql === "SELECT 1 AS reserved FROM trips WHERE id = ? LIMIT 1");
+  assert.equal(opaqueTripIdentityRead?.executionMode, "first");
+  assert.deepEqual(opaqueTripIdentityRead?.tables, ["trips"]);
 });
 
 test("unscoped writes and unreviewed multi-row reads fail closed", async () => {

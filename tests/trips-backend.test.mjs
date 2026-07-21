@@ -193,11 +193,17 @@ class MemoryTripStore {
     return row;
   }
 
-  async getTrip(id) {
-    return this.trips.get(id) ?? null;
+  async getTrip(id, accountId) {
+    const row = this.trips.get(id);
+    return row && (row.user_id ?? null) === accountId ? row : null;
   }
 
-  async getValidationEnrollment(id) {
+  async isTripIdentityReserved(id) {
+    return this.trips.has(id);
+  }
+
+  async getValidationEnrollment(id, accountId) {
+    if (!await this.getTrip(id, accountId)) return null;
     const record = this.validations.get(id)?.provenance;
     if (!record || record.eventType !== "enrollment") return null;
     return {
@@ -236,9 +242,13 @@ class MemoryTripStore {
     };
   }
 
-  async getRecruitmentEvent(participantGroupId, activation) {
-    const records = [...this.validations.values()]
-      .map((validation) => validation.provenance)
+  async getRecruitmentEvent(participantGroupId, activation, accountId) {
+    const records = [...this.validations.entries()]
+      .filter(([tripId]) => {
+        const row = this.trips.get(tripId);
+        return row && (row.user_id ?? null) === accountId;
+      })
+      .map(([, validation]) => validation.provenance)
       .filter((record) => record.eventType === "enrollment"
         && record.sourceRole === "prospective_secondary"
         && record.participantGroupId === participantGroupId
@@ -261,7 +271,8 @@ class MemoryTripStore {
     };
   }
 
-  async getForecastImpression(id) {
+  async getForecastImpression(id, accountId) {
+    if (!await this.getTrip(id, accountId)) return null;
     const record = this.validations.get(id)?.impression;
     if (!record) return null;
     return {

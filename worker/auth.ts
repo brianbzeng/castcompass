@@ -1119,16 +1119,31 @@ export async function handleAccountRequest(
               scoring_system_kind, scoring_system_version, scoring_system_sha256,
               opportunity_score, opportunity_window_id, snapshot_sha256,
               snapshot_suppression_sha256
-            FROM validation_feasibility_events
-            WHERE trip_id = ? AND event_type = 'started' LIMIT 1`)
-            .bind(tripId).first<StoredFeasibilityStart>(),
-          db.prepare(`SELECT activation_id, event_sha256 FROM validation_feasibility_events
-            WHERE trip_id = ? AND event_type = 'completed' LIMIT 1`)
-            .bind(tripId).first<{ activation_id: string; event_sha256: string }>(),
+            FROM validation_feasibility_events AS event
+            WHERE event.trip_id = ? AND event.event_type = 'started'
+              AND EXISTS (
+                SELECT 1 FROM trips AS owner_trip
+                WHERE owner_trip.id = event.trip_id AND owner_trip.user_id = ?
+              )
+            LIMIT 1`)
+            .bind(tripId, user.id).first<StoredFeasibilityStart>(),
+          db.prepare(`SELECT activation_id, event_sha256 FROM validation_feasibility_events AS event
+            WHERE event.trip_id = ? AND event.event_type = 'completed'
+              AND EXISTS (
+                SELECT 1 FROM trips AS owner_trip
+                WHERE owner_trip.id = event.trip_id AND owner_trip.user_id = ?
+              )
+            LIMIT 1`)
+            .bind(tripId, user.id).first<{ activation_id: string; event_sha256: string }>(),
           db.prepare(`SELECT root_completion_event_sha256, event_sha256
-            FROM validation_feasibility_corrections WHERE trip_id = ?
-            ORDER BY sequence DESC LIMIT 1`)
-            .bind(tripId).first<{ root_completion_event_sha256: string; event_sha256: string }>(),
+            FROM validation_feasibility_corrections AS correction
+            WHERE correction.trip_id = ?
+              AND EXISTS (
+                SELECT 1 FROM trips AS owner_trip
+                WHERE owner_trip.id = correction.trip_id AND owner_trip.user_id = ?
+              )
+            ORDER BY correction.sequence DESC LIMIT 1`)
+            .bind(tripId, user.id).first<{ root_completion_event_sha256: string; event_sha256: string }>(),
         ]);
         if (feasibilityStart && (
           !feasibilityCompletion || feasibilityCompletion.activation_id !== feasibilityStart.activation_id ||

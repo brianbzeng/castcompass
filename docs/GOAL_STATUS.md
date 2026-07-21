@@ -61,6 +61,31 @@ by that discovery.
       the local checkpoint; no push, pull request, merge, deployment, provider query, D1
       mutation, model change, or UI change is part of this work.
 
+## Active checkpoint — owner-scoped trip read boundary
+
+- [x] Continue the P0 authorization audit beyond terminal writes. Nine owner-flow data-access
+      methods still selected a trip or validation sidecar by object/group identity and relied on
+      a later in-memory ownership check, contradicting the matrix requirement that private
+      queries carry the server-derived account predicate.
+- [x] Bind `user_id IS ?` into the trip-row and feasibility-recruitment reads and through the
+      parent trip for enrollment provenance, forecast impressions, feasibility starts, and
+      prior recruitment-event reuse. Profile-edit feasibility start/completion/correction reads
+      now repeat the same parent owner gate. Every handler call and idempotent/race reconciliation
+      read now supplies the authenticated account identity.
+- [x] Preserve enumeration-resistant client identity collisions without reopening private data.
+      The only intentionally global trip-ID lookup selects constant `1` by primary key; it
+      exposes no trip/account field and keeps live-start and past-report collisions on the same
+      generic `409` path before rate-limit or storage details can differ.
+- [x] Expand the complete D1 inventory from 221 to 222 prepare sites and machine-check the nine
+      owner-bound reads, removal of the old unscoped trip projection, and the exact constant-only
+      collision query. Direct D1 tests prove another account cannot retrieve the row even with
+      its exact trip ID while the owner can.
+- [x] Pass the complete pinned repository verification: Cloudflare build, ESLint, TypeScript,
+      all 546/546 Node tests, the complete offline security/SBOM/source-integrity chain, and both
+      zero-vulnerability npm audits are green. The clean local commit and exact release-bundle
+      receipt close this repository-only checkpoint; no push, new pull request, merge,
+      deployment, provider query, D1 mutation, model change, or UI change occurred.
+
 ## Active checkpoint — observability activation private-evidence handoff
 
 - [x] Bind the unfilled handoff to consolidated draft PR `#146` receipt head

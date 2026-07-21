@@ -1,11 +1,11 @@
 {
   "schemaVersion": "castingcompass.d1-query-inventory/1.0.0",
   "generatedFrom": "TypeScript AST; no runtime or provider query executed",
-  "policySha256": "a185a477113beb6c2fb9d137818f0b4db87ef687fa8d955aadb197ecd45e957e",
+  "policySha256": "5a7f622283d755c30531a733d6da510ed3e9643efc3604dfaf502fc91c105f16",
   "sourceFiles": [
     {
       "file": "worker/auth.ts",
-      "sha256": "191af900e50fa026046dec07d6ad3bcb3cf0f62a8da7299be07455ceef510381",
+      "sha256": "8dc0287c89b76c4854a9c40b3c540896041b76b7ef0bb885be8b3e79851058bb",
       "prepareCallCount": 129
     },
     {
@@ -35,8 +35,8 @@
     },
     {
       "file": "worker/trips.ts",
-      "sha256": "1e9dd79461eeb42a39181becf9a757abf3a48dcca83e39cc42425b94fa42308d",
-      "prepareCallCount": 25
+      "sha256": "6ef16fa5ee79ddeb21f80a2e82aa9e7b9166075ce120feb3004081071917a767",
+      "prepareCallCount": 26
     },
     {
       "file": "worker/validation-feasibility-export.ts",
@@ -45,8 +45,8 @@
     }
   ],
   "summary": {
-    "prepareCallCount": 221,
-    "literalCallCount": 195,
+    "prepareCallCount": 222,
+    "literalCallCount": 196,
     "nonLiteralCallCount": 26,
     "multiRowLiteralWithoutLimitCount": 12
   },
@@ -1835,67 +1835,70 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "8aa953cda3f8747c473cc0e4",
+      "callSiteId": "219b854bd720288cc8544431",
       "file": "worker/auth.ts",
       "line": 1115,
       "containingFunction": "handleAccountRequest",
       "occurrence": 83,
       "executionMode": "first",
       "argumentKind": "literal",
-      "expression": "`SELECT activation_id, trip_id, event_sha256, source_record_sha256,\n              participant_group_id, recruitment_frame_id, recruitment_source_id, selection_method,\n              score_influenced_choice, study_consent_version, study_consented_at, target_taxon_id,\n              site_id, geographic_panel, mode, segment_start_at, angler_count,\n              scoring_system_kind, scoring_system_version, scoring_system_sha256,\n              opportunity_score, opportunity_window_id, snapshot_sha256,\n              snapshot_suppression_sha256\n            FROM validation_feasibility_events\n            WHERE trip_id = ? AND event_type = 'started' LIMIT 1`",
-      "expressionSha256": "34a48b0999c238b530dc06a57317cbdae4b0ba3f325488f5dea0422da5ed933c",
+      "expression": "`SELECT activation_id, trip_id, event_sha256, source_record_sha256,\n              participant_group_id, recruitment_frame_id, recruitment_source_id, selection_method,\n              score_influenced_choice, study_consent_version, study_consented_at, target_taxon_id,\n              site_id, geographic_panel, mode, segment_start_at, angler_count,\n              scoring_system_kind, scoring_system_version, scoring_system_sha256,\n              opportunity_score, opportunity_window_id, snapshot_sha256,\n              snapshot_suppression_sha256\n            FROM validation_feasibility_events AS event\n            WHERE event.trip_id = ? AND event.event_type = 'started'\n              AND EXISTS (\n                SELECT 1 FROM trips AS owner_trip\n                WHERE owner_trip.id = event.trip_id AND owner_trip.user_id = ?\n              )\n            LIMIT 1`",
+      "expressionSha256": "e892bd769d468b9105a08321e2f3778f99a0082e0543fb4f9bb77b173bf24439",
       "declarationReference": null,
       "statementClass": "SELECT",
-      "sql": "SELECT activation_id, trip_id, event_sha256, source_record_sha256, participant_group_id, recruitment_frame_id, recruitment_source_id, selection_method, score_influenced_choice, study_consent_version, study_consented_at, target_taxon_id, site_id, geographic_panel, mode, segment_start_at, angler_count, scoring_system_kind, scoring_system_version, scoring_system_sha256, opportunity_score, opportunity_window_id, snapshot_sha256, snapshot_suppression_sha256 FROM validation_feasibility_events WHERE trip_id = ? AND event_type = 'started' LIMIT 1",
-      "sqlSha256": "5436f66f7f67c0679096b0a3b10764c9ecde14d5b58381b465d88e03b5e54b42",
+      "sql": "SELECT activation_id, trip_id, event_sha256, source_record_sha256, participant_group_id, recruitment_frame_id, recruitment_source_id, selection_method, score_influenced_choice, study_consent_version, study_consented_at, target_taxon_id, site_id, geographic_panel, mode, segment_start_at, angler_count, scoring_system_kind, scoring_system_version, scoring_system_sha256, opportunity_score, opportunity_window_id, snapshot_sha256, snapshot_suppression_sha256 FROM validation_feasibility_events AS event WHERE event.trip_id = ? AND event.event_type = 'started' AND EXISTS ( SELECT 1 FROM trips AS owner_trip WHERE owner_trip.id = event.trip_id AND owner_trip.user_id = ? ) LIMIT 1",
+      "sqlSha256": "b12ec7443456d949bc8e92b6c31efa5601a7c89973368583115b757b49c90619",
       "tables": [
+        "trips",
         "validation_feasibility_events"
       ],
-      "placeholderCount": 1,
+      "placeholderCount": 2,
       "hasWhere": true,
       "hasOrderBy": false,
       "hasLimit": true
     },
     {
-      "callSiteId": "80921f5610ac2627be41ec69",
+      "callSiteId": "a190e8fad5bbb4ba2d33d5fe",
       "file": "worker/auth.ts",
-      "line": 1125,
+      "line": 1130,
       "containingFunction": "handleAccountRequest",
       "occurrence": 84,
       "executionMode": "first",
       "argumentKind": "literal",
-      "expression": "`SELECT activation_id, event_sha256 FROM validation_feasibility_events\n            WHERE trip_id = ? AND event_type = 'completed' LIMIT 1`",
-      "expressionSha256": "7bd369a06aed4fdaba0758f91f190b4c6cbbeca7ab5962efcda284f4d1b81e72",
+      "expression": "`SELECT activation_id, event_sha256 FROM validation_feasibility_events AS event\n            WHERE event.trip_id = ? AND event.event_type = 'completed'\n              AND EXISTS (\n                SELECT 1 FROM trips AS owner_trip\n                WHERE owner_trip.id = event.trip_id AND owner_trip.user_id = ?\n              )\n            LIMIT 1`",
+      "expressionSha256": "5e140efcf2b615775c2223dcfcdcbf84dd86d0ecd4100f79d31fc661a05be0c5",
       "declarationReference": null,
       "statementClass": "SELECT",
-      "sql": "SELECT activation_id, event_sha256 FROM validation_feasibility_events WHERE trip_id = ? AND event_type = 'completed' LIMIT 1",
-      "sqlSha256": "ac350fd2e6e85352bd09bcd50865bcd393836c260f93c6c8f4994996f63674b7",
+      "sql": "SELECT activation_id, event_sha256 FROM validation_feasibility_events AS event WHERE event.trip_id = ? AND event.event_type = 'completed' AND EXISTS ( SELECT 1 FROM trips AS owner_trip WHERE owner_trip.id = event.trip_id AND owner_trip.user_id = ? ) LIMIT 1",
+      "sqlSha256": "ec9b67d7e68f06b790d9b53f78ab37a86665017cb416d700b426ffdc52c07350",
       "tables": [
+        "trips",
         "validation_feasibility_events"
       ],
-      "placeholderCount": 1,
+      "placeholderCount": 2,
       "hasWhere": true,
       "hasOrderBy": false,
       "hasLimit": true
     },
     {
-      "callSiteId": "6c365cd02228638bf1b31f80",
+      "callSiteId": "e798bc5894c4bc4ec4a259c7",
       "file": "worker/auth.ts",
-      "line": 1128,
+      "line": 1138,
       "containingFunction": "handleAccountRequest",
       "occurrence": 85,
       "executionMode": "first",
       "argumentKind": "literal",
-      "expression": "`SELECT root_completion_event_sha256, event_sha256\n            FROM validation_feasibility_corrections WHERE trip_id = ?\n            ORDER BY sequence DESC LIMIT 1`",
-      "expressionSha256": "30adb3e2d03469c16b3475106825d9d504f70ce61eb73536f19507e83f74f5eb",
+      "expression": "`SELECT root_completion_event_sha256, event_sha256\n            FROM validation_feasibility_corrections AS correction\n            WHERE correction.trip_id = ?\n              AND EXISTS (\n                SELECT 1 FROM trips AS owner_trip\n                WHERE owner_trip.id = correction.trip_id AND owner_trip.user_id = ?\n              )\n            ORDER BY correction.sequence DESC LIMIT 1`",
+      "expressionSha256": "fb9e5cf4545bf7b4cc9df60c2b38c388cd5f173456d37c6a237e18ef35a38fb8",
       "declarationReference": null,
       "statementClass": "SELECT",
-      "sql": "SELECT root_completion_event_sha256, event_sha256 FROM validation_feasibility_corrections WHERE trip_id = ? ORDER BY sequence DESC LIMIT 1",
-      "sqlSha256": "632d4e4e7f4a923189ec72034e256d97fcaeaba1f8eb53246fee0672528d4178",
+      "sql": "SELECT root_completion_event_sha256, event_sha256 FROM validation_feasibility_corrections AS correction WHERE correction.trip_id = ? AND EXISTS ( SELECT 1 FROM trips AS owner_trip WHERE owner_trip.id = correction.trip_id AND owner_trip.user_id = ? ) ORDER BY correction.sequence DESC LIMIT 1",
+      "sqlSha256": "0c83e31e087be4ed4d8d73c6342ebee7b9e960d5efac324eb1fddc429d62fccb",
       "tables": [
+        "trips",
         "validation_feasibility_corrections"
       ],
-      "placeholderCount": 1,
+      "placeholderCount": 2,
       "hasWhere": true,
       "hasOrderBy": true,
       "hasLimit": true
@@ -1903,7 +1906,7 @@
     {
       "callSiteId": "3756d1089f62ecc367b87d8d",
       "file": "worker/auth.ts",
-      "line": 1196,
+      "line": 1211,
       "containingFunction": "handleAccountRequest",
       "occurrence": 86,
       "executionMode": "first",
@@ -1925,7 +1928,7 @@
     {
       "callSiteId": "c4fdca2601a402b3d303e8bc",
       "file": "worker/auth.ts",
-      "line": 1273,
+      "line": 1288,
       "containingFunction": "handleAccountRequest",
       "occurrence": 87,
       "executionMode": "prepared-statement",
@@ -1945,7 +1948,7 @@
     {
       "callSiteId": "4dc06fb23ab0355a5c4728a2",
       "file": "worker/auth.ts",
-      "line": 1320,
+      "line": 1335,
       "containingFunction": "handleAccountRequest",
       "occurrence": 88,
       "executionMode": "prepared-statement",
@@ -1968,7 +1971,7 @@
     {
       "callSiteId": "3dcd5a4b1212511dcc1e4760",
       "file": "worker/auth.ts",
-      "line": 1351,
+      "line": 1366,
       "containingFunction": "handleAccountRequest",
       "occurrence": 89,
       "executionMode": "first",
@@ -1990,7 +1993,7 @@
     {
       "callSiteId": "4bfc759089f7875c50443a20",
       "file": "worker/auth.ts",
-      "line": 1372,
+      "line": 1387,
       "containingFunction": "handleAccountRequest",
       "occurrence": 90,
       "executionMode": "all",
@@ -2012,7 +2015,7 @@
     {
       "callSiteId": "bef7b9d85f4f58bfe9c29357",
       "file": "worker/auth.ts",
-      "line": 1393,
+      "line": 1408,
       "containingFunction": "handleAccountRequest",
       "occurrence": 91,
       "executionMode": "run",
@@ -2034,7 +2037,7 @@
     {
       "callSiteId": "ced1e4cccb4e7a02f3a3ec2c",
       "file": "worker/auth.ts",
-      "line": 1398,
+      "line": 1413,
       "containingFunction": "handleAccountRequest",
       "occurrence": 92,
       "executionMode": "first",
@@ -2056,7 +2059,7 @@
     {
       "callSiteId": "6152cc85ac4793122511ba72",
       "file": "worker/auth.ts",
-      "line": 1410,
+      "line": 1425,
       "containingFunction": "handleAccountRequest",
       "occurrence": 93,
       "executionMode": "run",
@@ -2078,7 +2081,7 @@
     {
       "callSiteId": "12328b649064d3a226dc8f56",
       "file": "worker/auth.ts",
-      "line": 1581,
+      "line": 1596,
       "containingFunction": "jobStatement",
       "occurrence": 94,
       "executionMode": "returned-statement",
@@ -2100,7 +2103,7 @@
     {
       "callSiteId": "ea21bdc285c6077a76b6f3c3",
       "file": "worker/auth.ts",
-      "line": 1598,
+      "line": 1613,
       "containingFunction": "jobStatementForPendingTrip",
       "occurrence": 95,
       "executionMode": "returned-statement",
@@ -2123,7 +2126,7 @@
     {
       "callSiteId": "65a73118e94c590e9f964cfe",
       "file": "worker/auth.ts",
-      "line": 1618,
+      "line": 1633,
       "containingFunction": "map-callback",
       "occurrence": 96,
       "executionMode": "returned-statement",
@@ -2145,7 +2148,7 @@
     {
       "callSiteId": "40fbcc8ae64a580d42d21048",
       "file": "worker/auth.ts",
-      "line": 1623,
+      "line": 1638,
       "containingFunction": "map-callback",
       "occurrence": 97,
       "executionMode": "returned-statement",
@@ -2168,7 +2171,7 @@
     {
       "callSiteId": "12f3706f263a4c6561ed9d25",
       "file": "worker/auth.ts",
-      "line": 1645,
+      "line": 1660,
       "containingFunction": "prepareConditionalFeasibilityCorrectionInsert",
       "occurrence": 98,
       "executionMode": "returned-statement",
@@ -2191,7 +2194,7 @@
     {
       "callSiteId": "6596ca55a8ba170f39ad9634",
       "file": "worker/auth.ts",
-      "line": 1715,
+      "line": 1730,
       "containingFunction": "selectDeletionJobByReceipt",
       "occurrence": 99,
       "executionMode": "first",
@@ -2213,7 +2216,7 @@
     {
       "callSiteId": "1111cfc7488e318f8130dfd5",
       "file": "worker/auth.ts",
-      "line": 1761,
+      "line": 1776,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 100,
       "executionMode": "prepared-statement",
@@ -2222,7 +2225,7 @@
       "expressionSha256": "a8b771920b8319e47251d1360f5e880bc18e8d329b0f0d003ea3c7e615558947",
       "declarationReference": {
         "name": "query",
-        "declarationLine": 1751,
+        "declarationLine": 1766,
         "initializerSha256": "05139c4a1763b5ed8aa6c9f315d924283f43ed5303c1421963ed34fe4233c78e"
       },
       "statementClass": "UNRESOLVED",
@@ -2237,7 +2240,7 @@
     {
       "callSiteId": "96d1c984df71caf6f5f7cdee",
       "file": "worker/auth.ts",
-      "line": 1775,
+      "line": 1790,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 101,
       "executionMode": "run",
@@ -2259,7 +2262,7 @@
     {
       "callSiteId": "4282b4c41665715a98b0238f",
       "file": "worker/auth.ts",
-      "line": 1787,
+      "line": 1802,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 102,
       "executionMode": "run",
@@ -2281,7 +2284,7 @@
     {
       "callSiteId": "580ecccb50379634e7a76cef",
       "file": "worker/auth.ts",
-      "line": 1804,
+      "line": 1819,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 103,
       "executionMode": "run",
@@ -2303,7 +2306,7 @@
     {
       "callSiteId": "729bdb24915ce6c04d92f7d6",
       "file": "worker/auth.ts",
-      "line": 1815,
+      "line": 1830,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 104,
       "executionMode": "run",
@@ -2325,7 +2328,7 @@
     {
       "callSiteId": "d7a28611ae86e8e4a89ea1f6",
       "file": "worker/auth.ts",
-      "line": 1823,
+      "line": 1838,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 105,
       "executionMode": "run",
@@ -2347,7 +2350,7 @@
     {
       "callSiteId": "229db748eadca15946c78ef0",
       "file": "worker/auth.ts",
-      "line": 1828,
+      "line": 1843,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 106,
       "executionMode": "run",
@@ -2369,7 +2372,7 @@
     {
       "callSiteId": "1f9baa87b811653433caea4e",
       "file": "worker/auth.ts",
-      "line": 1836,
+      "line": 1851,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 107,
       "executionMode": "run",
@@ -2391,7 +2394,7 @@
     {
       "callSiteId": "c4f4581f6723b52d4b9b7005",
       "file": "worker/auth.ts",
-      "line": 1849,
+      "line": 1864,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 108,
       "executionMode": "run",
@@ -2413,7 +2416,7 @@
     {
       "callSiteId": "6715d9c7ac5cc057ff2b6959",
       "file": "worker/auth.ts",
-      "line": 1865,
+      "line": 1880,
       "containingFunction": "refreshDeletionJobStatus",
       "occurrence": 109,
       "executionMode": "run",
@@ -2436,7 +2439,7 @@
     {
       "callSiteId": "98f04a0603c3a5676eeaa081",
       "file": "worker/auth.ts",
-      "line": 1907,
+      "line": 1922,
       "containingFunction": "reconcileDeletionJobs",
       "occurrence": 110,
       "executionMode": "all",
@@ -2458,7 +2461,7 @@
     {
       "callSiteId": "91489ba78cf39143e00cc284",
       "file": "worker/auth.ts",
-      "line": 1909,
+      "line": 1924,
       "containingFunction": "reconcileDeletionJobs",
       "occurrence": 111,
       "executionMode": "all",
@@ -2481,7 +2484,7 @@
     {
       "callSiteId": "d554ada5059506806c50b9a5",
       "file": "worker/auth.ts",
-      "line": 1943,
+      "line": 1958,
       "containingFunction": "cleanupAuthData",
       "occurrence": 112,
       "executionMode": "batch",
@@ -2503,7 +2506,7 @@
     {
       "callSiteId": "f3e7c4dc5addb66ef9b945ea",
       "file": "worker/auth.ts",
-      "line": 1947,
+      "line": 1962,
       "containingFunction": "cleanupAuthData",
       "occurrence": 113,
       "executionMode": "batch",
@@ -2525,7 +2528,7 @@
     {
       "callSiteId": "d8af22c2da4a3e5c4279e7f5",
       "file": "worker/auth.ts",
-      "line": 1951,
+      "line": 1966,
       "containingFunction": "cleanupAuthData",
       "occurrence": 114,
       "executionMode": "batch",
@@ -2547,7 +2550,7 @@
     {
       "callSiteId": "c5f8160b7ef3608d2e958fb8",
       "file": "worker/auth.ts",
-      "line": 1955,
+      "line": 1970,
       "containingFunction": "cleanupAuthData",
       "occurrence": 115,
       "executionMode": "batch",
@@ -2569,7 +2572,7 @@
     {
       "callSiteId": "3cb40321090b0b62074c3838",
       "file": "worker/auth.ts",
-      "line": 1960,
+      "line": 1975,
       "containingFunction": "cleanupAuthData",
       "occurrence": 116,
       "executionMode": "batch",
@@ -2592,7 +2595,7 @@
     {
       "callSiteId": "ffc269b0795462f8f0959551",
       "file": "worker/auth.ts",
-      "line": 1971,
+      "line": 1986,
       "containingFunction": "cleanupAuthData",
       "occurrence": 117,
       "executionMode": "batch",
@@ -2614,7 +2617,7 @@
     {
       "callSiteId": "30c55cc35b66fd66b84872ca",
       "file": "worker/auth.ts",
-      "line": 1982,
+      "line": 1997,
       "containingFunction": "selectUserForSession",
       "occurrence": 118,
       "executionMode": "first",
@@ -2636,7 +2639,7 @@
     {
       "callSiteId": "26c26153d74eb5cc8736cee1",
       "file": "worker/auth.ts",
-      "line": 2002,
+      "line": 2017,
       "containingFunction": "map-callback",
       "occurrence": 119,
       "executionMode": "all",
@@ -2658,7 +2661,7 @@
     {
       "callSiteId": "f867c6aad53d0babbcbf2f10",
       "file": "worker/auth.ts",
-      "line": 2005,
+      "line": 2020,
       "containingFunction": "createSessionResponse",
       "occurrence": 120,
       "executionMode": "batch",
@@ -2680,7 +2683,7 @@
     {
       "callSiteId": "88003dcee41730babe7c4ee6",
       "file": "worker/auth.ts",
-      "line": 2224,
+      "line": 2239,
       "containingFunction": "validateSignupAgeProof",
       "occurrence": 121,
       "executionMode": "first",
@@ -2702,7 +2705,7 @@
     {
       "callSiteId": "a230ebbe7d9247c254256c2d",
       "file": "worker/auth.ts",
-      "line": 2237,
+      "line": 2252,
       "containingFunction": "consumeSignupAgeProof",
       "occurrence": 122,
       "executionMode": "run",
@@ -2724,7 +2727,7 @@
     {
       "callSiteId": "0ba24ed48e6b39e73b873b62",
       "file": "worker/auth.ts",
-      "line": 2332,
+      "line": 2347,
       "containingFunction": "assertEmailChallengeAllowed",
       "occurrence": 123,
       "executionMode": "first",
@@ -2746,7 +2749,7 @@
     {
       "callSiteId": "dcb25624cb743ef337910be2",
       "file": "worker/auth.ts",
-      "line": 2351,
+      "line": 2366,
       "containingFunction": "verifyEmailChallenge",
       "occurrence": 124,
       "executionMode": "first",
@@ -2768,7 +2771,7 @@
     {
       "callSiteId": "46d49c05fdd4b13b7835fefb",
       "file": "worker/auth.ts",
-      "line": 2355,
+      "line": 2370,
       "containingFunction": "verifyEmailChallenge",
       "occurrence": 125,
       "executionMode": "run",
@@ -2790,7 +2793,7 @@
     {
       "callSiteId": "2d3ccd888360d9161aee36bf",
       "file": "worker/auth.ts",
-      "line": 2363,
+      "line": 2378,
       "containingFunction": "verifyEmailChallenge",
       "occurrence": 126,
       "executionMode": "run",
@@ -2812,7 +2815,7 @@
     {
       "callSiteId": "39509cafac7c48dead74692d",
       "file": "worker/auth.ts",
-      "line": 2371,
+      "line": 2386,
       "containingFunction": "verifyEmailChallenge",
       "occurrence": 127,
       "executionMode": "run",
@@ -2834,7 +2837,7 @@
     {
       "callSiteId": "4abfb7ddcec4486af9720b31",
       "file": "worker/auth.ts",
-      "line": 2373,
+      "line": 2388,
       "containingFunction": "verifyEmailChallenge",
       "occurrence": 128,
       "executionMode": "run",
@@ -2856,7 +2859,7 @@
     {
       "callSiteId": "73051e3a77a670057add1155",
       "file": "worker/auth.ts",
-      "line": 2546,
+      "line": 2561,
       "containingFunction": "catch-callback",
       "occurrence": 129,
       "executionMode": "run",
@@ -4294,7 +4297,7 @@
     {
       "callSiteId": "66c4551e6e6477b62fe71c53",
       "file": "worker/trips.ts",
-      "line": 1489,
+      "line": 1501,
       "containingFunction": "initialize",
       "occurrence": 1,
       "executionMode": "batch",
@@ -4303,7 +4306,7 @@
       "expressionSha256": "a30d43434bf332af4ac7a1121a25f2e8a539a880f8dd3e32719465d1da25f46c",
       "declarationReference": {
         "name": "CREATE_TRIPS_SQL",
-        "declarationLine": 602,
+        "declarationLine": 614,
         "initializerSha256": "64ca82831a7847f77b596831ae44ee8c768be4485ba95d280b24705d115eac41"
       },
       "statementClass": "UNRESOLVED",
@@ -4318,7 +4321,7 @@
     {
       "callSiteId": "1dcb1a0d157d5082ea29ac24",
       "file": "worker/trips.ts",
-      "line": 1490,
+      "line": 1502,
       "containingFunction": "initialize",
       "occurrence": 2,
       "executionMode": "batch",
@@ -4327,7 +4330,7 @@
       "expressionSha256": "b54adea780f2574650cbc99cf741678af37c3417c4734bb0138c3ed1a12c25af",
       "declarationReference": {
         "name": "CREATE_FORECAST_IMPRESSIONS_SQL",
-        "declarationLine": 780,
+        "declarationLine": 792,
         "initializerSha256": "a370a3d68d7fc6f1ae3ca466db2a26bbd464e6ea96e3539887396c31bee132c2"
       },
       "statementClass": "UNRESOLVED",
@@ -4342,7 +4345,7 @@
     {
       "callSiteId": "07eb0899fbe3e17b6ae9033a",
       "file": "worker/trips.ts",
-      "line": 1491,
+      "line": 1503,
       "containingFunction": "initialize",
       "occurrence": 3,
       "executionMode": "batch",
@@ -4351,7 +4354,7 @@
       "expressionSha256": "cfd1855de8f1e1f5c1702d15ab4a99ba89eae74f097d6efb1ed6f079c6ac8dcf",
       "declarationReference": {
         "name": "CREATE_TRIP_VALIDATION_PROVENANCE_SQL",
-        "declarationLine": 827,
+        "declarationLine": 839,
         "initializerSha256": "fc9ccbb6a78be3625961bab0d73e330e067cc2bd1d9c5d148a2518168a391f4c"
       },
       "statementClass": "UNRESOLVED",
@@ -4366,7 +4369,7 @@
     {
       "callSiteId": "9280d6b7baa7b3c9abd1612d",
       "file": "worker/trips.ts",
-      "line": 1493,
+      "line": 1505,
       "containingFunction": "map-callback",
       "occurrence": 4,
       "executionMode": "batch",
@@ -4388,23 +4391,23 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "b5e79e84df3dc1af139c0682",
+      "callSiteId": "140feaacc9a03c20429ad221",
       "file": "worker/trips.ts",
-      "line": 1504,
+      "line": 1516,
       "containingFunction": "getTrip",
       "occurrence": 5,
       "executionMode": "first",
       "argumentKind": "literal",
-      "expression": "\"SELECT * FROM trips WHERE id = ? LIMIT 1\"",
-      "expressionSha256": "f19b326de6f3f6ca65c55f18587304eb0f1d91e1493672e2933070aa945f84dc",
+      "expression": "\"SELECT * FROM trips WHERE id = ? AND user_id IS ? LIMIT 1\"",
+      "expressionSha256": "6b564fb587a7dcfe8b51157e87dfcb5f7033e7c68cd3b1bd2447e5de7a3e76ab",
       "declarationReference": null,
       "statementClass": "SELECT",
-      "sql": "SELECT * FROM trips WHERE id = ? LIMIT 1",
-      "sqlSha256": "73eecb5d6b25297c037ab65de3c8ff04c7c7ad4fc9c64cb41d10e1a934419bc1",
+      "sql": "SELECT * FROM trips WHERE id = ? AND user_id IS ? LIMIT 1",
+      "sqlSha256": "fa8e1ed820205376bc8038489b8bfa6414b18170e6e1da186fc379ffe235e5f6",
       "tables": [
         "trips"
       ],
-      "placeholderCount": 1,
+      "placeholderCount": 2,
       "hasWhere": true,
       "hasOrderBy": false,
       "hasLimit": true
@@ -4412,7 +4415,7 @@
     {
       "callSiteId": "b1aff5ba9723a50230cb15eb",
       "file": "worker/trips.ts",
-      "line": 1514,
+      "line": 1528,
       "containingFunction": "assertSubmissionAllowed",
       "occurrence": 6,
       "executionMode": "first",
@@ -4434,7 +4437,7 @@
     {
       "callSiteId": "44d142e47be3a6cb2886d813",
       "file": "worker/trips.ts",
-      "line": 1518,
+      "line": 1532,
       "containingFunction": "assertSubmissionAllowed",
       "occurrence": 7,
       "executionMode": "first",
@@ -4456,7 +4459,7 @@
     {
       "callSiteId": "d0305042278bab73dda9e750",
       "file": "worker/trips.ts",
-      "line": 1522,
+      "line": 1536,
       "containingFunction": "assertSubmissionAllowed",
       "occurrence": 8,
       "executionMode": "first",
@@ -4478,7 +4481,7 @@
     {
       "callSiteId": "19eecc024dc360f6e8ea0c94",
       "file": "worker/trips.ts",
-      "line": 1536,
+      "line": 1550,
       "containingFunction": "insertTrip",
       "occurrence": 9,
       "executionMode": "prepared-statement",
@@ -4487,7 +4490,7 @@
       "expressionSha256": "19036a22fb241a794a5512e92b28132551cb2192ef0f0537c35f9f05b278e833",
       "declarationReference": {
         "name": "INSERT_TRIP_SQL",
-        "declarationLine": 1200,
+        "declarationLine": 1212,
         "initializerSha256": "5a3d25a56c06665dc6f10e360e1b73fb2316bfcd35fd3614434a5e0f3909ada7"
       },
       "statementClass": "UNRESOLVED",
@@ -4500,11 +4503,33 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "d567becd21d5d806ff61fafd",
+      "callSiteId": "1585e2f7e0e3113ea600b3ad",
       "file": "worker/trips.ts",
-      "line": 1612,
-      "containingFunction": "getFeasibilityActivation",
+      "line": 1626,
+      "containingFunction": "isTripIdentityReserved",
       "occurrence": 10,
+      "executionMode": "first",
+      "argumentKind": "literal",
+      "expression": "\"SELECT 1 AS reserved FROM trips WHERE id = ? LIMIT 1\"",
+      "expressionSha256": "ab72b19c6070def9a8781cec7f8af83080b411745e509f6899c291b769a2d2e2",
+      "declarationReference": null,
+      "statementClass": "SELECT",
+      "sql": "SELECT 1 AS reserved FROM trips WHERE id = ? LIMIT 1",
+      "sqlSha256": "7a07d9ecb5c80c57f81d40381a5bdce9361c94062ab36c857b597326a387a286",
+      "tables": [
+        "trips"
+      ],
+      "placeholderCount": 1,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": true
+    },
+    {
+      "callSiteId": "c0b271172dca30b9ea96a961",
+      "file": "worker/trips.ts",
+      "line": 1633,
+      "containingFunction": "getFeasibilityActivation",
+      "occurrence": 11,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "`SELECT id, protocol_id, protocol_version, protocol_sha256,\n          activation_commitment_sha256, activation_manifest_sha256, site_catalog_sha256,\n          scoring_system_kind, scoring_system_version, scoring_system_sha256,\n          worker_version_id, study_consent_version, start_at, end_at,\n          preregistered_at, receipt_verified_at, status\n        FROM validation_feasibility_activations WHERE id = ? LIMIT 1`",
@@ -4522,33 +4547,33 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "f51d56e9d67a19b0129996f2",
+      "callSiteId": "6234e92ab3184f6ea807eb98",
       "file": "worker/trips.ts",
-      "line": 1623,
+      "line": 1644,
       "containingFunction": "getFeasibilityRecruitment",
-      "occurrence": 11,
+      "occurrence": 12,
       "executionMode": "first",
       "argumentKind": "literal",
-      "expression": "`SELECT event_id, activation_id, user_id, participant_group_id,\n          event_contract_version, recruitment_frame_id, recruitment_source_id,\n          selection_method, recruited_at, campaign_id, invite_issued_at, invite_expires_at,\n          community_approval_sha256, event_sha256, created_at, snapshot_suppression_sha256\n        FROM validation_feasibility_recruitment_events\n        WHERE activation_id = ? AND participant_group_id = ? LIMIT 1`",
-      "expressionSha256": "da2dc1f3972040399596ab09b05e56b9ee80b2ea9bb32f2aa181a59dfeeb276d",
+      "expression": "`SELECT event_id, activation_id, user_id, participant_group_id,\n          event_contract_version, recruitment_frame_id, recruitment_source_id,\n          selection_method, recruited_at, campaign_id, invite_issued_at, invite_expires_at,\n          community_approval_sha256, event_sha256, created_at, snapshot_suppression_sha256\n        FROM validation_feasibility_recruitment_events\n        WHERE activation_id = ? AND participant_group_id = ? AND user_id IS ? LIMIT 1`",
+      "expressionSha256": "a31ebba992bcb02214e37ee6e49fcf63dee5d2fac634d6614dae79f7c4d9c314",
       "declarationReference": null,
       "statementClass": "SELECT",
-      "sql": "SELECT event_id, activation_id, user_id, participant_group_id, event_contract_version, recruitment_frame_id, recruitment_source_id, selection_method, recruited_at, campaign_id, invite_issued_at, invite_expires_at, community_approval_sha256, event_sha256, created_at, snapshot_suppression_sha256 FROM validation_feasibility_recruitment_events WHERE activation_id = ? AND participant_group_id = ? LIMIT 1",
-      "sqlSha256": "bf8b9989cecf191d8fac0234295c85fe71b7275364d7d0e22f9a22a7fad8f3c1",
+      "sql": "SELECT event_id, activation_id, user_id, participant_group_id, event_contract_version, recruitment_frame_id, recruitment_source_id, selection_method, recruited_at, campaign_id, invite_issued_at, invite_expires_at, community_approval_sha256, event_sha256, created_at, snapshot_suppression_sha256 FROM validation_feasibility_recruitment_events WHERE activation_id = ? AND participant_group_id = ? AND user_id IS ? LIMIT 1",
+      "sqlSha256": "e0e7f2038b2fa050b890b0d701ce87e94646ae62380539579e0b641ffa23c741",
       "tables": [
         "validation_feasibility_recruitment_events"
       ],
-      "placeholderCount": 2,
+      "placeholderCount": 3,
       "hasWhere": true,
       "hasOrderBy": false,
       "hasLimit": true
     },
     {
-      "callSiteId": "0ccd3f8b5f04681067242a2d",
+      "callSiteId": "3df450444948c4b4090410ce",
       "file": "worker/trips.ts",
-      "line": 1634,
+      "line": 1655,
       "containingFunction": "getFeasibilityRecruitmentCampaign",
-      "occurrence": 12,
+      "occurrence": 13,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "`SELECT activation_id, campaign_id, recruitment_source_id,\n          selection_method, invite_issued_at, invite_expires_at,\n          community_approval_sha256, token_payload_sha256, sealed_at\n        FROM validation_feasibility_recruitment_campaigns\n        WHERE activation_id = ? AND campaign_id = ? LIMIT 1`",
@@ -4566,99 +4591,103 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "52c2a75547407de594433579",
+      "callSiteId": "8373aaea63a0eca1f1688b5f",
       "file": "worker/trips.ts",
-      "line": 1644,
+      "line": 1665,
       "containingFunction": "getFeasibilityStart",
-      "occurrence": 13,
-      "executionMode": "first",
-      "argumentKind": "literal",
-      "expression": "`SELECT activation_id, trip_id, event_sha256, source_record_sha256,\n          participant_group_id, recruitment_frame_id, recruitment_source_id, selection_method,\n          score_influenced_choice, study_consent_version, study_consented_at, target_taxon_id,\n          site_id, geographic_panel, mode, segment_start_at, angler_count,\n          scoring_system_kind, scoring_system_version, scoring_system_sha256,\n          opportunity_score, opportunity_window_id, snapshot_sha256, snapshot_suppression_sha256\n        FROM validation_feasibility_events\n        WHERE trip_id = ? AND event_type = 'started' LIMIT 1`",
-      "expressionSha256": "05bf3dbd611fb5b7db71820faa14dfc81fdb3d30fb9c7ccaeaafea12f709e622",
-      "declarationReference": null,
-      "statementClass": "SELECT",
-      "sql": "SELECT activation_id, trip_id, event_sha256, source_record_sha256, participant_group_id, recruitment_frame_id, recruitment_source_id, selection_method, score_influenced_choice, study_consent_version, study_consented_at, target_taxon_id, site_id, geographic_panel, mode, segment_start_at, angler_count, scoring_system_kind, scoring_system_version, scoring_system_sha256, opportunity_score, opportunity_window_id, snapshot_sha256, snapshot_suppression_sha256 FROM validation_feasibility_events WHERE trip_id = ? AND event_type = 'started' LIMIT 1",
-      "sqlSha256": "5436f66f7f67c0679096b0a3b10764c9ecde14d5b58381b465d88e03b5e54b42",
-      "tables": [
-        "validation_feasibility_events"
-      ],
-      "placeholderCount": 1,
-      "hasWhere": true,
-      "hasOrderBy": false,
-      "hasLimit": true
-    },
-    {
-      "callSiteId": "dbeeb4ffcafbc6494ee3b823",
-      "file": "worker/trips.ts",
-      "line": 1657,
-      "containingFunction": "getValidationEnrollment",
       "occurrence": 14,
       "executionMode": "first",
       "argumentKind": "literal",
-      "expression": "`SELECT collection_contract_version, source_role, cohort_id,\n          validation_protocol_id, activation_manifest_sha256, activated_at,\n          activation_scoring_system_sha256, participant_group_id, recruitment_frame_id,\n          recruitment_source_id, recruitment_event_contract_version, recruitment_event_at,\n          recruitment_event_sha256, community_approval_sha256,\n          assignment_id, source_record_sha256, effort_segment_id, effort_unit,\n          attempt_count, target_taxon_id, segment_start_at, incentive_policy_id,\n          selection_method, target_intent, primary_target_confirmed,\n          complete_attempt_confirmed, mode_at_enrollment, consent_version,\n          consented_at, score_influenced_choice, forecast_impression_id,\n          attestation_status\n        FROM trip_validation_provenance\n        WHERE trip_id = ? AND event_type = 'enrollment'\n        ORDER BY created_at ASC LIMIT 1`",
-      "expressionSha256": "f8aa63e2899311d04310ba749f236b655001bd25c686774630b2a90a56e24d9d",
+      "expression": "`SELECT activation_id, trip_id, event_sha256, source_record_sha256,\n          participant_group_id, recruitment_frame_id, recruitment_source_id, selection_method,\n          score_influenced_choice, study_consent_version, study_consented_at, target_taxon_id,\n          site_id, geographic_panel, mode, segment_start_at, angler_count,\n          scoring_system_kind, scoring_system_version, scoring_system_sha256,\n          opportunity_score, opportunity_window_id, snapshot_sha256, snapshot_suppression_sha256\n        FROM validation_feasibility_events AS event\n        WHERE event.trip_id = ? AND event.event_type = 'started'\n          AND EXISTS (\n            SELECT 1 FROM trips AS owner_trip\n            WHERE owner_trip.id = event.trip_id AND owner_trip.user_id IS ?\n          )\n        LIMIT 1`",
+      "expressionSha256": "7c1e2003b9a298a117491e411df261086acd9b2263f06076b22ccaf692fe14f0",
       "declarationReference": null,
       "statementClass": "SELECT",
-      "sql": "SELECT collection_contract_version, source_role, cohort_id, validation_protocol_id, activation_manifest_sha256, activated_at, activation_scoring_system_sha256, participant_group_id, recruitment_frame_id, recruitment_source_id, recruitment_event_contract_version, recruitment_event_at, recruitment_event_sha256, community_approval_sha256, assignment_id, source_record_sha256, effort_segment_id, effort_unit, attempt_count, target_taxon_id, segment_start_at, incentive_policy_id, selection_method, target_intent, primary_target_confirmed, complete_attempt_confirmed, mode_at_enrollment, consent_version, consented_at, score_influenced_choice, forecast_impression_id, attestation_status FROM trip_validation_provenance WHERE trip_id = ? AND event_type = 'enrollment' ORDER BY created_at ASC LIMIT 1",
-      "sqlSha256": "b70c480015a64ff92253d032329b5235b11685fa7776ed59cc701888d7e3bd2c",
+      "sql": "SELECT activation_id, trip_id, event_sha256, source_record_sha256, participant_group_id, recruitment_frame_id, recruitment_source_id, selection_method, score_influenced_choice, study_consent_version, study_consented_at, target_taxon_id, site_id, geographic_panel, mode, segment_start_at, angler_count, scoring_system_kind, scoring_system_version, scoring_system_sha256, opportunity_score, opportunity_window_id, snapshot_sha256, snapshot_suppression_sha256 FROM validation_feasibility_events AS event WHERE event.trip_id = ? AND event.event_type = 'started' AND EXISTS ( SELECT 1 FROM trips AS owner_trip WHERE owner_trip.id = event.trip_id AND owner_trip.user_id IS ? ) LIMIT 1",
+      "sqlSha256": "50e0981abf57856c1294c2be01ca46f2d28fdb43c6183a863d86aefa6851754e",
       "tables": [
-        "trip_validation_provenance"
+        "trips",
+        "validation_feasibility_events"
       ],
-      "placeholderCount": 1,
-      "hasWhere": true,
-      "hasOrderBy": true,
-      "hasLimit": true
-    },
-    {
-      "callSiteId": "f1c0d5b08aecee277e045dae",
-      "file": "worker/trips.ts",
-      "line": 1676,
-      "containingFunction": "getRecruitmentEvent",
-      "occurrence": 15,
-      "executionMode": "first",
-      "argumentKind": "literal",
-      "expression": "`SELECT participant_group_id, recruitment_frame_id,\n          recruitment_source_id, recruitment_event_contract_version,\n          recruitment_event_at, recruitment_event_sha256, community_approval_sha256\n        FROM trip_validation_provenance\n        WHERE participant_group_id = ?\n          AND event_type = 'enrollment'\n          AND source_role = 'prospective_secondary'\n          AND validation_protocol_id = ?\n          AND activation_manifest_sha256 = ?\n          AND activated_at = ?\n          AND activation_scoring_system_sha256 = ?\n          AND recruitment_frame_id = ?\n          AND recruitment_event_sha256 IS NOT NULL\n        ORDER BY recruitment_event_at ASC, created_at ASC LIMIT 1`",
-      "expressionSha256": "ded7a6878804e2e6668a64a05dd2eaee51976c1b7f050b2243577078008d6407",
-      "declarationReference": null,
-      "statementClass": "SELECT",
-      "sql": "SELECT participant_group_id, recruitment_frame_id, recruitment_source_id, recruitment_event_contract_version, recruitment_event_at, recruitment_event_sha256, community_approval_sha256 FROM trip_validation_provenance WHERE participant_group_id = ? AND event_type = 'enrollment' AND source_role = 'prospective_secondary' AND validation_protocol_id = ? AND activation_manifest_sha256 = ? AND activated_at = ? AND activation_scoring_system_sha256 = ? AND recruitment_frame_id = ? AND recruitment_event_sha256 IS NOT NULL ORDER BY recruitment_event_at ASC, created_at ASC LIMIT 1",
-      "sqlSha256": "ef63ce4d22903702cff0016f2e88cd168d33cbc5bcda7f5ce8ceedcd2a04c2ed",
-      "tables": [
-        "trip_validation_provenance"
-      ],
-      "placeholderCount": 6,
-      "hasWhere": true,
-      "hasOrderBy": true,
-      "hasLimit": true
-    },
-    {
-      "callSiteId": "2ea7468ee647d94218d6937c",
-      "file": "worker/trips.ts",
-      "line": 1702,
-      "containingFunction": "getForecastImpression",
-      "occurrence": 16,
-      "executionMode": "first",
-      "argumentKind": "literal",
-      "expression": "`SELECT id, window_start, window_end, site_id\n        FROM forecast_impressions WHERE trip_id = ? LIMIT 1`",
-      "expressionSha256": "809ccec93c35dd4c2da4349e683d07c9c9fb4ec3fe873c746337965e5c81f83f",
-      "declarationReference": null,
-      "statementClass": "SELECT",
-      "sql": "SELECT id, window_start, window_end, site_id FROM forecast_impressions WHERE trip_id = ? LIMIT 1",
-      "sqlSha256": "b89d1894e658b219c0be81d48da63522bbacde853c6b377f27263ea5e87842af",
-      "tables": [
-        "forecast_impressions"
-      ],
-      "placeholderCount": 1,
+      "placeholderCount": 2,
       "hasWhere": true,
       "hasOrderBy": false,
       "hasLimit": true
     },
     {
-      "callSiteId": "67f74fea8df082b4c54e4081",
+      "callSiteId": "ca54164468699e9ee3d23c8f",
       "file": "worker/trips.ts",
-      "line": 1709,
-      "containingFunction": "completeTrip",
+      "line": 1683,
+      "containingFunction": "getValidationEnrollment",
+      "occurrence": 15,
+      "executionMode": "first",
+      "argumentKind": "literal",
+      "expression": "`SELECT collection_contract_version, source_role, cohort_id,\n          validation_protocol_id, activation_manifest_sha256, activated_at,\n          activation_scoring_system_sha256, participant_group_id, recruitment_frame_id,\n          recruitment_source_id, recruitment_event_contract_version, recruitment_event_at,\n          recruitment_event_sha256, community_approval_sha256,\n          assignment_id, source_record_sha256, effort_segment_id, effort_unit,\n          attempt_count, target_taxon_id, segment_start_at, incentive_policy_id,\n          selection_method, target_intent, primary_target_confirmed,\n          complete_attempt_confirmed, mode_at_enrollment, consent_version,\n          consented_at, score_influenced_choice, forecast_impression_id,\n          attestation_status\n        FROM trip_validation_provenance AS provenance\n        WHERE provenance.trip_id = ? AND provenance.event_type = 'enrollment'\n          AND EXISTS (\n            SELECT 1 FROM trips AS owner_trip\n            WHERE owner_trip.id = provenance.trip_id AND owner_trip.user_id IS ?\n          )\n        ORDER BY provenance.created_at ASC LIMIT 1`",
+      "expressionSha256": "76e423256f40c4362ed27ab42c1019289e816f1ee0b905f4775fb6d55e7ae02b",
+      "declarationReference": null,
+      "statementClass": "SELECT",
+      "sql": "SELECT collection_contract_version, source_role, cohort_id, validation_protocol_id, activation_manifest_sha256, activated_at, activation_scoring_system_sha256, participant_group_id, recruitment_frame_id, recruitment_source_id, recruitment_event_contract_version, recruitment_event_at, recruitment_event_sha256, community_approval_sha256, assignment_id, source_record_sha256, effort_segment_id, effort_unit, attempt_count, target_taxon_id, segment_start_at, incentive_policy_id, selection_method, target_intent, primary_target_confirmed, complete_attempt_confirmed, mode_at_enrollment, consent_version, consented_at, score_influenced_choice, forecast_impression_id, attestation_status FROM trip_validation_provenance AS provenance WHERE provenance.trip_id = ? AND provenance.event_type = 'enrollment' AND EXISTS ( SELECT 1 FROM trips AS owner_trip WHERE owner_trip.id = provenance.trip_id AND owner_trip.user_id IS ? ) ORDER BY provenance.created_at ASC LIMIT 1",
+      "sqlSha256": "66f4394381f01447796e0707f59f5d4966f90c8b6a6e481b685d6bbaac5163cd",
+      "tables": [
+        "trip_validation_provenance",
+        "trips"
+      ],
+      "placeholderCount": 2,
+      "hasWhere": true,
+      "hasOrderBy": true,
+      "hasLimit": true
+    },
+    {
+      "callSiteId": "5d989a98e5b8014906682404",
+      "file": "worker/trips.ts",
+      "line": 1706,
+      "containingFunction": "getRecruitmentEvent",
+      "occurrence": 16,
+      "executionMode": "first",
+      "argumentKind": "literal",
+      "expression": "`SELECT participant_group_id, recruitment_frame_id,\n          recruitment_source_id, recruitment_event_contract_version,\n          recruitment_event_at, recruitment_event_sha256, community_approval_sha256\n        FROM trip_validation_provenance AS provenance\n        WHERE provenance.participant_group_id = ?\n          AND provenance.event_type = 'enrollment'\n          AND provenance.source_role = 'prospective_secondary'\n          AND provenance.validation_protocol_id = ?\n          AND provenance.activation_manifest_sha256 = ?\n          AND provenance.activated_at = ?\n          AND provenance.activation_scoring_system_sha256 = ?\n          AND provenance.recruitment_frame_id = ?\n          AND provenance.recruitment_event_sha256 IS NOT NULL\n          AND EXISTS (\n            SELECT 1 FROM trips AS owner_trip\n            WHERE owner_trip.id = provenance.trip_id AND owner_trip.user_id IS ?\n          )\n        ORDER BY provenance.recruitment_event_at ASC, provenance.created_at ASC LIMIT 1`",
+      "expressionSha256": "055793cda9e4bc72a366ef37f80481c0727b7b60fc2eedab4792b64e0a6fc5ef",
+      "declarationReference": null,
+      "statementClass": "SELECT",
+      "sql": "SELECT participant_group_id, recruitment_frame_id, recruitment_source_id, recruitment_event_contract_version, recruitment_event_at, recruitment_event_sha256, community_approval_sha256 FROM trip_validation_provenance AS provenance WHERE provenance.participant_group_id = ? AND provenance.event_type = 'enrollment' AND provenance.source_role = 'prospective_secondary' AND provenance.validation_protocol_id = ? AND provenance.activation_manifest_sha256 = ? AND provenance.activated_at = ? AND provenance.activation_scoring_system_sha256 = ? AND provenance.recruitment_frame_id = ? AND provenance.recruitment_event_sha256 IS NOT NULL AND EXISTS ( SELECT 1 FROM trips AS owner_trip WHERE owner_trip.id = provenance.trip_id AND owner_trip.user_id IS ? ) ORDER BY provenance.recruitment_event_at ASC, provenance.created_at ASC LIMIT 1",
+      "sqlSha256": "80321dfee01f17508091deb864839ffee7833b2b014be0c5842ade3ee4061df4",
+      "tables": [
+        "trip_validation_provenance",
+        "trips"
+      ],
+      "placeholderCount": 7,
+      "hasWhere": true,
+      "hasOrderBy": true,
+      "hasLimit": true
+    },
+    {
+      "callSiteId": "a891cd755e304630bdecdb2a",
+      "file": "worker/trips.ts",
+      "line": 1737,
+      "containingFunction": "getForecastImpression",
       "occurrence": 17,
+      "executionMode": "first",
+      "argumentKind": "literal",
+      "expression": "`SELECT id, window_start, window_end, site_id\n        FROM forecast_impressions AS impression\n        WHERE impression.trip_id = ?\n          AND EXISTS (\n            SELECT 1 FROM trips AS owner_trip\n            WHERE owner_trip.id = impression.trip_id AND owner_trip.user_id IS ?\n          )\n        LIMIT 1`",
+      "expressionSha256": "5ef1a187b298bcc0a7f21290c241a0fbe790b62e04d7d47d71eb6e499a853ece",
+      "declarationReference": null,
+      "statementClass": "SELECT",
+      "sql": "SELECT id, window_start, window_end, site_id FROM forecast_impressions AS impression WHERE impression.trip_id = ? AND EXISTS ( SELECT 1 FROM trips AS owner_trip WHERE owner_trip.id = impression.trip_id AND owner_trip.user_id IS ? ) LIMIT 1",
+      "sqlSha256": "d94377e2f04208fbe7269f91251270abc9ee1a629d4e9ebad5b8386c3f764b49",
+      "tables": [
+        "forecast_impressions",
+        "trips"
+      ],
+      "placeholderCount": 2,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": true
+    },
+    {
+      "callSiteId": "79c5ed1dc4b0c6ea567345a6",
+      "file": "worker/trips.ts",
+      "line": 1750,
+      "containingFunction": "completeTrip",
+      "occurrence": 18,
       "executionMode": "prepared-statement",
       "argumentKind": "literal",
       "expression": "`UPDATE trips SET\n          status = 'completed',\n          opportunity_window_id = CASE WHEN mode = ? THEN opportunity_window_id ELSE NULL END,\n          opportunity_score = CASE WHEN mode = ? THEN opportunity_score ELSE NULL END,\n          habitat_score = CASE WHEN mode = ? THEN habitat_score ELSE NULL END,\n          seasonality_score = CASE WHEN mode = ? THEN seasonality_score ELSE NULL END,\n          conditions_score = CASE WHEN mode = ? THEN conditions_score ELSE NULL END,\n          fishability_score = CASE WHEN mode = ? THEN fishability_score ELSE NULL END,\n          model_version = CASE WHEN mode = ? THEN model_version ELSE NULL END,\n          prediction_metadata_json = CASE WHEN mode = ? THEN prediction_metadata_json ELSE NULL END,\n          ended_at = ?, mode = ?, fishing_method = ?, gear = ?,\n          gear_profile_id = ?, rod = ?, reel = ?, bait_lure = ?, rig = ?,\n          angler_count = ?, angler_hours = ?, keeper_count = ?, short_released_count = ?,\n          halibut_encounters = ?, no_catch = ?, other_catch_count = ?, other_species = ?, observations_json = ?,\n          observation_contract_version = ?, taxon_catalog_version = ?, target_taxon_id = ?,\n          contract_status = ?, taxon_observations_json = ?, outcome_class = ?,\n          target_encounter_count = ?, any_fish_encounter_count = ?, target_identification_confidence = ?,\n          notes = ?, consent = 1, consent_at = ?,\n          moderation_status = 'pending', photo_key = ?,\n          photo_content_type = ?, photo_size_bytes = ?, updated_at = ?, completed_at = ?, token_hash = NULL\n        WHERE id = ? AND user_id IS ? AND status = 'active' AND token_hash = ?`",
@@ -4676,11 +4705,11 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "2ec9c29e5668482d27009b3e",
+      "callSiteId": "fb07b112f51d88eb30db4995",
       "file": "worker/trips.ts",
-      "line": 1804,
+      "line": 1845,
       "containingFunction": "cancelTrip",
-      "occurrence": 18,
+      "occurrence": 19,
       "executionMode": "prepared-statement",
       "argumentKind": "literal",
       "expression": "`UPDATE trips SET token_hash = NULL, updated_at = ?\n        WHERE id = ? AND user_id IS ? AND status = 'active' AND token_hash = ?`",
@@ -4698,11 +4727,11 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "632f4b5f4d865e8a38f26f05",
+      "callSiteId": "9ccef38cc9312a143e7f6b85",
       "file": "worker/trips.ts",
-      "line": 1819,
+      "line": 1860,
       "containingFunction": "getSummary",
-      "occurrence": 19,
+      "occurrence": 20,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "`SELECT\n          COUNT(*) AS completed_trips,\n          COALESCE(SUM(CASE WHEN no_catch = 1 THEN 1 ELSE 0 END), 0) AS no_catch_trips,\n          COALESCE(SUM(CASE WHEN halibut_encounters > 0 THEN 1 ELSE 0 END), 0) AS halibut_trips,\n          COALESCE(SUM(angler_hours), 0) AS angler_hours,\n          COALESCE(SUM(halibut_encounters), 0) AS halibut_encounters,\n          COUNT(DISTINCT site_id) AS sites_covered,\n          MAX(updated_at) AS last_updated,\n          COALESCE(SUM(CASE WHEN completed_at >= ? THEN 1 ELSE 0 END), 0) AS recent_completed_trips,\n          COALESCE(SUM(CASE WHEN completed_at >= ? THEN angler_hours ELSE 0 END), 0) AS recent_angler_hours,\n          COALESCE(SUM(CASE WHEN completed_at >= ? THEN halibut_encounters ELSE 0 END), 0) AS recent_halibut_encounters,\n          COUNT(DISTINCT CASE WHEN completed_at >= ? THEN site_id END) AS recent_sites_covered\n        FROM trips\n        WHERE status = 'completed' AND consent = 1 AND moderation_status != 'rejected'\n          AND contract_status = 'valid' AND observation_contract_version = ?\n          AND taxon_catalog_version = ? AND target_taxon_id = ?`",
@@ -4720,18 +4749,18 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "69bfc49c6b01dd0843cee027",
+      "callSiteId": "8e7ff60416cd175c792e5dc9",
       "file": "worker/trips.ts",
-      "line": 1880,
+      "line": 1921,
       "containingFunction": "prepareForecastImpressionInsert",
-      "occurrence": 20,
+      "occurrence": 21,
       "executionMode": "returned-statement",
       "argumentKind": "reviewed-nonliteral",
       "expression": "INSERT_FORECAST_IMPRESSION_SQL",
       "expressionSha256": "6a41d4d7c954377901e9fdca7500c2a3f4f86cf5dd3c001467a54098aae4264e",
       "declarationReference": {
         "name": "INSERT_FORECAST_IMPRESSION_SQL",
-        "declarationLine": 1221,
+        "declarationLine": 1233,
         "initializerSha256": "a3fe715a5989a64a0462ad049204c82ab28758a04c2308661e79266b08034716"
       },
       "statementClass": "UNRESOLVED",
@@ -4744,18 +4773,18 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "d8725287db7c4dea8f9a4293",
+      "callSiteId": "aedea8ddefb501009f4f8c37",
       "file": "worker/trips.ts",
-      "line": 1968,
+      "line": 2009,
       "containingFunction": "prepareValidationProvenanceInsert",
-      "occurrence": 21,
+      "occurrence": 22,
       "executionMode": "returned-statement",
       "argumentKind": "reviewed-nonliteral",
       "expression": "INSERT_VALIDATION_PROVENANCE_SQL",
       "expressionSha256": "f3104c843d944b95799af1a8c17b1898764478361956507abd1b6f5d09830162",
       "declarationReference": {
         "name": "INSERT_VALIDATION_PROVENANCE_SQL",
-        "declarationLine": 1248,
+        "declarationLine": 1260,
         "initializerSha256": "adefb9aaf915ce64a3884e057ae34fa209bd1f672c9a858582b03eb98cb93b84"
       },
       "statementClass": "UNRESOLVED",
@@ -4768,18 +4797,18 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "69026e39efa7ee214c9df64f",
+      "callSiteId": "890f4e925b6b736752f6ec44",
       "file": "worker/trips.ts",
-      "line": 2014,
+      "line": 2055,
       "containingFunction": "prepareFeasibilityEventInsert",
-      "occurrence": 22,
+      "occurrence": 23,
       "executionMode": "returned-statement",
       "argumentKind": "reviewed-nonliteral",
       "expression": "INSERT_FEASIBILITY_EVENT_SQL",
       "expressionSha256": "9fc9d0e4184ac21095ecef76483c6b724485615bd624ed0bf9499811a03316a5",
       "declarationReference": {
         "name": "INSERT_FEASIBILITY_EVENT_SQL",
-        "declarationLine": 1265,
+        "declarationLine": 1277,
         "initializerSha256": "996c8c189db04bfec574b19433a9a5f75cb9fbe53d6af6ed91e31af7192aabce"
       },
       "statementClass": "UNRESOLVED",
@@ -4792,18 +4821,18 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "5727a7f275058abe32aa39f8",
+      "callSiteId": "6bf69651ca568e5ef7bf24a0",
       "file": "worker/trips.ts",
-      "line": 2021,
+      "line": 2062,
       "containingFunction": "prepareFeasibilityRecruitmentInsert",
-      "occurrence": 23,
+      "occurrence": 24,
       "executionMode": "returned-statement",
       "argumentKind": "reviewed-nonliteral",
       "expression": "INSERT_FEASIBILITY_RECRUITMENT_SQL",
       "expressionSha256": "1f8b71cbc1d3dd64fabcedc99fb6d2089a62bc9346314ebb8b6fd356425e175a",
       "declarationReference": {
         "name": "INSERT_FEASIBILITY_RECRUITMENT_SQL",
-        "declarationLine": 1276,
+        "declarationLine": 1288,
         "initializerSha256": "baebc33411d1e71fde44c4e25b4fb900bc4d11c4336f3ecdb0ff2201633eeae0"
       },
       "statementClass": "UNRESOLVED",
@@ -4816,11 +4845,11 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "a788a74dd194566ac3147f2b",
+      "callSiteId": "9f57b0575589cf60ee371303",
       "file": "worker/trips.ts",
-      "line": 2051,
+      "line": 2092,
       "containingFunction": "prepareConditionalFeasibilityEventInsert",
-      "occurrence": 24,
+      "occurrence": 25,
       "executionMode": "returned-statement",
       "argumentKind": "reviewed-nonliteral",
       "expression": "`INSERT INTO validation_feasibility_events (\n      ${FEASIBILITY_EVENT_COLUMNS.join(\", \")}\n    ) SELECT ${bindings.map(() => \"?\").join(\", \")}\n    WHERE EXISTS (\n      SELECT 1 FROM trips WHERE id = ? AND token_hash IS NULL AND ${completedCondition}\n    )`",
@@ -4836,11 +4865,11 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "795ffb124a6dc5263ab67794",
+      "callSiteId": "45eaf3b795d336bcd2c4c64e",
       "file": "worker/trips.ts",
-      "line": 2065,
+      "line": 2106,
       "containingFunction": "prepareConditionalCompletionProvenanceInsert",
-      "occurrence": 25,
+      "occurrence": 26,
       "executionMode": "returned-statement",
       "argumentKind": "reviewed-nonliteral",
       "expression": "`INSERT INTO trip_validation_provenance (\n      ${VALIDATION_PROVENANCE_COLUMNS.join(\", \")}\n    ) SELECT ${placeholders}\n    WHERE EXISTS (\n      SELECT 1 FROM trips WHERE id = ? AND status = 'completed'\n        AND token_hash IS NULL AND completed_at = ?\n    )`",
