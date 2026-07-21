@@ -13,6 +13,36 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — San Francisco water-quality coverage negative evidence
+
+- [x] Preserve draft PR `#138` at exact receipt head
+      `19bb941c53b9ed1b2af04886f8c96e062922ec85` as the stacked base. This
+      follow-up is isolated from the dirty primary checkout and does not merge, deploy, mutate
+      Cloudflare or D1, change the catalog or score, or reinterpret current official status.
+- [x] Audit the fixed SFPUC machine endpoint read-only for the four still-unmapped San Francisco
+      sites. The `2026-07-21T13:03:50Z` capture returned 20 official station records and is bound
+      by response, audit-tool, and catalog SHA-256 digests. The receipt contains only public
+      station metadata and bounded nearest-candidate distances.
+- [x] Preserve the negative result instead of inferring coverage from proximity. The closest
+      official points to Torpedo Wharf, Pier 7, Pier 14, and Heron's Head Park Pier are 792 m,
+      2,439 m, 2,520 m, and 1,508 m away and have different official location identities. All
+      four remain `not-covered`, `unknown`, and null-score rather than inheriting another
+      waterfront's sample status.
+- [x] Add a deterministic audit tool and regression tests that validate coordinates and source
+      structure, bind the source response, expose four candidates for manual review, forbid
+      automatic mapping, and prove the checked-in policy and advisory artifact remain fail-closed.
+- [x] Complete the local verification boundary under pinned Node `22.23.1` and the locked Python
+      environments: a fresh zero-script install, both zero-vulnerability npm audits, Cloudflare
+      build, 490/490 Node tests, ESLint, TypeScript, the complete offline security/SBOM/source-
+      integrity chain, Ruff and Python syntax, 29/29 API tests, 83/83 pipeline tests with one
+      documented optional-`rasterio` skip, deterministic synthetic smoke, and all 19 critical D1
+      query plans passed. No application UI or runtime behavior changed, so the preceding exact
+      base's 188-case mobile receipt remains the relevant visual boundary pending hosted CI.
+- [ ] Obtain independent spatial-support review or a more exact official source before mapping any
+      of these four sites. Broader launch-catalog coverage, numeric-contribution validation,
+      merge, deployment, provider/database mutation, and production activation remain separate
+      open gates.
+
 ## Active checkpoint — Oakland through South Bay source-bound chart context
 
 - [x] Preserve draft PR `#137` at exact final receipt head
@@ -1332,6 +1362,11 @@ by that discovery.
       live adapter check is time-bound repository evidence. Independent mapping/source-latency
       review, remaining launch-catalog coverage, full local/hosted acceptance, guarded deployment,
       and every numeric-score gate remain open.
+      **San Francisco gap audit locally complete:** a fixed-endpoint receipt records the four
+      nearest official station candidates for each still-unmapped waterfront site but deliberately
+      creates no mappings. Candidate distances range from 792 m to 2,520 m and station identities
+      differ, so all four sites stay `not-covered`, unknown, and null-score pending separately
+      documented spatial authority and independent review.
 - [ ] Enrich the map one available location at a time with reviewed notable structure and useful
       depth levels. Every feature needs reproducible official/licensed source provenance, units,
       vertical datum, resolution, retrieval date, checksum, uncertainty, allowed use, sensitive-

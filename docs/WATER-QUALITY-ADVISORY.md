@@ -54,6 +54,30 @@ The policy maps six catalog sites to exact SFPUC station identifiers:
 | Ocean Beach North | 4604, 4605 |
 | Ocean Beach South | 4602 |
 
+### Unmapped San Francisco waterfront audit
+
+The four remaining San Francisco catalog sites are deliberately still
+unmapped. A bounded read-only audit captured the 20 records returned by the
+fixed SFPUC endpoint at `2026-07-21T13:03:50Z` and recorded the response digest,
+catalog digest, exact site coordinates, and four nearest official station
+candidates in
+`water-quality/audits/sf-unmapped-station-candidates.json`.
+
+| Unmapped catalog site | Nearest official station candidate | Distance |
+| --- | --- | ---: |
+| Torpedo Wharf | Crissy Field Beach West (`4611`) | 792 m |
+| Pier 7 | Hyde Street Pier (`4614`) | 2,439 m |
+| Pier 14 | Mission Creek (`4618`) | 2,520 m |
+| Heron's Head Park Pier | Islais Creek (`4619`) | 1,508 m |
+
+Those results are triage candidates, not spatial authority. None has an exact
+catalog/station identity, and straight-line proximity does not establish that a
+sample represents another waterfront, pier, current regime, outfall context,
+or exposure point. The audit tool is intentionally unable to edit the policy or
+recommend a mapping. All four sites therefore retain `not-covered`, `unknown`,
+and null `scoreDelta` until separate documented spatial support and independent
+review exist.
+
 SFPUC describes routine weekly sampling. For a neutral no-posting result, every
 mapped station must be present, sampled, and no more than ten Pacific-calendar
 days old. The small allowance beyond seven days accommodates publication timing
@@ -136,6 +160,12 @@ agency source and posted signs.
   text or local paths; and
 - supports separate local XML and HTML fixtures plus `--as-of` for deterministic
   adversarial tests.
+
+`scripts/audit_sfpuc_station_coverage.py` separately creates a reproducible,
+tool-hash-bound nearest-station review receipt. It uses the same fixed endpoint
+and parser, validates coordinates, computes bounded haversine distances, and
+emits only candidate evidence. It never changes `water-quality/policy.json`,
+never treats distance as coverage, and never emits a score or safety conclusion.
 
 The browser independently expires neutral SFPUC sample evidence on the same
 Pacific-calendar freshness rule. The scheduled snapshot workflow refreshes and

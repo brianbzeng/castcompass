@@ -1,0 +1,189 @@
+{
+  "schemaVersion": "castingcompass.water-quality-coverage-audit/1.0.0",
+  "generatedAt": "2026-07-21T13:03:50Z",
+  "meaning": "proximity candidates for manual spatial-support review; not agency coverage or a mapping recommendation",
+  "automaticMappingAllowed": false,
+  "source": {
+    "sourceId": "sfpuc",
+    "agency": "San Francisco Public Utilities Commission",
+    "programUrl": "https://www.sfpuc.gov/programs/ocean-and-beach-monitoring",
+    "statusUrl": "https://webapps.sfpuc.org/sapps/beachesandbay.html",
+    "machineUrl": "https://infrastructure.sfwater.org/lims.asmx/getBeaches",
+    "responseSha256": "53f221d6194f0d4f3e4ab52ae18c7e62dcf858cbb2105cfa8954c75166a60a33",
+    "stationCount": 20
+  },
+  "auditToolSha256": "a7e1a260953816a919a3822394bcfa57d8495e3182920332f592caf4a0122525",
+  "siteCatalogSha256": "a7145a66368c6dd5dd13b6bec421d430d228a3082d2fa8ad31941fc84e14078d",
+  "method": {
+    "distance": "haversine",
+    "earthRadiusMeters": 6371008.8,
+    "candidateCount": 4,
+    "decisionRule": "distance and name are triage evidence only; policy mapping requires separate documented spatial authority and review"
+  },
+  "sites": [
+    {
+      "siteId": "torpedo-wharf",
+      "siteName": "Torpedo Wharf",
+      "siteCoordinate": {
+        "latitude": 37.8106,
+        "longitude": -122.476
+      },
+      "policyMapped": false,
+      "automaticMappingAllowed": false,
+      "automatedDisposition": "candidate-only-do-not-map",
+      "nearestOfficialStations": [
+        {
+          "stationId": "4611",
+          "stationName": "Crissy Field Beach West",
+          "distanceMeters": 792,
+          "latitude": 37.8069,
+          "longitude": -122.4683
+        },
+        {
+          "stationId": "4609",
+          "stationName": "Baker Beach East",
+          "distanceMeters": 2143,
+          "latitude": 37.79258,
+          "longitude": -122.48465
+        },
+        {
+          "stationId": "4612",
+          "stationName": "Crissy Field Beach East",
+          "distanceMeters": 2163,
+          "latitude": 37.8066,
+          "longitude": -122.4519
+        },
+        {
+          "stationId": "4610",
+          "stationName": "Baker Beach at Lobos Creek",
+          "distanceMeters": 2360,
+          "latitude": 37.79088,
+          "longitude": -122.48594
+        }
+      ]
+    },
+    {
+      "siteId": "pier-7",
+      "siteName": "Pier 7",
+      "siteCoordinate": {
+        "latitude": 37.8008,
+        "longitude": -122.3954
+      },
+      "policyMapped": false,
+      "automaticMappingAllowed": false,
+      "automatedDisposition": "candidate-only-do-not-map",
+      "nearestOfficialStations": [
+        {
+          "stationId": "4614",
+          "stationName": "Hyde Street Pier",
+          "distanceMeters": 2439,
+          "latitude": 37.8089,
+          "longitude": -122.4212
+        },
+        {
+          "stationId": "4613",
+          "stationName": "Aquatic Park",
+          "distanceMeters": 2465,
+          "latitude": 37.8076,
+          "longitude": -122.4221
+        },
+        {
+          "stationId": "4618",
+          "stationName": "Mission Creek",
+          "distanceMeters": 3250,
+          "latitude": 37.7716,
+          "longitude": -122.397
+        },
+        {
+          "stationId": "4620",
+          "stationName": "Crane Cove Park",
+          "distanceMeters": 4227,
+          "latitude": 37.7634,
+          "longitude": -122.3868
+        }
+      ]
+    },
+    {
+      "siteId": "pier-14",
+      "siteName": "Pier 14",
+      "siteCoordinate": {
+        "latitude": 37.7936,
+        "longitude": -122.3901
+      },
+      "policyMapped": false,
+      "automaticMappingAllowed": false,
+      "automatedDisposition": "candidate-only-do-not-map",
+      "nearestOfficialStations": [
+        {
+          "stationId": "4618",
+          "stationName": "Mission Creek",
+          "distanceMeters": 2520,
+          "latitude": 37.7716,
+          "longitude": -122.397
+        },
+        {
+          "stationId": "4613",
+          "stationName": "Aquatic Park",
+          "distanceMeters": 3214,
+          "latitude": 37.8076,
+          "longitude": -122.4221
+        },
+        {
+          "stationId": "4614",
+          "stationName": "Hyde Street Pier",
+          "distanceMeters": 3219,
+          "latitude": 37.8089,
+          "longitude": -122.4212
+        },
+        {
+          "stationId": "4620",
+          "stationName": "Crane Cove Park",
+          "distanceMeters": 3371,
+          "latitude": 37.7634,
+          "longitude": -122.3868
+        }
+      ]
+    },
+    {
+      "siteId": "herons-head-park-pier",
+      "siteName": "Heron's Head Park Pier",
+      "siteCoordinate": {
+        "latitude": 37.7397,
+        "longitude": -122.3735
+      },
+      "policyMapped": false,
+      "automaticMappingAllowed": false,
+      "automatedDisposition": "candidate-only-do-not-map",
+      "nearestOfficialStations": [
+        {
+          "stationId": "4619",
+          "stationName": "Islais Creek",
+          "distanceMeters": 1508,
+          "latitude": 37.74703,
+          "longitude": -122.38793
+        },
+        {
+          "stationId": "4620",
+          "stationName": "Crane Cove Park",
+          "distanceMeters": 2883,
+          "latitude": 37.7634,
+          "longitude": -122.3868
+        },
+        {
+          "stationId": "4615",
+          "stationName": "Jackrabbit Beach",
+          "distanceMeters": 3200,
+          "latitude": 37.7114,
+          "longitude": -122.3801
+        },
+        {
+          "stationId": "4616",
+          "stationName": "Windsurfer Circle",
+          "distanceMeters": 3489,
+          "latitude": 37.7091,
+          "longitude": -122.3823
+        }
+      ]
+    }
+  ]
+}
