@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import {
   chmodSync,
   linkSync,
+  lstatSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -12,14 +14,17 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { runOfflineOperationalRestoreDrill } from "../scripts/run-operational-restore-drill.mjs";
 import {
+  createOperationalRestoreReviewTemplate,
   evaluateOperationalRestoreReview,
   loadOperationalRestoreReviewPolicy,
   validateOperationalRestoreReviewPolicy,
   verifyOperationalRestoreIndependentReview,
   verifyOperationalRestoreReviewContract,
+  writeOperationalRestoreReviewTemplate,
 } from "../scripts/verify-operational-restore-review.mjs";
 
 const SOURCE_COMMIT = "c".repeat(40);
@@ -121,8 +126,71 @@ test("the locked review policy and private-record contract are exact", async () 
   );
   assert.match(manifest, /"security:operational-restore-review": "node scripts\/verify-operational-restore-review\.mjs verify-policy"/u);
   assert.match(manifest, /"verify:operational-restore-review": "node scripts\/verify-operational-restore-review\.mjs evaluate/u);
+  assert.match(manifest, /"write:operational-restore-review-template": "node scripts\/verify-operational-restore-review\.mjs write-template"/u);
   assert.match(ci, /npm run security:production-change-policy\n\s+- run: npm run security:operational-restore-review/u);
   assert.match(release, /npm run security:production-change-policy\n\s+- run: npm run security:operational-restore-review/u);
+});
+
+test("packet-derived review template is hash-bound, unfilled, and non-authorizing", async () => {
+  const value = await fixture();
+  try {
+    const policy = await loadOperationalRestoreReviewPolicy();
+    const template = createOperationalRestoreReviewTemplate(value.sources, policy, {
+      expectedSourceCommit: SOURCE_COMMIT,
+    });
+    assert.equal(template.packet_source_commit, SOURCE_COMMIT);
+    assert.equal(template.packet_acceptance_sha256, sha256(value.sources.acceptanceSource));
+    assert.equal(template.packet_restore_evidence_sha256, sha256(value.sources.evidenceSource));
+    assert.equal(template.packet_storage_audit_sha256, sha256(value.sources.auditSource));
+    assert.equal(template.review_id, "");
+    assert.equal(template.reviewed_at, "");
+    assert.equal(template.reviewer_role, "independent_reviewer");
+    assert.equal(template.reviewer_was_not_drill_operator, false);
+    assert.equal(Object.values(template.review_checklist).every((result) => result === false), true);
+    assert.equal(template.review_evidence_sha256, "");
+    assert.throws(() => evaluateOperationalRestoreReview({
+      ...value.sources,
+      reviewSource: stableJson(template),
+    }, policy, { expectedSourceCommit: SOURCE_COMMIT, now: NOW }), /identity|attestation/u);
+  } finally {
+    rmSync(value.parent, { recursive: true, force: true });
+  }
+});
+
+test("guarded restore-review writer creates one owner-only file and never overwrites", async () => {
+  const value = await fixture();
+  try {
+    const outputFile = join(value.parent, "unfilled-independent-review.json");
+    const receipt = await writeOperationalRestoreReviewTemplate({
+      packetDirectory: value.packetDirectory,
+      outputFile,
+      expectedSourceCommit: SOURCE_COMMIT,
+    });
+    const metadata = lstatSync(outputFile);
+    const originalBytes = readFileSync(outputFile);
+    const template = JSON.parse(originalBytes.toString("utf8"));
+    assert.equal(metadata.isFile(), true);
+    assert.equal(metadata.isSymbolicLink(), false);
+    assert.equal(metadata.mode & 0o777, 0o600);
+    assert.equal(metadata.nlink, 1);
+    assert.equal(template.packet_source_commit, SOURCE_COMMIT);
+    assert.equal(template.packet_acceptance_sha256, sha256(value.sources.acceptanceSource));
+    assert.equal(receipt.owner_only_file_written, true);
+    assert.equal(receipt.existing_file_overwritten, false);
+    assert.equal(receipt.independent_review_record_accepted, false);
+    assert.equal(receipt.production_restore_gate_passed, false);
+    assert.equal(receipt.production_release_authorized, false);
+    assert.equal(JSON.stringify(receipt).includes(value.parent), false);
+
+    await assert.rejects(writeOperationalRestoreReviewTemplate({
+      packetDirectory: value.packetDirectory,
+      outputFile,
+      expectedSourceCommit: SOURCE_COMMIT,
+    }), /must not already exist/u);
+    assert.deepEqual(readFileSync(outputFile), originalBytes);
+  } finally {
+    rmSync(value.parent, { recursive: true, force: true });
+  }
 });
 
 test("a source-bound second-person record yields only a minimized non-authorizing receipt", async () => {
@@ -293,6 +361,34 @@ test("private packet and review filesystem boundaries reject exposure and path t
     }), /permissions|ownership/u);
     chmodSync(value.reviewFile, 0o600);
 
+    chmodSync(value.reviewFile, 0o400);
+    await assert.rejects(verifyOperationalRestoreIndependentReview({
+      packetDirectory: value.packetDirectory,
+      reviewFile: value.reviewFile,
+      expectedSourceCommit: SOURCE_COMMIT,
+      now: NOW,
+    }), /exact permissions/u);
+    chmodSync(value.reviewFile, 0o600);
+
+    const packetFile = join(value.packetDirectory, "acceptance-record.json");
+    chmodSync(packetFile, 0o400);
+    await assert.rejects(verifyOperationalRestoreIndependentReview({
+      packetDirectory: value.packetDirectory,
+      reviewFile: value.reviewFile,
+      expectedSourceCommit: SOURCE_COMMIT,
+      now: NOW,
+    }), /exact permissions/u);
+    chmodSync(packetFile, 0o600);
+
+    chmodSync(value.packetDirectory, 0o750);
+    await assert.rejects(verifyOperationalRestoreIndependentReview({
+      packetDirectory: value.packetDirectory,
+      reviewFile: value.reviewFile,
+      expectedSourceCommit: SOURCE_COMMIT,
+      now: NOW,
+    }), /directory ownership or permissions/u);
+    chmodSync(value.packetDirectory, 0o700);
+
     const symlink = join(value.parent, "review-link.json");
     symlinkSync(value.reviewFile, symlink);
     await assert.rejects(verifyOperationalRestoreIndependentReview({
@@ -311,6 +407,58 @@ test("private packet and review filesystem boundaries reject exposure and path t
       now: NOW,
     }), /link count/u);
     rmSync(hardLink);
+
+    const emptyReview = join(value.parent, "empty-review.json");
+    privateWrite(emptyReview, "");
+    await assert.rejects(verifyOperationalRestoreIndependentReview({
+      packetDirectory: value.packetDirectory,
+      reviewFile: emptyReview,
+      expectedSourceCommit: SOURCE_COMMIT,
+      now: NOW,
+    }), /size is invalid/u);
+
+    const oversizedReview = join(value.parent, "oversized-review.json");
+    writeFileSync(oversizedReview, Buffer.alloc(65_537), { mode: 0o600 });
+    chmodSync(oversizedReview, 0o600);
+    await assert.rejects(verifyOperationalRestoreIndependentReview({
+      packetDirectory: value.packetDirectory,
+      reviewFile: oversizedReview,
+      expectedSourceCommit: SOURCE_COMMIT,
+      now: NOW,
+    }), /size is invalid/u);
+
+    const permissiveDirectory = join(value.parent, "permissive");
+    const privateDirectory = join(value.parent, "private");
+    const linkedDirectory = join(value.parent, "linked-directory");
+    mkdirSync(permissiveDirectory, { mode: 0o755 });
+    chmodSync(permissiveDirectory, 0o755);
+    mkdirSync(privateDirectory, { mode: 0o700 });
+    symlinkSync(privateDirectory, linkedDirectory);
+    await assert.rejects(writeOperationalRestoreReviewTemplate({
+      packetDirectory: value.packetDirectory,
+      outputFile: "relative-review.json",
+      expectedSourceCommit: SOURCE_COMMIT,
+    }), /must be absolute/u);
+    await assert.rejects(writeOperationalRestoreReviewTemplate({
+      packetDirectory: value.packetDirectory,
+      outputFile: fileURLToPath(new URL("../restore-review.json", import.meta.url)),
+      expectedSourceCommit: SOURCE_COMMIT,
+    }), /outside every repository/u);
+    await assert.rejects(writeOperationalRestoreReviewTemplate({
+      packetDirectory: value.packetDirectory,
+      outputFile: join(permissiveDirectory, "review.json"),
+      expectedSourceCommit: SOURCE_COMMIT,
+    }), /exact permissions/u);
+    await assert.rejects(writeOperationalRestoreReviewTemplate({
+      packetDirectory: value.packetDirectory,
+      outputFile: join(linkedDirectory, "review.json"),
+      expectedSourceCommit: SOURCE_COMMIT,
+    }), /non-symlink directory/u);
+    await assert.rejects(writeOperationalRestoreReviewTemplate({
+      packetDirectory: value.packetDirectory,
+      outputFile: join(value.packetDirectory, "review.json"),
+      expectedSourceCommit: SOURCE_COMMIT,
+    }), /outside the immutable packet directory/u);
 
     privateWrite(join(value.packetDirectory, "unexpected.json"), "{}\n");
     await assert.rejects(verifyOperationalRestoreIndependentReview({

@@ -20,8 +20,10 @@ Keep all material on an encrypted, access-restricted volume outside every reposi
 
 - The immutable packet directory must be owner-only (`0700`) and contain exactly
   `acceptance-record.json`, `operational-restore-evidence.json`, and `storage-audit.ndjson`.
-- Each packet file and the separate review record must be a regular, owner-readable file with
-  no group/other access (`0600`), no hard link, and no symbolic link.
+- Each packet file and the separate review record must be a current-user-owned regular file with
+  permissions exactly `0600`, one hard link, and no symbolic link. The verifier opens without
+  following links and rejects any device, inode, ownership, mode, link, size, or modification
+  change before, during, or after its bounded read.
 - Store the review record outside the immutable packet directory. Store the human review notes
   separately; the JSON contains only their SHA-256 digest.
 - Never paste the packet, review record, reviewer identity, private note, key, provider output,
@@ -38,34 +40,59 @@ Keep all material on an encrypted, access-restricted volume outside every reposi
    content and that every limitation is understood.
 3. Preserve the signed review note privately and compute its SHA-256 digest. The digest must be
    distinct from every packet digest; the note itself never enters the JSON or public receipt.
-4. Create a lowercase UUIDv4 and an exact review JSON using the field order below. Use a UTC
-   timestamp with milliseconds no later than seven days after the drill. Do not reuse the drill
-   operator's evidence or simply assert values to make the verifier pass.
-5. Run the verifier. Treat success as acceptance of this review record only, then preserve the
+4. Create a separate owner-only output directory and run the guarded packet-derived writer below.
+   It validates the complete immutable packet and independently supplied commit before filling
+   the packet hashes. It creates one new `0600` file exclusively and never overwrites.
+5. In that generated file, create a lowercase UUIDv4, add the exact review time, and add the
+   distinct private-note SHA-256. Change the separation assertion and each checklist result from
+   `false` to `true` only after actually verifying it. Do not change the writer-bound schema,
+   source commit, packet hashes, field order, or reviewer role. Use a UTC timestamp with
+   milliseconds no later than seven days after the drill. Do not reuse the drill operator's
+   evidence or simply assert values to make the verifier pass.
+6. Run the verifier. Treat success as acceptance of this review record only, then preserve the
    minimized stdout receipt with the private release record after checking it again for
    disclosure.
+
+```sh
+mkdir -p /PRIVATE/ENCRYPTED/PATH/reviewer
+chmod 700 /PRIVATE/ENCRYPTED/PATH/reviewer
+npm run write:operational-restore-review-template -- \
+  --packet-directory /PRIVATE/ENCRYPTED/PATH/packet \
+  --output-file /PRIVATE/ENCRYPTED/PATH/reviewer/independent-review.json \
+  --expected-source-commit FULL_40_CHARACTER_SOURCE_COMMIT
+```
+
+The writer receipt contains no private path, packet digest, reviewer identity, or review-note
+digest. It always records that no independent review was accepted and that key custody, provider
+evidence, the restore gate, and release authorization remain false. Relative or checkout paths,
+symlinked or non-`0700` output directories, locations inside the packet, and existing output
+files are refused.
 
 ```json
 {
   "schema_version": "castingcompass.operational-restore-independent-review/1.0.0",
-  "review_id": "REPLACE_WITH_LOWERCASE_UUIDV4",
-  "packet_source_commit": "REPLACE_WITH_EXPECTED_FULL_COMMIT",
-  "packet_acceptance_sha256": "REPLACE_WITH_ACCEPTANCE_FILE_SHA256",
-  "packet_restore_evidence_sha256": "REPLACE_WITH_RESTORE_EVIDENCE_FILE_SHA256",
-  "packet_storage_audit_sha256": "REPLACE_WITH_STORAGE_AUDIT_FILE_SHA256",
-  "reviewed_at": "REPLACE_WITH_UTC_TIMESTAMP_WITH_MILLISECONDS",
+  "review_id": "",
+  "packet_source_commit": "WRITER_BINDS_EXPECTED_FULL_COMMIT",
+  "packet_acceptance_sha256": "WRITER_BINDS_ACCEPTANCE_FILE_SHA256",
+  "packet_restore_evidence_sha256": "WRITER_BINDS_RESTORE_EVIDENCE_FILE_SHA256",
+  "packet_storage_audit_sha256": "WRITER_BINDS_STORAGE_AUDIT_FILE_SHA256",
+  "reviewed_at": "",
   "reviewer_role": "independent_reviewer",
-  "reviewer_was_not_drill_operator": true,
+  "reviewer_was_not_drill_operator": false,
   "review_checklist": {
-    "acceptance_boundaries_understood": true,
-    "aggregate_only_evidence_confirmed": true,
-    "no_production_authority_granted": true,
-    "packet_integrity_confirmed": true,
-    "source_binding_confirmed": true
+    "acceptance_boundaries_understood": false,
+    "aggregate_only_evidence_confirmed": false,
+    "no_production_authority_granted": false,
+    "packet_integrity_confirmed": false,
+    "source_binding_confirmed": false
   },
-  "review_evidence_sha256": "REPLACE_WITH_DISTINCT_PRIVATE_REVIEW_NOTE_SHA256"
+  "review_evidence_sha256": ""
 }
 ```
+
+The displayed strings in the three packet-bound hash fields are explanatory placeholders only;
+the actual guarded writer supplies lowercase digests and the exact source commit. Do not copy the
+example block into a file or replace those writer-controlled values manually.
 
 The machine contract is
 [`contracts/operational-restore-independent-review.schema.json`](../contracts/operational-restore-independent-review.schema.json),

@@ -2,8 +2,8 @@
 
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
-import { lstat, open, readFile, realpath, readdir } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { lstat, open, readFile, realpath, readdir, unlink } from "node:fs/promises";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -515,17 +515,16 @@ function validateReview(
   return reviewedAt;
 }
 
-export function evaluateOperationalRestoreReview(
-  { acceptanceSource, evidenceSource, auditSource, reviewSource },
+function validateOperationalRestorePacket(
+  { acceptanceSource, evidenceSource, auditSource },
   policy,
-  { expectedSourceCommit, now = new Date() },
+  expectedSourceCommit,
 ) {
   const lockedPolicy = validateOperationalRestoreReviewPolicy(policy);
   for (const [label, source] of Object.entries({
     "Operational restore acceptance": acceptanceSource,
     "Operational restore evidence": evidenceSource,
     "Operational restore audit": auditSource,
-    "Operational restore independent review": reviewSource,
   })) {
     if (typeof source !== "string") throw new Error(`${label} source is invalid.`);
     assertNoCredentialMaterial(source, label);
@@ -534,7 +533,6 @@ export function evaluateOperationalRestoreReview(
     (value) => `${JSON.stringify(value)}\n`);
   const evidence = parseCanonicalJson(evidenceSource, "Operational restore evidence",
     (value) => `${canonicalJson(value)}\n`);
-  const review = parseCanonicalJson(reviewSource, "Operational restore independent review", stableJson);
   const prohibitedEvidenceFields = new Set(lockedPolicy.prohibited_evidence_fields);
   assertNoFields(acceptance, prohibitedEvidenceFields, "Operational restore acceptance");
   assertNoFields(evidence, prohibitedEvidenceFields, "Operational restore evidence");
@@ -550,34 +548,90 @@ export function evaluateOperationalRestoreReview(
     throw new Error("Operational restore packet file digests do not match the acceptance record.");
   }
   const auditEvents = validateAuditSource(auditSource, lockedPolicy, evidence, acceptance);
+  return {
+    acceptance,
+    auditEvents,
+    drillCompletedAt,
+    evidence,
+    lockedPolicy,
+    packetDigests,
+  };
+}
+
+export function createOperationalRestoreReviewTemplate(
+  { acceptanceSource, evidenceSource, auditSource },
+  policy,
+  { expectedSourceCommit },
+) {
+  const packet = validateOperationalRestorePacket(
+    { acceptanceSource, evidenceSource, auditSource },
+    policy,
+    expectedSourceCommit,
+  );
+  return {
+    schema_version: packet.lockedPolicy.review_schema_version,
+    review_id: "",
+    packet_source_commit: packet.acceptance.source_commit,
+    packet_acceptance_sha256: packet.packetDigests.acceptance,
+    packet_restore_evidence_sha256: packet.packetDigests.evidence,
+    packet_storage_audit_sha256: packet.packetDigests.audit,
+    reviewed_at: "",
+    reviewer_role: "independent_reviewer",
+    reviewer_was_not_drill_operator: false,
+    review_checklist: Object.fromEntries(
+      packet.lockedPolicy.required_review_checks.map((name) => [name, false]),
+    ),
+    review_evidence_sha256: "",
+  };
+}
+
+export function evaluateOperationalRestoreReview(
+  { acceptanceSource, evidenceSource, auditSource, reviewSource },
+  policy,
+  { expectedSourceCommit, now = new Date() },
+) {
+  const packet = validateOperationalRestorePacket(
+    { acceptanceSource, evidenceSource, auditSource },
+    policy,
+    expectedSourceCommit,
+  );
+  if (typeof reviewSource !== "string") {
+    throw new Error("Operational restore independent review source is invalid.");
+  }
+  assertNoCredentialMaterial(reviewSource, "Operational restore independent review");
+  const review = parseCanonicalJson(
+    reviewSource,
+    "Operational restore independent review",
+    stableJson,
+  );
   const reviewedAt = validateReview(
     review,
-    lockedPolicy,
-    acceptance,
-    evidence,
-    auditEvents,
-    packetDigests,
-    drillCompletedAt,
+    packet.lockedPolicy,
+    packet.acceptance,
+    packet.evidence,
+    packet.auditEvents,
+    packet.packetDigests,
+    packet.drillCompletedAt,
     now,
   );
   const receipt = {
-    schema_version: lockedPolicy.receipt_schema_version,
-    packet_scope: lockedPolicy.packet_scope,
-    source_commit: acceptance.source_commit,
-    packet_acceptance_sha256: packetDigests.acceptance,
+    schema_version: packet.lockedPolicy.receipt_schema_version,
+    packet_scope: packet.lockedPolicy.packet_scope,
+    source_commit: packet.acceptance.source_commit,
+    packet_acceptance_sha256: packet.packetDigests.acceptance,
     reviewed_at: new Date(reviewedAt).toISOString(),
     reviewer_role: "independent_reviewer",
     independent_review_record_accepted: true,
     separation_attested: true,
-    verified_acceptance_checks: [...lockedPolicy.required_acceptance_checks],
-    verified_review_checks: [...lockedPolicy.required_review_checks],
+    verified_acceptance_checks: [...packet.lockedPolicy.required_acceptance_checks],
+    verified_review_checks: [...packet.lockedPolicy.required_review_checks],
     production_key_custody_approved: false,
     production_provider_evidence_verified: false,
     production_restore_gate_passed: false,
     production_release_authorized: false,
-    remaining_approvals: [...lockedPolicy.remaining_approvals_after_review],
+    remaining_approvals: [...packet.lockedPolicy.remaining_approvals_after_review],
   };
-  assertNoFields(receipt, new Set(lockedPolicy.prohibited_public_receipt_fields),
+  assertNoFields(receipt, new Set(packet.lockedPolicy.prohibited_public_receipt_fields),
     "Operational restore public receipt");
   return receipt;
 }
@@ -604,6 +658,11 @@ async function safeReadPrivateFile(path, {
   if (!before || before.isSymbolicLink() || !before.isFile()) {
     throw new Error(`${label} must be an existing regular file, not a symbolic link.`);
   }
+  if (before.nlink !== 1 || before.size < 2 || before.size > maximumBytes
+    || (before.mode & 0o777) !== 0o600
+    || (typeof process.getuid === "function" && before.uid !== process.getuid())) {
+    throw new Error(`${label} ownership, exact permissions, link count, or size is invalid.`);
+  }
   const realPathBefore = await realpath(requestedPath);
   assertOutsideRepositories(repositoryRoots, realPathBefore, label);
   let handle;
@@ -616,13 +675,24 @@ async function safeReadPrivateFile(path, {
     const metadata = await handle.stat();
     if (!metadata.isFile() || metadata.dev !== before.dev || metadata.ino !== before.ino
       || metadata.nlink !== 1 || metadata.size < 2 || metadata.size > maximumBytes
-      || (metadata.mode & 0o077) !== 0 || (metadata.mode & 0o400) === 0
+      || (metadata.mode & 0o777) !== 0o600
       || (typeof process.getuid === "function" && metadata.uid !== process.getuid())) {
-      throw new Error(`${label} ownership, permissions, link count, or size is invalid.`);
+      throw new Error(`${label} ownership, exact permissions, link count, or size is invalid.`);
     }
     const bytes = await handle.readFile();
+    const completed = await handle.stat();
     const after = await lstat(requestedPath).catch(() => null);
-    if (!after || after.isSymbolicLink() || after.dev !== metadata.dev || after.ino !== metadata.ino
+    if (!after || after.isSymbolicLink()
+      || completed.dev !== metadata.dev || completed.ino !== metadata.ino
+      || completed.nlink !== 1 || (completed.mode & 0o777) !== 0o600
+      || (typeof process.getuid === "function" && completed.uid !== process.getuid())
+      || completed.size !== metadata.size || completed.size !== bytes.length
+      || completed.mtimeMs !== metadata.mtimeMs || completed.ctimeMs !== metadata.ctimeMs
+      || after.dev !== completed.dev || after.ino !== completed.ino
+      || after.nlink !== 1 || (after.mode & 0o777) !== 0o600
+      || (typeof process.getuid === "function" && after.uid !== process.getuid())
+      || after.size !== completed.size || after.mtimeMs !== completed.mtimeMs
+      || after.ctimeMs !== completed.ctimeMs
       || await realpath(requestedPath) !== realPathBefore) {
       throw new Error(`${label} changed while it was being read.`);
     }
@@ -645,7 +715,7 @@ async function readPrivatePacket(packetDirectory, policy, repositoryRoots) {
   const requestedDirectory = resolve(packetDirectory);
   const before = await lstat(requestedDirectory).catch(() => null);
   if (!before || before.isSymbolicLink() || !before.isDirectory()
-    || (before.mode & 0o077) !== 0
+    || (before.mode & 0o777) !== 0o700
     || (typeof process.getuid === "function" && before.uid !== process.getuid())) {
     throw new Error("Operational restore packet directory ownership or permissions are invalid.");
   }
@@ -670,12 +740,121 @@ async function readPrivatePacket(packetDirectory, policy, repositoryRoots) {
   const after = await lstat(requestedDirectory).catch(() => null);
   const namesAfter = (await readdir(requestedDirectory)).sort();
   if (!after || after.isSymbolicLink() || after.dev !== before.dev || after.ino !== before.ino
+    || (after.mode & 0o777) !== 0o700
+    || (typeof process.getuid === "function" && after.uid !== process.getuid())
     || await realpath(requestedDirectory) !== realDirectoryBefore
     || JSON.stringify(namesAfter) !== JSON.stringify(names)
     || totalBytes > policy.limits.maximum_packet_bytes) {
     throw new Error("Operational restore packet directory changed or exceeds its total size limit.");
   }
   return { files, path: realDirectoryBefore };
+}
+
+async function privateTemplateOutputPath(outputFile, repositoryRoots, packetPath) {
+  if (typeof outputFile !== "string" || !isAbsolute(outputFile)) {
+    throw new Error("Operational restore review template output path must be absolute.");
+  }
+  const requestedPath = resolve(outputFile);
+  if (requestedPath !== outputFile) {
+    throw new Error("Operational restore review template output path must already be normalized.");
+  }
+  const parent = dirname(requestedPath);
+  const metadata = await lstat(parent).catch(() => null);
+  if (!metadata || metadata.isSymbolicLink() || !metadata.isDirectory()) {
+    throw new Error("Operational restore review template directory must be an existing non-symlink directory.");
+  }
+  const parentReal = await realpath(parent);
+  assertOutsideRepositories(repositoryRoots, parentReal,
+    "Operational restore review template directory");
+  if ((metadata.mode & 0o777) !== 0o700
+    || (typeof process.getuid === "function" && metadata.uid !== process.getuid())) {
+    throw new Error("Operational restore review template directory ownership or exact permissions are invalid.");
+  }
+  const outputPath = resolve(parentReal, basename(requestedPath));
+  if (!isOutside(packetPath, outputPath)) {
+    throw new Error("Operational restore review template must remain outside the immutable packet directory.");
+  }
+  return { outputPath, parentPath: parentReal, parentMetadata: metadata };
+}
+
+export async function writeOperationalRestoreReviewTemplate({
+  root = DEFAULT_ROOT,
+  policyRoot = DEFAULT_ROOT,
+  packetDirectory,
+  outputFile,
+  expectedSourceCommit,
+}) {
+  if (!COMMIT_PATTERN.test(expectedSourceCommit ?? "")) {
+    throw new Error("Operational restore review template requires a full lowercase source commit.");
+  }
+  const repositoryRoot = await realpath(resolve(root));
+  const policyRepositoryRoot = await realpath(resolve(policyRoot));
+  const repositoryRoots = [...new Set([repositoryRoot, policyRepositoryRoot])];
+  const policy = await loadOperationalRestoreReviewPolicy(policyRepositoryRoot);
+  await verifyOperationalRestoreReviewContract(policyRepositoryRoot);
+  const packet = await readPrivatePacket(packetDirectory, policy, repositoryRoots);
+  const output = await privateTemplateOutputPath(outputFile, repositoryRoots, packet.path);
+  const { outputPath } = output;
+  const template = createOperationalRestoreReviewTemplate({
+    acceptanceSource: packet.files["acceptance-record.json"].source,
+    evidenceSource: packet.files["operational-restore-evidence.json"].source,
+    auditSource: packet.files["storage-audit.ndjson"].source,
+  }, policy, { expectedSourceCommit });
+  const body = stableJson(template);
+  const expectedBytes = Buffer.byteLength(body);
+  let handle;
+  try {
+    handle = await open(
+      outputPath,
+      constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY
+        | (constants.O_NOFOLLOW ?? 0),
+      0o600,
+    );
+  } catch (error) {
+    if (error?.code === "EEXIST") {
+      throw new Error("Operational restore review template output file must not already exist.");
+    }
+    throw new Error("Operational restore review template output file could not be created safely.");
+  }
+  let complete = false;
+  try {
+    await handle.chmod(0o600);
+    await handle.writeFile(body, "utf8");
+    await handle.sync();
+    const metadata = await handle.stat();
+    const parentAfter = await lstat(output.parentPath).catch(() => null);
+    if (!metadata.isFile() || metadata.nlink !== 1
+      || (metadata.mode & 0o777) !== 0o600
+      || (typeof process.getuid === "function" && metadata.uid !== process.getuid())
+      || metadata.size !== expectedBytes
+      || !parentAfter || parentAfter.isSymbolicLink() || !parentAfter.isDirectory()
+      || parentAfter.dev !== output.parentMetadata.dev
+      || parentAfter.ino !== output.parentMetadata.ino
+      || (parentAfter.mode & 0o777) !== 0o700
+      || (typeof process.getuid === "function" && parentAfter.uid !== process.getuid())
+      || await realpath(output.parentPath) !== output.parentPath) {
+      throw new Error("Operational restore review template did not preserve its private boundary.");
+    }
+    complete = true;
+  } finally {
+    try {
+      await handle.close();
+    } finally {
+      if (!complete) await unlink(outputPath).catch(() => undefined);
+    }
+  }
+  return {
+    schema_version: "castingcompass.operational-restore-review-template-write-receipt/1.0.0",
+    packet_scope: policy.packet_scope,
+    source_commit: expectedSourceCommit,
+    owner_only_file_written: true,
+    existing_file_overwritten: false,
+    independent_review_record_accepted: false,
+    production_key_custody_approved: false,
+    production_provider_evidence_verified: false,
+    production_restore_gate_passed: false,
+    production_release_authorized: false,
+  };
 }
 
 export async function verifyOperationalRestoreIndependentReview({
@@ -745,8 +924,19 @@ async function main() {
     })}\n`);
     return;
   }
+  if (command === "write-template") {
+    const values = parseArguments(argv);
+    exactArguments(values, ["packet-directory", "output-file", "expected-source-commit"]);
+    const receipt = await writeOperationalRestoreReviewTemplate({
+      packetDirectory: values.get("packet-directory"),
+      outputFile: values.get("output-file"),
+      expectedSourceCommit: values.get("expected-source-commit"),
+    });
+    process.stdout.write(`${JSON.stringify(receipt)}\n`);
+    return;
+  }
   if (command !== "evaluate") {
-    throw new Error("Usage: verify-operational-restore-review.mjs verify-policy | evaluate --packet-directory ABSOLUTE_PATH --review-file ABSOLUTE_PATH --expected-source-commit SHA");
+    throw new Error("Usage: verify-operational-restore-review.mjs verify-policy | write-template --packet-directory ABSOLUTE_PATH --output-file ABSOLUTE_PATH --expected-source-commit SHA | evaluate --packet-directory ABSOLUTE_PATH --review-file ABSOLUTE_PATH --expected-source-commit SHA");
   }
   const values = parseArguments(argv);
   exactArguments(values, ["packet-directory", "review-file", "expected-source-commit"]);

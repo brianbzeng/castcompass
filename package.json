@@ -56,6 +56,7 @@
     "verify:observability:activation": "node scripts/verify-observability-activation.mjs evaluate --evidence-file \"$OBSERVABILITY_EVIDENCE_FILE\" --expected-commit \"$OBSERVABILITY_EXPECTED_COMMIT\"",
     "write:observability:activation-template": "node scripts/verify-observability-activation.mjs write-template",
     "verify:operational-restore-review": "node scripts/verify-operational-restore-review.mjs evaluate --packet-directory \"$RESTORE_PACKET_DIRECTORY\" --review-file \"$RESTORE_REVIEW_FILE\" --expected-source-commit \"$RESTORE_EXPECTED_SOURCE_COMMIT\"",
+    "write:operational-restore-review-template": "node scripts/verify-operational-restore-review.mjs write-template",
     "verify:pollution-score-independent-review": "node scripts/verify-pollution-score-independent-review.mjs evaluate --fisheries-review-file \"$POLLUTION_FISHERIES_REVIEW_FILE\" --public-health-review-file \"$POLLUTION_PUBLIC_HEALTH_REVIEW_FILE\" --expected-source-commit \"$POLLUTION_REVIEW_EXPECTED_SOURCE_COMMIT\"",
     "template:pollution-score-fisheries-review": "node scripts/verify-pollution-score-independent-review.mjs print-template --role fisheries_or_marine_ecology_methods_reviewer",
     "template:pollution-score-public-health-review": "node scripts/verify-pollution-score-independent-review.mjs print-template --role public_health_risk_communication_reviewer",

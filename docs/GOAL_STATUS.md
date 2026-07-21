@@ -1045,6 +1045,22 @@ by that discovery.
       CodeQL `29722159592` passed; both web engines, all three CodeQL languages, both image
       architectures, and dependency submission completed successfully. No Cloudflare, D1, DNS,
       deployment, migration, provider query, or production mutation ran.
+- [x] Harden the private handoff follow-up. Every packet/review file now requires stable
+      current-user ownership, exact `0600` mode, one hard link, and bounded size through a
+      no-follow descriptor; the immutable packet directory requires exact `0700` mode. Device,
+      inode, mode, owner, link, size, and modification identity are rechecked after reading.
+- [x] Add a guarded packet-derived writer that validates the exact three-file packet and
+      independently supplied source commit before binding all packet hashes into a new unfilled
+      reviewer record. It refuses relative, checkout, packet-internal, permissive, symlinked, and
+      existing destinations; its minimized receipt cannot accept a review or authorize key
+      custody, provider evidence, the restore gate, or release. The focused deterministic and
+      adversarial suite passes 6/6. No historical private packet or real reviewer record was read,
+      generated, or claimed during this repository-only follow-up.
+- [x] Verify the repository-only restore-review follow-up under pinned Node `22.23.1`/npm
+      `10.9.8`: the Cloudflare build, ESLint, TypeScript, all 539/539 Node tests, the full offline
+      security/SBOM/source-integrity chain, and both zero-vulnerability npm audits pass. The API,
+      pipeline, browser runtime, private historical packet, provider state, public artifacts, and
+      production remain unchanged.
 - [ ] Obtain a real second-person review of the private historical packet outside Git. Until that
       reviewer supplies a valid private record and the verifier accepts it, independent review,
       production key custody, provider evidence, the restore gate, and release authorization all

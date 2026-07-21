@@ -66,8 +66,11 @@ after its acceptance checks pass in the intended environment.
       - [x] Prepare the fail-closed independent-review handoff: a locked policy and schema,
         immutable three-file packet verification, independently supplied source binding, strict
         audit chronology/hash validation, distinct owner-only review evidence, a minimized
-        non-authorizing receipt, and adversarial path/disclosure tests. The actual second-person
-        review, key-custody approval, and provider/production evidence remain open.
+        non-authorizing receipt, and adversarial path/disclosure tests. A guarded packet-derived
+        writer now creates the unfilled record exclusively with exact packet hashes, while every
+        file requires stable current-user-owned `0600` identity through a bounded no-follow read.
+        The actual second-person review, key-custody approval, and provider/production evidence
+        remain open.
 - [ ] Make account privacy promises durable: deletion queue/tombstones for photos and public
   copies, truthful completion semantics, and an age-only first step before email/password.
   - [x] Implement and locally verify single-use age proofs, consent-safe reacceptance,
