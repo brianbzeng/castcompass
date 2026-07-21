@@ -251,7 +251,7 @@ export interface StructureDepthSiteEvidence {
 }
 
 export interface StructureDepthSnapshot {
-  schemaVersion: "castingcompass.structure-depth-evidence/1.2.0";
+  schemaVersion: "castingcompass.structure-depth-evidence/1.3.0";
   generatedAt: string;
   status: "complete" | "partial" | "unavailable";
   meaning: string;

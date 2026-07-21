@@ -1,10 +1,10 @@
 {
-  "collectorSha256": "34da9199c480b7df6fead3563df11acfd2c1f30d78446b36fd170d0189653294",
-  "generatedAt": "2026-07-21T09:58:54Z",
+  "collectorSha256": "51cf7f2cc30ec99648c3d9209dc2989ab46295b7d9a8638126b3653a32dcd2a7",
+  "generatedAt": "2026-07-21T10:38:30Z",
   "meaning": "source-bound planning context for nearby charted depths and selected chart features at reviewed California catalog locations; never a casting-depth guarantee, navigation product, safety claim, or catch-probability input",
-  "policySha256": "b9caed01cce10aa5627244dd12b8deacc2281a634216b02f9745722400eb8674",
-  "policyVersion": "castingcompass.california-enc-approach/0.3.0",
-  "schemaVersion": "castingcompass.structure-depth-evidence/1.2.0",
+  "policySha256": "1f987574e751ec3b83b4776a2e8f8be8d7844e0f244e84ff2316fd1f828bd50e",
+  "policyVersion": "castingcompass.california-enc-approach/0.4.0",
+  "schemaVersion": "castingcompass.structure-depth-evidence/1.3.0",
   "scoreContribution": {
     "catalogMutationAllowed": false,
     "mode": "excluded-pending-site-review-and-validation",
@@ -208,6 +208,82 @@
             "sourceDates": [
               "2013-08-26"
             ]
+          }
+        ],
+        "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
+        "status": "charted-features-present"
+      }
+    },
+    "bolinas-beach": {
+      "coordinates": {
+        "latitude": 37.9087,
+        "longitude": -122.6867
+      },
+      "depth": {
+        "chartedBandsMeters": [],
+        "contextSoundingCount": 6,
+        "contextSoundingDepthRangeMeters": [
+          0.3,
+          4.2
+        ],
+        "contourDepthsMeters": [],
+        "detail": "No reviewed NOAA ENC depth-area record intersected the configured offshore sector. That is an evidence gap, not proof of shallow water or safe access.",
+        "hasUndatedRecords": false,
+        "nearestContextSoundingDistanceMeters": 621.9,
+        "partialSourceDates": [
+          "2005-02",
+          "2013-05"
+        ],
+        "sectorSoundingDepthsMeters": [],
+        "sourceCells": [
+          "US4CA11M.000",
+          "US4CA2CJ.000"
+        ],
+        "sourceDates": [],
+        "status": "no-charted-sector-band",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 170,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 400
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "bolinas-beach",
+      "siteName": "Bolinas Beach",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "partial",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "lagoon-mouth"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "sand-flat"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "channel-edge"
+          }
+        ],
+        "chartedFeatures": [
+          {
+            "category": "charted-seabed-description",
+            "hasUndatedRecords": false,
+            "label": "Charted seabed description",
+            "partialSourceDates": [
+              "2005-02"
+            ],
+            "recordCount": 1,
+            "sourceCells": [
+              "US4CA2CJ.000"
+            ],
+            "sourceDates": []
           }
         ],
         "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
@@ -677,6 +753,121 @@
               "2013-08-26",
               "2015-09-04"
             ]
+          }
+        ],
+        "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
+        "status": "charted-features-present"
+      }
+    },
+    "drakes-beach": {
+      "coordinates": {
+        "latitude": 38.0274,
+        "longitude": -122.9617
+      },
+      "depth": {
+        "chartedBandsMeters": [
+          [
+            -1.6,
+            0.0
+          ],
+          [
+            -1.5,
+            0.0
+          ],
+          [
+            0.0,
+            3.6
+          ],
+          [
+            1.8,
+            3.6
+          ],
+          [
+            3.6,
+            5.4
+          ],
+          [
+            3.6,
+            10.9
+          ],
+          [
+            5.4,
+            9.1
+          ]
+        ],
+        "contextSoundingCount": 14,
+        "contextSoundingDepthRangeMeters": [
+          0.4,
+          9.6
+        ],
+        "contourDepthsMeters": [
+          0.0,
+          3.6,
+          5.4
+        ],
+        "detail": "NOAA ENC depth areas intersect the configured 550 m offshore sector. Context soundings are limited to 1,000 m and are not a shore-reachable or casting-depth guarantee. The selected service layers publish no numeric uncertainty, and source dates can be old.",
+        "hasUndatedRecords": true,
+        "nearestContextSoundingDistanceMeters": 294.9,
+        "partialSourceDates": [
+          "2002-09",
+          "2008-09",
+          "2009-03"
+        ],
+        "sectorSoundingDepthsMeters": [
+          4.1,
+          4.5
+        ],
+        "sourceCells": [
+          "US4CA11M.000",
+          "US4CA2CI.000"
+        ],
+        "sourceDates": [
+          "2000-07-01"
+        ],
+        "status": "charted-sector-bands",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 155,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 550
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "drakes-beach",
+      "siteName": "Drakes Beach",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "charted-context",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "sand-flat"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "shelf-break"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "protected-bay"
+          }
+        ],
+        "chartedFeatures": [
+          {
+            "category": "charted-seabed-description",
+            "hasUndatedRecords": false,
+            "label": "Charted seabed description",
+            "partialSourceDates": [
+              "2002-09"
+            ],
+            "recordCount": 1,
+            "sourceCells": [
+              "US4CA2CI.000"
+            ],
+            "sourceDates": []
           }
         ],
         "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
@@ -1491,6 +1682,124 @@
         "status": "charted-features-present"
       }
     },
+    "limantour-beach": {
+      "coordinates": {
+        "latitude": 38.0271,
+        "longitude": -122.8837
+      },
+      "depth": {
+        "chartedBandsMeters": [
+          [
+            -1.6,
+            0.0
+          ],
+          [
+            -1.5,
+            0.0
+          ],
+          [
+            0.0,
+            3.6
+          ],
+          [
+            3.6,
+            5.4
+          ],
+          [
+            3.6,
+            10.9
+          ],
+          [
+            5.4,
+            9.1
+          ],
+          [
+            9.1,
+            18.2
+          ]
+        ],
+        "contextSoundingCount": 12,
+        "contextSoundingDepthRangeMeters": [
+          3.2,
+          14.6
+        ],
+        "contourDepthsMeters": [
+          0.0,
+          3.6,
+          5.4,
+          9.1
+        ],
+        "detail": "NOAA ENC depth areas intersect the configured 650 m offshore sector. Context soundings are limited to 1,000 m and are not a shore-reachable or casting-depth guarantee. The selected service layers publish no numeric uncertainty, and source dates can be old.",
+        "hasUndatedRecords": true,
+        "nearestContextSoundingDistanceMeters": 345.8,
+        "partialSourceDates": [
+          "2002-09",
+          "2008-09",
+          "2009-03"
+        ],
+        "sectorSoundingDepthsMeters": [
+          3.2,
+          3.9,
+          4.1,
+          6.8
+        ],
+        "sourceCells": [
+          "US4CA11M.000",
+          "US4CA2CI.000"
+        ],
+        "sourceDates": [
+          "2000-07-01"
+        ],
+        "status": "charted-sector-bands",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 205,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 650
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "limantour-beach",
+      "siteName": "Limantour Beach",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "charted-context",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "sand-flat"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "trough"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "estuary-mouth"
+          }
+        ],
+        "chartedFeatures": [
+          {
+            "category": "charted-seabed-description",
+            "hasUndatedRecords": false,
+            "label": "Charted seabed description",
+            "partialSourceDates": [
+              "2002-09"
+            ],
+            "recordCount": 1,
+            "sourceCells": [
+              "US4CA2CI.000"
+            ],
+            "sourceDates": []
+          }
+        ],
+        "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
+        "status": "charted-features-present"
+      }
+    },
     "mesa-lane-beach": {
       "coordinates": {
         "latitude": 34.3968,
@@ -1645,6 +1954,84 @@
         "chartedFeatures": [],
         "detail": "No selected NOAA ENC feature-class record was returned within 1,000 m. That does not establish that structure is absent; catalog clues still require independent local review.",
         "status": "no-selected-feature-records"
+      }
+    },
+    "muir-beach": {
+      "coordinates": {
+        "latitude": 37.8622,
+        "longitude": -122.5794
+      },
+      "depth": {
+        "chartedBandsMeters": [],
+        "contextSoundingCount": 9,
+        "contextSoundingDepthRangeMeters": [
+          0.9,
+          10.3
+        ],
+        "contourDepthsMeters": [],
+        "detail": "No reviewed NOAA ENC depth-area record intersected the configured offshore sector. That is an evidence gap, not proof of shallow water or safe access.",
+        "hasUndatedRecords": false,
+        "nearestContextSoundingDistanceMeters": 391.3,
+        "partialSourceDates": [
+          "2005-02",
+          "2013-05"
+        ],
+        "sectorSoundingDepthsMeters": [],
+        "sourceCells": [
+          "US4CA11M.000",
+          "US4CA2CJ.000"
+        ],
+        "sourceDates": [
+          "2009-08-04"
+        ],
+        "status": "no-charted-sector-band",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 235,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 260
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "muir-beach",
+      "siteName": "Muir Beach",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "partial",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "cove"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "rock-sand-edge"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "creek-mouth"
+          }
+        ],
+        "chartedFeatures": [
+          {
+            "category": "charted-seabed-description",
+            "hasUndatedRecords": false,
+            "label": "Charted seabed description",
+            "partialSourceDates": [],
+            "recordCount": 1,
+            "sourceCells": [
+              "US4CA2CJ.000"
+            ],
+            "sourceDates": [
+              "2009-08-04"
+            ]
+          }
+        ],
+        "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
+        "status": "charted-features-present"
       }
     },
     "ocean-beach-north": {
@@ -2470,6 +2857,106 @@
         "status": "charted-features-present"
       }
     },
+    "point-reyes-south-beach": {
+      "coordinates": {
+        "latitude": 38.0431,
+        "longitude": -122.9914
+      },
+      "depth": {
+        "chartedBandsMeters": [
+          [
+            -1.6,
+            0.0
+          ],
+          [
+            0.0,
+            3.6
+          ],
+          [
+            3.6,
+            5.4
+          ],
+          [
+            3.6,
+            10.9
+          ],
+          [
+            5.4,
+            9.1
+          ],
+          [
+            9.1,
+            18.2
+          ],
+          [
+            10.9,
+            18.2
+          ]
+        ],
+        "contextSoundingCount": 10,
+        "contextSoundingDepthRangeMeters": [
+          3.2,
+          23.7
+        ],
+        "contourDepthsMeters": [
+          0.0,
+          3.6,
+          5.4,
+          9.1,
+          10.9
+        ],
+        "detail": "NOAA ENC depth areas intersect the configured 600 m offshore sector. Context soundings are limited to 1,000 m and are not a shore-reachable or casting-depth guarantee. The selected service layers publish no numeric uncertainty, and source dates can be old.",
+        "hasUndatedRecords": true,
+        "nearestContextSoundingDistanceMeters": 329.9,
+        "partialSourceDates": [
+          "2002-09",
+          "2009-03"
+        ],
+        "sectorSoundingDepthsMeters": [],
+        "sourceCells": [
+          "US4CA11M.000",
+          "US4CA2CH.000",
+          "US4CA2CI.000"
+        ],
+        "sourceDates": [
+          "2000-07-01"
+        ],
+        "status": "charted-sector-bands",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 245,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 600
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "point-reyes-south-beach",
+      "siteName": "Point Reyes South Beach",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "charted-context",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "sand-bar"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "trough"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "open-coast"
+          }
+        ],
+        "chartedFeatures": [],
+        "detail": "No selected NOAA ENC feature-class record was returned within 1,000 m. That does not establish that structure is absent; catalog clues still require independent local review.",
+        "status": "no-selected-feature-records"
+      }
+    },
     "poplar-beach": {
       "coordinates": {
         "latitude": 37.4498,
@@ -2852,6 +3339,97 @@
         "status": "charted-features-present"
       }
     },
+    "rodeo-beach": {
+      "coordinates": {
+        "latitude": 37.8307,
+        "longitude": -122.5369
+      },
+      "depth": {
+        "chartedBandsMeters": [
+          [
+            -1.8,
+            0.0
+          ],
+          [
+            -1.5,
+            0.0
+          ],
+          [
+            0.0,
+            9.1
+          ],
+          [
+            3.6,
+            10.9
+          ],
+          [
+            9.1,
+            10.9
+          ]
+        ],
+        "contextSoundingCount": 13,
+        "contextSoundingDepthRangeMeters": [
+          2.7,
+          20.7
+        ],
+        "contourDepthsMeters": [
+          0.0,
+          9.1
+        ],
+        "detail": "NOAA ENC depth areas intersect the configured 420 m offshore sector. Context soundings are limited to 1,000 m and are not a shore-reachable or casting-depth guarantee. The selected service layers publish no numeric uncertainty, and source dates can be old.",
+        "hasUndatedRecords": true,
+        "nearestContextSoundingDistanceMeters": 245.5,
+        "partialSourceDates": [
+          "2005-02",
+          "2013-05",
+          "2013-06"
+        ],
+        "sectorSoundingDepthsMeters": [
+          4.2
+        ],
+        "sourceCells": [
+          "US4CA11M.000",
+          "US4CA2CJ.000"
+        ],
+        "sourceDates": [
+          "2009-08-04"
+        ],
+        "status": "charted-sector-bands",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 245,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 420
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "rodeo-beach",
+      "siteName": "Rodeo Beach",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "charted-context",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "lagoon-mouth"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "gravel-slope"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "rock-sand-edge"
+          }
+        ],
+        "chartedFeatures": [],
+        "detail": "No selected NOAA ENC feature-class record was returned within 1,000 m. That does not establish that structure is absent; catalog clues still require independent local review.",
+        "status": "no-selected-feature-records"
+      }
+    },
     "santa-barbara-harbor-breakwater": {
       "coordinates": {
         "latitude": 34.4031,
@@ -3206,6 +3784,142 @@
         "status": "charted-features-present"
       }
     },
+    "stinson-beach": {
+      "coordinates": {
+        "latitude": 37.8993,
+        "longitude": -122.6444
+      },
+      "depth": {
+        "chartedBandsMeters": [
+          [
+            -1.8,
+            0.0
+          ],
+          [
+            -1.5,
+            0.0
+          ],
+          [
+            0.0,
+            1.8
+          ],
+          [
+            0.0,
+            3.6
+          ],
+          [
+            1.8,
+            3.6
+          ],
+          [
+            3.6,
+            5.4
+          ],
+          [
+            3.6,
+            10.9
+          ],
+          [
+            5.4,
+            9.1
+          ],
+          [
+            9.1,
+            10.9
+          ],
+          [
+            10.9,
+            18.2
+          ]
+        ],
+        "contextSoundingCount": 11,
+        "contextSoundingDepthRangeMeters": [
+          1.8,
+          12.4
+        ],
+        "contourDepthsMeters": [
+          0.0,
+          1.8,
+          3.6,
+          5.4,
+          9.1,
+          10.9
+        ],
+        "detail": "NOAA ENC depth areas intersect the configured 650 m offshore sector. Context soundings are limited to 1,000 m and are not a shore-reachable or casting-depth guarantee. The selected service layers publish no numeric uncertainty, and source dates can be old.",
+        "hasUndatedRecords": true,
+        "nearestContextSoundingDistanceMeters": 216.2,
+        "partialSourceDates": [
+          "2005-02",
+          "2013-05",
+          "2013-06"
+        ],
+        "sectorSoundingDepthsMeters": [
+          1.8,
+          3.0,
+          6.7
+        ],
+        "sourceCells": [
+          "US4CA11M.000",
+          "US4CA2CJ.000"
+        ],
+        "sourceDates": [
+          "2000-07-01",
+          "2009-08-04"
+        ],
+        "status": "charted-sector-bands",
+        "uncertaintyMeters": null,
+        "uncertaintyStatus": "not-exposed-by-selected-service-layers"
+      },
+      "geometry": {
+        "contextRadiusMeters": 1000,
+        "sectorBearingDegrees": 220,
+        "sectorHalfWidthDegrees": 45,
+        "sectorRadiusMeters": 650
+      },
+      "navigationUseAllowed": false,
+      "scoreDelta": null,
+      "siteId": "stinson-beach",
+      "siteName": "Stinson Beach",
+      "sourceUrl": "https://nauticalcharts.noaa.gov/learn/encdirect/",
+      "status": "charted-context",
+      "structure": {
+        "catalogClues": [
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "sand-bar"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "trough"
+          },
+          {
+            "reviewStatus": "catalog-only-not-validated-by-this-source",
+            "tag": "open-coast"
+          }
+        ],
+        "chartedFeatures": [
+          {
+            "category": "charted-seabed-description",
+            "hasUndatedRecords": false,
+            "label": "Charted seabed description",
+            "partialSourceDates": [
+              "2005-02",
+              "2013-05"
+            ],
+            "recordCount": 3,
+            "sourceCells": [
+              "US4CA11M.000",
+              "US4CA2CJ.000"
+            ],
+            "sourceDates": [
+              "2009-08-04"
+            ]
+          }
+        ],
+        "detail": "Selected NOAA ENC feature classes have records within 1,000 m. They are chart context, not a complete structure inventory; dynamic sand, reef, vegetation, and access still require local review.",
+        "status": "charted-features-present"
+      }
+    },
     "summerland-beach-lookout-park": {
       "coordinates": {
         "latitude": 34.41993,
@@ -3536,7 +4250,7 @@
   },
   "source": {
     "agency": "NOAA Office of Coast Survey",
-    "capturedAt": "2026-07-21T09:58:54Z",
+    "capturedAt": "2026-07-21T10:38:30Z",
     "depthUnits": "meters",
     "errorCategory": null,
     "notForNavigation": true,
@@ -3551,6 +4265,6 @@
     "verticalDatum": "Mean Lower Low Water (MLLW)",
     "verticalDatumBasis": "NOAA states that tidal nautical-chart depths use MLLW; the selected ENC Direct feature records do not consistently expose VERDAT"
   },
-  "sourceSnapshotSha256": "bfa59cd55e2834961ad64a72e42b5f903119975af7def7ed1938a5380e0b2a9e",
+  "sourceSnapshotSha256": "3202f95977975e4229fc5cce7760a27965bb3e04af0f1f088eb356f430ff6389",
   "status": "partial"
 }

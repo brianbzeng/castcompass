@@ -4,11 +4,12 @@
 
 ## Frozen meaning
 
-`castingcompass.structure-depth-evidence/1.2.0` is planning context for 34
+`castingcompass.structure-depth-evidence/1.3.0` is planning context for 41
 reviewed catalog locations: all 14 Santa Barbara South Coast locations, ten San
-Francisco coast and waterfront locations, and ten San Mateo Coast/Half Moon Bay
-locations. It shows broad NOAA chart depth bands intersecting a configured
-offshore sector and selected chart-feature classes within one kilometer. It is not:
+Francisco coast and waterfront locations, ten San Mateo Coast/Half Moon Bay
+locations, and seven Point Reyes/Marin Coast locations. It shows broad NOAA
+chart depth bands intersecting a configured offshore sector and selected
+chart-feature classes within one kilometer. It is not:
 
 - an exact depth at the map marker;
 - a promise that a depth is shore-reachable or castable;
@@ -59,6 +60,13 @@ coverage does not override access: Pacifica Municipal Pier remains closed,
 excluded from recommendations, and absent from forecast/detail/trip-start flows;
 the main interface retains its official closure-status link.
 
+The Point Reyes/Marin Coast extension also uses the fixed `Approach` service and
+layer inventory. Five of seven configured sectors intersect one or more depth-
+area records. Bolinas Beach and Muir Beach do not; each remains explicitly
+`partial`, even though nearby point soundings and a charted seabed-description
+record exist. Neither catalog clues nor soundings are substituted for the
+missing area-band evidence.
+
 ## Geometry and interpretation
 
 For each site, the collector constructs a WGS84 sector from the public catalog
@@ -81,9 +89,9 @@ selected layers also do not publish numeric positional accuracy or vertical
 uncertainty. Those fields therefore remain explicit `not-exposed` states rather
 than zeros.
 
-## Captured 34-site inventory
+## Captured 41-site inventory
 
-The normalized source snapshot was captured at `2026-07-21T09:58:54Z` from the
+The normalized source snapshot was captured at `2026-07-21T10:38:30Z` from the
 fixed NOAA `enc_approach` ArcGIS service. Point-sounding counts are deduplicated
 across overlapping ENC cells. “No selected feature record” never means “no
 structure.”
@@ -131,9 +139,19 @@ structure.”
 | Francis State Beach | -1.5–0 m; 1.8–3.6 m; 3.6–5.4 m; 5.4–9.1 m | 9 | Obstruction; seabed description |
 | Poplar Beach | -1.5–0 m; 1.8–3.6 m; 3.6–5.4 m; 5.4–9.1 m | 11 | Seabed description |
 
+| Point Reyes / Marin Coast location | Evidence status | ENC bands intersecting sector | Deduplicated soundings within 1 km | Selected chart-feature classes within 1 km |
+| --- | --- | --- | ---: | --- |
+| Limantour Beach | Charted context | -1.6–0 m; -1.5–0 m; 0–3.6 m; 3.6–5.4 m; 3.6–10.9 m; 5.4–9.1 m; 9.1–18.2 m | 12 | Seabed description |
+| Drakes Beach | Charted context | -1.6–0 m; -1.5–0 m; 0–3.6 m; 1.8–3.6 m; 3.6–5.4 m; 3.6–10.9 m; 5.4–9.1 m | 14 | Seabed description |
+| Point Reyes South Beach | Charted context | -1.6–0 m; 0–3.6 m; 3.6–5.4 m; 3.6–10.9 m; 5.4–9.1 m; 9.1–18.2 m; 10.9–18.2 m | 10 | No selected feature record |
+| Bolinas Beach | Partial | No intersecting depth-area band | 6 | Seabed description |
+| Stinson Beach | Charted context | -1.8–0 m; -1.5–0 m; 0–1.8 m; 0–3.6 m; 1.8–3.6 m; 3.6–5.4 m; 3.6–10.9 m; 5.4–9.1 m; 9.1–10.9 m; 10.9–18.2 m | 11 | Seabed description |
+| Muir Beach | Partial | No intersecting depth-area band | 9 | Seabed description |
+| Rodeo Beach | Charted context | -1.8–0 m; -1.5–0 m; 0–9.1 m; 3.6–10.9 m; 9.1–10.9 m | 13 | No selected feature record |
+
 The exact full-date depth records range from 1999 through 2025. The source also
 publishes valid month-precision values such as `2013-06` and a year-only `2005`
-for the charted wreck near Stearns Wharf. Contract version 1.1 preserves those
+for the charted wreck near Stearns Wharf. Contract version 1.3 preserves those
 values separately in `partialSourceDates`; it never invents a day. A record with
 no `SORDAT` sets `hasUndatedRecords`. Source age and precision are displayed
 because a current service response does not make an old underlying survey new.
@@ -160,13 +178,14 @@ because a current service response does not make an old underlying survey new.
 Any required depth-query failure makes that site's depth unavailable. Any
 selected structure-query failure makes the structure section unavailable while
 retaining catalog clues as explicitly unvalidated. Service metadata drift makes
-all 34 sites unavailable. Errors are fixed categories and never expose local
+all 41 sites unavailable. Errors are fixed categories and never expose local
 paths or exception text.
 
 ## Remaining acceptance work
 
-This completes the San Francisco and San Mateo coastal extensions of the source-
-bound inventory, not the parent map goal. Before a location can be called fully reviewed:
+This completes the San Francisco, San Mateo, and Point Reyes/Marin coastal
+extensions of the source-bound inventory, not the parent map goal. Before a
+location can be called fully reviewed:
 
 1. a local reviewer must confirm the sector orientation, public access context,
    and whether the displayed chart classes are useful rather than misleading;

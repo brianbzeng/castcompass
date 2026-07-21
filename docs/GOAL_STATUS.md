@@ -13,6 +13,37 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — Point Reyes and Marin Coast source-bound chart context
+
+- [x] Preserve draft PR `#135` at exact final receipt head
+      `0e6d5a72099f5da54c011f6606d34ffdd272fe02` as the reviewed stacked base. This
+      follow-up uses another isolated worktree and does not merge, deploy, mutate Cloudflare or
+      D1, change a catalog prior, or alter the attested fishing score.
+- [x] Select the coherent seven-site exposed-coast cohort: Limantour Beach, Drakes Beach, Point
+      Reyes South Beach, Bolinas Beach, Stinson Beach, Muir Beach, and Rodeo Beach. The same fixed
+      NOAA ENC Direct `Approach` source, 13-layer inventory, meters/MLLW meaning, bounded geometry,
+      and fail-closed drift rules apply.
+- [x] Capture and normalize a fixed `2026-07-21T10:38:30Z` source snapshot for all 41 covered
+      sites using 574 bounded layer queries. Five new sectors have one or more depth-area bands.
+      Bolinas and Muir remain explicitly `partial`: both have nearby soundings and charted seabed
+      records, but no reviewed depth-area band intersects the configured offshore sector. Crane
+      Cove remains the earlier third partial site.
+- [x] Extend the strict artifact/schema/type contract to version 1.3 and add deterministic cohort,
+      partial-depth, partial-date, score-exclusion, navigation-exclusion, and mobile truthfulness
+      coverage. All seven locations retain `scoreDelta: null`; chart context cannot authorize
+      access or imply shore-reachable depth, castability, wading safety, or navigation use.
+- [x] Complete the fresh full local release matrix under pinned Node `22.23.1` and the
+      hash-locked Python environments: fresh zero-script installation, both zero-vulnerability
+      npm audits, Cloudflare build, 485/485 Node tests, ESLint, TypeScript, the complete
+      security/SBOM/source-integrity chain, ten deterministic/adversarial structure-depth tests,
+      Python syntax/Ruff, 29/29 API tests, 83/83 pipeline tests with one documented optional-
+      `rasterio` skip, deterministic synthetic smoke, and all 19 critical D1 query plans passed.
+      The complete Chromium/WebKit phone matrix passed 172/172 cases. Bolinas partial evidence and
+      Drakes chart/date evidence were visually inspected from the production build at iPhone width.
+- [ ] Publish a protected stacked draft PR, obtain exact-head hosted receipts, and keep CodeQL,
+      independent location/chart review, merge, deployment, provider/database mutation, and
+      production activation as explicit separate gates.
+
 ## Active checkpoint — San Mateo Coast and Half Moon Bay source-bound chart context
 
 - [x] Preserve draft PR `#134` at exact final receipt head

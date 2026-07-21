@@ -701,11 +701,17 @@ after its acceptance checks pass in the intended environment.
     unchanged. Pacifica Municipal Pier remains closed, excluded from ranking, and absent from
     forecast/detail/trip-start flows instead of allowing chart context to imply access. Contract
     version 1.2 binds exactly 34 reviewed sites.
+  - [x] Extend the same contract to seven Point Reyes and Marin Coast locations. The fixed
+    2026-07-21 source snapshot provides depth-area bands at five configured sectors and nearby
+    soundings at all seven. Bolinas and Muir remain explicitly partial because no reviewed
+    depth-area band intersects either configured sector; charted seabed records and catalog clues
+    are not substitutes. Contract version 1.3 binds exactly 41 reviewed sites without changing a
+    score, catalog prior, access decision, or navigation boundary.
   - [ ] Obtain location-by-location local-angler and independent chart review; verify sector
     orientation and usefulness; source dynamic bars, troughs, reef, vegetation, and other catalog
     clues separately or leave them explicitly unvalidated; add BlueTopo or another qualified
     uncertainty-bearing source only where coverage permits; extend the same contract to the
-    remaining 27 launch-catalog locations; and collect protected, guarded deployment plus post-deployment
+    remaining 20 launch-catalog locations; and collect protected, guarded deployment plus post-deployment
     evidence before calling any location fully reviewed or using this evidence in a score.
 - [ ] Add striped bass as the first new beta using a distinct estuary/migration model.
 - [ ] Define and evaluate explicit shore-relevant rockfish species/complexes next; then model
