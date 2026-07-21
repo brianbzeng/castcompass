@@ -30,8 +30,8 @@ output never grants authority.
 | Resource | Required server predicate | Current mutation rules |
 | --- | --- | --- |
 | Session | `token_hash = sha256(cookie)` and `expires_at > now` | Authentication atomically replaces any session presented by that browser and HTTPS uses `__Host-cc_session`; the prior cookie is accepted only for migration and rotated on session refresh; a new cookie is issued only after exactly one confirmed session INSERT, while an unconfirmed INSERT triggers token-hash cleanup and clears both cookie forms; logout returns its exact success receipt only when every presented token deletion has authoritative zero-or-one change metadata, while an ambiguous result returns `503` for read-only status recovery; password reset and account deletion revoke every session for the account |
-| Account creation | One-use signup challenge containing server-created credential hash, age-eligibility timestamp, and exact current legal versions | The plaintext age proof is exposed only after one confirmed proof INSERT; proof consumption distinguishes authoritative zero from missing metadata; the initial challenge email follows one confirmed challenge INSERT. Resends use a conditional prior-hash/time/count predicate, update D1 before provider delivery, and clean up only their exact candidate version after an ambiguous receipt or provider failure. User insertion and challenge deletion are one D1 batch; welcome delivery and the first authenticated session occur only after exactly one confirmed user insert |
-| Password reset | One-use verified challenge bound server-side to `email_challenges.user_id`; final credential update repeats that user ID | Enumeration-resistant request/resend responses remain identical for missing accounts and unconfirmed D1 work, but email delivery is scheduled only after one confirmed challenge INSERT or conditional UPDATE. Candidate-only cleanup removes an ambiguous or undelivered version without deleting a newer concurrent code. Password change, all-session revocation, and challenge consumption are one D1 batch; a new session is issued only after exactly one confirmed user-row change |
+| Account creation | One-use signup challenge containing server-created credential hash, age-eligibility timestamp, and exact current legal versions | The plaintext age proof is exposed only after one confirmed proof INSERT; proof consumption distinguishes authoritative zero from missing metadata; the initial challenge email follows one confirmed challenge INSERT. Resends use a conditional prior-hash/time/count predicate, update D1 before provider delivery, and clean up only their exact candidate version after an ambiguous receipt or provider failure. Final user insertion repeats the verified challenge kind, code hash, creation time, attempt count, and expiry in an atomic `EXISTS`; challenge deletion repeats the same snapshot. Welcome delivery and the first session require exact one-row receipts for both statements, so a concurrent resend makes the old code inert |
+| Password reset | One-use verified challenge bound server-side to `email_challenges.user_id`; final credential update repeats that user ID | Enumeration-resistant request/resend responses remain identical for missing accounts and unconfirmed D1 work, but email delivery is scheduled only after one confirmed challenge INSERT or conditional UPDATE. Candidate-only cleanup removes an ambiguous or undelivered version without deleting a newer concurrent code. The final password update and session revocation each repeat the exact verified challenge snapshot; consumption repeats it again. A concurrent resend changes the snapshot and leaves the password, sessions, and newer code untouched. Replacement session issuance requires authoritative receipts for all three atomic statements |
 | Legal acceptance | `users.id = authenticated_user.id` after an active server-side session lookup | The server preserves the prior age-eligibility proof, records only the current Terms/Privacy versions, and returns accepted only for exactly one confirmed D1 change; a deleted-account race clears stale session cookies, and missing mutation metadata returns `503` instead of a compliance receipt |
 | Saved site | `user_id = authenticated_user.id` | Owner may add/remove only their row |
 | Gear profile | `id = requested_id AND user_id = authenticated_user.id` | Owner may create, patch, or delete; an unknown, other-owned, or concurrently changed ID is `404`; PATCH/DELETE success requires exactly one D1 change and any unconfirmed result fails closed |
@@ -114,14 +114,19 @@ longer exists, clears both session-cookie forms, and returns `401`; unavailable 
 returns `503` without manufacturing a Terms or Privacy acceptance receipt.
 
 Password reset uses the same receipt boundary for a more sensitive transition. The credential
-update, prior-session revocation, and one-use challenge deletion remain atomic, but no replacement
-session is created until D1 confirms exactly one changed user row. An unconfirmed committed batch
-clears stale browser cookies and directs the account owner to try the submitted password at sign-in.
+update, prior-session revocation, and one-use challenge deletion remain atomic. Each repeats the
+verified challenge's ID, kind, user, code hash, creation time, attempt count, and live expiry; a
+resend between verification and the batch therefore changes zero rows and preserves the newer
+code. No replacement session is created until D1 confirms one changed user row, one consumed
+challenge, and authoritative session-revocation metadata. An unconfirmed committed batch clears
+stale browser cookies and directs the account owner to try the submitted password at sign-in.
 
 Verified signup similarly couples user insertion and challenge consumption in one batch. Welcome
-delivery and the first session are downstream of an exact one-row insert receipt. If the batch
-commits but D1 omits that metadata, the server returns `503`; the new account can authenticate with
-its submitted password, but no challenge replay or duplicate welcome/session is attempted.
+delivery and the first session are downstream of exact one-row receipts for both operations. The
+user INSERT first requires the exact verified challenge snapshot to still exist, and the DELETE
+repeats that snapshot, so a concurrent resend cannot let the old code create an account. If the
+batch commits but D1 omits either receipt, the server returns `503`; the new account can authenticate
+with its submitted password, but no challenge replay or duplicate welcome/session is attempted.
 
 Every path that creates or rotates a session applies one final independent receipt boundary. The
 server hashes the candidate token once, requires exactly one confirmed `auth_sessions` INSERT

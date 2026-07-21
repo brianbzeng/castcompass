@@ -537,18 +537,41 @@ export async function handleAccountRequest(
         legalAccepted: true,
       };
       const timestamp = new Date().toISOString();
-      const [accountResult] = await db.batch([
+      const [accountResult, challengeResult] = await db.batch([
         db.prepare(`INSERT INTO users (id, email, password_salt, password_hash,
           age_eligibility_confirmed_at, terms_accepted_at, terms_version,
           privacy_accepted_at, privacy_version, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+          SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+          WHERE EXISTS (SELECT 1 FROM email_challenges
+            WHERE id = ? AND kind = 'signup' AND code_hash = ? AND created_at = ?
+              AND attempts = ? AND expires_at > ?)`).bind(
             user.id, user.email, challenge.password_salt, challenge.password_hash,
             challenge.age_eligibility_confirmed_at, timestamp, LEGAL_VERSION,
             timestamp, LEGAL_VERSION, timestamp, timestamp,
+            challenge.id, challenge.code_hash, challenge.created_at, Number(challenge.attempts), timestamp,
           ),
-        db.prepare("DELETE FROM email_challenges WHERE id = ?").bind(challenge.id),
+        db.prepare(`DELETE FROM email_challenges
+          WHERE id = ? AND kind = 'signup' AND code_hash = ? AND created_at = ?
+            AND attempts = ? AND expires_at > ?`)
+          .bind(challenge.id, challenge.code_hash, challenge.created_at, Number(challenge.attempts), timestamp),
       ]);
-      if (confirmedMutationChanges(accountResult) !== 1) {
+      const accountChanges = confirmedMutationChanges(accountResult);
+      const challengeChanges = confirmedMutationChanges(challengeResult);
+      if (accountChanges === null || challengeChanges === null) {
+        throw new AuthError(
+          503,
+          "account_creation_unconfirmed",
+          "Account creation could not be confirmed. Try signing in before starting signup again.",
+        );
+      }
+      if (accountChanges === 0 && challengeChanges === 0) {
+        throw new AuthError(
+          409,
+          "signup_challenge_changed",
+          "That verification request changed. Use its latest code or start signup again.",
+        );
+      }
+      if (accountChanges !== 1 || challengeChanges !== 1) {
         throw new AuthError(
           503,
           "account_creation_unconfirmed",
@@ -757,14 +780,67 @@ export async function handleAccountRequest(
       await assertNewPasswordAllowed(password, challenge.email);
       const salt = randomSecret(18);
       const timestamp = new Date().toISOString();
-      const [passwordResult] = await db.batch([
-        db.prepare("UPDATE users SET password_salt = ?, password_hash = ?, updated_at = ? WHERE id = ?")
-          .bind(salt, await hashPassword(password, salt), timestamp, challenge.user_id),
-        db.prepare("DELETE FROM auth_sessions WHERE user_id = ?").bind(challenge.user_id),
-        db.prepare("DELETE FROM email_challenges WHERE id = ?").bind(challenge.id),
+      const [passwordResult, sessionResult, challengeResult] = await db.batch([
+        db.prepare(`UPDATE users SET password_salt = ?, password_hash = ?, updated_at = ?
+          WHERE id = ? AND EXISTS (SELECT 1 FROM email_challenges
+            WHERE id = ? AND kind = 'password_reset' AND user_id = ? AND code_hash = ?
+              AND created_at = ? AND attempts = ? AND expires_at > ?)`)
+          .bind(
+            salt,
+            await hashPassword(password, salt),
+            timestamp,
+            challenge.user_id,
+            challenge.id,
+            challenge.user_id,
+            challenge.code_hash,
+            challenge.created_at,
+            Number(challenge.attempts),
+            timestamp,
+          ),
+        db.prepare(`DELETE FROM auth_sessions WHERE user_id = ?
+          AND EXISTS (SELECT 1 FROM email_challenges
+            WHERE id = ? AND kind = 'password_reset' AND user_id = ? AND code_hash = ?
+              AND created_at = ? AND attempts = ? AND expires_at > ?)`)
+          .bind(
+            challenge.user_id,
+            challenge.id,
+            challenge.user_id,
+            challenge.code_hash,
+            challenge.created_at,
+            Number(challenge.attempts),
+            timestamp,
+          ),
+        db.prepare(`DELETE FROM email_challenges
+          WHERE id = ? AND kind = 'password_reset' AND user_id = ? AND code_hash = ?
+            AND created_at = ? AND attempts = ? AND expires_at > ?`)
+          .bind(
+            challenge.id,
+            challenge.user_id,
+            challenge.code_hash,
+            challenge.created_at,
+            Number(challenge.attempts),
+            timestamp,
+          ),
       ]);
       const passwordChanges = confirmedMutationChanges(passwordResult);
+      const sessionChanges = confirmedMutationChanges(sessionResult);
+      const challengeChanges = confirmedMutationChanges(challengeResult);
+      if (passwordChanges === null || sessionChanges === null || challengeChanges === null) {
+        return errorResponse(
+          503,
+          "password_reset_unconfirmed",
+          "The password reset could not be confirmed. Try signing in with the new password before requesting another code.",
+          clearSessionCookies(request),
+        );
+      }
       if (passwordChanges === 0) {
+        if (challengeChanges === 0) {
+          return errorResponse(
+            409,
+            "password_reset_challenge_changed",
+            "That reset request changed. Use its latest code or request another one.",
+          );
+        }
         return errorResponse(
           404,
           "account_not_found",
@@ -772,7 +848,7 @@ export async function handleAccountRequest(
           clearSessionCookies(request),
         );
       }
-      if (passwordChanges !== 1) {
+      if (passwordChanges !== 1 || challengeChanges !== 1) {
         return errorResponse(
           503,
           "password_reset_unconfirmed",

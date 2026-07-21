@@ -19,7 +19,7 @@ path so security fixes are not frozen out.
 | GitHub Python dependency graph | A main-only job waits for the tested API/pipeline locks, then submits exact versioned PyPI package URLs for all three exercised graphs; user submissions take precedence over incomplete managed/static parses | GitHub owns storage, precedence, and alert refresh; verify the accepted snapshot and alert state after each relevant merge rather than treating a successful upload as the final receipt |
 | Worker runtime contract | `wrangler.jsonc` fixes `compatibility_date` and the reviewed compatibility flags | Cloudflare implements the runtime; a date pin needs deliberate compatibility review and periodic advancement |
 | Direct npm packages | Every direct production and development dependency uses an exact version in `package.json` | A package version can still be malicious or vulnerable; review source/provenance, advisories, licenses, and install scripts |
-| Transitive npm tree | `package-lock.json` records exact versions, registry locations, and integrity hashes; npm `10.9.8` is selected with an exact engine gate, `.npmrc` disables lifecycle scripts, CI/release also pass `--ignore-scripts`, and the exact eight script-bearing lock paths are reviewed in a fail-closed policy | Registry availability, npm implementation integrity, and preinstalled optional native binaries remain external; the hosted runner itself is not bit-for-bit pinned |
+| Transitive npm tree | `package-lock.json` records exact versions, registry locations, and integrity hashes; npm `10.9.8` is selected with an exact engine gate, `.npmrc` disables lifecycle scripts, CI/release also pass `--ignore-scripts`, and the exact seven script-bearing lock paths are reviewed in a fail-closed policy | Registry availability, npm implementation integrity, and preinstalled optional native binaries remain external; the hosted runner itself is not bit-for-bit pinned |
 | Known npm advisories | Compatible Babel and YAML fixes are forced; the deprecated Drizzle loader's vulnerable esbuild is overridden to tested `0.25.12`; the resulting complete npm tree currently audits clean | Replace the deprecated `@esbuild-kit` loader path when Drizzle removes it; do not leave the override indefinitely without tests |
 | GitHub Actions | Every `uses:` reference is a full immutable commit SHA; runner labels are fixed to `ubuntu-24.04` and `macos-15` rather than mutable `-latest` aliases | GitHub updates the images behind those labels; a release still records the workflow run and source commit |
 | Default-branch integrity | Live `main` protection requires pull requests, strict successful `api`, `pipeline`, `web`, and `dependency-review` checks from the GitHub Actions app plus the `CodeQL` result from the GitHub Advanced Security app, resolved review conversations, and applies to the owner; force-pushes and branch deletion are disabled | This is provider-side configuration rather than source code; verify it again for the exact release and preserve a separate emergency-access procedure |
@@ -88,15 +88,18 @@ npm run security:sbom
 ```
 
 The generator takes npm's complete lockfile-only CycloneDX graph and selects component instances
-by their exact lockfile package paths, excluding only paths marked strictly development-only by
-npm. It merges duplicate package identities and dependency edges, replaces npm's random serial
-number with a lock-derived UUIDv5, removes time/tool metadata, sorts components and dependency
-edges, normalizes the root component name, and embeds the current `package-lock.json` SHA-256.
-Using lockfile path flags rather than the host installation keeps production-optional native
-variants deterministic across macOS and Linux without admitting a development-only package that
-happens to share a name/version with production. Tests also require every direct runtime package,
-unique graph references, and the signer-required deterministic serial number. Review both the
-lock diff and SBOM diff in the same pull request. CI rejects a stale SBOM.
+by their exact lockfile package paths. It resolves reachability from the lockfile root's production
+dependencies through
+required, optional, and required-peer edges rather than trusting npm's per-path `dev` flag alone.
+That keeps production-optional native variants deterministic across macOS and Linux even when npm
+marks a shared optional path as development-reachable, without admitting a truly development-only
+package that happens to share a name/version with production. It merges duplicate package
+identities and dependency edges, replaces npm's random serial number with a lock-derived UUIDv5,
+removes time/tool metadata, sorts components and dependency edges, normalizes the root component
+name, and embeds the current `package-lock.json` SHA-256. Tests also require every direct runtime
+package, representative Sharp platform artifacts, exclusion of Playwright and the development-only
+Ajv `fast-uri` path, unique graph references, and the signer-required deterministic serial number.
+Review both the lock diff and SBOM diff in the same pull request. CI rejects a stale SBOM.
 
 The focused npm SBOM intentionally covers the production npm tree only. Development tools remain
 visible in `package-lock.json`, the complete-tree audit, and dependency review. The deterministic
@@ -331,10 +334,10 @@ demands it:
 
 ## Install-script boundary
 
-The current npm tree declares install hooks for esbuild binaries, optional `fsevents`, Sharp,
+The current npm tree declares install hooks for esbuild binaries, optional `fsevents`,
 `unrs-resolver`, and the local Cloudflare `workerd` runtime. CastingCompass pins npm `10.9.8`,
 sets `engine-strict=true` and `ignore-scripts=true`, passes `--ignore-scripts` explicitly in CI
-and release jobs, and binds all eight exact script-bearing lock paths, versions, integrity
+and release jobs, and binds all seven exact script-bearing lock paths, versions, integrity
 digests, development/optional flags, and a `disabled` disposition in
 `security/npm-install-policy.json`. The pre-install verifier rejects npm/Node drift, root
 install lifecycle hooks, workflow overrides, a newly introduced hook, or stale policy. A fresh

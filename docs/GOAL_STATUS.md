@@ -107,6 +107,40 @@ by that discovery.
       release-bundle receipt. No push, pull request, merge, deployment, provider query, D1 mutation,
       model change, UI change, or production authorization belongs to this work.
 
+## Active checkpoint — atomic verified-challenge consumption
+
+- [x] Continue the challenge audit through the final credential transaction. Signup and password
+      reset validated a code before their D1 batch, but terminal writes referenced only account or
+      challenge IDs, so a concurrent resend could rotate the code while the prior code still
+      authorized account creation or password replacement.
+- [x] Make signup user insertion conditional on the exact verified challenge kind, code hash,
+      creation time, attempt count, and live expiry. Repeat the same snapshot in one-use deletion;
+      require exact one-row receipts for both before welcome delivery or session issuance.
+- [x] Repeat the password-reset snapshot and server-bound user ID in the password update, every-
+      session revocation, and challenge consumption statements. Require authoritative metadata for
+      all three before issuing a replacement session; preserve sign-in recovery after an ambiguous
+      committed batch.
+- [x] Force a resend race after successful code verification for both flows. The old code creates
+      no account, changes no password, revokes no session, and cannot delete the newer code. Force
+      missing challenge-consumption metadata separately; committed credentials remain recoverable,
+      but neither endpoint manufactures a success receipt or session.
+- [x] Stop the final gate for newly published high-severity `fast-uri`
+      `GHSA-v2hh-gcrm-f6hx` and Sharp/libvips `GHSA-f88m-g3jw-g9cj` findings. Exact overrides
+      select `fast-uri` `3.1.4` and Sharp `0.35.3` without a force fix or toolchain widening; both
+      complete-tree and production audits return zero vulnerabilities. Sharp's install hook is
+      gone, reducing the fail-closed zero-execution policy from eight reviewed paths to seven.
+- [x] Correct the production SBOM boundary exposed by Sharp `0.35.3`. Production membership now
+      follows locked root dependency reachability through required, optional, and required-peer
+      edges instead of npm's ambiguous `dev` path flag; representative cross-platform Sharp
+      artifacts remain inventoried while Playwright and development-only `fast-uri` stay excluded.
+- [x] Pass a fresh zero-script install of 535 audited packages, the pinned Cloudflare build,
+      ESLint, TypeScript, all 561/561 Node tests, the complete offline security/SBOM/source-
+      integrity chain, both zero-vulnerability npm audits, Ruff, 29/29 API tests, 82/82 pipeline
+      tests plus 138 subtests with one documented optional-`rasterio` skip, and the full 200/200
+      Chromium/WebKit phone matrix. Preserve a clean local commit and deterministic release-bundle
+      receipt. No push, pull request, merge, deployment, provider query, D1 mutation, model change,
+      UI change, or production authorization belongs to this work.
+
 ## Active checkpoint — terminal trip ownership predicates
 
 - [x] Audit owner-scoped trip mutations against the documented D1/SQLite row-security

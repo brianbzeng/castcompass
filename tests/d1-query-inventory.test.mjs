@@ -101,11 +101,11 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
   assert.ok(inventory.queries.some(({ executionMode, statementClass, sql }) =>
     executionMode === "batch"
       && statementClass === "UPDATE"
-      && sql === "UPDATE users SET password_salt = ?, password_hash = ?, updated_at = ? WHERE id = ?"));
+      && sql === "UPDATE users SET password_salt = ?, password_hash = ?, updated_at = ? WHERE id = ? AND EXISTS (SELECT 1 FROM email_challenges WHERE id = ? AND kind = 'password_reset' AND user_id = ? AND code_hash = ? AND created_at = ? AND attempts = ? AND expires_at > ?)"));
   assert.ok(inventory.queries.some(({ executionMode, statementClass, sql }) =>
     executionMode === "batch"
       && statementClass === "INSERT"
-      && sql === "INSERT INTO users (id, email, password_salt, password_hash, age_eligibility_confirmed_at, terms_accepted_at, terms_version, privacy_accepted_at, privacy_version, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
+      && sql === "INSERT INTO users (id, email, password_salt, password_hash, age_eligibility_confirmed_at, terms_accepted_at, terms_version, privacy_accepted_at, privacy_version, created_at, updated_at) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM email_challenges WHERE id = ? AND kind = 'signup' AND code_hash = ? AND created_at = ? AND attempts = ? AND expires_at > ?)"));
   assert.ok(inventory.queries.some(({ executionMode, statementClass, sql }) =>
     executionMode === "batch"
       && statementClass === "INSERT"

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "reviewedAt": "2026-07-18",
+  "reviewedAt": "2026-07-21",
   "packageManager": {
     "name": "npm",
     "version": "10.9.8",
@@ -53,15 +53,6 @@
         "integrity": "sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==",
         "development": false,
         "optional": true,
-        "execution": "disabled"
-      },
-      {
-        "path": "node_modules/sharp",
-        "name": "sharp",
-        "version": "0.34.5",
-        "integrity": "sha512-Ou9I5Ft9WNcCbXrU9cMgPBcCK8LiwLqcbywW3t4oDV37n1pzpuNLsYiAV8eODnjbtQlSDwZ2cUEeQz4E54Hltg==",
-        "development": false,
-        "optional": false,
         "execution": "disabled"
       },
       {

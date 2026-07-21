@@ -20,12 +20,18 @@ const lockBytes = readFileSync(resolve(root, "package-lock.json"));
 const lock = JSON.parse(lockBytes.toString("utf8"));
 const packageLockSha256 = createHash("sha256").update(lockBytes).digest("hex");
 const bom = JSON.parse(runNpm(["sbom", "--package-lock-only", "--sbom-format=cyclonedx"]));
-const productionPaths = new Set(Object.entries(lock.packages ?? {})
-  .filter(([path, package_]) => path && package_?.dev !== true)
-  .map(([path]) => path));
-bom.components = mergeComponents((bom.components ?? []).filter((component) =>
-  component.properties?.some((property) =>
-    property.name === "cdx:npm:package:path" && productionPaths.has(property.value))));
+const productionPaths = resolveProductionPackagePaths(lock.packages ?? {});
+bom.components = mergeComponents((bom.components ?? []).flatMap((component) => {
+  const included = component.properties?.some((property) =>
+    property.name === "cdx:npm:package:path" && productionPaths.has(property.value));
+  if (!included) return [];
+  const normalized = structuredClone(component);
+  normalized.properties = normalized.properties?.filter((property) => {
+    if (property.name === "cdx:npm:package:path") return productionPaths.has(property.value);
+    return property.name !== "cdx:npm:package:development" || property.value !== "true";
+  });
+  return [normalized];
+}));
 const productionReferences = new Set(bom.components.map((component) => component["bom-ref"]));
 bom.dependencies = mergeDependencies((bom.dependencies ?? [])
   .filter((dependency) => dependency.ref === `${manifest.name}@${manifest.version}`
@@ -131,6 +137,51 @@ function mergeDependencies(dependencies) {
     merged.set(dependency.ref, existing);
   }
   return [...merged.entries()].map(([ref, dependsOn]) => ({ ref, dependsOn: [...dependsOn] }));
+}
+
+function resolveProductionPackagePaths(packages) {
+  const rootPackage = packages[""];
+  if (!rootPackage) throw new Error("package-lock.json is missing its root package");
+  const productionPaths = new Set();
+  const queue = [];
+  const include = (fromPath, name, required) => {
+    const path = resolveLockedPackagePath(packages, fromPath, name);
+    if (!path) {
+      if (required) throw new Error(`Unable to resolve locked production dependency ${name} from ${fromPath || "root"}`);
+      return;
+    }
+    if (!productionPaths.has(path)) {
+      productionPaths.add(path);
+      queue.push(path);
+    }
+  };
+
+  for (const name of Object.keys(rootPackage.dependencies ?? {})) include("", name, true);
+  for (const name of Object.keys(rootPackage.optionalDependencies ?? {})) include("", name, false);
+  while (queue.length > 0) {
+    const path = queue.shift();
+    const package_ = packages[path];
+    for (const name of Object.keys(package_.dependencies ?? {})) include(path, name, true);
+    for (const name of Object.keys(package_.optionalDependencies ?? {})) include(path, name, false);
+    for (const name of Object.keys(package_.peerDependencies ?? {})) {
+      if (package_.peerDependenciesMeta?.[name]?.optional !== true) include(path, name, true);
+    }
+  }
+  return productionPaths;
+}
+
+function resolveLockedPackagePath(packages, fromPath, name) {
+  for (let current = fromPath; ; current = parentPackagePath(current)) {
+    const candidate = current ? `${current}/node_modules/${name}` : `node_modules/${name}`;
+    if (Object.hasOwn(packages, candidate)) return candidate;
+    if (!current) return null;
+  }
+}
+
+function parentPackagePath(path) {
+  const nestedMarker = "/node_modules/";
+  const nestedIndex = path.lastIndexOf(nestedMarker);
+  return nestedIndex < 0 ? "" : path.slice(0, nestedIndex);
 }
 
 function assertUniqueReferences(entries, field, label) {

@@ -182,6 +182,11 @@ after its acceptance checks pass in the intended environment.
       prior-kind/hash/time/count compare-and-set, record the new code before provider delivery,
       and candidate-only cleanup cannot delete a newer concurrent code. Password recovery retains
       its generic anti-enumeration response while suppressing unconfirmed provider work.
+    - [x] Bind final signup and password-reset authority to the exact verified challenge snapshot,
+      not a pre-transaction read. User/password mutation, session revocation, and one-use challenge
+      consumption repeat kind, user where applicable, code hash, creation time, attempt count, and
+      expiry in the atomic batch. A concurrent resend makes the old code change zero rows and leaves
+      the newer code intact; success requires authoritative receipts for every terminal statement.
   - [ ] Verify strict schema/size/type validation, contextual output encoding, safe database
     binding, upload signature and metadata checks, and AI prompt-injection boundaries. Model
     instructions and user content remain data, never authority; models receive no ambient
@@ -222,6 +227,11 @@ after its acceptance checks pass in the intended environment.
       The exact npm CLI and a fail-closed zero-execution install-script policy are now locally
       enforced; hosted Linux and merge evidence remain required. Cloudflare deployed-digest
       evidence, key custody, and restore drills remain open.
+    - [x] Remediate the later `fast-uri` `GHSA-v2hh-gcrm-f6hx` and Sharp/libvips
+      `GHSA-f88m-g3jw-g9cj` disclosures with exact `3.1.4` and `0.35.3` overrides. Both audits
+      return zero vulnerabilities, Sharp no longer declares an install hook, and production-SBOM
+      membership is derived from locked root reachability so cross-platform Sharp artifacts stay
+      covered without admitting development-only Playwright or Ajv paths.
     - [x] Add a fail-closed Cloudflare provider-state policy and redacted read-only analyzer that
       distinguishes disconnected Git builds from a paused Worker, compares the active runtime and
       binding contract, and refuses source/hold/release claims without private exact identity and
