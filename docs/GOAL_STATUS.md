@@ -43,9 +43,18 @@ by that discovery.
       The complete bounded two-worker Chromium/WebKit phone matrix passed 164/164 cases. Francis
       State Beach chart evidence and Pacifica Municipal Pier's closed-access boundary were
       visually inspected at iPhone width.
-- [ ] Publish a protected stacked draft PR, obtain exact-head hosted receipts, and keep CodeQL,
-      independent location/chart review, merge, deployment, provider/database mutation, and
-      production activation as explicit separate gates.
+- [x] Publish protected stacked draft PR `#135` without merge or deployment. Exact implementation
+      head `ddd879d57a5e34de9d41aa6eb97d89d0a3c079d0` passed push and pull-request CI runs
+      `29821712582` and `29821729772`; release-provenance runs `29821712499` and `29821729762`;
+      native API-image run `29821729791` on Linux AMD64 and ARM64; and explicitly dispatched
+      optional research-stack run `29821749747` on Linux CPU and macOS ARM64. Hosted proof includes
+      484/484 Node tests, a 164/164 Chromium/WebKit mobile matrix, both zero-vulnerability audits,
+      the secret/source-integrity/security chain, API and pipeline checks, and all 19 critical D1
+      query plans. Event-inapplicable dependency and release-attestation jobs skipped as designed.
+- [ ] Obtain CodeQL evidence when this stack is eventually reviewed against protected `main`;
+      default setup did not trigger on the non-default stacked base. Independent location/chart
+      review, merge, deployment, provider/database mutation, and production activation remain
+      separate open gates.
 
 ## Active checkpoint — San Francisco source-bound depth and structure
 
