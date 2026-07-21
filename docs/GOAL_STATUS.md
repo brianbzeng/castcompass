@@ -46,10 +46,19 @@ by that discovery.
       and all 19 critical D1 query plans passed. The complete Chromium/WebKit phone matrix passed
       188/188 cases, and a focused four-browser check proves the San Mateo suppression is visible,
       linked to the County source, score-excluded, and mobile-safe.
-- [ ] Publish and seal a protected stacked draft PR. Independent local mapping/source-latency
-      review, CodeQL on protected `main`, guarded deployment, post-deployment freshness,
-      provider/database mutation, production activation, and every numeric-contribution
-      validation gate remain separate open work.
+- [x] Publish protected stacked draft PR `#140` without merge or deployment. Exact implementation
+      head `ff2d7bb17c4ed54e0bff8be58821eceec2717e43` passed push and pull-request CI runs
+      `29836658793` and `29836660505` (successful attempt 2 after attempt 1 was canceled when the
+      hosted browser installation stalled), including two independent 188/188 Chromium/WebKit
+      phone matrices; release-provenance runs `29836660822` and `29836660567`; native API-image
+      run `29836660545` on Linux AMD64 and ARM64; and explicitly dispatched optional research-
+      stack run `29836696056` on Linux CPU and macOS ARM64. Event-inapplicable dependency and
+      release-attestation jobs skipped as designed.
+- [ ] Obtain independent mapping and source-latency review and CodeQL evidence when this stack is
+      eventually reviewed against protected `main`; default setup did not trigger on the non-
+      default stacked base. Guarded deployment, post-deployment freshness, provider/database
+      mutation, production activation, and every numeric-contribution validation gate remain
+      separate open work.
 
 ## Active checkpoint — San Francisco water-quality coverage negative evidence
 
