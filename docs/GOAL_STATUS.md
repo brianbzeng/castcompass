@@ -41,9 +41,17 @@ by that discovery.
       integrity chain, Ruff and Python syntax, 29/29 API tests, 83/83 pipeline tests with one
       documented optional-`rasterio` skip, deterministic synthetic smoke, and all 19 critical D1
       query plans passed. The complete Chromium/WebKit phone matrix passed 188/188 cases.
-- [ ] Publish a protected stacked draft PR with exact-head hosted evidence. Exact official
-      coverage changes must trigger a new review rather than automatic mapping. Independent
-      review, guarded deployment, provider/database mutation, production activation, and every
+- [x] Publish protected stacked draft PR `#144` without merge or deployment. Exact implementation
+      head `f19e8a259e3325342e3976f6f039f6b9ea41aa9b` passed push and pull-request CI runs
+      `29849110938` and `29849139024`, including two independent 188/188 Chromium/WebKit phone
+      matrices; release-provenance runs `29849110653` and `29849139212`; explicitly dispatched
+      optional research-stack run `29849168335` on Linux CPU and macOS ARM64; and native API-image
+      run `29849168245` on Linux AMD64 and ARM64. Event-inapplicable dependency and release-
+      attestation jobs skipped as designed.
+- [ ] Obtain independent directory/source review and CodeQL evidence when this stack is eventually
+      reviewed against protected `main`; default setup does not trigger on a non-default stacked
+      base. Exact official coverage changes must trigger a new review rather than automatic
+      mapping. Guarded deployment, provider/database mutation, production activation, and every
       numeric-contribution gate remain separate open work.
 
 ## Active checkpoint — Seal Point water-quality negative evidence
