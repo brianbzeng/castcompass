@@ -15,7 +15,7 @@ This is an engineering and product checklist, not legal advice. The public Terms
 | Trip report | Time, site, catches, gear, notes, fishability, optional photo | Clear consent; user ownership representation; private-by-default raw data; metadata-stripped photo; pending edit/delete; public output limited to an anonymous reviewed summary |
 | Automated review | Trip payload sent to Xiaomi MiMo | No email, account ID, device location, photo, or exact private coordinate in the review payload; separate AI disclosure; correction/removal contact |
 | Email | Verification, recovery, welcome | Transactional only; Resend is the delivery provider; no marketing list or SMS |
-| Storage | D1 account/trip records and optional R2 photos | Secure session cookies, same-origin mutation checks, rate limits, comprehensive JSON export plus separate authenticated photo downloads, durable deletion jobs, secure status receipts, scheduled retry of object cleanup, and pseudonymous deletion tombstones |
+| Storage | D1 account/trip records, optional R2 photos, and a proposed private R2 portability package | Secure session cookies, same-origin mutation checks, rate limits, comprehensive JSON export plus separate authenticated photo downloads, durable deletion jobs, secure status receipts, scheduled retry of object cleanup, and pseudonymous deletion tombstones. Background packaging remains default-off and provider-free; if activated, its owner-only file expires within 24 hours |
 
 ## Current legal baseline
 
@@ -147,6 +147,7 @@ and processor review before making those claims.
 - Confirm account deletion removes active D1 access and linked public rows before returning success, issues a 30-day secure status receipt when cleanup remains, retries R2 deletion, and retains unresolved cleanup jobs until resolved.
 - Retain pseudonymous completed-deletion tombstones for 90 days. Document the production backup-retention window and prove through an isolated restore drill that the current deletion ledger is replayed before restored data can receive traffic.
 - Verify exports against populated fixtures: account and consent records, saved locations, gear presets, full trip fields, discussion linkage, photo manifest, and successful authenticated download of each photo file that the export says is available.
+- Before background export activation, apply `0019_async_privacy_exports.sql` through the guarded release, create a non-public R2 bucket and dedicated Queue with least-privilege bindings, document provider retention/encryption/cost controls, and complete the owner, cross-owner, expiry, account-deletion, duplicate-delivery, and failed-object-cleanup drills in [Asynchronous privacy exports](ASYNC-PRIVACY-EXPORTS.md). Keep the flag false until every item is evidenced.
 - Review and document Cloudflare, Resend, and Xiaomi MiMo deletion and log-retention terms. Complete counsel review of the updated Terms, Privacy Policy, age gate, backup language, and user-request workflow.
 
 ## Open items for counsel

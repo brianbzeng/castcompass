@@ -77,6 +77,14 @@ test("request context uses server correlation and a secret-keyed session pseudon
 
 test("route templates preserve operations but discard identifiers and hostile unknown paths", () => {
   assert.equal(
+    routeTemplate("/api/profile/exports/pexj_0123456789abcdef0123456789abcdef"),
+    "/api/profile/exports/:job_id",
+  );
+  assert.equal(
+    routeTemplate("/api/profile/exports/pexj_0123456789abcdef0123456789abcdef/download"),
+    "/api/profile/exports/:job_id/download",
+  );
+  assert.equal(
     routeTemplate("/api/profile/export/photos/trip_12345678-1234-1234-1234-123456789abc"),
     "/api/profile/export/photos/:trip_id",
   );

@@ -249,6 +249,12 @@ export function routeTemplate(pathname: string): string {
   if (EXACT_ROUTES.has(pathname)) return pathname;
   if (/^\/api\/discussions\/[a-z0-9-]+$/.test(pathname)) return "/api/discussions/:site_id";
   if (/^\/api\/gear-profiles\/gear_[a-f0-9-]{36}$/.test(pathname)) return "/api/gear-profiles/:gear_id";
+  if (/^\/api\/profile\/exports\/pexj_[a-f0-9]{32}\/download$/.test(pathname)) {
+    return "/api/profile/exports/:job_id/download";
+  }
+  if (/^\/api\/profile\/exports\/pexj_[a-f0-9]{32}$/.test(pathname)) {
+    return "/api/profile/exports/:job_id";
+  }
   if (/^\/api\/profile\/export\/photos\/trip_[a-f0-9-]{36}$/.test(pathname)) {
     return "/api/profile/export/photos/:trip_id";
   }

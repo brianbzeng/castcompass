@@ -8,22 +8,23 @@ accounts, or production data.
 ## D1 query inventory
 
 `scripts/generate-d1-query-inventory.mjs` parses every Worker TypeScript source file and records
-all 187 direct `.prepare()` sites: 162 literal statements and 25 separately reviewed nonliteral
-expressions across seven source files. The committed policy and generated inventory are
+all 221 direct `.prepare()` sites: 195 literal statements and 26 separately reviewed nonliteral
+expressions across eight source files. The committed policy and generated inventory are
 source-hash and call-site bound. CI rejects source-file/count drift, computed or aliased
 `prepare` access, a nonliteral expression without its exact static-authority review, an unscoped
 literal `UPDATE` or `DELETE`, and a literal multi-row `SELECT` without a reviewed ownership and
 cardinality contract. No database or provider is queried while generating the inventory.
 
 The inventory exposes rather than conceals the remaining scale boundaries. Nine unbounded
-multi-row reads are intentional complete authenticated privacy exports and two are complete
+multi-row reads are intentional complete authenticated privacy exports and three are complete
 owner-lifecycle cleanup reads. Account-facing saved-location and gear-preset reads now fetch at
 most 101 rows, expose at most the exact 100-item account ceiling, and fail closed on a legacy
 overflow instead of silently truncating it. Their creates enforce the same ceiling inside the
 single `INSERT ... SELECT` statement so concurrent requests cannot both pass a separate count
 check. An existing saved location remains idempotently successful at the ceiling. Complete
-privacy exports stay intentionally unbounded so a data-rights response cannot omit records; they
-still need asynchronous packaging for large accounts. An inventory proves source coverage and
+privacy exports stay intentionally unbounded so a data-rights response cannot omit records; the
+default-off async adapter packages them away from the request path when activated, while staging
+measurements and provider activation remain open. An inventory proves source coverage and
 review identity; it does not prove query latency, production index selection, or safe load
 capacity.
 
@@ -98,9 +99,10 @@ semantics:
 | Email delivery | Awaited when delivery determines whether the flow can proceed; `waitUntil` only where a durable challenge already exists and retry is safe | Provider idempotency key is supplied; centralized delivery status/alerting is still needed |
 | AI advisory review | Production default remains `waitUntil` after the authoritative trip write plus scheduled backlog. A default-off managed Queue adapter, opaque message contract, D1 outbox/lease/attention ledger, bounded retry/backoff, cost ceiling, deletion/maintenance recovery, and state-guarded replay planner are locally implemented | Apply `0018`, provision the producer/consumer/DLQ, prove isolated synthetic failure and rollback cases, activate alerts/IAM, then enable only through a separate reviewed release using `docs/AI-REVIEW-QUEUE.md` |
 | Privacy object purge | Durable D1 job/task ledger processed after active-data removal | Existing leases, retry bounds, attention state, and receipts preserve correctness; dashboard alerting and production-shaped drills remain open |
-| Snapshot/model generation, media processing, notification fan-out, large export packaging | Offline pipeline or future managed queue | These must never block authorization or primary writes. A queue design requires a separate reviewed schema and provider configuration |
+| Complete privacy export packaging | Direct authenticated response while the production flag is off; default-off managed Queue adapter when activated | The local Queue/D1/private-object path is complete and preserves all rows, but `0019`, provider bindings, staging metrics, IAM, DLQ, alerts, and the separate activation release remain open; see `docs/ASYNC-PRIVACY-EXPORTS.md` |
+| Snapshot/model generation, media processing, notification fan-out | Offline pipeline or future managed queue | These must never block authorization or primary writes. Each queue design requires a separate reviewed schema and provider configuration |
 
-The Worker currently uses at most six parallel D1 calls in the account-export fan-out, matching
+The direct fallback currently uses at most six parallel D1 calls in each account-export fan-out, matching
 Cloudflare's documented per-invocation simultaneous-connection ceiling. Do not add another query
 to that `Promise.all` group without restructuring it. Cloudflare's current D1 limits and batching
 guidance are documented in the [D1 FAQ](https://developers.cloudflare.com/d1/reference/faq/).

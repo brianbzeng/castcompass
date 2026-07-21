@@ -21,9 +21,9 @@ by that discovery.
 - [x] Identify the earliest repository-actionable P1 gap. Existing evidence covered 14
       representative plans but did not inventory every production D1 statement, so query source
       coverage and remaining unbounded reads could not be independently audited.
-- [x] Implement a deterministic TypeScript-AST inventory for all 187 direct Worker `.prepare()`
-      sites across seven files: 162 literal statements, 25 exact reviewed nonliteral expressions,
-      and 11 reviewed literal multi-row reads without `LIMIT`. The gate rejects source drift,
+- [x] Implement a deterministic TypeScript-AST inventory for all 221 direct Worker `.prepare()`
+      sites across eight files: 195 literal statements, 26 exact reviewed nonliteral expressions,
+      and 12 reviewed literal multi-row reads without `LIMIT`. The gate rejects source drift,
       computed/aliased prepare access, unreviewed dynamic SQL, unscoped literal writes, and
       unreviewed multi-row reads.
 - [x] Preserve truthful scale boundaries. Nine reads are complete authenticated rights exports
@@ -783,16 +783,22 @@ by that discovery.
       remains deferred pending privacy review.
 - [ ] Make data and execution paths measurably scalable: query plans/indexes, bounded access,
       cache matrix, justified asynchronous work, D1-managed connections, optional API pooling,
-      and isolated load/soak/spike/failure tests. **A complete static inventory now covers all 187
+      and isolated load/soak/spike/failure tests. **A complete static inventory now covers all 221
       Worker prepare sites, and exact 100-item saved-location/gear-preset account ceilings now
       fail closed on overflow without truncating rights exports, while local query/index/cache/
-      connection contracts,
-      production-refusing harness, and the default-off advisory Queue adapter with its opaque
-      message, D1 outbox/lease/attention ledger, bounded retries, deletion/maintenance recovery,
-      DLQ policy, and guarded replay planner are complete;** migrations, provider Queue/DLQ
-      bindings, IAM/alerts, asynchronous complete export packaging, staging measurements,
+      connection contracts, production-refusing harness, the default-off advisory Queue adapter,
+      and a default-off complete privacy-export adapter with an opaque message, owner-bound D1
+      lease ledger, private 24-hour object, progress UI, bounded expiry/retries, and account-delete
+      race adoption are complete;** migrations, provider Queue/DLQ/R2 bindings, IAM/alerts,
+      export activation, staging measurements,
       child-cascade cost evidence, failure injection,
       rollback evidence, and authorized penetration testing remain.
+      Local acceptance for the default-off export adapter passed the Cloudflare build and
+      455/455 Node tests, 140/140 Chromium/WebKit mobile cases, ESLint, TypeScript, the complete
+      security/SBOM/query-inventory chain and both zero-vulnerability npm audits, 29/29 API tests,
+      the 19-plan D1/index contract, Ruff, 81/81 pipeline tests with one documented optional-
+      raster skip, and deterministic pipeline smoke. This is repository evidence only; no
+      migration, Queue, R2, variable, deployment, or production request was made.
 - [ ] Freeze and deploy the species-aware observation/model-run contract. **Local contract
       complete;** production migration, legacy-row audit, and first approved ingestion manifest
       remain.

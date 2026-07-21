@@ -3,6 +3,7 @@
   "sourceFiles": [
     "worker/auth.ts",
     "worker/discussions.ts",
+    "worker/privacy-export.ts",
     "worker/security.ts",
     "worker/trip-review-queue.ts",
     "worker/trip-review.ts",
@@ -10,10 +11,10 @@
     "worker/validation-feasibility-export.ts"
   ],
   "expectedSummary": {
-    "prepareCallCount": 187,
-    "literalCallCount": 162,
-    "nonLiteralCallCount": 25,
-    "multiRowLiteralWithoutLimitCount": 11
+    "prepareCallCount": 221,
+    "literalCallCount": 195,
+    "nonLiteralCallCount": 26,
+    "multiRowLiteralWithoutLimitCount": 12
   },
   "allowedNonLiteralExpressions": [
     {
@@ -78,6 +79,13 @@
       "staticAuthority": "module-level CREATE_PRIVACY_DELETION_TASKS_SQL constant",
       "executionContract": "schema bootstrap batch",
       "rationale": "The runtime fallback schema uses one reviewed constant and no request input."
+    },
+    {
+      "file": "worker/auth.ts",
+      "expressionSha256": "5bce5808096baed633bb8bcad25b9a6f3b1efc6235c9b86121475126783538e0",
+      "staticAuthority": "module-level CREATE_PRIVACY_EXPORT_JOBS_SQL constant",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The default-off runtime fallback uses one reviewed export-ledger constant and no request input."
     },
     {
       "file": "worker/auth.ts",
@@ -194,7 +202,8 @@
   ],
   "multiRowReadContracts": [
     {
-      "callSiteId": "ee3979185fb94e3653ca5079",
+      "callSiteId": "ede4481969504a5342786bde",
+      "file": "worker/privacy-export.ts",
       "sqlSha256": "9d7b2607848728b06bea49e6bdb440f2cd69a1005935230de8b7218fcec22d3a",
       "scope": "complete owner export",
       "boundPredicate": "user_id = ?",
@@ -202,7 +211,8 @@
       "rationale": "Saved locations are included completely in the authenticated portability export."
     },
     {
-      "callSiteId": "57f1457184e2171a61982808",
+      "callSiteId": "12cda5350d4f0c599d064559",
+      "file": "worker/privacy-export.ts",
       "sqlSha256": "2dd4aa49253ba9aa42392146197897fa41e7c01df92d776e7013ffab6a17f01e",
       "scope": "complete owner export",
       "boundPredicate": "user_id = ?",
@@ -210,15 +220,17 @@
       "rationale": "Gear profiles are included completely in the authenticated portability export."
     },
     {
-      "callSiteId": "bea9ccb6608e35b53419a87a",
+      "callSiteId": "26ae0e0f2e25a801b3126712",
+      "file": "worker/privacy-export.ts",
       "sqlSha256": "369ec8856c9ae369d42562864477e222c82acbb16cf1602bf5c7ef324b8add70",
       "scope": "complete owner export",
       "boundPredicate": "user_id = ?",
       "rowBoundStatus": "complete-rights-export",
-      "rationale": "Trips are intentionally complete for authenticated portability; asynchronous packaging remains an open scale gate."
+      "rationale": "Trips are intentionally complete for authenticated portability; the default-off asynchronous packager moves this complete read off the request path when activated."
     },
     {
-      "callSiteId": "435746bb782b38fbc073780f",
+      "callSiteId": "05f1f6845a6b5fcb728994d3",
+      "file": "worker/privacy-export.ts",
       "sqlSha256": "11fbf502919e8f90a231c9fc165aadc763fd37634d1a5409303e525a1fa9db35",
       "scope": "complete owner export",
       "boundPredicate": "trips.user_id = ?",
@@ -226,7 +238,8 @@
       "rationale": "Only public-copy rows derived from the authenticated owner's trips enter the portability export."
     },
     {
-      "callSiteId": "9ea938a4fd0f8721aca9cd9a",
+      "callSiteId": "c6b2f36428fbc68ccd411a95",
+      "file": "worker/privacy-export.ts",
       "sqlSha256": "96f4c5994edaa17f2eeb06fd6bb271aca1e8a75febdf311d97cae4cc82c40924",
       "scope": "complete owner export",
       "boundPredicate": "trips.user_id = ?",
@@ -234,7 +247,8 @@
       "rationale": "Forecast impression records are required for the authenticated owner's complete export."
     },
     {
-      "callSiteId": "725c6e27803581352813784c",
+      "callSiteId": "623e192f595fda08eec5ee29",
+      "file": "worker/privacy-export.ts",
       "sqlSha256": "ff670cba408cd096752e58b52a419fe1469ba49a1c74f2f9358ae96b979869f9",
       "scope": "complete owner export",
       "boundPredicate": "trips.user_id = ?",
@@ -242,7 +256,8 @@
       "rationale": "Validation provenance is required for the authenticated owner's complete export."
     },
     {
-      "callSiteId": "2b03ba515785decdf29b68c0",
+      "callSiteId": "6aaa23dc0d3b397f3deb7c9c",
+      "file": "worker/privacy-export.ts",
       "sqlSha256": "a204c81a56022f6509ba5550c4c519898862d6413f44f5e1955d7dec340aba33",
       "scope": "complete owner export",
       "boundPredicate": "trips.user_id = ?",
@@ -250,7 +265,8 @@
       "rationale": "Pilot events remain owner-bound and complete for authenticated portability."
     },
     {
-      "callSiteId": "e32ca9b28fec51e27fd681bb",
+      "callSiteId": "fc514ef6283d281838ba5a79",
+      "file": "worker/privacy-export.ts",
       "sqlSha256": "b677d5535e6ccdeab73a8511868b7de7e9b55c750efdf28aefe34db68dc0c890",
       "scope": "complete owner export",
       "boundPredicate": "recruitment.user_id = ?",
@@ -258,7 +274,8 @@
       "rationale": "Recruitment records remain owner-bound and complete for authenticated portability."
     },
     {
-      "callSiteId": "aa386a1d1d60f74601db3c79",
+      "callSiteId": "d5a3056ecfcba3f58369d598",
+      "file": "worker/privacy-export.ts",
       "sqlSha256": "cf733f072a900b16b9d702fa4ff27fe43c899d8b488397490bd742267f31f0c9",
       "scope": "complete owner export",
       "boundPredicate": "trips.user_id = ?",
@@ -266,7 +283,7 @@
       "rationale": "Corrections remain owner-bound and complete for authenticated portability."
     },
     {
-      "callSiteId": "a6b9412d4678e77078488c8e",
+      "callSiteId": "5a8a1422da232a361ef6ab28",
       "sqlSha256": "94a8641e2f59456aa737aebe11496255b41cbf8e563cc6df4ba3de3014578555",
       "scope": "owner account deletion",
       "boundPredicate": "user_id = ?",
@@ -274,12 +291,20 @@
       "rationale": "Every current photo key must enter the durable object-deletion ledger before active rows are removed."
     },
     {
-      "callSiteId": "fb94a2f05458a60230219482",
-      "sqlSha256": "3d67e1dff4c9af7e9e361f4461a5fc77c46acd7b907ec7ab7a503505ca9308bc",
+      "callSiteId": "55a4ebbb7afbfc3a06c03411",
+      "sqlSha256": "54610b0da32d0986051a22f3b2bbf03209aa8e2c3f023fb1558517fd58395006",
       "scope": "owner account deletion",
       "boundPredicate": "privacy_deletion_jobs.owner_subject_hash = ?",
       "rowBoundStatus": "owner-lifecycle-cleanup",
-      "rationale": "Pending object keys for the same owner are deduplicated before the active-data deletion batch."
+      "rationale": "Pending typed object keys for the same owner are deduplicated before the active-data deletion batch."
+    },
+    {
+      "callSiteId": "8937c0620c8fd739801163a3",
+      "sqlSha256": "c9349672d601c7c1e393f9bbce92b3cfc1d6e26c4ad10e6dcb19f20c317b8bd8",
+      "scope": "owner account deletion",
+      "boundPredicate": "owner_subject_hash = ?",
+      "rowBoundStatus": "owner-lifecycle-cleanup",
+      "rationale": "Every committed or cleanup-only private export locator for the same owner must enter the durable deletion batch before account access is removed."
     }
   ]
 }

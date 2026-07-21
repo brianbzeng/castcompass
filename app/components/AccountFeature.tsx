@@ -130,6 +130,124 @@ function MutationRequestStatus({ state, message }: { state: MutationRequestState
   );
 }
 
+interface PrivacyExportStatus {
+  id: string;
+  status: "pending" | "processing" | "ready" | "needs_attention" | "expired";
+  requestedAt: string;
+  completedAt: string | null;
+  expiresAt: string | null;
+  sizeBytes: number | null;
+  recordCount: number | null;
+  downloadPath: string | null;
+}
+
+function PrivacyExportControl() {
+  const [job, setJob] = useState<PrivacyExportStatus | null>(null);
+  const [requesting, setRequesting] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  const startDirectDownload = useCallback(() => {
+    const link = document.createElement("a");
+    link.href = "/api/profile/export";
+    link.download = "";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }, []);
+
+  const requestExport = useCallback(async () => {
+    setRequesting(true);
+    setError("");
+    setMessage("Starting your export…");
+    try {
+      const response = await fetch("/api/profile/export", { method: "POST" });
+      const body = await response.json().catch(() => null) as {
+        export?: PrivacyExportStatus;
+        error?: { code?: string; message?: string };
+      } | null;
+      if (response.status === 409 && body?.error?.code === "async_privacy_export_disabled") {
+        setMessage("Your download is starting…");
+        startDirectDownload();
+        return;
+      }
+      if (!response.ok || !isPrivacyExportStatus(body?.export)) {
+        throw new Error(body?.error?.message ?? "Your export could not be started.");
+      }
+      setJob(body.export);
+      setMessage(body.export.status === "ready"
+        ? "Your export is ready."
+        : "Your complete export is being packaged in the background.");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Your export could not be started.");
+      setMessage("");
+    } finally {
+      setRequesting(false);
+    }
+  }, [startDirectDownload]);
+
+  useEffect(() => {
+    if (!job || (job.status !== "pending" && job.status !== "processing")) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      fetch(`/api/profile/exports/${encodeURIComponent(job.id)}`, {
+        cache: "no-store",
+        signal: controller.signal,
+      }).then(async (response) => {
+        const body = await response.json().catch(() => null) as {
+          export?: PrivacyExportStatus;
+          error?: { message?: string };
+        } | null;
+        if (!response.ok || !isPrivacyExportStatus(body?.export)) {
+          throw new Error(body?.error?.message ?? "Export progress could not be checked.");
+        }
+        setJob(body.export);
+        setMessage(body.export.status === "ready"
+          ? "Your export is ready."
+          : body.export.status === "needs_attention"
+            ? "Packaging is delayed and has been flagged for operator attention."
+            : "Your complete export is still being packaged.");
+      }).catch((pollError) => {
+        if (controller.signal.aborted) return;
+        setError(pollError instanceof Error ? pollError.message : "Export progress could not be checked.");
+      });
+    }, 2_000);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [job]);
+
+  if (job?.status === "ready" && job.downloadPath) {
+    return (
+      <div className="privacy-export-control" aria-live="polite">
+        <a className="account-secondary" href={job.downloadPath} download>Download my account records (JSON)</a>
+        <small>{message}{job.recordCount !== null ? ` ${job.recordCount.toLocaleString()} records.` : ""} The private file expires in 24 hours.</small>
+      </div>
+    );
+  }
+
+  return (
+    <div className="privacy-export-control" aria-live="polite">
+      <button className="account-secondary" type="button" disabled={requesting || job?.status === "pending" || job?.status === "processing"} onClick={() => void requestExport()}>
+        {requesting ? "Starting export…"
+          : job?.status === "pending" || job?.status === "processing" ? "Packaging account records…"
+            : job?.status === "expired" ? "Create a new account export"
+              : "Download my account records (JSON)"}
+      </button>
+      {message ? <small>{message}</small> : null}
+      {error ? <p className="account-error" role="alert">{error} <button className="account-text-button" type="button" onClick={() => void requestExport()}>Try again</button></p> : null}
+    </div>
+  );
+}
+
+function isPrivacyExportStatus(value: unknown): value is PrivacyExportStatus {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const status = value as Partial<PrivacyExportStatus>;
+  return typeof status.id === "string" && /^pexj_[a-f0-9]{32}$/.test(status.id)
+    && ["pending", "processing", "ready", "needs_attention", "expired"].includes(String(status.status));
+}
+
 function SignOutControls({ account, primary = false }: { account: AccountController; primary?: boolean }) {
   const status = account.signOutRequest;
   const checking = status?.kind === "verify" && status.state === "submitting";
@@ -1604,7 +1722,7 @@ export function AccountModal({
             <h2 id="account-title">Account features<br />paused.</h2>
             <p>This older account has no retained age-eligibility confirmation. CastingCompass will not ask for a birth date alongside an existing account or silently mark it eligible.</p>
             <p>Email <a href="mailto:bzeng0000@gmail.com">bzeng0000@gmail.com</a> for privacy support. You can also permanently delete the account below with its password.</p>
-            <a className="account-secondary" href="/api/profile/export" download>Download my account records (JSON)</a>
+            <PrivacyExportControl />
             <details className="account-delete-details">
               <summary>Delete account</summary>
               <form onSubmit={deleteAccount}>
@@ -1628,7 +1746,7 @@ export function AccountModal({
               {error ? <p className="account-error" role="alert">{error}</p> : null}
               <button className="account-primary" type="submit" disabled={busy}>{busy ? "Saving…" : "Accept and continue"}</button>
             </form>
-            <a className="account-secondary" href="/api/profile/export" download>Download my account records (JSON)</a>
+            <PrivacyExportControl />
             <details className="account-delete-details">
               <summary>Delete account</summary>
               <form onSubmit={deleteAccount}>
@@ -1921,7 +2039,7 @@ export function AccountModal({
               <h3>Privacy and account controls</h3>
               <p>Download a machine-readable copy of your account records, or permanently remove account access and linked data from the active service.</p>
               <div className="profile-privacy-links">
-                <a className="account-secondary" href="/api/profile/export" download>Download my account records (JSON)</a>
+                <PrivacyExportControl />
                 <Link href="/privacy">Privacy Policy</Link>
                 <Link href="/terms">Terms of Service</Link>
                 <Link href="/ai-disclosure">AI and forecast disclosure</Link>

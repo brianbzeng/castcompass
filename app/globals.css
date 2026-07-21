@@ -5814,6 +5814,22 @@ footer {
   cursor: pointer;
 }
 
+.privacy-export-control {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: start;
+}
+
+.privacy-export-control small {
+  max-width: 52ch;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.privacy-export-control .account-error {
+  margin: 0;
+}
+
 .account-delete-details {
   margin-top: 1rem;
   border-top: 1px solid var(--line);

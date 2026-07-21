@@ -5,6 +5,7 @@ import test from "node:test";
 import { cleanupAuthData, LEGAL_VERSION, evaluateAgeEligibility, handleAccountRequest, processPrivacyDeletionTasks } from "../worker/auth.ts";
 import { createTripStore, handleTripRequest } from "../worker/trips.ts";
 import { reviewTripWithMimo } from "../worker/trip-review.ts";
+import { consumePrivacyExportQueue, requestPrivacyExport } from "../worker/privacy-export.ts";
 import { buildFeasibilityReconciliationExport } from "../worker/validation-feasibility-export.ts";
 import {
   buildFeasibilityRecruitmentCampaign,
@@ -30,6 +31,7 @@ const MIGRATIONS = [
   "0016_data_resilience_indexes.sql",
   "0017_trip_idempotency.sql",
   "0018_ai_review_queue.sql",
+  "0019_async_privacy_exports.sql",
 ];
 
 let tripRequestSequence = 0;
@@ -1302,6 +1304,105 @@ test("account deletion adopts unresolved photo tasks from an earlier trip deleti
   assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM privacy_deletion_tasks WHERE object_key IS NOT NULL").get().count, 0);
 });
 
+test("account deletion atomically adopts a completed privacy export and purges both object stores", async () => {
+  const { sqlite, d1 } = await database();
+  const user = await addUser(sqlite, "export-adoption");
+  addTrip(sqlite, user, { photoKey: "private/account-photo.jpg" });
+  const queue = {
+    sent: [],
+    async send(body) { this.sent.push(structuredClone(body)); },
+  };
+  const exportObjects = new Map();
+  const deletedExports = [];
+  const exportBucket = {
+    async put(key, value, options) { exportObjects.set(key, { value: value.slice(0), options }); },
+    async get(key) {
+      const object = exportObjects.get(key);
+      return object ? { size: object.value.byteLength, async arrayBuffer() { return object.value.slice(0); } } : null;
+    },
+    async delete(key) { deletedExports.push(key); exportObjects.delete(key); },
+  };
+  const deletedPhotos = [];
+  const photoBucket = {
+    async get() { return null; },
+    async delete(key) { deletedPhotos.push(key); },
+  };
+  const env = {
+    DB: d1,
+    TRIP_PHOTOS: photoBucket,
+    PRIVACY_EXPORT_QUEUE_ENABLED: "true",
+    PRIVACY_EXPORT_QUEUE: queue,
+    PRIVACY_EXPORTS: exportBucket,
+  };
+  const requested = await requestPrivacyExport(env, user.id);
+  assert.equal(requested.configurationError, null);
+  const message = {
+    id: "provider-export-adoption",
+    body: queue.sent[0],
+    attempts: 1,
+    acknowledgements: 0,
+    retries: [],
+    ack() { this.acknowledgements += 1; },
+    retry(options) { this.retries.push(options ?? {}); },
+  };
+  await consumePrivacyExportQueue({ queue: "privacy-export", messages: [message] }, env);
+  assert.equal(message.acknowledgements, 1);
+  assert.equal(exportObjects.size, 1);
+  const cleanupOnlyKey = "privacy-exports/cleanup-only/stale-attempt.json";
+  const cleanupOnlyBytes = new TextEncoder().encode("possibly-written-private-export").buffer;
+  exportObjects.set(cleanupOnlyKey, { value: cleanupOnlyBytes, options: {} });
+  const cleanupOnlyId = "pexj_0000000000000000000000000000cafe";
+  sqlite.prepare(`INSERT INTO privacy_export_jobs (
+      id, user_id, owner_subject_hash, state, attempts, available_at,
+      lease_expires_at, lease_token, object_key, object_key_hash, content_sha256,
+      size_bytes, record_count, last_error_code, requested_at, updated_at,
+      completed_at, expires_at)
+    VALUES (?, NULL, ?, 'needs_attention', 5, '2026-07-20T12:00:00.000Z',
+      NULL, NULL, ?, ?, ?, ?, 1, 'uncommitted_object_delete_failed',
+      '2026-07-20T12:00:00.000Z', '2026-07-20T12:00:00.000Z', NULL, NULL)`)
+    .run(
+      cleanupOnlyId,
+      await sha256(`account:${user.id}`),
+      cleanupOnlyKey,
+      await sha256(`privacy_exports\u0000${cleanupOnlyKey}`),
+      await sha256("possibly-written-private-export"),
+      cleanupOnlyBytes.byteLength,
+    );
+  assert.equal(exportObjects.size, 2);
+
+  const response = await handleAccountRequest(request("/api/profile", {
+    method: "DELETE",
+    cookie: user.cookie,
+    body: { confirmation: "DELETE", password: user.password },
+  }), env, []);
+  assert.equal(response?.status, 200);
+  const payload = await response.json();
+  assert.equal(payload.deletion.status, "completed");
+  assert.equal(payload.deletion.objectsTotal, 3);
+  assert.deepEqual(deletedPhotos, ["private/account-photo.jpg"]);
+  assert.equal(deletedExports.length, 2);
+  assert.equal(deletedExports.includes(cleanupOnlyKey), true);
+  assert.equal(exportObjects.size, 0);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM users WHERE id = ?").get(user.id).count, 0);
+  assert.deepEqual(
+    sqlite.prepare("SELECT object_store, state, object_key FROM privacy_deletion_tasks ORDER BY object_store").all()
+      .map((row) => ({ ...row })),
+    [
+      { object_store: "privacy_exports", state: "completed", object_key: null },
+      { object_store: "privacy_exports", state: "completed", object_key: null },
+      { object_store: "trip_photos", state: "completed", object_key: null },
+    ],
+  );
+  assert.deepEqual(
+    { ...sqlite.prepare("SELECT state, user_id, object_key FROM privacy_export_jobs WHERE id = ?").get(requested.job.id) },
+    { state: "expired", user_id: null, object_key: null },
+  );
+  assert.deepEqual(
+    { ...sqlite.prepare("SELECT state, user_id, object_key FROM privacy_export_jobs WHERE id = ?").get(cleanupOnlyId) },
+    { state: "expired", user_id: null, object_key: null },
+  );
+});
+
 test("object deletion retries are bounded and retain the locator for operator attention", async () => {
   const { sqlite, d1 } = await database();
   const user = await addUser(sqlite, "8");
@@ -1494,7 +1595,7 @@ test("an expired final-attempt lease fails closed without an unbounded object ca
   assert.equal(task.state, "needs_attention");
   assert.equal(task.attempts, 8);
   assert.equal(task.object_key, "private/final-lease.jpg");
-  assert.equal(task.last_error_code, "photo_delete_lease_expired");
+  assert.equal(task.last_error_code, "object_delete_lease_expired");
   assert.equal(sqlite.prepare("SELECT state FROM privacy_deletion_jobs").get().state, "needs_attention");
 });
 
@@ -1519,7 +1620,7 @@ test("a corrupted runnable task without an object locator fails closed for manua
   const task = sqlite.prepare("SELECT state, attempts, last_error_code FROM privacy_deletion_tasks").get();
   assert.equal(task.state, "needs_attention");
   assert.equal(task.attempts, 12, "fail-closed locator handling must preserve cumulative retry evidence");
-  assert.equal(task.last_error_code, "photo_locator_missing");
+  assert.equal(task.last_error_code, "object_locator_missing");
   assert.equal(sqlite.prepare("SELECT state FROM privacy_deletion_jobs").get().state, "needs_attention");
 });
 
@@ -1648,6 +1749,75 @@ test("export includes user data and downloadable photos without internal locator
 
   const withoutBinding = await handleAccountRequest(request("/api/profile/export", { cookie: user.cookie }), { DB: d1 }, []);
   assert.equal((await withoutBinding.json()).photos[0].reason, "photo_storage_unavailable");
+});
+
+test("privacy export HTTP routes preserve owner isolation and fail closed around activation", async () => {
+  const { sqlite, d1 } = await database();
+  const owner = await addUser(sqlite, "export-route-owner-61");
+  const other = await addUser(sqlite, "export-route-other-62");
+  const queue = {
+    sent: [],
+    async send(body) { this.sent.push(structuredClone(body)); },
+  };
+  const env = {
+    DB: d1,
+    PRIVACY_EXPORT_QUEUE_ENABLED: "true",
+    PRIVACY_EXPORT_QUEUE: queue,
+    PRIVACY_EXPORTS: {
+      async put() {},
+      async get() { return null; },
+      async delete() {},
+    },
+  };
+
+  const started = await handleAccountRequest(request("/api/profile/export", {
+    method: "POST",
+    cookie: owner.cookie,
+  }), env, []);
+  assert.equal(started?.status, 202);
+  const startedPayload = await started.json();
+  assert.match(startedPayload.export.id, /^pexj_[a-f0-9]{32}$/);
+  assert.equal(startedPayload.export.status, "pending");
+  assert.equal(queue.sent.length, 1);
+
+  const status = await handleAccountRequest(request(
+    `/api/profile/exports/${startedPayload.export.id}`,
+    { cookie: owner.cookie },
+  ), env, []);
+  assert.equal(status?.status, 200);
+  assert.equal((await status.json()).export.id, startedPayload.export.id);
+
+  for (const suffix of ["", "/download"]) {
+    const denied = await handleAccountRequest(request(
+      `/api/profile/exports/${startedPayload.export.id}${suffix}`,
+      { cookie: other.cookie },
+    ), env, []);
+    assert.equal(denied?.status, 404);
+    assert.equal((await denied.json()).error.code, "privacy_export_not_found");
+  }
+
+  const directWhileEnabled = await handleAccountRequest(
+    request("/api/profile/export", { cookie: owner.cookie }),
+    env,
+    [],
+  );
+  assert.equal(directWhileEnabled?.status, 409);
+  assert.equal((await directWhileEnabled.json()).error.code, "async_privacy_export_required");
+
+  const invalidFlag = await handleAccountRequest(
+    request("/api/profile/export", { cookie: owner.cookie }),
+    { DB: d1, PRIVACY_EXPORT_QUEUE_ENABLED: "TRUE" },
+    [],
+  );
+  assert.equal(invalidFlag?.status, 503);
+  assert.equal((await invalidFlag.json()).error.code, "privacy_export_configuration_invalid");
+
+  const disabledRequest = await handleAccountRequest(request("/api/profile/export", {
+    method: "POST",
+    cookie: owner.cookie,
+  }), { DB: d1, PRIVACY_EXPORT_QUEUE_ENABLED: "false" }, []);
+  assert.equal(disabledRequest?.status, 409);
+  assert.equal((await disabledRequest.json()).error.code, "async_privacy_export_disabled");
 });
 
 test("private export preserves immutable validation lineage without accepting evaluator roles", async () => {

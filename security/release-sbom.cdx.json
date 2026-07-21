@@ -1,7 +1,7 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:c9c2a3e2-3f54-58d0-b5a9-fe16670aa51a",
+  "serialNumber": "urn:uuid:ebf3ad23-9f1d-5147-aac5-8291d549b8bd",
   "version": 1,
   "metadata": {
     "component": {
@@ -29,11 +29,19 @@
         },
         {
           "name": "castingcompass:input-sha256",
+          "value": "contracts/ai-review-queue-message.schema.json:e535131586e6c9deb5aa606c280bfbd100fae2bb724a1b5756ff144c61c303b0"
+        },
+        {
+          "name": "castingcompass:input-sha256",
+          "value": "contracts/privacy-export-queue-message.schema.json:064bb98f847826df49f49a5ab3eab26521c858afcd17118049c59ff0bf47fcad"
+        },
+        {
+          "name": "castingcompass:input-sha256",
           "value": "package-lock.json:75d8bf85ae4ce42ee4eda3a1f5a5bdccad76c0ab59acddbf077299bf1f13b6a4"
         },
         {
           "name": "castingcompass:input-sha256",
-          "value": "package.json:ae34cfdbd1f434620fa1e4320e354debe2806b55ada5b106959150ea3b11a52c"
+          "value": "package.json:06a46d673a0c694e8e1223fc7d55344da760bf2afa60dc3a457a8881793101c8"
         },
         {
           "name": "castingcompass:input-sha256",
@@ -57,11 +65,11 @@
         },
         {
           "name": "castingcompass:input-sha256",
-          "value": "security/d1-query-inventory-policy.json:115378aed5ab79b75ffc0bc3a0ec02ce63fb8e5ee56c70647b453ffee15054d9"
+          "value": "security/d1-query-inventory-policy.json:a185a477113beb6c2fb9d137818f0b4db87ef687fa8d955aadb197ecd45e957e"
         },
         {
           "name": "castingcompass:input-sha256",
-          "value": "security/d1-query-inventory.json:ae77b4be1caaae28d05fccb1d6d109417fa24e7e6c1cfeb23bc218a7bd8554f4"
+          "value": "security/d1-query-inventory.json:8a1632f938f0a9b2e2eca63b0bf225da69bf12ca9ed8ebdb94587148292699e5"
         },
         {
           "name": "castingcompass:input-sha256",
@@ -77,7 +85,11 @@
         },
         {
           "name": "castingcompass:input-sha256",
-          "value": "security/production-change-authorization-policy.json:c4205d74ebe38f1e0743cb20426fa1b072bdbb64e3e73ebb23311a6c1c7669c3"
+          "value": "security/privacy-export-queue-policy.json:9efc282d8e4e048c768305c4dbf87a55589321773053c88a9c97d5bafc9bf717"
+        },
+        {
+          "name": "castingcompass:input-sha256",
+          "value": "security/production-change-authorization-policy.json:6e2a405435d519bc4d47d3078e9a142883e112dc7cf383d676780cd489141f57"
         },
         {
           "name": "castingcompass:input-sha256",
@@ -97,7 +109,7 @@
         },
         {
           "name": "castingcompass:input-sha256",
-          "value": "wrangler.jsonc:57493d2f0a0e4e85461e2c2e46d4994e38054b5fc96d81129db60fc57d5dfba8"
+          "value": "wrangler.jsonc:eb055dbff42ca11f52b6c952faba602d3ee8fd7137a709ea980111f220d8bd35"
         }
       ],
       "purl": "pkg:generic/castingcompass-release@0.1.0"
@@ -7599,7 +7611,7 @@
         },
         {
           "name": "castingcompass:wrangler-sha256",
-          "value": "57493d2f0a0e4e85461e2c2e46d4994e38054b5fc96d81129db60fc57d5dfba8"
+          "value": "eb055dbff42ca11f52b6c952faba602d3ee8fd7137a709ea980111f220d8bd35"
         },
         {
           "name": "castingcompass:version-metadata-binding",

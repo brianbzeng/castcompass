@@ -210,6 +210,7 @@ test("the complete migration chain applies atomically and produces the runtime s
     "0016_data_resilience_indexes.sql",
     "0017_trip_idempotency.sql",
     "0018_ai_review_queue.sql",
+    "0019_async_privacy_exports.sql",
   ]);
 
   const sqlite = new DatabaseSync(":memory:");
@@ -219,7 +220,7 @@ test("the complete migration chain applies atomically and produces the runtime s
   assert.deepEqual(
     sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all()
       .map((row) => row.name),
-    ["ai_review_jobs", "auth_attempts", "auth_sessions", "email_challenges", "forecast_impressions", "gear_profiles", "privacy_deletion_jobs", "privacy_deletion_tasks", "saved_sites", "signup_age_proofs", "site_discussion_posts", "trip_validation_provenance", "trips", "users", "validation_feasibility_activations", "validation_feasibility_correction_removals", "validation_feasibility_corrections", "validation_feasibility_events", "validation_feasibility_privacy_removals", "validation_feasibility_recruitment_campaigns", "validation_feasibility_recruitment_events", "validation_feasibility_recruitment_removals", "validation_feasibility_snapshot_suppressions"],
+    ["ai_review_jobs", "auth_attempts", "auth_sessions", "email_challenges", "forecast_impressions", "gear_profiles", "privacy_deletion_jobs", "privacy_deletion_tasks", "privacy_export_jobs", "saved_sites", "signup_age_proofs", "site_discussion_posts", "trip_validation_provenance", "trips", "users", "validation_feasibility_activations", "validation_feasibility_correction_removals", "validation_feasibility_corrections", "validation_feasibility_events", "validation_feasibility_privacy_removals", "validation_feasibility_recruitment_campaigns", "validation_feasibility_recruitment_events", "validation_feasibility_recruitment_removals", "validation_feasibility_snapshot_suppressions"],
   );
   assert.ok(columns(sqlite, "trips").includes("user_id"));
   assert.ok(columns(sqlite, "trips").includes("ai_reviewed_at"));
@@ -233,6 +234,8 @@ test("the complete migration chain applies atomically and produces the runtime s
   assert.ok(columns(sqlite, "signup_age_proofs").includes("consumed_at"));
   assert.ok(columns(sqlite, "privacy_deletion_jobs").includes("owner_subject_hash"));
   assert.ok(columns(sqlite, "privacy_deletion_tasks").includes("object_key_hash"));
+  assert.ok(columns(sqlite, "privacy_deletion_tasks").includes("object_store"));
+  assert.ok(columns(sqlite, "privacy_export_jobs").includes("lease_token"));
   assert.ok(columns(sqlite, "trips").includes("observation_contract_version"));
   assert.ok(columns(sqlite, "trips").includes("taxon_observations_json"));
   assert.ok(columns(sqlite, "trips").includes("idempotency_key_hash"));

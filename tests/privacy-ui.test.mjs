@@ -100,9 +100,25 @@ test("legal reacceptance never recollects birth date and restricted accounts ret
   assert.match(account, /Account features<br \/>paused/);
   assert.match(account, /will not ask for a birth date alongside an existing account/);
   const restrictedBranches = account.slice(account.indexOf("account.user && !account.user.ageEligible"), account.indexOf(") : account.user ? ("));
-  assert.ok((restrictedBranches.match(/Download my account records \(JSON\)/g) ?? []).length >= 2);
+  assert.ok((restrictedBranches.match(/<PrivacyExportControl \/>/g) ?? []).length >= 2);
+  assert.match(account, /Download my account records \(JSON\)/);
   assert.match(account, /: "Permanently delete account"/);
   assert.ok((restrictedBranches.match(/\{accountDeletionButtonLabel\}/g) ?? []).length >= 2);
+});
+
+test("privacy exports start fast, poll owner-bound progress, and retain the disabled-path direct download", () => {
+  const start = account.indexOf("function PrivacyExportControl");
+  const end = account.indexOf("function isPrivacyExportStatus", start);
+  const control = account.slice(start, end);
+  assert.match(control, /fetch\("\/api\/profile\/export", \{ method: "POST" \}\)/);
+  assert.match(control, /async_privacy_export_disabled/);
+  assert.match(control, /startDirectDownload\(\)/);
+  assert.match(control, /fetch\(`\/api\/profile\/exports\/\$\{encodeURIComponent\(job\.id\)\}`/);
+  assert.match(control, /window\.setTimeout/);
+  assert.match(control, /Packaging account records…/);
+  assert.match(control, /job\.downloadPath/);
+  assert.match(control, /The private file expires in 24 hours/);
+  assert.match(control, /role="alert"/);
 });
 
 test("versioned legal revision describes age artifacts and deletion limits without claiming production rollout", () => {
