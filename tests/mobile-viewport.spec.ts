@@ -1,4 +1,10 @@
+import { readFileSync } from "node:fs";
 import { expect, test, type Page, type Route } from "@playwright/test";
+
+const OPPORTUNITY_FIXTURE_VALID_FROM = JSON.parse(readFileSync(
+  new URL("../public/data/opportunities.json", import.meta.url),
+  "utf8",
+)).validFrom as string;
 
 const TURNSTILE_MOCK_SCRIPT = `(() => {
   let sequence = 0;
@@ -105,6 +111,24 @@ async function prepareSavedSiteMutation(page: Page) {
   return { detail, controls: detail.locator(".saved-site-controls") };
 }
 
+async function expectSelectorInsideViewport(page: Page, selector: string) {
+  const locators = page.locator(selector);
+  const count = await locators.count();
+  expect(count, `${selector} should exist`).toBeGreaterThan(0);
+  for (let index = 0; index < count; index += 1) {
+    const locator = locators.nth(index);
+    await expect(async () => {
+      const [box, viewportWidth] = await Promise.all([
+        locator.boundingBox(),
+        page.evaluate(() => window.innerWidth),
+      ]);
+      expect(box, `${selector} should have a visible box`).not.toBeNull();
+      expect(box!.x, `${selector} starts inside the viewport`).toBeGreaterThanOrEqual(-1);
+      expect(box!.x + box!.width, `${selector} ends inside the viewport`).toBeLessThanOrEqual(viewportWidth + 1);
+    }).toPass({ intervals: [50, 100, 250], timeout: 8_000 });
+  }
+}
+
 test.beforeEach(async ({ page }, testInfo) => {
   const testTitle = testInfo.titlePath.join(" ");
   if (testTitle.includes("failed lazy route dependency")) {
@@ -137,6 +161,11 @@ test.beforeEach(async ({ page }, testInfo) => {
   const savedSiteRecoveryTest = testTitle.includes("saved-location changes pause while offline") ||
     testTitle.includes("slow saved-location removal stays unconfirmed") ||
     testTitle.includes("malformed saved-location receipt stays unresolved");
+  if (savedSiteRecoveryTest) {
+    // Keep the committed forecast fixture inside its availability window so this mutation test
+    // exercises recovery behavior instead of expiring as wall-clock time advances.
+    await page.clock.setFixedTime(new Date(OPPORTUNITY_FIXTURE_VALID_FROM));
+  }
   let profileAttempts = 0;
   await page.route("**/api/auth/session", (route) => route.fulfill({
     status: 200,
@@ -312,49 +341,51 @@ test("primary controls stay inside common phone viewports", async ({ page }) => 
   expect(overflow).toBeLessThanOrEqual(1);
 
   for (const selector of [".topbar", ".topbar-actions", ".availability-filter", ".availability-filter input"]) {
-    const locators = page.locator(selector);
-    for (let index = 0; index < await locators.count(); index += 1) {
-      const box = await locators.nth(index).boundingBox();
-      expect(box, `${selector} should have a box`).not.toBeNull();
-      expect(box!.x, `${selector} starts inside the viewport`).toBeGreaterThanOrEqual(-1);
-      expect(box!.x + box!.width, `${selector} ends inside the viewport`).toBeLessThanOrEqual(
-        (await page.evaluate(() => window.innerWidth)) + 1,
-      );
-    }
+    await expectSelectorInsideViewport(page, selector);
   }
 });
 
 test("safe-area contract keeps fixed controls inside simulated insets", async ({ page }) => {
   const insets = { top: 23, right: 17, bottom: 31, left: 19 };
-  await page.addStyleTag({ content: `
-    :root {
-      --safe-area-top: ${insets.top}px !important;
-      --safe-area-right: ${insets.right}px !important;
-      --safe-area-bottom: ${insets.bottom}px !important;
-      --safe-area-left: ${insets.left}px !important;
+  const applyInsets = () => page.evaluate((values) => {
+    let style = document.querySelector<HTMLStyleElement>("#castingcompass-test-safe-area");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "castingcompass-test-safe-area";
+      document.head.append(style);
     }
-  ` });
+    style.textContent = `:root {
+      --safe-area-top: ${values.top}px !important;
+      --safe-area-right: ${values.right}px !important;
+      --safe-area-bottom: ${values.bottom}px !important;
+      --safe-area-left: ${values.left}px !important;
+    }`;
+  }, insets);
 
-  const topbar = await page.locator(".topbar").evaluate((element) => {
-    const box = element.getBoundingClientRect();
-    const style = getComputedStyle(element);
-    return {
-      top: box.top,
-      left: box.left,
-      right: box.right,
-      viewportWidth: window.innerWidth,
-      paddingTop: Number.parseFloat(style.paddingTop),
-      paddingRight: Number.parseFloat(style.paddingRight),
-      paddingLeft: Number.parseFloat(style.paddingLeft),
-    };
-  });
-  expect(topbar.top).toBeGreaterThanOrEqual(0);
-  expect(topbar.left).toBeGreaterThanOrEqual(0);
-  expect(topbar.right).toBeLessThanOrEqual(topbar.viewportWidth);
-  expect(topbar.paddingTop).toBeGreaterThanOrEqual(insets.top);
-  expect(topbar.paddingRight).toBeGreaterThan(insets.right);
-  expect(topbar.paddingLeft).toBeGreaterThan(insets.left);
+  await expect(async () => {
+    await applyInsets();
+    const topbar = await page.locator(".topbar").evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return {
+        top: box.top,
+        left: box.left,
+        right: box.right,
+        viewportWidth: window.innerWidth,
+        paddingTop: Number.parseFloat(style.paddingTop),
+        paddingRight: Number.parseFloat(style.paddingRight),
+        paddingLeft: Number.parseFloat(style.paddingLeft),
+      };
+    });
+    expect(topbar.top).toBeGreaterThanOrEqual(0);
+    expect(topbar.left).toBeGreaterThanOrEqual(0);
+    expect(topbar.right).toBeLessThanOrEqual(topbar.viewportWidth);
+    expect(topbar.paddingTop).toBeGreaterThanOrEqual(insets.top);
+    expect(topbar.paddingRight).toBeGreaterThan(insets.right);
+    expect(topbar.paddingLeft).toBeGreaterThan(insets.left);
+  }).toPass({ intervals: [50, 100, 250], timeout: 8_000 });
 
+  await applyInsets();
   await page.locator(".account-button").click();
   const modal = await page.locator(".account-modal-layer").evaluate((layer) => {
     const box = layer.querySelector<HTMLElement>(".account-modal")!.getBoundingClientRect();

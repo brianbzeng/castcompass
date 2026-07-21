@@ -7,29 +7,61 @@ accounts, or production data.
 
 ## D1 query inventory
 
-The Worker uses prepared, bound D1 statements. `scripts/check_d1_query_plans.py` applies every
-migration to an in-memory SQLite database, runs representative `EXPLAIN QUERY PLAN` checks, and
-rejects missing leftmost indexes for every foreign-key child path. The checked plans cover the
-highest-frequency or growth-sensitive access patterns:
+`scripts/generate-d1-query-inventory.mjs` parses every Worker TypeScript source file and records
+all 187 direct `.prepare()` sites: 162 literal statements and 25 separately reviewed nonliteral
+expressions across seven source files. The committed policy and generated inventory are
+source-hash and call-site bound. CI rejects source-file/count drift, computed or aliased
+`prepare` access, a nonliteral expression without its exact static-authority review, an unscoped
+literal `UPDATE` or `DELETE`, and a literal multi-row `SELECT` without a reviewed ownership and
+cardinality contract. No database or provider is queried while generating the inventory.
+
+The inventory exposes rather than conceals the remaining scale boundaries. Nine unbounded
+multi-row reads are intentional complete authenticated privacy exports and two are complete
+owner-lifecycle cleanup reads. Account-facing saved-location and gear-preset reads now fetch at
+most 101 rows, expose at most the exact 100-item account ceiling, and fail closed on a legacy
+overflow instead of silently truncating it. Their creates enforce the same ceiling inside the
+single `INSERT ... SELECT` statement so concurrent requests cannot both pass a separate count
+check. An existing saved location remains idempotently successful at the ceiling. Complete
+privacy exports stay intentionally unbounded so a data-rights response cannot omit records; they
+still need asynchronous packaging for large accounts. An inventory proves source coverage and
+review identity; it does not prove query latency, production index selection, or safe load
+capacity.
+
+Scheduled authentication retention now selects at most 100 eligible primary keys per table and
+invocation before deleting sessions, challenges, attempts, age proofs, and completed deletion
+jobs. Backlogs drain on later scheduled runs, and regression coverage proves the first invocation
+leaves exactly one row from a 101-row eligible fixture while preserving ineligible rows. Privacy
+object work was already bounded to 50 tasks and deletion-job reconciliation to 100 jobs. A
+completed deletion job can still cascade its already-finished child-task rows, so isolated
+production-shaped timing and rows-written evidence remains required before calling the cleanup
+capacity proven.
+
+`scripts/check_d1_query_plans.py` separately applies every migration to an in-memory SQLite
+database, runs 15 representative `EXPLAIN QUERY PLAN` checks, and rejects missing leftmost
+indexes for every foreign-key child path. The checked plans cover the highest-frequency or
+growth-sensitive access patterns:
 
 | Workload | Bound / ordering | Required access path |
 | --- | --- | --- |
-| Session, email-challenge, auth-attempt, and age-proof retention | Scheduled deletion by time; privacy cleanup remains policy-bounded | Dedicated leading time indexes; the two age-proof predicates use SQLite's multi-index OR plan |
+| Session, email-challenge, auth-attempt, and age-proof retention | Scheduled deletion by time; each table selects at most 100 eligible primary keys per invocation | Dedicated leading time indexes; the two age-proof predicates use SQLite's multi-index OR plan |
 | Login and email abuse ceilings | One email pseudonym/address plus a fixed time window | Existing `(email_hash, attempted_at)` and `(email, created_at)` indexes |
-| Saved sites and gear profiles | One authenticated user; saved sites and gear are naturally account-bounded | `(user_id, created_at)` and existing `(user_id, updated_at)` ordering indexes |
+| Saved sites and gear profiles | One authenticated user; exact 100-item ceilings, `LIMIT 101` overflow detection, fail-closed legacy overflow, and atomic count-guarded creates | `(user_id, created_at)` and `(user_id, updated_at)` ordering indexes |
 | Profile trip history | One authenticated user, completed rows only, `LIMIT 100` | Partial expression index over user and effective completion time; no temporary sort |
 | Complete account trip export | One authenticated user; intentionally complete rather than silently truncated | `(user_id, created_at)` index. Rare cross-child export ordering may sort; no speculative indexes are added solely for exports |
 | Trip submission ceilings | One reporter pseudonym and hour/day windows; active rows have a strict product ceiling | Existing reporter-time index plus a smaller partial active-trip index |
 | Advisory AI backlog | Completed and pending/retry rows, `LIMIT 10` | Partial `(status, effective completion time)` index; row claim remains atomic and idempotent |
 | Advisory AI queue outbox | Due pending/retry/queued jobs and expired leases, bounded oldest-first | `(state, available_at, lease_expires_at)` dispatch index plus a unique trip index; D1 remains authoritative under at-least-once delivery |
 | Public discussions | One curated site, newest first, `LIMIT 12`, then a primary-key trip join | Existing `(site_id, observed_at)` index and trip primary key |
-| Privacy deletion receipts, tombstones, jobs, and tasks | Receipt lookup, subject/owner lookup, bounded worker claims, completed-job retention | Unique receipt, scope/subject, owner/state, state/completion, task retry, and job/object indexes |
+| Privacy deletion receipts, tombstones, jobs, and tasks | Receipt lookup, subject/owner lookup, 50-task worker claims, 100-job reconciliation, and 100-job top-level retention selection; child cascades still require staging cost evidence | Unique receipt, scope/subject, owner/state, state/completion, task retry, and job/object indexes |
 | Validation exports and cascades | Activation, trip, or user predicates with append-only sequence order | Existing activation/trip indexes plus user recruitment, activation correction, and forecast/trip foreign-key indexes |
 
-The migration adds indexes only where a current query, ordered result, retention scan, or foreign
-key enforcement path justifies their write/storage cost. Cloudflare recommends validating D1
-indexes with `EXPLAIN QUERY PLAN` and notes that multi-column indexes require the predicate to use
-the leftmost columns: [D1 index guidance](https://developers.cloudflare.com/d1/best-practices/use-indexes/).
+The inventory policy and generated artifact are inputs to the combined release SBOM and are
+included in the deterministic release bundle, so a release candidate cannot silently substitute
+a narrower query ledger. The migration adds indexes only where a current query, ordered result,
+retention scan, or foreign key enforcement path justifies their write/storage cost. Cloudflare
+recommends validating D1 indexes with `EXPLAIN QUERY PLAN` and notes that multi-column indexes
+require the predicate to use the leftmost columns:
+[D1 index guidance](https://developers.cloudflare.com/d1/best-practices/use-indexes/).
 
 After migration `0016_data_resilience_indexes.sql` is reviewed and applied through the guarded
 release procedure, run `PRAGMA optimize` as a separate recorded production operation, capture the

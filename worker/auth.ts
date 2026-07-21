@@ -23,6 +23,9 @@ const SESSION_SECONDS = 30 * 24 * 60 * 60;
 const DELETION_RECEIPT_SECONDS = 30 * 24 * 60 * 60;
 const AGE_PROOF_SECONDS = 10 * 60;
 const MAX_DELETION_ATTEMPTS = 8;
+const MAX_SAVED_SITES_PER_ACCOUNT = 100;
+const MAX_GEAR_PROFILES_PER_ACCOUNT = 100;
+const AUTH_RETENTION_DELETE_BATCH = 100;
 export const LEGAL_VERSION = "2026-07-17.1";
 const AGE_GATE_VERSION = `age-13:${LEGAL_VERSION}`;
 const MINIMUM_ACCOUNT_AGE = 13;
@@ -84,6 +87,22 @@ function safeErrorContext(error: unknown) {
     return { error_name: error.name, error_status: error.status, error_code: error.code };
   }
   return { error_name: error instanceof Error ? error.name : "UnknownError" };
+}
+
+function enforceAccountResourceCeiling<T>(
+  rows: T[],
+  maximum: number,
+  code: "saved_site_limit_exceeded" | "gear_profile_limit_exceeded",
+  label: string,
+) {
+  if (rows.length > maximum) {
+    throw new AuthError(
+      409,
+      code,
+      `This account exceeds the current ${label} safety limit. Contact support before making more changes.`,
+    );
+  }
+  return rows;
 }
 
 function providerRequestId(response: Response) {
@@ -936,7 +955,7 @@ export async function handleAccountRequest(
     if (url.pathname === "/api/profile") {
       if (request.method !== "GET") return methodNotAllowed("GET");
       const [savedRows, tripRows, gearRows] = await Promise.all([
-        db.prepare("SELECT site_id, created_at FROM saved_sites WHERE user_id = ? ORDER BY created_at DESC")
+        db.prepare("SELECT site_id, created_at FROM saved_sites WHERE user_id = ? ORDER BY created_at DESC LIMIT 101")
           .bind(user.id)
           .all<{ site_id: string; created_at: string }>(),
         db.prepare(`SELECT id, source, site_id, started_at, ended_at, mode, fishing_method,
@@ -954,25 +973,44 @@ export async function handleAccountRequest(
           .bind(user.id)
           .all<Record<string, unknown>>(),
         db.prepare(`SELECT id, name, rod, reel, bait_lure, rig, created_at, updated_at
-          FROM gear_profiles WHERE user_id = ? ORDER BY updated_at DESC`)
+          FROM gear_profiles WHERE user_id = ? ORDER BY updated_at DESC LIMIT 101`)
           .bind(user.id)
           .all<Record<string, unknown>>(),
       ]);
+      const savedSites = enforceAccountResourceCeiling(
+        savedRows.results ?? [],
+        MAX_SAVED_SITES_PER_ACCOUNT,
+        "saved_site_limit_exceeded",
+        "saved-location",
+      );
+      const gearProfiles = enforceAccountResourceCeiling(
+        gearRows.results ?? [],
+        MAX_GEAR_PROFILES_PER_ACCOUNT,
+        "gear_profile_limit_exceeded",
+        "gear-preset",
+      );
       return jsonResponse({
         user,
-        savedSites: savedRows.results ?? [],
+        savedSites,
         trips: tripRows.results ?? [],
-        gearProfiles: gearRows.results ?? [],
+        gearProfiles,
       });
     }
 
     if (url.pathname === "/api/gear-profiles") {
       if (request.method === "GET") {
         const rows = await db.prepare(`SELECT id, name, rod, reel, bait_lure, rig, created_at, updated_at
-          FROM gear_profiles WHERE user_id = ? ORDER BY updated_at DESC`)
+          FROM gear_profiles WHERE user_id = ? ORDER BY updated_at DESC LIMIT 101`)
           .bind(user.id)
           .all<Record<string, unknown>>();
-        return jsonResponse({ gearProfiles: rows.results ?? [] });
+        return jsonResponse({
+          gearProfiles: enforceAccountResourceCeiling(
+            rows.results ?? [],
+            MAX_GEAR_PROFILES_PER_ACCOUNT,
+            "gear_profile_limit_exceeded",
+            "gear-preset",
+          ),
+        });
       }
       if (request.method === "POST") {
         assertSameOrigin(request);
@@ -981,11 +1019,18 @@ export async function handleAccountRequest(
         const id = `gear_${crypto.randomUUID()}`;
         const timestamp = new Date().toISOString();
         const gear = parseGearProfile(body);
-        await db.prepare(`INSERT INTO gear_profiles
+        const result = await db.prepare(`INSERT INTO gear_profiles
           (id, user_id, name, rod, reel, bait_lure, rig, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-          .bind(id, user.id, gear.name, gear.rod, gear.reel, gear.baitLure, gear.rig, timestamp, timestamp)
+          SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
+          WHERE (SELECT COUNT(*) FROM gear_profiles WHERE user_id = ?) < 100`)
+          .bind(id, user.id, gear.name, gear.rod, gear.reel, gear.baitLure, gear.rig, timestamp, timestamp, user.id)
           .run();
+        if (result.meta?.changes === 0) {
+          throw new AuthError(409, "gear_profile_limit_reached", "Remove a gear preset before adding another.");
+        }
+        if (result.meta?.changes !== 1) {
+          throw new AuthError(503, "gear_profile_write_unconfirmed", "The gear preset could not be confirmed.");
+        }
         return jsonResponse({ gearProfile: { id, ...gear, created_at: timestamp, updated_at: timestamp } }, 201);
       }
       return methodNotAllowed("GET, POST");
@@ -1324,10 +1369,16 @@ export async function handleAccountRequest(
     if (url.pathname === "/api/saved-sites") {
       if (request.method !== "GET") return methodNotAllowed("GET");
       const rows = await db
-        .prepare("SELECT site_id FROM saved_sites WHERE user_id = ? ORDER BY created_at DESC")
+        .prepare("SELECT site_id FROM saved_sites WHERE user_id = ? ORDER BY created_at DESC LIMIT 101")
         .bind(user.id)
         .all<{ site_id: string }>();
-      return jsonResponse({ siteIds: (rows.results ?? []).map((row) => row.site_id) });
+      const savedSites = enforceAccountResourceCeiling(
+        rows.results ?? [],
+        MAX_SAVED_SITES_PER_ACCOUNT,
+        "saved_site_limit_exceeded",
+        "saved-location",
+      );
+      return jsonResponse({ siteIds: savedSites.map((row) => row.site_id) });
     }
 
     const match = url.pathname.match(API_ROUTE_PATTERNS.savedSite);
@@ -1338,9 +1389,20 @@ export async function handleAccountRequest(
       return errorResponse(422, "invalid_site", "Choose a current CastingCompass location.");
     }
     if (request.method === "POST") {
-      await db.prepare("INSERT OR IGNORE INTO saved_sites (user_id, site_id, created_at) VALUES (?, ?, ?)")
-        .bind(user.id, siteId, new Date().toISOString())
+      const result = await db.prepare(`INSERT OR IGNORE INTO saved_sites (user_id, site_id, created_at)
+        SELECT ?, ?, ? WHERE (SELECT COUNT(*) FROM saved_sites WHERE user_id = ?) < 100`)
+        .bind(user.id, siteId, new Date().toISOString(), user.id)
         .run();
+      if (result.meta?.changes === 0) {
+        const existing = await db.prepare(
+          "SELECT 1 AS present FROM saved_sites WHERE user_id = ? AND site_id = ? LIMIT 1",
+        ).bind(user.id, siteId).first<{ present: number }>();
+        if (!existing) {
+          throw new AuthError(409, "saved_site_limit_reached", "Remove a saved location before adding another.");
+        }
+      } else if (result.meta?.changes !== 1) {
+        throw new AuthError(503, "saved_site_write_unconfirmed", "The saved location could not be confirmed.");
+      }
       return jsonResponse({ saved: true, siteId });
     }
     if (request.method === "DELETE") {
@@ -1898,18 +1960,34 @@ export async function cleanupAuthData(env: AuthApiEnv) {
   const proofCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const tombstoneCutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();
   await env.DB.batch([
-    env.DB.prepare("DELETE FROM auth_sessions WHERE expires_at <= ?").bind(now.toISOString()),
-    env.DB.prepare("DELETE FROM email_challenges WHERE expires_at <= ?").bind(expiredChallengeCutoff),
-    env.DB.prepare("DELETE FROM auth_attempts WHERE attempted_at < ?").bind(attemptCutoff),
-    env.DB.prepare("DELETE FROM signup_age_proofs WHERE expires_at < ? OR (consumed_at IS NOT NULL AND consumed_at < ?)")
-      .bind(proofCutoff, proofCutoff),
+    env.DB.prepare(`DELETE FROM auth_sessions WHERE token_hash IN (
+      SELECT token_hash FROM auth_sessions WHERE expires_at <= ?
+      ORDER BY expires_at, token_hash LIMIT ?
+    )`).bind(now.toISOString(), AUTH_RETENTION_DELETE_BATCH),
+    env.DB.prepare(`DELETE FROM email_challenges WHERE id IN (
+      SELECT id FROM email_challenges WHERE expires_at <= ?
+      ORDER BY expires_at, id LIMIT ?
+    )`).bind(expiredChallengeCutoff, AUTH_RETENTION_DELETE_BATCH),
+    env.DB.prepare(`DELETE FROM auth_attempts WHERE id IN (
+      SELECT id FROM auth_attempts WHERE attempted_at < ?
+      ORDER BY attempted_at, id LIMIT ?
+    )`).bind(attemptCutoff, AUTH_RETENTION_DELETE_BATCH),
+    env.DB.prepare(`DELETE FROM signup_age_proofs WHERE token_hash IN (
+      SELECT token_hash FROM signup_age_proofs
+      WHERE expires_at < ? OR (consumed_at IS NOT NULL AND consumed_at < ?)
+      LIMIT ?
+    )`).bind(proofCutoff, proofCutoff, AUTH_RETENTION_DELETE_BATCH),
     env.DB.prepare(`DELETE FROM privacy_deletion_jobs
-      WHERE state = 'completed' AND completed_at < ?
-        AND objects_deleted = objects_total
-        AND (SELECT COUNT(*) FROM privacy_deletion_tasks
-          WHERE job_id = privacy_deletion_jobs.id) = objects_total
-        AND NOT EXISTS (SELECT 1 FROM privacy_deletion_tasks
-          WHERE job_id = privacy_deletion_jobs.id AND state != 'completed')`).bind(tombstoneCutoff),
+      WHERE id IN (
+        SELECT id FROM privacy_deletion_jobs
+        WHERE state = 'completed' AND completed_at < ?
+          AND objects_deleted = objects_total
+          AND (SELECT COUNT(*) FROM privacy_deletion_tasks
+            WHERE job_id = privacy_deletion_jobs.id) = objects_total
+          AND NOT EXISTS (SELECT 1 FROM privacy_deletion_tasks
+            WHERE job_id = privacy_deletion_jobs.id AND state != 'completed')
+        ORDER BY completed_at, id LIMIT ?
+      )`).bind(tombstoneCutoff, AUTH_RETENTION_DELETE_BATCH),
   ]);
   await processPrivacyDeletionTasks(env);
 }

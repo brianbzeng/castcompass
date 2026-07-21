@@ -49,9 +49,88 @@ by that discovery.
   and seven-day official-source checks, blocks unresolved corrections, and emits only aggregate
   counts plus a private-evidence digest. It has not been executed or accepted; all sites remain
   pending and no deployment, safety/legal, or validation authority follows from it.
+- **Current-main reconciliation receipt:** the regional draft now includes protected `main`
+  `a9f1efc1d0b7d095ed8b71738b403d1cdc1b23f9` while preserving both the regional access-review
+  gate and the complete D1 query-inventory gate. A fresh zero-script npm install contained 533
+  packages and both npm audits reported zero vulnerabilities; every offline security/SBOM gate,
+  ESLint, TypeScript, the Cloudflare build, 449/449 Node tests, and 140/140 Chromium/WebKit mobile
+  cases passed. The saved-location recovery matrix now derives its fixed clock from the committed
+  forecast fixture rather than a stale calendar date. Exact locked Python graphs passed 29/29 API
+  tests, 83/83 pipeline tests with one documented optional-raster skip, Ruff, a fresh deterministic
+  synthetic smoke, all 18 migrations, 15 representative query plans, and every foreign-key child
+  index contract. Hosted exact-head checks remain pending until the draft is pushed; no deployment,
+  D1 migration, provider query, Cloudflare mutation, or production action is part of this receipt.
 - **Resume point:** after this regional branch is reviewed, resume the earliest open P0 release
   gate in [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md). Do not ship either track until the guarded
   production checklist clears.
+
+## Completed work cycle — complete D1 query inventory
+
+- [x] Reconcile protected `main`, draft regional PR `#118`, draft query-inventory PR `#125`, open
+      issue `#86`, and the scale roadmap without touching Cloudflare or production. Starting
+      `main` is `7ed0f97c499e853b6a3d1a5b6f8c9ef82e70ef2d`; both draft PRs remain open.
+- [x] Identify the earliest repository-actionable P1 gap. Existing evidence covered 14
+      representative plans but did not inventory every production D1 statement, so query source
+      coverage and remaining unbounded reads could not be independently audited.
+- [x] Implement a deterministic TypeScript-AST inventory for all 187 direct Worker `.prepare()`
+      sites across seven files: 162 literal statements, 25 exact reviewed nonliteral expressions,
+      and 11 reviewed literal multi-row reads without `LIMIT`. The gate rejects source drift,
+      computed/aliased prepare access, unreviewed dynamic SQL, unscoped literal writes, and
+      unreviewed multi-row reads.
+- [x] Preserve truthful scale boundaries. Nine reads are complete authenticated rights exports
+      and two are owner-lifecycle cleanup reads. The four saved-site/gear UI reads now use exact
+      100-item account ceilings, `LIMIT 101` overflow detection, atomic count-guarded creates, and
+      fail-closed legacy overflow without truncating rights exports. Complete export packaging,
+      scheduled-cleanup batching, and isolated latency/load evidence remain open.
+- [x] Resolve the newly published high-severity `brace-expansion` advisory in both locked
+      development-tool paths by moving exactly from `1.1.14` to `1.1.16` and `5.0.6` to `5.0.7`.
+      A fresh npm `10.9.8` zero-script install completed with 534 audited packages and both full
+      and production-only audits returned zero vulnerabilities; no dependency lifecycle script
+      ran.
+- [x] Bound all five scheduled authentication/retention delete statements to 100 selected primary
+      rows per table and invocation. A 101-row fixture proves one eligible row remains after the
+      first run, the next run drains it, and current rows survive; all five actual statements use
+      the intended indexes. Existing privacy cleanup remains bounded to 50 tasks and 100-job
+      reconciliation. Completed-job child-cascade cost still needs isolated staging evidence.
+- [x] Reconcile the already-enforced cache and connection boundaries into the owner checklist.
+      The complete cache matrix and fail-closed API/PWA rules are locally tested; the Worker uses
+      provider-managed D1 bindings, while the optional Postgres service owns one validated bounded
+      pool. Edge purge/rollover evidence and provider-sized pool telemetry/exhaustion drills remain
+      isolated-staging gates rather than implied production evidence.
+- [x] Bind the policy and generated query ledger into CI, the combined release SBOM, and the
+      deterministic release archive; add a 15th representative query-plan check for gear-profile
+      ordering. Focused adversarial tests, ESLint, and all 15 plans pass.
+- [x] Complete the full locked verification matrix. A fresh zero-script npm install audited 534
+      packages with zero vulnerabilities; every offline security/SBOM gate, both npm audits,
+      ESLint, TypeScript, the Cloudflare build, 441/441 Node tests, and 140/140 Chromium/WebKit
+      mobile cases passed. The saved-location recovery cases use their committed forecast
+      fixture's recorded clock, so their recovery assertions cannot expire with wall-clock time.
+      Exact locked Python graphs passed 29/29 API tests, 81/81 pipeline tests
+      with one documented optional-raster skip, Ruff, the deterministic synthetic smoke, 18
+      migrations, 15 representative query plans, and every foreign-key child index contract.
+- [x] Publish protected draft PR `#125` at exact head
+      `0808c732c8210bd4d2f47e4f37a38c2f03361f55`; all applicable hosted checks passed. No
+      deployment, D1 migration, provider query, or production mutation was part of that receipt.
+- [x] Publish the local account-ceiling and bounded-retention follow-up on draft PR `#125` at
+      exact implementation head `fe54c2d2152cabd793c7b83996b35584d9d06672`. Push and pull-request
+      CI runs `29787542366` and `29787543587`, release-provenance runs `29787542385` and
+      `29787543547`, and CodeQL run `29787542188` passed. The path-filtered native workflow was
+      also dispatched explicitly at that exact head: run `29787982359` built, health-checked,
+      inventoried, and policy-scanned both `linux/amd64` and `linux/arm64`. Its three known high
+      CPython findings match the reviewed, module-removal-backed exceptions that expire
+      2026-08-08; no new exception was added. No deployment, D1 migration, Cloudflare change, or
+      production mutation occurred during that exact-head receipt.
+- [x] Exercise the actual built Worker against a disposable local D1 database with all 18
+      migrations, not the earlier synthetic HTTP server. Wrangler local HTTPS returned the
+      hardened D1-backed health response and the bounded smoke profile completed 2,835 requests
+      with zero failures, 18.51 ms p95, and 32.79 ms p99. This is developer-machine evidence only;
+      isolated production-shaped staging load, soak, spike, failure injection, provider metrics,
+      and cost evidence remain open.
+- [x] Merge accepted PR `#125` as protected-main commit
+      `cd5aa41a4e01bda59bbbd44b968730e1ba956785`. Main CI `29788509904`, release provenance
+      `29788509895`, and all three CodeQL languages plus aggregate upload in `29788509768` passed.
+      The merge did not run a deployment command, migration, provider query, or production
+      mutation and is not evidence that the live Worker changed.
 
 ## Completed repository work cycle — independent operational restore-review gate
 
@@ -78,18 +157,13 @@ by that discovery.
       and both npm audits passed. The exact Python graphs passed 29/29 API tests, 81/81 pipeline
       tests with one documented optional-raster skip, Ruff, the deterministic synthetic smoke,
       18 migrations, and 14 critical query plans.
-- [x] Publish the exact accepted implementation head without deployment or provider mutation.
-      Draft PR `#124` head `ac65e788f1eb08c913a1883d58a01b97553c527c` passed branch-push CI
-      `29721479936` and release provenance `29721479889`, PR CI `29721522454` and release
-      provenance `29721522444`, CodeQL `29721520911`, and native API-image security
-      `29721522455`. Fifteen checks succeeded and five event-appropriate jobs skipped; both web
-      runs completed all 140 Chromium/WebKit cases and both native image architectures passed.
-      At that implementation head the PR was a mergeable draft with no comments or reviews, and
-      no Cloudflare, D1, DNS, deployment, migration, provider query, or production mutation ran.
-- [x] Merge the accepted branch normally as `7ed0f97c499e853b6a3d1a5b6f8c9ef82e70ef2d`.
-      Its merge tree exactly matches the accepted branch tree. Main CI `29722159901`, release
-      provenance `29722159925`, CodeQL `29722159592`, and native API-image security
-      `29722159912` passed; no production or provider action ran.
+- [x] Publish and merge the accepted implementation without deployment or provider mutation.
+      PR `#124` final head `04f808f7fe165b856898c951fcac440cd2ba101d` merged as protected-main
+      commit `7ed0f97c499e853b6a3d1a5b6f8c9ef82e70ef2d`. Main CI `29722159901`, release
+      provenance and attestations `29722159925`, native API-image security `29722159912`, and
+      CodeQL `29722159592` passed; both web engines, all three CodeQL languages, both image
+      architectures, and dependency submission completed successfully. No Cloudflare, D1, DNS,
+      deployment, migration, provider query, or production mutation ran.
 - [ ] Obtain a real second-person review of the private historical packet outside Git. Until that
       reviewer supplies a valid private record and the verifier accepts it, independent review,
       production key custody, provider evidence, the restore gate, and release authorization all
@@ -760,12 +834,16 @@ by that discovery.
       remains deferred pending privacy review.
 - [ ] Make data and execution paths measurably scalable: query plans/indexes, bounded access,
       cache matrix, justified asynchronous work, D1-managed connections, optional API pooling,
-      and isolated load/soak/spike/failure tests. **Local query/index/cache/connection contracts,
+      and isolated load/soak/spike/failure tests. **A complete static inventory now covers all 187
+      Worker prepare sites, and exact 100-item saved-location/gear-preset account ceilings now
+      fail closed on overflow without truncating rights exports, while local query/index/cache/
+      connection contracts,
       production-refusing harness, and the default-off advisory Queue adapter with its opaque
       message, D1 outbox/lease/attention ledger, bounded retries, deletion/maintenance recovery,
       DLQ policy, and guarded replay planner are complete;** migrations, provider Queue/DLQ
-      bindings, IAM/alerts, staging measurements, failure injection, rollback evidence, and
-      authorized penetration testing remain.
+      bindings, IAM/alerts, asynchronous complete export packaging, staging measurements,
+      child-cascade cost evidence, failure injection,
+      rollback evidence, and authorized penetration testing remain.
 - [ ] Freeze and deploy the species-aware observation/model-run contract. **Local contract
       complete;** production migration, legacy-row audit, and first approved ingestion manifest
       remain.

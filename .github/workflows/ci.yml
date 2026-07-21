@@ -33,6 +33,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run security:dependencies
       - run: npm run security:sbom
+      - run: npm run security:d1-query-inventory
       - run: npm run security:release-sbom
       - run: npm run security:api-image-upstream-watch
       - run: npm run security:exercise-policy

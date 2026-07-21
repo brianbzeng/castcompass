@@ -460,10 +460,30 @@ after its acceptance checks pass in the intended environment.
   - [ ] Inventory every production query, capture representative `EXPLAIN QUERY PLAN` evidence,
     add only workload-justified indexes, bound scans/pagination, eliminate N+1 patterns, verify
     cross-account predicates, and regression-test query latency and migration cost.
-  - [ ] Publish a cache matrix by asset/data class with owner, privacy classification, cache key,
-    TTL, invalidation trigger, stale policy, and failure behavior. Never share-cache personalized
-    or authenticated responses; test purge, version skew, offline/service-worker upgrades, and
-    correctness during snapshot rollover.
+    - [x] Add a deterministic AST-backed inventory for all 187 Worker `.prepare()` sites across
+      seven files, including exact review contracts for 25 nonliteral expressions and 11 literal
+      multi-row reads without `LIMIT`. CI and release provenance fail closed on inventory drift,
+      computed/aliased prepare access, unreviewed dynamic SQL, unscoped literal writes, and
+      unreviewed multi-row reads; the policy and generated ledger are SBOM-bound release inputs.
+    - [x] Resolve the four explicitly disclosed `open-account-cardinality` saved-site/gear UI
+      reads with exact 100-item resource ceilings, `LIMIT 101` overflow detection, atomic
+      count-guarded creates, idempotent duplicate saves, and fail-closed legacy overflow.
+      Complete privacy exports remain deliberately untruncated.
+    - [x] Batch-limit all five scheduled authentication/retention deletes to 100 selected primary
+      rows per table and invocation, preserve ineligible rows, drain backlogs on later runs, and
+      run the actual bounded statements through the query-plan contract. Existing privacy object
+      work remains bounded to 50 tasks and 100-job reconciliation; child cascades still require
+      isolated cost evidence.
+    - [ ] Move large export packaging off the request path. Then capture production-shaped
+      latency, rows-read/written, child-cascade cost, and migration-cost evidence in isolated
+      staging. The static inventory is not that performance evidence.
+  - [x] Publish a cache matrix by asset/data class with owner, privacy classification, cache key,
+    TTL, invalidation trigger, stale policy, and failure behavior. Authenticated, personalized,
+    error, cookie-setting, and every `/api/*` response fail closed to browser/CDN `no-store`; the
+    PWA bypasses APIs and accepts only explicitly public successful responses.
+  - [ ] In isolated staging, record an explicit edge purge, canonical/alias warm and cold headers,
+    snapshot rollover, version skew, offline fallback, service-worker replacement, and prior-cache
+    removal. Local policy and browser tests are not provider purge or rollover evidence.
   - [ ] Queue only slow or retryable side effects such as AI generation, media processing,
     notifications, cleanup, and aggregation. Keep authorization and consistency-critical writes
     synchronous; require idempotency keys, deduplication, bounded retry/backoff, dead-letter
@@ -474,19 +494,26 @@ after its acceptance checks pass in the intended environment.
       deletion and maintenance recovery, provider-DLQ policy, and a non-executing state-guarded
       replay planner. Production migration, Queue/DLQ bindings, IAM/alerts, isolated failure and
       rollback drills, and the separate activation change remain open.
-  - [ ] Use Cloudflare's managed D1 binding lifecycle instead of inventing a traditional SQL
-    connection pool. If a future database/provider supports pooling, size and monitor it against
-    concurrency limits and failure modes before adoption.
+  - [x] Use Cloudflare's managed D1 binding lifecycle instead of inventing a traditional SQL
+    connection pool. The optional FastAPI/Postgres process owns one bounded pool with validated
+    minimum, maximum, wait-queue, and checkout-timeout settings plus explicit startup/shutdown;
+    it is not part of the Worker request path.
+  - [ ] Size the optional pool against the approved provider plan and process count, export its
+    queue/wait/error statistics, and test exhaustion and recovery in isolated staging before
+    enabling that service in production.
   - [ ] Define performance budgets and run isolated load, soak, spike, and failure-injection
     tests with production-shaped synthetic data. Record saturation points, tail latency, error
     rates, queue depth, database contention, cache effectiveness, cost, and a safe rollback plan.
-  - [x] Locally add workload-backed D1 indexes, machine-check 14 critical `EXPLAIN QUERY PLAN`
+  - [x] Locally add workload-backed D1 indexes, machine-check 15 critical `EXPLAIN QUERY PLAN`
     paths plus every foreign-key child index, remove the public-site N+1 behind a bounded cache,
     publish the cache/async/connection contracts, add a bounded Postgres process pool only for
     the optional API, and provide a read-only load harness that permanently refuses production.
-    The default-off advisory Queue path and D1 ledger are locally implemented. Migration
-    application, `PRAGMA optimize`, production-shaped staging measurements, Queue/DLQ provider
-    activation, failure injection, and authorized penetration testing remain open.
+    The actual built Worker also passed a 2,835-request, zero-failure smoke against a disposable
+    local D1 database after all 18 migrations (18.51 ms p95; 32.79 ms p99). The default-off
+    advisory Queue path and D1 ledger are locally implemented. This developer-machine smoke is
+    not staging evidence: provider migration application, `PRAGMA optimize`, production-shaped
+    staging measurements, Queue/DLQ activation, failure injection, and authorized penetration
+    testing remain open.
 
 - [ ] Freeze the species-aware observation and model-run contract before new ingestion or
   recruitment: canonical/versioned taxa or explicit complexes; one primary target per

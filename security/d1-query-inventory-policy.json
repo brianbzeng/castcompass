@@ -1,0 +1,285 @@
+{
+  "schemaVersion": "castingcompass.d1-query-inventory-policy/1.0.0",
+  "sourceFiles": [
+    "worker/auth.ts",
+    "worker/discussions.ts",
+    "worker/security.ts",
+    "worker/trip-review-queue.ts",
+    "worker/trip-review.ts",
+    "worker/trips.ts",
+    "worker/validation-feasibility-export.ts"
+  ],
+  "expectedSummary": {
+    "prepareCallCount": 187,
+    "literalCallCount": 162,
+    "nonLiteralCallCount": 25,
+    "multiRowLiteralWithoutLimitCount": 11
+  },
+  "allowedNonLiteralExpressions": [
+    {
+      "file": "worker/auth.ts",
+      "expressionSha256": "b5a1b65e1ac974f3f245990d63e5c915c5b3916dd3dd131a8a72ee4c328d6382",
+      "staticAuthority": "module-level CREATE_USERS_SQL constant",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The runtime fallback schema uses one reviewed constant and no request input."
+    },
+    {
+      "file": "worker/auth.ts",
+      "expressionSha256": "81450ebf83d4f122d29398d3a71ac08ce584225fb9b7e73d35682c715fd0d3d7",
+      "staticAuthority": "module-level CREATE_SESSIONS_SQL constant",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The runtime fallback schema uses one reviewed constant and no request input."
+    },
+    {
+      "file": "worker/auth.ts",
+      "expressionSha256": "4555d2bdd7d83ed4634e04fd7a4816e4f6e7ad90cff22dafcbdc694660b1ceea",
+      "staticAuthority": "module-level CREATE_SAVED_SITES_SQL constant",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The runtime fallback schema uses one reviewed constant and no request input."
+    },
+    {
+      "file": "worker/auth.ts",
+      "expressionSha256": "b4b0b6ee87040e6509a72f95fa4f706ba01573898985adcd3c132ba013d73929",
+      "staticAuthority": "module-level CREATE_AUTH_ATTEMPTS_SQL constant",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The runtime fallback schema uses one reviewed constant and no request input."
+    },
+    {
+      "file": "worker/auth.ts",
+      "expressionSha256": "cb57e30102c6a8c9c03527d2cb3f6032a13127265e2396459e9db3512a4d0f1f",
+      "staticAuthority": "module-level CREATE_EMAIL_CHALLENGES_SQL constant",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The runtime fallback schema uses one reviewed constant and no request input."
+    },
+    {
+      "file": "worker/auth.ts",
+      "expressionSha256": "87a141161a9bc55de2d2cc8c93e010c0dfba7f8b352e056eafd4f78087d133ba",
+      "staticAuthority": "module-level CREATE_GEAR_PROFILES_SQL constant",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The runtime fallback schema uses one reviewed constant and no request input."
+    },
+    {
+      "file": "worker/auth.ts",
+      "expressionSha256": "0fe2d3e2fc90a83558e82a3b5213cd3739bc224d544bd0fd7de641a98f840caa",
+      "staticAuthority": "module-level CREATE_SIGNUP_AGE_PROOFS_SQL constant",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The runtime fallback schema uses one reviewed constant and no request input."
+    },
+    {
+      "file": "worker/auth.ts",
+      "expressionSha256": "6dfe400169a665b5a0e8123fa9bd209d4e8518c6e3258325b42d27e3affe67af",
+      "staticAuthority": "module-level CREATE_PRIVACY_DELETION_JOBS_SQL constant",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The runtime fallback schema uses one reviewed constant and no request input."
+    },
+    {
+      "file": "worker/auth.ts",
+      "expressionSha256": "70bc3806cc9b572058b2ad7ec1513712ffddd43f98ea749881503f5ed557a211",
+      "staticAuthority": "module-level CREATE_PRIVACY_DELETION_TASKS_SQL constant",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The runtime fallback schema uses one reviewed constant and no request input."
+    },
+    {
+      "file": "worker/auth.ts",
+      "expressionSha256": "edd9f72bd15120f863d2075a2325a41bee53fb90a568e16cb2d4f7421c2d9e79",
+      "staticAuthority": "server-owned forecastInvalidation chooses one of two fixed column-reset fragments",
+      "executionContract": "single pending-trip update bound by id and authenticated user_id",
+      "rationale": "No request value becomes SQL syntax; all user values remain D1 bindings."
+    },
+    {
+      "file": "worker/auth.ts",
+      "expressionSha256": "a8b771920b8319e47251d1360f5e880bc18e8d329b0f0d003ea3c7e615558947",
+      "staticAuthority": "two fixed privacy-task SELECT literals chosen only by the optional operator job id",
+      "executionContract": "internal cleanup claim of at most 50 rows",
+      "rationale": "The branch changes only the bound predicate and ordering; the job id remains a parameter."
+    },
+    {
+      "file": "worker/discussions.ts",
+      "expressionSha256": "d4365f061b288be8329a532ca6644afaef7c5a57ccfd6dc44cec65f325ff60c1",
+      "staticAuthority": "module-level CREATE_DISCUSSIONS_SQL constant",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The runtime fallback schema uses one reviewed constant and no request input."
+    },
+    {
+      "file": "worker/trips.ts",
+      "expressionSha256": "a30d43434bf332af4ac7a1121a25f2e8a539a880f8dd3e32719465d1da25f46c",
+      "staticAuthority": "module-level CREATE_TRIPS_SQL constant",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The runtime fallback schema uses one reviewed constant and no request input."
+    },
+    {
+      "file": "worker/trips.ts",
+      "expressionSha256": "b54adea780f2574650cbc99cf741678af37c3417c4734bb0138c3ed1a12c25af",
+      "staticAuthority": "module-level CREATE_FORECAST_IMPRESSIONS_SQL constant",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The runtime fallback schema uses one reviewed constant and no request input."
+    },
+    {
+      "file": "worker/trips.ts",
+      "expressionSha256": "cfd1855de8f1e1f5c1702d15ab4a99ba89eae74f097d6efb1ed6f079c6ac8dcf",
+      "staticAuthority": "module-level CREATE_TRIP_VALIDATION_PROVENANCE_SQL constant",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The runtime fallback schema uses one reviewed constant and no request input."
+    },
+    {
+      "file": "worker/trips.ts",
+      "expressionSha256": "b111c6e1d318f203063e5c16bab43c108326af0aa2f7b65760c95547a43dbe52",
+      "staticAuthority": "iteration over the fixed module-level CREATE_INDEX_STATEMENTS array",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The callback receives only reviewed index DDL constants."
+    },
+    {
+      "file": "worker/trips.ts",
+      "expressionSha256": "19036a22fb241a794a5512e92b28132551cb2192ef0f0537c35f9f05b278e833",
+      "staticAuthority": "module-level INSERT_TRIP_SQL constant",
+      "executionContract": "single bound trip insert",
+      "rationale": "The query shape is fixed and all record values are D1 bindings."
+    },
+    {
+      "file": "worker/trips.ts",
+      "expressionSha256": "6a41d4d7c954377901e9fdca7500c2a3f4f86cf5dd3c001467a54098aae4264e",
+      "staticAuthority": "module-level INSERT_FORECAST_IMPRESSION_SQL constant",
+      "executionContract": "single returned statement for an atomic trip batch",
+      "rationale": "The query shape is fixed and all record values are D1 bindings."
+    },
+    {
+      "file": "worker/trips.ts",
+      "expressionSha256": "f3104c843d944b95799af1a8c17b1898764478361956507abd1b6f5d09830162",
+      "staticAuthority": "module-level INSERT_VALIDATION_PROVENANCE_SQL constant",
+      "executionContract": "single returned statement for an atomic trip batch",
+      "rationale": "The query shape is fixed and all record values are D1 bindings."
+    },
+    {
+      "file": "worker/trips.ts",
+      "expressionSha256": "9fc9d0e4184ac21095ecef76483c6b724485615bd624ed0bf9499811a03316a5",
+      "staticAuthority": "module-level INSERT_FEASIBILITY_EVENT_SQL constant",
+      "executionContract": "single returned statement for an atomic validation batch",
+      "rationale": "The query shape is fixed and all record values are D1 bindings."
+    },
+    {
+      "file": "worker/trips.ts",
+      "expressionSha256": "1f8b71cbc1d3dd64fabcedc99fb6d2089a62bc9346314ebb8b6fd356425e175a",
+      "staticAuthority": "module-level INSERT_FEASIBILITY_RECRUITMENT_SQL constant",
+      "executionContract": "single returned statement for an atomic validation batch",
+      "rationale": "The query shape is fixed and all record values are D1 bindings."
+    },
+    {
+      "file": "worker/trips.ts",
+      "expressionSha256": "f84529443956a8c2304e6362e2358ddba7dae867b1da63c306a8a46cc77b723c",
+      "staticAuthority": "fixed event-column array, matching placeholder count, and server-owned completion predicate",
+      "executionContract": "single insert-select guarded by exact trip identity and completion state",
+      "rationale": "Only reviewed identifiers and placeholder syntax are interpolated; record values remain bindings."
+    },
+    {
+      "file": "worker/trips.ts",
+      "expressionSha256": "14e4738c2040a5c4f321257f9bda9e6b89cb84321aff5db1b06f8b3a421f5ccb",
+      "staticAuthority": "fixed provenance-column array and matching server-generated placeholder list",
+      "executionContract": "single insert-select guarded by exact completed trip identity",
+      "rationale": "Only reviewed identifiers and placeholder syntax are interpolated; record values remain bindings."
+    },
+    {
+      "file": "worker/validation-feasibility-export.ts",
+      "expressionSha256": "39439d540808a9576d9311cf51ad92d1cb2b12816ef08bc6fb69236ebb9f5f96",
+      "staticAuthority": "module-level EVENT_EXPORT_SQL constant",
+      "executionContract": "complete activation-scoped append-only event export",
+      "rationale": "The reconciliation artifact must include every event for one bound activation."
+    },
+    {
+      "file": "worker/validation-feasibility-export.ts",
+      "expressionSha256": "ce2889a4cbf0644f611c057b3753d7323c04f0004c2c59647e7ed4d351a75e5d",
+      "staticAuthority": "module-level CORRECTION_EXPORT_SQL constant",
+      "executionContract": "complete activation-scoped append-only correction export",
+      "rationale": "The reconciliation artifact must include every correction for one bound activation."
+    }
+  ],
+  "multiRowReadContracts": [
+    {
+      "callSiteId": "ee3979185fb94e3653ca5079",
+      "sqlSha256": "9d7b2607848728b06bea49e6bdb440f2cd69a1005935230de8b7218fcec22d3a",
+      "scope": "complete owner export",
+      "boundPredicate": "user_id = ?",
+      "rowBoundStatus": "complete-rights-export",
+      "rationale": "Saved locations are included completely in the authenticated portability export."
+    },
+    {
+      "callSiteId": "57f1457184e2171a61982808",
+      "sqlSha256": "2dd4aa49253ba9aa42392146197897fa41e7c01df92d776e7013ffab6a17f01e",
+      "scope": "complete owner export",
+      "boundPredicate": "user_id = ?",
+      "rowBoundStatus": "complete-rights-export",
+      "rationale": "Gear profiles are included completely in the authenticated portability export."
+    },
+    {
+      "callSiteId": "bea9ccb6608e35b53419a87a",
+      "sqlSha256": "369ec8856c9ae369d42562864477e222c82acbb16cf1602bf5c7ef324b8add70",
+      "scope": "complete owner export",
+      "boundPredicate": "user_id = ?",
+      "rowBoundStatus": "complete-rights-export",
+      "rationale": "Trips are intentionally complete for authenticated portability; asynchronous packaging remains an open scale gate."
+    },
+    {
+      "callSiteId": "435746bb782b38fbc073780f",
+      "sqlSha256": "11fbf502919e8f90a231c9fc165aadc763fd37634d1a5409303e525a1fa9db35",
+      "scope": "complete owner export",
+      "boundPredicate": "trips.user_id = ?",
+      "rowBoundStatus": "complete-rights-export",
+      "rationale": "Only public-copy rows derived from the authenticated owner's trips enter the portability export."
+    },
+    {
+      "callSiteId": "9ea938a4fd0f8721aca9cd9a",
+      "sqlSha256": "96f4c5994edaa17f2eeb06fd6bb271aca1e8a75febdf311d97cae4cc82c40924",
+      "scope": "complete owner export",
+      "boundPredicate": "trips.user_id = ?",
+      "rowBoundStatus": "complete-rights-export",
+      "rationale": "Forecast impression records are required for the authenticated owner's complete export."
+    },
+    {
+      "callSiteId": "725c6e27803581352813784c",
+      "sqlSha256": "ff670cba408cd096752e58b52a419fe1469ba49a1c74f2f9358ae96b979869f9",
+      "scope": "complete owner export",
+      "boundPredicate": "trips.user_id = ?",
+      "rowBoundStatus": "complete-rights-export",
+      "rationale": "Validation provenance is required for the authenticated owner's complete export."
+    },
+    {
+      "callSiteId": "2b03ba515785decdf29b68c0",
+      "sqlSha256": "a204c81a56022f6509ba5550c4c519898862d6413f44f5e1955d7dec340aba33",
+      "scope": "complete owner export",
+      "boundPredicate": "trips.user_id = ?",
+      "rowBoundStatus": "complete-rights-export",
+      "rationale": "Pilot events remain owner-bound and complete for authenticated portability."
+    },
+    {
+      "callSiteId": "e32ca9b28fec51e27fd681bb",
+      "sqlSha256": "b677d5535e6ccdeab73a8511868b7de7e9b55c750efdf28aefe34db68dc0c890",
+      "scope": "complete owner export",
+      "boundPredicate": "recruitment.user_id = ?",
+      "rowBoundStatus": "complete-rights-export",
+      "rationale": "Recruitment records remain owner-bound and complete for authenticated portability."
+    },
+    {
+      "callSiteId": "aa386a1d1d60f74601db3c79",
+      "sqlSha256": "cf733f072a900b16b9d702fa4ff27fe43c899d8b488397490bd742267f31f0c9",
+      "scope": "complete owner export",
+      "boundPredicate": "trips.user_id = ?",
+      "rowBoundStatus": "complete-rights-export",
+      "rationale": "Corrections remain owner-bound and complete for authenticated portability."
+    },
+    {
+      "callSiteId": "a6b9412d4678e77078488c8e",
+      "sqlSha256": "94a8641e2f59456aa737aebe11496255b41cbf8e563cc6df4ba3de3014578555",
+      "scope": "owner account deletion",
+      "boundPredicate": "user_id = ?",
+      "rowBoundStatus": "owner-lifecycle-cleanup",
+      "rationale": "Every current photo key must enter the durable object-deletion ledger before active rows are removed."
+    },
+    {
+      "callSiteId": "fb94a2f05458a60230219482",
+      "sqlSha256": "3d67e1dff4c9af7e9e361f4461a5fc77c46acd7b907ec7ab7a503505ca9308bc",
+      "scope": "owner account deletion",
+      "boundPredicate": "privacy_deletion_jobs.owner_subject_hash = ?",
+      "rowBoundStatus": "owner-lifecycle-cleanup",
+      "rationale": "Pending object keys for the same owner are deduplicated before the active-data deletion batch."
+    }
+  ]
+}

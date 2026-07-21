@@ -25,27 +25,39 @@ class PlanCheck:
 CHECKS = (
     PlanCheck(
         "expired sessions",
-        "DELETE FROM auth_sessions WHERE expires_at <= ?",
-        ("2026-07-17T00:00:00.000Z",),
+        """DELETE FROM auth_sessions WHERE token_hash IN (
+             SELECT token_hash FROM auth_sessions WHERE expires_at <= ?
+             ORDER BY expires_at, token_hash LIMIT ?
+           )""",
+        ("2026-07-17T00:00:00.000Z", 100),
         ("auth_sessions_expires_idx",),
     ),
     PlanCheck(
         "expired email challenges",
-        "DELETE FROM email_challenges WHERE expires_at <= ?",
-        ("2026-07-17T00:00:00.000Z",),
+        """DELETE FROM email_challenges WHERE id IN (
+             SELECT id FROM email_challenges WHERE expires_at <= ?
+             ORDER BY expires_at, id LIMIT ?
+           )""",
+        ("2026-07-17T00:00:00.000Z", 100),
         ("email_challenges_expires_idx",),
     ),
     PlanCheck(
         "old authentication attempts",
-        "DELETE FROM auth_attempts WHERE attempted_at < ?",
-        ("2026-06-17T00:00:00.000Z",),
+        """DELETE FROM auth_attempts WHERE id IN (
+             SELECT id FROM auth_attempts WHERE attempted_at < ?
+             ORDER BY attempted_at, id LIMIT ?
+           )""",
+        ("2026-06-17T00:00:00.000Z", 100),
         ("auth_attempts_attempted_idx",),
     ),
     PlanCheck(
         "expired or consumed age proofs",
-        """DELETE FROM signup_age_proofs
-           WHERE expires_at < ? OR (consumed_at IS NOT NULL AND consumed_at < ?)""",
-        ("2026-07-16T00:00:00.000Z", "2026-07-16T00:00:00.000Z"),
+        """DELETE FROM signup_age_proofs WHERE token_hash IN (
+             SELECT token_hash FROM signup_age_proofs
+             WHERE expires_at < ? OR (consumed_at IS NOT NULL AND consumed_at < ?)
+             LIMIT ?
+           )""",
+        ("2026-07-16T00:00:00.000Z", "2026-07-16T00:00:00.000Z", 100),
         ("signup_age_proofs_expiry_idx", "signup_age_proofs_consumed_idx"),
     ),
     PlanCheck(
@@ -53,6 +65,12 @@ CHECKS = (
         "SELECT site_id FROM saved_sites WHERE user_id = ? ORDER BY created_at DESC",
         ("user_fixture",),
         ("saved_sites_user_created_idx",),
+    ),
+    PlanCheck(
+        "gear-profile ordering",
+        "SELECT id FROM gear_profiles WHERE user_id = ? ORDER BY updated_at DESC",
+        ("user_fixture",),
+        ("gear_profiles_user_updated_idx",),
     ),
     PlanCheck(
         "profile trip history",
@@ -105,10 +123,17 @@ CHECKS = (
     ),
     PlanCheck(
         "completed deletion-job retention",
-        """SELECT id FROM privacy_deletion_jobs
-           WHERE state = 'completed' AND completed_at < ?
-           ORDER BY completed_at LIMIT 100""",
-        ("2026-04-17T00:00:00.000Z",),
+        """DELETE FROM privacy_deletion_jobs WHERE id IN (
+             SELECT id FROM privacy_deletion_jobs
+             WHERE state = 'completed' AND completed_at < ?
+               AND objects_deleted = objects_total
+               AND (SELECT COUNT(*) FROM privacy_deletion_tasks
+                 WHERE job_id = privacy_deletion_jobs.id) = objects_total
+               AND NOT EXISTS (SELECT 1 FROM privacy_deletion_tasks
+                 WHERE job_id = privacy_deletion_jobs.id AND state != 'completed')
+             ORDER BY completed_at, id LIMIT ?
+           )""",
+        ("2026-04-17T00:00:00.000Z", 100),
         ("privacy_deletion_jobs_state_completed_idx",),
     ),
     PlanCheck(
