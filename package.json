@@ -80,6 +80,7 @@
     "verify:discussion-safety": "node scripts/verify-discussion-safety.mjs",
     "verify:santa-barbara-access-review": "npm run security:santa-barbara-access-review",
     "template:santa-barbara-access-review": "node scripts/verify-santa-barbara-access-review.mjs print-template",
+    "write:santa-barbara-access-review-template": "node scripts/verify-santa-barbara-access-review.mjs write-template",
     "evaluate:santa-barbara-access-review": "node scripts/verify-santa-barbara-access-review.mjs evaluate",
     "verify:validation-successor": "node scripts/verify-validation-successor.mjs",
     "finance:ledger:verify": "node --test tests/provider-cost-ledger.test.mjs",

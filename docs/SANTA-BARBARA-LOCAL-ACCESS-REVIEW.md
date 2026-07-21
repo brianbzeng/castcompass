@@ -43,14 +43,22 @@ repository.
 
 ## Offline evaluator
 
-The evaluator is read-only and makes no provider or network requests. Generate
-a blank, checkout-bound evidence manifest into a private directory with a
-restrictive umask:
+The evaluator is read-only and makes no provider or network requests. Create a
+private owner-only directory outside the checkout, then use the guarded writer
+to create a blank manifest bound to the reviewed catalog commit:
 
 ```sh
-umask 077
-npm run template:santa-barbara-access-review -- --expected-commit <full-commit-sha> > /absolute/private/path/access-review.json
+mkdir -p /absolute/private/path
+chmod 700 /absolute/private/path
+npm run write:santa-barbara-access-review-template -- --output-file /absolute/private/path/access-review.json --expected-commit 377dec41c9fc1842c682b7556f2b0a8b1b83e87c
 ```
+
+The writer creates a new `0600` regular file exclusively and refuses relative
+paths, symlinked or broadly accessible directories, locations inside the
+checkout, and any destination that already exists. It prints only a minimized,
+non-authorizing write receipt. The older
+`template:santa-barbara-access-review` command is for terminal inspection only;
+do not redirect it into a review file.
 
 Fill that private file without adding fields. Record a current official-source
 recheck for every location after comparing the linked access and regulation
@@ -60,13 +68,15 @@ pages to the catalog. Then evaluate it against the same reviewed checkout:
 npm run evaluate:santa-barbara-access-review -- --evidence-file /absolute/private/path/access-review.json --expected-commit <full-commit-sha>
 ```
 
-The evidence file must be a regular non-symlink file outside the repository,
-no larger than 256 KiB, with permissions exactly `0600`. Observations older
-than six calendar months, uncertain or unobserved answers, missing or stale
-official checks, insufficient distinct reviewers, and unresolved corrections
-all fail closed. Generalized correction text is limited to one short line and
-rejects contact details, links, coordinates, phone-like strings, and common
-credential formats.
+The evidence file must be a current-user-owned regular non-symlink file outside
+the repository, no larger than 256 KiB, with exactly one hard link and
+permissions exactly `0600`. The reader checks ownership, link count, size, and
+identity both before and after a no-follow open, before reading any bytes.
+Observations older than six calendar months, uncertain or unobserved answers,
+missing or stale official checks, insufficient distinct reviewers, and
+unresolved corrections all fail closed. Generalized correction text is limited
+to one short line and rejects contact details, links, coordinates, phone-like
+strings, and common credential formats.
 
 ## Locations to review
 

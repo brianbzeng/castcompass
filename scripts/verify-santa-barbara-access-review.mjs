@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
-import { lstat, readFile, realpath } from "node:fs/promises";
-import { dirname, isAbsolute, resolve, sep } from "node:path";
+import { constants } from "node:fs";
+import { lstat, open, readFile, realpath, unlink } from "node:fs/promises";
+import { basename, dirname, isAbsolute, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 
@@ -16,6 +17,7 @@ const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 const MONTH_PATTERN = /^\d{4}-(?:0[1-9]|1[0-2])$/u;
 const DAY_MS = 86_400_000;
+const MAX_EVIDENCE_BYTES = 256 * 1024;
 const TOP_LEVEL_KEYS = [
   "acceptance",
   "allowedPrivateResponseFields",
@@ -559,6 +561,91 @@ async function loadReviewSources(root = DEFAULT_ROOT) {
   };
 }
 
+async function privateTemplateOutputPath(root, outputFile) {
+  requireCondition(typeof outputFile === "string" && isAbsolute(outputFile), "Template output path must be absolute.");
+  const normalizedOutput = resolve(outputFile);
+  requireCondition(normalizedOutput === outputFile, "Template output path must already be normalized.");
+  const rootReal = await realpath(root);
+  const parent = dirname(normalizedOutput);
+  const parentMetadata = await lstat(parent).catch(() => null);
+  requireCondition(
+    parentMetadata?.isDirectory() && !parentMetadata.isSymbolicLink(),
+    "Template output directory must be an existing non-symlink directory.",
+  );
+  const parentReal = await realpath(parent);
+  requireCondition(
+    parentReal !== rootReal && !parentReal.startsWith(`${rootReal}${sep}`),
+    "Template output must remain outside the repository checkout.",
+  );
+  requireCondition(
+    (parentMetadata.mode & 0o077) === 0,
+    "Template output directory must not grant group or other permissions.",
+  );
+  if (typeof process.getuid === "function") {
+    requireCondition(parentMetadata.uid === process.getuid(), "Template output directory must be owned by the current user.");
+  }
+  return resolve(parentReal, basename(normalizedOutput));
+}
+
+export async function writeSantaBarbaraAccessReviewTemplate({
+  root = DEFAULT_ROOT,
+  reviewedCommit,
+  outputFile,
+  sources,
+}) {
+  const outputPath = await privateTemplateOutputPath(root, outputFile);
+  const reviewSources = sources ?? await loadReviewSources(root);
+  const payload = createSantaBarbaraAccessReviewTemplate({ ...reviewSources, reviewedCommit });
+  const body = `${JSON.stringify(payload, null, 2)}\n`;
+  const expectedBytes = Buffer.byteLength(body);
+  let handle;
+  try {
+    handle = await open(
+      outputPath,
+      constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | (constants.O_NOFOLLOW ?? 0),
+      0o600,
+    );
+  } catch (error) {
+    if (error?.code === "EEXIST") throw new Error("Template output file must not already exist.");
+    throw new Error("Template output file could not be created safely.");
+  }
+  let complete = false;
+  try {
+    await handle.chmod(0o600);
+    await handle.writeFile(body, "utf8");
+    await handle.sync();
+    const metadata = await handle.stat();
+    requireCondition(
+      metadata.isFile()
+        && metadata.nlink === 1
+        && (metadata.mode & 0o777) === 0o600
+        && (typeof process.getuid !== "function" || metadata.uid === process.getuid())
+        && metadata.size === expectedBytes,
+      "Template output file did not preserve the required private mode.",
+    );
+    complete = true;
+  } finally {
+    try {
+      await handle.close();
+    } finally {
+      if (!complete) await unlink(outputPath).catch(() => undefined);
+    }
+  }
+  return {
+    schema_version: "castingcompass.santa-barbara-access-review-template-write-receipt/1.0.0",
+    reviewed_commit: payload.reviewed_commit,
+    catalog_sha256: payload.catalog_sha256,
+    policy_sha256: payload.policy_sha256,
+    site_count: payload.official_source_rechecks.length,
+    owner_only_file_written: true,
+    existing_file_overwritten: false,
+    access_review_accepted: false,
+    deployment_authorization_granted: false,
+    model_validation_evidence_granted: false,
+    safety_or_legality_guarantee_granted: false,
+  };
+}
+
 export async function verifySantaBarbaraAccessReview(root = DEFAULT_ROOT) {
   const sources = await loadReviewSources(root);
   return validateSantaBarbaraAccessReview(sources);
@@ -570,14 +657,39 @@ function parseFlag(args, name) {
   return args[index + 1];
 }
 
-async function requirePrivateEvidenceFile(root, evidenceFile) {
-  requireCondition(isAbsolute(evidenceFile), "Private evidence path must be absolute.");
+export async function requirePrivateEvidenceFile(root, evidenceFile) {
+  requireCondition(typeof evidenceFile === "string" && isAbsolute(evidenceFile), "Private evidence path must be absolute.");
   const suppliedStats = await lstat(evidenceFile);
   requireCondition(suppliedStats.isFile() && !suppliedStats.isSymbolicLink(), "Private evidence must be a regular, non-symlink file.");
+  requireCondition(suppliedStats.nlink === 1, "Private evidence must not be hard-linked.");
   requireCondition((suppliedStats.mode & 0o777) === 0o600, "Private evidence permissions must be exactly 0600.");
+  if (typeof process.getuid === "function") {
+    requireCondition(suppliedStats.uid === process.getuid(), "Private evidence must be owned by the current user.");
+  }
+  requireCondition(
+    suppliedStats.size > 0 && suppliedStats.size <= MAX_EVIDENCE_BYTES,
+    "Private evidence file exceeds its size boundary or is empty.",
+  );
   const [rootPath, evidencePath] = await Promise.all([realpath(root), realpath(evidenceFile)]);
   requireCondition(evidencePath !== rootPath && !evidencePath.startsWith(`${rootPath}${sep}`), "Private evidence must remain outside the repository.");
-  return readFile(evidencePath);
+  const handle = await open(evidencePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+  try {
+    const openedStats = await handle.stat();
+    requireCondition(
+      openedStats.isFile()
+        && openedStats.dev === suppliedStats.dev
+        && openedStats.ino === suppliedStats.ino
+        && openedStats.nlink === 1
+        && (openedStats.mode & 0o777) === 0o600
+        && (typeof process.getuid !== "function" || openedStats.uid === process.getuid())
+        && openedStats.size > 0
+        && openedStats.size <= MAX_EVIDENCE_BYTES,
+      "Private evidence changed while it was being opened.",
+    );
+    return handle.readFile();
+  } finally {
+    await handle.close();
+  }
 }
 
 async function main() {
@@ -596,6 +708,18 @@ async function main() {
     process.stdout.write(`${JSON.stringify(template, null, 2)}\n`);
     return;
   }
+  if (command === "write-template") {
+    requireCondition(args.length === 4, "write-template requires --output-file and --expected-commit.");
+    const outputFile = parseFlag(args, "--output-file");
+    const reviewedCommit = parseFlag(args, "--expected-commit");
+    const receipt = await writeSantaBarbaraAccessReviewTemplate({
+      sources,
+      reviewedCommit,
+      outputFile,
+    });
+    process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
+    return;
+  }
   if (command === "evaluate") {
     requireCondition(args.length === 4, "evaluate requires --evidence-file and --expected-commit.");
     const evidenceFile = parseFlag(args, "--evidence-file");
@@ -611,7 +735,7 @@ async function main() {
     if (!receipt.access_review_accepted) process.exitCode = 1;
     return;
   }
-  throw new Error("Usage: verify-santa-barbara-access-review.mjs verify-policy | print-template --expected-commit <sha> | evaluate --evidence-file <absolute-path> --expected-commit <sha>");
+  throw new Error("Usage: verify-santa-barbara-access-review.mjs verify-policy | print-template --expected-commit <sha> | write-template --output-file <absolute-path> --expected-commit <sha> | evaluate --evidence-file <absolute-path> --expected-commit <sha>");
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

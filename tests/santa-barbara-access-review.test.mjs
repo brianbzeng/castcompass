@@ -1,13 +1,28 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import {
+  chmod,
+  link,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import {
   createSantaBarbaraAccessReviewTemplate,
   evaluateSantaBarbaraAccessReview,
+  requirePrivateEvidenceFile,
   validateSantaBarbaraAccessReview,
   verifySantaBarbaraAccessReview,
+  writeSantaBarbaraAccessReviewTemplate,
 } from "../scripts/verify-santa-barbara-access-review.mjs";
 
 const root = new URL("../", import.meta.url);
@@ -147,6 +162,115 @@ test("blank evidence template is digest-bound, private-data-free, and non-author
       && entry.access_source_reachable === false
       && entry.corrections_resolved === false), true);
   assert.equal(template.deployment_authorization_granted, false);
+});
+
+test("guarded template writer creates one owner-only file and never overwrites it", async (context) => {
+  const privateDirectory = await mkdtemp(join(tmpdir(), "castingcompass-access-writer-"));
+  context.after(() => rm(privateDirectory, { force: true, recursive: true }));
+  await chmod(privateDirectory, 0o700);
+  const outputFile = join(privateDirectory, "access-review.json");
+
+  const receipt = await writeSantaBarbaraAccessReviewTemplate({
+    reviewedCommit: expectedCommit,
+    outputFile,
+  });
+  const metadata = await lstat(outputFile);
+  const payload = JSON.parse(await readFile(outputFile, "utf8"));
+  assert.equal(metadata.isFile(), true);
+  assert.equal(metadata.isSymbolicLink(), false);
+  assert.equal(metadata.mode & 0o777, 0o600);
+  assert.equal(metadata.nlink, 1);
+  assert.equal(payload.reviewed_commit, expectedCommit);
+  assert.deepEqual(payload.responses, []);
+  assert.equal(payload.official_source_rechecks.length, 14);
+  assert.equal(receipt.owner_only_file_written, true);
+  assert.equal(receipt.existing_file_overwritten, false);
+  assert.equal(receipt.access_review_accepted, false);
+  assert.equal(receipt.deployment_authorization_granted, false);
+
+  const originalBytes = await readFile(outputFile);
+  assert.deepEqual(await requirePrivateEvidenceFile(fileURLToPath(root), outputFile), originalBytes);
+  await assert.rejects(
+    writeSantaBarbaraAccessReviewTemplate({ reviewedCommit: expectedCommit, outputFile }),
+    /must not already exist/u,
+  );
+  assert.deepEqual(await readFile(outputFile), originalBytes);
+});
+
+test("guarded template writer rejects unsafe destination boundaries", async (context) => {
+  const baseDirectory = await mkdtemp(join(tmpdir(), "castingcompass-access-destination-"));
+  context.after(() => rm(baseDirectory, { force: true, recursive: true }));
+  await chmod(baseDirectory, 0o700);
+  const permissiveDirectory = join(baseDirectory, "permissive");
+  const privateDirectory = join(baseDirectory, "private");
+  const linkedDirectory = join(baseDirectory, "linked");
+  const repositoryRoot = fileURLToPath(root);
+  await mkdir(permissiveDirectory, { mode: 0o755 });
+  await chmod(permissiveDirectory, 0o755);
+  await mkdir(privateDirectory, { mode: 0o700 });
+  await symlink(privateDirectory, linkedDirectory);
+
+  await assert.rejects(
+    writeSantaBarbaraAccessReviewTemplate({ reviewedCommit: expectedCommit, outputFile: "relative.json" }),
+    /must be absolute/u,
+  );
+  await assert.rejects(
+    writeSantaBarbaraAccessReviewTemplate({
+      reviewedCommit: expectedCommit,
+      outputFile: join(repositoryRoot, "private-review.json"),
+    }),
+    /outside the repository/u,
+  );
+  await assert.rejects(
+    writeSantaBarbaraAccessReviewTemplate({
+      reviewedCommit: expectedCommit,
+      outputFile: join(permissiveDirectory, "review.json"),
+    }),
+    /must not grant group or other permissions/u,
+  );
+  await assert.rejects(
+    writeSantaBarbaraAccessReviewTemplate({
+      reviewedCommit: expectedCommit,
+      outputFile: join(linkedDirectory, "review.json"),
+    }),
+    /non-symlink directory/u,
+  );
+});
+
+test("private evidence reader rejects unsafe files before reading them", async (context) => {
+  const privateDirectory = await mkdtemp(join(tmpdir(), "castingcompass-access-reader-"));
+  context.after(() => rm(privateDirectory, { force: true, recursive: true }));
+  await chmod(privateDirectory, 0o700);
+  const repositoryRoot = fileURLToPath(root);
+
+  const broadFile = join(privateDirectory, "broad.json");
+  await writeFile(broadFile, "{}\n", { mode: 0o600 });
+  await chmod(broadFile, 0o644);
+  await assert.rejects(requirePrivateEvidenceFile(repositoryRoot, broadFile), /exactly 0600/u);
+
+  const linkedSource = join(privateDirectory, "linked-source.json");
+  const hardLink = join(privateDirectory, "hard-link.json");
+  await writeFile(linkedSource, "{}\n", { mode: 0o600 });
+  await chmod(linkedSource, 0o600);
+  await link(linkedSource, hardLink);
+  await assert.rejects(requirePrivateEvidenceFile(repositoryRoot, linkedSource), /must not be hard-linked/u);
+
+  const symlinkTarget = join(privateDirectory, "symlink-target.json");
+  const symlinkFile = join(privateDirectory, "symlink.json");
+  await writeFile(symlinkTarget, "{}\n", { mode: 0o600 });
+  await chmod(symlinkTarget, 0o600);
+  await symlink(symlinkTarget, symlinkFile);
+  await assert.rejects(requirePrivateEvidenceFile(repositoryRoot, symlinkFile), /regular, non-symlink/u);
+
+  const emptyFile = join(privateDirectory, "empty.json");
+  await writeFile(emptyFile, "", { mode: 0o600 });
+  await chmod(emptyFile, 0o600);
+  await assert.rejects(requirePrivateEvidenceFile(repositoryRoot, emptyFile), /size boundary or is empty/u);
+
+  const oversizedFile = join(privateDirectory, "oversized.json");
+  await writeFile(oversizedFile, Buffer.alloc(256 * 1024 + 1), { mode: 0o600 });
+  await chmod(oversizedFile, 0o600);
+  await assert.rejects(requirePrivateEvidenceFile(repositoryRoot, oversizedFile), /size boundary or is empty/u);
 });
 
 test("complete evidence accepts all 14 sites while its public receipt exposes only aggregates", async () => {

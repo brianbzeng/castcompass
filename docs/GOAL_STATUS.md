@@ -734,6 +734,20 @@ by that discovery.
       supplied or accepted; every regional site remains pending, including five limited-access
       sites requiring two independent reviews. Regional trip reports remain ordinary private
       product observations rather than validation evidence.
+      - [x] Replace the shell-redirection handoff with an exclusive owner-only packet writer. It
+            accepts only a normalized absolute destination in a current-user-owned `0700`
+            directory outside the checkout, creates one new `0600` file without following links,
+            never overwrites an existing file, and emits only a minimized non-authorizing receipt.
+      - [x] Enforce the private evidence boundary before reading: current-user ownership, exactly
+            one hard link, exact `0600` mode, nonempty size at most 256 KiB, repository exclusion,
+            no-follow open, and post-open device/inode/link/mode/owner/size verification.
+      - [x] Materialize one unfilled digest-bound private packet outside Git and Codex for the
+            consolidated 14-site catalog. The focused access-review suite passes 11/11, including
+            adversarial destination, overwrite, symlink, hard-link, permission, empty-file, and
+            oversized-file cases. This is preparation only; no human response or official-source
+            recheck has been supplied and `access_review_accepted` remains false.
+            The Cloudflare build, ESLint, TypeScript, all 534/534 Node tests, both zero-vulnerability
+            npm audits, and the complete security/SBOM/source-integrity policy chain pass.
 - [x] Preserve water quality as a separately versioned human-health advisory overlay, not a
       catch-probability, pollution-severity, or seafood-safety score. The fixed HTTPS SFPUC slice
       maps six exact San Francisco sites, rejects malformed or unreviewed source states, binds
