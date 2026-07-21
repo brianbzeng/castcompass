@@ -1,6 +1,6 @@
 {
   "schemaVersion": "castingcompass.water-quality-mapping-audit/1.0.0",
-  "generatedAt": "2026-07-21T14:10:00Z",
+  "generatedAt": "2026-07-21T13:54:25Z",
   "meaning": "historical station identity and coordinate support for local preliminary review; not current water quality, safety, or score evidence",
   "automaticMappingAllowed": false,
   "independentReviewRequired": true,

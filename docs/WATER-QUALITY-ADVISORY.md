@@ -136,7 +136,7 @@ exception covers a documented old row without letting an old data defect disable
 current actions or become a no-posting inference.
 
 The checked-in three-source snapshot was refreshed at
-`2026-07-21T14:05:00Z`. At that instant the State Board table returned
+`2026-07-21T13:54:25Z`. At that instant the State Board table returned
 open-ended postings for Gaviota (`2026-06-15`) and Refugio (`2026-06-08`), so
 those two recommendations are suppressed in this repository artifact. That is a
 time-stamped review snapshot, not a live guarantee; users must check the linked
@@ -189,7 +189,7 @@ documented local spatial authority. Poplar therefore remains `not-covered`,
 `unknown`, and null-score.
 
 The checked-in current-status snapshot was refreshed at
-`2026-07-21T14:05:00Z`. The County notice itself was last updated July 15 based
+`2026-07-21T13:54:25Z`. The County notice itself was last updated July 15 based
 on July 13 samples. Exact active listings suppressed Pacifica State Beach,
 Rockaway Beach through Calera Creek, and both Pillar Point jetty mappings at
 that instant. This is time-bound repository evidence, not a live guarantee;

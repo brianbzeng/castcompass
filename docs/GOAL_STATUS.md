@@ -34,7 +34,7 @@ by that discovery.
 - [x] Preserve the negative mapping result for Poplar Beach. Its nearest station in the reviewed
       set is Francis Beach at 1,944 m without exact identity or defensible local authority, so
       Poplar remains `not-covered`, unknown, and null-score.
-- [x] Refresh the three-source repository snapshot at `2026-07-21T14:05:00Z`. All source reads
+- [x] Refresh the three-source repository snapshot at `2026-07-21T13:54:25Z`. All source reads
       succeeded. The County notice was updated July 15 from July 13 samples; exact current
       listings suppress Pacifica State Beach, Rockaway Beach through Calera Creek, and both
       Pillar Point jetty mappings. The time-bound artifact is not a live guarantee.
