@@ -1117,8 +1117,17 @@ export async function handleAccountRequest(
           db.prepare("DELETE FROM trips WHERE id = ? AND user_id = ? AND moderation_status = 'pending'")
             .bind(tripId, user.id),
         ]);
-        if (mutationChanges(deletionResults.at(-1)) !== 1) {
+        const deletionChanges = confirmedMutationChanges(deletionResults.at(-1));
+        if (deletionChanges === 0) {
           return errorResponse(409, "trip_reviewed", "Reviewed trip logs can no longer be changed.");
+        }
+        if (deletionChanges !== 1) {
+          return errorResponse(
+            503,
+            "trip_delete_unconfirmed",
+            "The trip deletion could not be confirmed.",
+            deletionReceiptCookie(deletion.receipt),
+          );
         }
         const status = await deletionStatusAfterCommit(env, deletion);
         return jsonResponse(
@@ -1380,8 +1389,12 @@ export async function handleAccountRequest(
           ));
         }
         const [updateResult] = await db.batch(statements);
-        if (mutationChanges(updateResult) !== 1) {
+        const updateChanges = confirmedMutationChanges(updateResult);
+        if (updateChanges === 0) {
           return errorResponse(409, "trip_reviewed", "Reviewed trip logs can no longer be changed.");
+        }
+        if (updateChanges !== 1) {
+          return errorResponse(503, "trip_update_unconfirmed", "The trip update could not be confirmed.");
         }
         const updatedTrip = await db.prepare("SELECT * FROM trips WHERE id = ? AND user_id = ? LIMIT 1")
           .bind(tripId, user.id)

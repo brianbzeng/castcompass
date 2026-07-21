@@ -152,6 +152,10 @@ after its acceptance checks pass in the intended environment.
       deletion race made the final statement change zero rows. Both routes now require exactly
       one confirmed D1 change, return the same `404` for zero, and fail `503` when the result is
       unconfirmable. Race tests preserve the other owner's row and prevent false client success.
+    - [x] Separate pending-trip moderation conflicts from missing mutation receipts. PATCH and
+      DELETE keep the final `id` plus `user_id` plus pending-state predicate; an authoritative zero
+      remains `409`, while malformed D1 metadata is now a replay-blocking `503` rather than a
+      false reviewed-trip claim. Unconfirmed deletion preserves the opaque status receipt cookie.
   - [ ] Verify strict schema/size/type validation, contextual output encoding, safe database
     binding, upload signature and metadata checks, and AI prompt-injection boundaries. Model
     instructions and user content remain data, never authority; models receive no ambient

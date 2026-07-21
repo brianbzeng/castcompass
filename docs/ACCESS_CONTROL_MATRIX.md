@@ -32,7 +32,7 @@ output never grants authority.
 | Session | `token_hash = sha256(cookie)` and `expires_at > now` | Authentication atomically replaces any session presented by that browser and HTTPS uses `__Host-cc_session`; the prior cookie is accepted only for migration and rotated on session refresh; logout revokes presented sessions, while password reset and account deletion revoke every session for the account |
 | Saved site | `user_id = authenticated_user.id` | Owner may add/remove only their row |
 | Gear profile | `id = requested_id AND user_id = authenticated_user.id` | Owner may create, patch, or delete; an unknown, other-owned, or concurrently changed ID is `404`; PATCH/DELETE success requires exactly one D1 change and any unconfirmed result fails closed |
-| Trip/profile record | `id = requested_id AND user_id = authenticated_user.id`; enrollment, forecast-impression, feasibility-start, and prior-recruitment sidecars repeat the owner predicate directly or through the parent trip | Owner may patch/delete only while `moderation_status = 'pending'`; active completion and cancellation bind `id`, `user_id`, `status = 'active'`, and `token_hash` together in the final D1 statement; manual advisory-review retry binds `id`, `user_id`, and retryable state in every final update and dispatches only D1-confirmed rows; server-controlled contract fields cannot be overridden |
+| Trip/profile record | `id = requested_id AND user_id = authenticated_user.id`; enrollment, forecast-impression, feasibility-start, and prior-recruitment sidecars repeat the owner predicate directly or through the parent trip | Owner may patch/delete only while `moderation_status = 'pending'`; success requires exactly one confirmed D1 change, a confirmed zero remains the generic reviewed-trip conflict, and an unconfirmable delete preserves an owner receipt for read-only recovery; active completion and cancellation bind `id`, `user_id`, `status = 'active'`, and `token_hash` together in the final D1 statement; manual advisory-review retry binds `id`, `user_id`, and retryable state in every final update and dispatches only D1-confirmed rows; server-controlled contract fields cannot be overridden |
 | Stored trip photo | Trip predicate above before any R2 key is read | Owner-only authenticated download with `no-store`; object key is never accepted from the URL or request body |
 | Account export | Every account-linked query and status/download lookup binds `authenticated_user.id`; asynchronous Queue messages contain only an opaque job ID | Export is owner-only and omits internal object locators and moderator identity. The default-off package is private, expires after 24 hours, and is canceled/adopted atomically by account deletion |
 | Deletion receipt | Hash of a high-entropy, path-scoped `HttpOnly` receipt cookie | Exposes aggregate status only; receipt can be cleared and expires; it cannot restore content or authenticate an account |
@@ -99,6 +99,11 @@ Gear mutation receipts are equally database-authoritative. PATCH and DELETE reta
 predicate in the final statement and return success only when D1 confirms exactly one changed
 row. A row that changes owner or disappears after the pre-read produces the same generic `404`;
 unknown mutation metadata produces a retry-safe `503` rather than a false success receipt.
+
+Pending-trip PATCH and DELETE distinguish an authoritative zero-change moderation race from a
+missing or malformed D1 receipt. The former remains a correct generic `409`; the latter returns
+`503` so the browser preserves its draft and blocks replay. An unconfirmed deletion also sets the
+opaque owner receipt cookie, allowing status verification without exposing a job identifier.
 
 ## Open gates
 

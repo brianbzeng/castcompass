@@ -107,6 +107,29 @@ by that discovery.
       request, merge, deployment, provider query, D1 mutation, model change, or UI change belongs
       to this work.
 
+## Active checkpoint — database-confirmed pending-trip mutations
+
+- [x] Continue the private-object receipt audit through owner trip PATCH and DELETE. Both final
+      statements already repeat `id`, authenticated `user_id`, and `moderation_status = 'pending'`,
+      but the handler collapsed missing D1 metadata into the same definite conflict as a confirmed
+      zero-change moderation race.
+- [x] Preserve the real distinction. A confirmed zero remains the generic `409 trip_reviewed`;
+      missing, malformed, or impossible change metadata returns a replay-blocking `503` and never
+      invokes the trip-update callback or manufactures a successful deletion response.
+- [x] Preserve recovery after an ambiguous committed delete. The server attaches the opaque,
+      HttpOnly owner deletion-status receipt even when the final D1 metadata is unavailable, so a
+      read-only status check can locate the durable cleanup job without exposing its identifier.
+- [x] Force both ambiguous commits in the direct D1 runtime. The PATCH row changes but returns
+      `503` with no callback; the DELETE row and durable deletion job commit, return `503`, and set
+      the receipt cookie. The existing moderation-race test separately proves real zero-change
+      outcomes stay `409`, while the generated 222-site inventory locks the final owner delete.
+- [x] Pass the pinned Cloudflare build, ESLint, TypeScript, all 551/551 Node tests, the complete
+      offline security/SBOM/source-integrity chain, both zero-vulnerability npm audits, and the
+      full 200/200 Chromium/WebKit phone matrix. Preserve the clean local commit and exact
+      deterministic release-bundle receipts for this repository-only checkpoint. No push, pull
+      request, merge, deployment, provider query, D1 mutation, model change, or UI change belongs
+      to this work.
+
 ## Active checkpoint — database-confirmed owner gear mutations
 
 - [x] Continue the private-object audit from identity predicates into mutation receipts. Gear

@@ -90,6 +90,10 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
     executionMode === "run"
       && statementClass === "DELETE"
       && sql === "DELETE FROM gear_profiles WHERE id = ? AND user_id = ?"));
+  assert.ok(inventory.queries.some(({ executionMode, statementClass, sql }) =>
+    executionMode === "batch"
+      && statementClass === "DELETE"
+      && sql === "DELETE FROM trips WHERE id = ? AND user_id = ? AND moderation_status = 'pending'"));
 
   const terminalTripWrites = inventory.queries.filter(({ executionMode, statementClass, sql }) =>
     executionMode === "prepared-statement"
