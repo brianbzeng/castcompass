@@ -44,9 +44,16 @@ by that discovery.
       four-worker run passed 143/144 only because Vinext prematurely closed the large static
       forecast stream in an unrelated trip test; that exact case passed on immediate isolated
       retry, and the complete two-worker rerun then passed 144/144.
-- [ ] Publish a protected draft PR, require complete exact-head push and pull-request CI,
-      CodeQL, and release-provenance evidence, and record the immutable receipt. Production,
-      Cloudflare, provider bindings, migrations, and regional PR #118 remain outside this cycle.
+- [x] Publish protected draft PR `#130` and require complete exact-head evidence. Exact head
+      `c6d261925168cff33b930413ddf1b0c770ad215c` passed push CI `29806086740` and
+      pull-request CI `29806089151`, including two independent 144/144 Chromium/WebKit mobile
+      matrices, plus CodeQL `29806086842`, dual-architecture API-image review `29806089134`,
+      and release-provenance runs `29806086814` and `29806089147`. Earlier hosted runs exposed
+      that the visual suite still depended on Vinext static-file streaming; the final head
+      removed that nondeterministic transport dependency by serving the committed catalog and
+      forecast from memory, blocked service-worker interception, and then passed another local
+      144/144 matrix before both hosted matrices passed without retries. Production, Cloudflare,
+      provider bindings, migrations, and regional PR `#118` remained outside this cycle.
 
 ## Completed work cycle — deterministic mobile release evidence
 
