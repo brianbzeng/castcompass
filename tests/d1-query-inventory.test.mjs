@@ -56,13 +56,13 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
   validatePolicy(policy, inventory);
   assert.deepEqual(JSON.parse(committed), inventory);
   assert.deepEqual(inventory.summary, {
-    prepareCallCount: 220,
-    literalCallCount: 194,
+    prepareCallCount: 219,
+    literalCallCount: 193,
     nonLiteralCallCount: 26,
     multiRowLiteralWithoutLimitCount: 12,
   });
   assert.equal(inventory.sourceFiles.length, 8);
-  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 220);
+  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 219);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "open-account-cardinality").length, 0);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "complete-rights-export").length, 9);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "owner-lifecycle-cleanup").length, 3);
@@ -157,7 +157,7 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
   assert.equal(manualReviewRetryWrites.length, 1);
   assert.equal(
     manualReviewRetryWrites[0].sql,
-    "UPDATE trips SET ai_review_status = 'queued' WHERE id = ? AND user_id = ? AND (ai_review_status IS NULL OR ai_review_status = 'retry')",
+    "UPDATE trips SET ai_review_status = 'queued', ai_review_json = NULL, ai_review_model = NULL, ai_reviewed_at = NULL WHERE id = ? AND user_id = ? AND (ai_review_status IS NULL OR ai_review_status = 'retry')",
   );
   const legacyReviewBacklog = inventory.queries.find(({ containingFunction }) =>
     containingFunction === "reviewTripBacklog");
@@ -165,6 +165,13 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
     legacyReviewBacklog?.sql ?? "",
     /ai_review_status IS NULL OR ai_review_status = 'queued' OR ai_review_status = 'retry'/u,
   );
+  assert.match(legacyReviewBacklog?.sql ?? "", /ai_review_status = 'processing'/u);
+  assert.match(legacyReviewBacklog?.sql ?? "", /json_extract\(ai_review_json, '\$\.leaseExpiresAt'\)/u);
+  assert.ok(inventory.queries.some(({ file, executionMode, statementClass, sql }) =>
+    file === "worker/trip-review.ts"
+      && executionMode === "run"
+      && statementClass === "UPDATE"
+      && sql === "UPDATE trips SET ai_review_status = 'reviewed', ai_review_json = ?, ai_review_model = ?, ai_reviewed_at = ? WHERE id = ? AND ai_review_status = 'processing' AND ai_review_json = ?"));
 
   const exactOwnerTripRead = inventory.queries.find(({ sql }) =>
     sql === "SELECT * FROM trips WHERE id = ? AND user_id IS ? LIMIT 1");

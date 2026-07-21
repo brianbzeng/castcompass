@@ -56,6 +56,9 @@ const MIMO_REVIEW_TIMEOUT_MS = 10_000;
 const MIMO_MAX_REQUEST_BYTES = 64 * 1024;
 const MIMO_MAX_RESPONSE_BYTES = 64 * 1024;
 const MIMO_MAX_CONTENT_CHARACTERS = 32 * 1024;
+const REVIEW_CLAIM_VERSION = "castingcompass.ai-review-claim/1.0.0";
+const REVIEW_CLAIM_LEASE_MS = 60 * 1000;
+const REVIEW_CLAIM_TOKEN_PATTERN = /^airc_[a-f0-9]{32}$/;
 const MODEL_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,99}$/;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
 const ALLOWED_MODES = new Set(["shore", "beach", "pier", "jetty", "kayak", "boat", "other"]);
@@ -89,21 +92,17 @@ export async function reviewTripWithMimo(
   }
   if (!await aiProviderRateLimitAllowed(env)) return;
   const tripId = typeof tripOrId === "string" ? tripOrId : tripOrId.id;
-  const claimed = await env.DB.prepare(`UPDATE trips SET ai_review_status = 'processing'
-    WHERE id = ? AND status = 'completed'
-      AND (ai_review_status IS NULL OR ai_review_status = 'queued' OR ai_review_status = 'retry')`)
-    .bind(tripId)
-    .run();
-  if (Number(claimed.meta?.changes ?? 0) !== 1) return;
-  const trip = await env.DB.prepare(`SELECT * FROM trips
-    WHERE id = ? AND status = 'completed' AND ai_review_status = 'processing' LIMIT 1`)
-    .bind(tripId).first<TripRow>();
+  const claim = createReviewClaim();
+  const trip = await claimReviewTrip(env.DB, tripId, claim);
   if (!trip) return;
   const site = sites.find((candidate) => candidate.id === trip.site_id);
   const safeTrip = buildProviderTripProjection(trip, site);
 
   try {
-    if (await deletionRequestedBeforeDispatch(env.DB, trip)) return;
+    if (await deletionRequestedBeforeDispatch(env.DB, trip)) {
+      await releaseReviewClaim(env.DB, trip.id, claim.serialized, null);
+      return;
+    }
     const requestBody = JSON.stringify({
       model,
       max_completion_tokens: 950,
@@ -155,8 +154,9 @@ Return one JSON object and no surrounding prose. Use exactly these top-level key
     const review = parseStrictReview(extractResponseContent(responseText));
     const stored = JSON.stringify(review);
     await env.DB.prepare(`UPDATE trips SET ai_review_status = 'reviewed', ai_review_json = ?,
-      ai_review_model = ?, ai_reviewed_at = ? WHERE id = ? AND ai_review_status = 'processing'`)
-      .bind(stored, model, new Date().toISOString(), trip.id)
+      ai_review_model = ?, ai_reviewed_at = ?
+      WHERE id = ? AND ai_review_status = 'processing' AND ai_review_json = ?`)
+      .bind(stored, model, new Date().toISOString(), trip.id, claim.serialized)
       .run();
   } catch (error) {
     logEvent("error", "ai_review.failed", {
@@ -164,11 +164,96 @@ Return one JSON object and no surrounding prose. Use exactly these top-level key
       error_code: error instanceof ReviewError ? error.code : "review_failed",
       status: error instanceof ReviewError ? error.status : undefined,
     });
-    await env.DB.prepare(`UPDATE trips SET ai_review_status = 'retry', ai_review_model = ?
-      WHERE id = ? AND ai_review_status = 'processing'`)
-      .bind(model, trip.id)
-      .run();
+    await releaseReviewClaim(env.DB, trip.id, claim.serialized, model);
   }
+}
+
+interface ReviewClaim {
+  version: typeof REVIEW_CLAIM_VERSION;
+  token: string;
+  leaseExpiresAt: string;
+  serialized: string;
+}
+
+function createReviewClaim(now = new Date()): ReviewClaim {
+  const value: Omit<ReviewClaim, "serialized"> = {
+    version: REVIEW_CLAIM_VERSION,
+    token: `airc_${crypto.randomUUID().replaceAll("-", "")}`,
+    leaseExpiresAt: new Date(now.getTime() + REVIEW_CLAIM_LEASE_MS).toISOString(),
+  };
+  return { ...value, serialized: JSON.stringify(value) };
+}
+
+async function claimReviewTrip(db: D1DatabaseLike, tripId: string, claim: ReviewClaim) {
+  try {
+    await db.prepare(`UPDATE trips SET ai_review_status = 'processing', ai_review_json = ?,
+        ai_review_model = NULL, ai_reviewed_at = NULL
+      WHERE id = ? AND status = 'completed'
+        AND (ai_review_status IS NULL OR ai_review_status = 'queued' OR ai_review_status = 'retry')`)
+      .bind(claim.serialized, tripId)
+      .run();
+  } catch {
+    // A D1 mutation can commit while its result envelope is lost. Ownership is
+    // proven by the exact token read below, never by the mutation receipt.
+  }
+
+  let trip = await selectClaimedTrip(db, tripId, claim.serialized);
+  if (trip) return trip;
+
+  const prior = await db.prepare(`SELECT ai_review_json FROM trips
+    WHERE id = ? AND status = 'completed' AND ai_review_status = 'processing' LIMIT 1`)
+    .bind(tripId)
+    .first<{ ai_review_json: string | null }>();
+  if (!prior?.ai_review_json || !expiredReviewClaim(prior.ai_review_json, Date.now())) return null;
+
+  try {
+    await db.prepare(`UPDATE trips SET ai_review_json = ?, ai_review_model = NULL, ai_reviewed_at = NULL
+      WHERE id = ? AND status = 'completed' AND ai_review_status = 'processing' AND ai_review_json = ?`)
+      .bind(claim.serialized, tripId, prior.ai_review_json)
+      .run();
+  } catch {
+    // The same read-back proof safely resolves an ambiguous stale-claim CAS.
+  }
+  trip = await selectClaimedTrip(db, tripId, claim.serialized);
+  return trip;
+}
+
+function selectClaimedTrip(db: D1DatabaseLike, tripId: string, serializedClaim: string) {
+  return db.prepare(`SELECT * FROM trips
+    WHERE id = ? AND status = 'completed' AND ai_review_status = 'processing'
+      AND ai_review_json = ? LIMIT 1`)
+    .bind(tripId, serializedClaim)
+    .first<TripRow>();
+}
+
+function expiredReviewClaim(value: string, nowMilliseconds: number) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value) as unknown;
+  } catch {
+    return false;
+  }
+  if (!isRecord(parsed) || Object.keys(parsed).length !== 3
+    || parsed.version !== REVIEW_CLAIM_VERSION
+    || typeof parsed.token !== "string" || !REVIEW_CLAIM_TOKEN_PATTERN.test(parsed.token)
+    || typeof parsed.leaseExpiresAt !== "string") return false;
+  const leaseMilliseconds = Date.parse(parsed.leaseExpiresAt);
+  return Number.isFinite(leaseMilliseconds)
+    && new Date(leaseMilliseconds).toISOString() === parsed.leaseExpiresAt
+    && leaseMilliseconds <= nowMilliseconds;
+}
+
+function releaseReviewClaim(
+  db: D1DatabaseLike,
+  tripId: string,
+  serializedClaim: string,
+  model: string | null,
+) {
+  return db.prepare(`UPDATE trips SET ai_review_status = 'retry', ai_review_json = NULL,
+      ai_review_model = ?, ai_reviewed_at = NULL
+    WHERE id = ? AND ai_review_status = 'processing' AND ai_review_json = ?`)
+    .bind(model, tripId, serializedClaim)
+    .run();
 }
 
 function buildProviderTripProjection(trip: TripRow, site: CuratedSite | undefined) {
@@ -238,12 +323,17 @@ async function sha256(value: string) {
 
 export async function reviewTripBacklog(env: ReviewEnv, sites: readonly CuratedSite[], limit = 10) {
   if (!env.DB || !env.MIMO_API_KEY) return 0;
-  const rows = await env.DB.prepare(`SELECT id FROM trips
+  const rows = await env.DB.prepare(`SELECT id FROM trips INDEXED BY trips_ai_review_backlog_idx
     WHERE status = 'completed'
-      AND (ai_review_status IS NULL OR ai_review_status = 'queued' OR ai_review_status = 'retry')
+      AND ((ai_review_status IS NULL OR ai_review_status = 'queued' OR ai_review_status = 'retry')
+        OR (ai_review_status = 'processing'
+          AND CASE WHEN json_valid(ai_review_json)
+            THEN json_extract(ai_review_json, '$.version') END = ?
+          AND CASE WHEN json_valid(ai_review_json)
+            THEN json_extract(ai_review_json, '$.leaseExpiresAt') END <= ?))
     ORDER BY COALESCE(completed_at, ended_at, started_at) ASC
     LIMIT ?`)
-    .bind(limit)
+    .bind(REVIEW_CLAIM_VERSION, new Date().toISOString(), limit)
     .all<{ id: string }>();
   const trips = rows.results ?? [];
   for (const trip of trips) await reviewTripWithMimo(env, trip.id, sites);

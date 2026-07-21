@@ -40,6 +40,31 @@ by that discovery.
       commit. Their branches, comments, commits, and hosted evidence remain preserved for audit
       and rollback reference; `#146` is now the repository's only open PR and remains a draft.
 
+## Active checkpoint — lease-owned direct advisory review
+
+- [x] Continue the database-authority audit through the default-off direct advisory-review path.
+      It treated missing D1 mutation metadata as zero after setting a trip to `processing`; a
+      committed claim could therefore become permanently invisible to the scheduled backlog.
+- [x] Replace receipt-derived ownership with a high-entropy, exact compare-and-set claim stored
+      only while the trip is processing. The worker must read back its own exact claim before
+      provider dispatch, terminal review/retry writes repeat that identity, and the 60-second
+      lease exceeds the provider's 30-second maximum deadline.
+- [x] Add bounded stale-claim recovery to the default-off backlog without reclaiming active or
+      malformed legacy state. Queue redispatch no longer resets a trip merely from a stale job
+      snapshot, and profile/portability responses suppress the internal claim envelope.
+- [x] Force a committed claim with missing metadata, simultaneous workers, a lost post-commit
+      read, scheduled lease recovery, and an old worker returning after a newer lease. Exactly
+      one worker dispatches per live claim and the late stale result cannot overwrite the newer
+      review.
+- [x] Pass the pinned Cloudflare build, ESLint, TypeScript, all 577/577 repository Node tests,
+      the complete offline security/SBOM/source-integrity chain, both zero-vulnerability npm
+      audits, Ruff, 29/29 API tests, 82 pipeline tests with one documented optional-`rasterio`
+      skip and 138 subtests, the deterministic pipeline smoke test, 19 migrations / 23 critical
+      D1 query plans, and the full 200/200 Chromium/WebKit phone matrix. Preserve a clean local
+      commit and deterministic release-bundle receipt. No push, pull request, merge, deployment,
+      provider query, D1 mutation, public AI output, model change, UI change, or production
+      authorization belongs to this work.
+
 ## Active checkpoint — atomic authentication attempt accounting
 
 - [x] Continue the authentication audit through abuse-control accounting. Sign-in and initial

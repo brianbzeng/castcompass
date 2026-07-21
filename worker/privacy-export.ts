@@ -656,7 +656,9 @@ export async function buildPrivacyExportPayload(
       referral_code, opportunity_window_id, opportunity_score, habitat_score, seasonality_score,
       conditions_score, fishability_score, model_version, score_influenced_choice,
       prediction_metadata_json, photo_content_type, photo_size_bytes, created_at, updated_at,
-      completed_at, ai_review_status, ai_review_json, ai_review_model, ai_reviewed_at,
+      completed_at, ai_review_status,
+      CASE WHEN ai_review_status = 'processing' THEN NULL ELSE ai_review_json END AS ai_review_json,
+      ai_review_model, ai_reviewed_at,
       CASE WHEN photo_key IS NULL THEN 0 ELSE 1 END AS has_photo, photo_key
       FROM trips WHERE user_id = ? ORDER BY created_at DESC`)
       .bind(userId).all<Record<string, unknown>>(),

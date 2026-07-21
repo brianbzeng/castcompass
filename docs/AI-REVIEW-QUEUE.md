@@ -23,8 +23,10 @@ CastingCompass therefore uses this boundary:
 
 - A queue message has exactly `version` and an opaque `airj_` job ID. It contains no trip ID,
   account ID, site, note, prompt, model output, token, email, photo, or authorization claim.
-- D1 `ai_review_jobs` is the authoritative outbox and state ledger. Its unique trip predicate,
-  atomic job lease, and the trip row's existing review claim make duplicate delivery idempotent.
+- D1 `ai_review_jobs` is the authoritative outbox and state ledger. Its unique trip predicate
+  and atomic job lease coordinate Queue delivery. Independently, a processing trip carries a
+  high-entropy, 60-second compare-and-set claim envelope in `ai_review_json`; profile and
+  portability reads suppress that internal envelope, and terminal state overwrites or clears it.
 - The consumer refetches the trip from D1, rechecks the deletion tombstone immediately before
   provider dispatch, uses the existing minimized prompt boundary, and never publishes output.
 - Processing is sequential and capped at five messages per invocation. The application permits
@@ -65,9 +67,12 @@ The outbox marks a job `queued` with a 15-minute redispatch deadline before publ
 Worker stops between that D1 update and the send, the scheduled dispatcher republishes after the
 deadline. If a send failure is observable, the job returns to `pending` after one minute; an
 ambiguous failure may duplicate the message, which is safe. If delivery is delayed or lost, the
-scheduled dispatcher also republishes after the deadline. A
-60-second application lease exceeds the provider's 10-second hard deadline and allows a crashed
-consumer to recover a stranded `processing` trip before retrying.
+scheduled dispatcher also republishes after the deadline. A 60-second trip claim exceeds the
+provider's 30-second maximum configured deadline. A worker must read back its own exact claim
+before provider dispatch, every terminal write repeats that claim, the bounded backlog can
+reclaim only a well-formed expired claim, and a late stale worker cannot overwrite a newer
+lease. Queue-job redispatch deliberately does not reset trip state from a stale snapshot; the
+independently owned trip lease resolves it.
 
 ## Operator replay without an admin backdoor
 

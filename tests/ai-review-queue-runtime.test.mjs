@@ -402,10 +402,20 @@ test("scheduled reconciliation recovers an expired application lease before redi
   const { env, queue, job } = await scheduledJob(sqlite, d1);
   sqlite.prepare(`UPDATE ai_review_jobs SET state = 'processing', available_at = ?, lease_expires_at = ?
     WHERE id = ?`).run("2026-01-01T00:00:00.000Z", "2026-01-01T00:01:00.000Z", job.id);
-  sqlite.prepare("UPDATE trips SET ai_review_status = 'processing' WHERE id = 'trip_queue'").run();
+  const expiredTripClaim = JSON.stringify({
+    version: "castingcompass.ai-review-claim/1.0.0",
+    token: `airc_${"a".repeat(32)}`,
+    leaseExpiresAt: "2026-01-01T00:01:00.000Z",
+  });
+  sqlite.prepare("UPDATE trips SET ai_review_status = 'processing', ai_review_json = ? WHERE id = 'trip_queue'")
+    .run(expiredTripClaim);
   const dispatched = await dispatchAiReviewBacklog(env, [{ id: "ocean-beach" }]);
   assert.equal(dispatched, 1);
   assert.equal(queue.sent.length, 2);
   assert.equal(sqlite.prepare("SELECT state FROM ai_review_jobs WHERE id = ?").get(job.id).state, "queued");
-  assert.equal(sqlite.prepare("SELECT ai_review_status FROM trips WHERE id = 'trip_queue'").get().ai_review_status, "retry");
+  assert.deepEqual(
+    { ...sqlite.prepare("SELECT ai_review_status, ai_review_json FROM trips WHERE id = 'trip_queue'").get() },
+    { ai_review_status: "processing", ai_review_json: expiredTripClaim },
+    "queue redispatch must not clobber the independently leased trip claim",
+  );
 });

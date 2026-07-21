@@ -458,8 +458,8 @@ export const trips = sqliteTable(
       .on(table.userId, table.createdAt)
       .where(sql`${table.userId} is not null`),
     index("trips_ai_review_backlog_idx")
-      .on(table.status, sql`coalesce(${table.completedAt}, ${table.endedAt}, ${table.startedAt})`)
-      .where(sql`${table.aiReviewStatus} is null or ${table.aiReviewStatus} = 'retry'`),
+      .on(sql`coalesce(${table.completedAt}, ${table.endedAt}, ${table.startedAt})`)
+      .where(sql`${table.status} = 'completed'`),
     index("trips_reporter_active_created_idx")
       .on(table.reporterKeyHash, table.createdAt)
       .where(sql`${table.status} = 'active'`),

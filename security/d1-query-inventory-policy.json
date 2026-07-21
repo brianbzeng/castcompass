@@ -11,8 +11,8 @@
     "worker/validation-feasibility-export.ts"
   ],
   "expectedSummary": {
-    "prepareCallCount": 220,
-    "literalCallCount": 194,
+    "prepareCallCount": 219,
+    "literalCallCount": 193,
     "nonLiteralCallCount": 26,
     "multiRowLiteralWithoutLimitCount": 12
   },
@@ -89,7 +89,7 @@
     },
     {
       "file": "worker/auth.ts",
-      "expressionSha256": "edd9f72bd15120f863d2075a2325a41bee53fb90a568e16cb2d4f7421c2d9e79",
+      "expressionSha256": "44a48319b3007a69ccc82ff6d97c890ddd0d4ce13d1f6e9d5728a3d22af2b905",
       "staticAuthority": "server-owned forecastInvalidation chooses one of two fixed column-reset fragments",
       "executionContract": "single pending-trip update bound by id and authenticated user_id",
       "rationale": "No request value becomes SQL syntax; all user values remain D1 bindings."
@@ -220,9 +220,9 @@
       "rationale": "Gear profiles are included completely in the authenticated portability export."
     },
     {
-      "callSiteId": "26ae0e0f2e25a801b3126712",
+      "callSiteId": "10bc72fcf7a5178a067bff97",
       "file": "worker/privacy-export.ts",
-      "sqlSha256": "369ec8856c9ae369d42562864477e222c82acbb16cf1602bf5c7ef324b8add70",
+      "sqlSha256": "edd22b8836ae5190e043f3d44818f5cea0395ff16e9492e5a952fc596aabac29",
       "scope": "complete owner export",
       "boundPredicate": "user_id = ?",
       "rowBoundStatus": "complete-rights-export",

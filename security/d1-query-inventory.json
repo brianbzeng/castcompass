@@ -1,11 +1,11 @@
 {
   "schemaVersion": "castingcompass.d1-query-inventory/1.0.0",
   "generatedFrom": "TypeScript AST; no runtime or provider query executed",
-  "policySha256": "61d7e47cf8644982861e0d8a1c81777f15d4ed1a2d190a2a9a5640dfcd24ff55",
+  "policySha256": "20e8004987b23f501bad2a2bd3975abb424b9e52eae218bc96667686802a432f",
   "sourceFiles": [
     {
       "file": "worker/auth.ts",
-      "sha256": "d179d597a92278399bbd289c60a717b92513bc7c646c8efbbf2db764a6556f38",
+      "sha256": "e88135ae2f8413f65e36e2a83998d8a90ac07b9cb6f9cca7dba6099f93c930e0",
       "prepareCallCount": 127
     },
     {
@@ -15,7 +15,7 @@
     },
     {
       "file": "worker/privacy-export.ts",
-      "sha256": "bc50a5f4cf36404570aa158fb7f9db5698a846f8148215bc013c5dc032e7e253",
+      "sha256": "d87008bf4bc061180149632b3cd01364e5f8e99f147674196b6080059206ffba",
       "prepareCallCount": 34
     },
     {
@@ -25,17 +25,17 @@
     },
     {
       "file": "worker/trip-review-queue.ts",
-      "sha256": "ced218fa5c65185dcc6761d2a68b275a5d88ed96fdf8dc7a8f1e3bf13da2092e",
-      "prepareCallCount": 19
+      "sha256": "1f9c792db5b7f483e469188ffd322f534384f43277f9eb7cd41ad380a063baf2",
+      "prepareCallCount": 16
     },
     {
       "file": "worker/trip-review.ts",
-      "sha256": "b763c175084db5be519dbf58bf89b658e398d1c18a7d68c79a463a8e892f5245",
-      "prepareCallCount": 7
+      "sha256": "47730c3b334840d2b07b352147274d49d576acaa2d99faa67911394141962da1",
+      "prepareCallCount": 9
     },
     {
       "file": "worker/trips.ts",
-      "sha256": "6ef16fa5ee79ddeb21f80a2e82aa9e7b9166075ce120feb3004081071917a767",
+      "sha256": "c1810344769e1beb2f84a8717787926f5a0db2bdc204958a84590b5dcb483d32",
       "prepareCallCount": 26
     },
     {
@@ -45,8 +45,8 @@
     }
   ],
   "summary": {
-    "prepareCallCount": 220,
-    "literalCallCount": 194,
+    "prepareCallCount": 219,
+    "literalCallCount": 193,
     "nonLiteralCallCount": 26,
     "multiRowLiteralWithoutLimitCount": 12
   },
@@ -1529,19 +1529,19 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "e14815f238b5e835269e4c78",
+      "callSiteId": "828e36d0ac05c3641c7bf1dd",
       "file": "worker/auth.ts",
       "line": 1159,
       "containingFunction": "handleAccountRequest",
       "occurrence": 69,
       "executionMode": "all",
       "argumentKind": "literal",
-      "expression": "`SELECT * FROM trips\n        WHERE user_id = ? AND status = 'completed'\n          AND (ai_review_status IS NULL OR ai_review_status = 'retry')\n        ORDER BY COALESCE(completed_at, ended_at, started_at) DESC\n        LIMIT 10`",
-      "expressionSha256": "751f9003da1d14743677fd9d360a2989a1c6442a68e8855ba611c08ae268391a",
+      "expression": "`SELECT * FROM trips INDEXED BY trips_user_history_idx\n        WHERE user_id = ? AND status = 'completed'\n          AND (ai_review_status IS NULL OR ai_review_status = 'retry')\n        ORDER BY COALESCE(completed_at, ended_at, started_at) DESC\n        LIMIT 10`",
+      "expressionSha256": "ee9988b3879cbd5a376c0116a6c70ea487617d881ba3a891f88289ab8e4aa3af",
       "declarationReference": null,
       "statementClass": "SELECT",
-      "sql": "SELECT * FROM trips WHERE user_id = ? AND status = 'completed' AND (ai_review_status IS NULL OR ai_review_status = 'retry') ORDER BY COALESCE(completed_at, ended_at, started_at) DESC LIMIT 10",
-      "sqlSha256": "54d90c1348fa0252da111cc6f8d95b7f928a6460cd870bbc896990031c0157ec",
+      "sql": "SELECT * FROM trips INDEXED BY trips_user_history_idx WHERE user_id = ? AND status = 'completed' AND (ai_review_status IS NULL OR ai_review_status = 'retry') ORDER BY COALESCE(completed_at, ended_at, started_at) DESC LIMIT 10",
+      "sqlSha256": "4c3bbb6c608ba6327b80d212a192da29add84027839325759a705d2a74f9d4b9",
       "tables": [
         "trips"
       ],
@@ -1551,19 +1551,19 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "4b0e00cda4be3a90ae0807f4",
+      "callSiteId": "fd13aa4b7613842f2710e2a2",
       "file": "worker/auth.ts",
       "line": 1168,
       "containingFunction": "map-callback",
       "occurrence": 70,
       "executionMode": "batch",
       "argumentKind": "literal",
-      "expression": "`UPDATE trips SET ai_review_status = 'queued'\n            WHERE id = ? AND user_id = ?\n              AND (ai_review_status IS NULL OR ai_review_status = 'retry')`",
-      "expressionSha256": "deea7bcc478b6fc3cbf0cfc4856b583c21738a5df95eaa62bfe04006c4566c91",
+      "expression": "`UPDATE trips SET ai_review_status = 'queued', ai_review_json = NULL,\n              ai_review_model = NULL, ai_reviewed_at = NULL\n            WHERE id = ? AND user_id = ?\n              AND (ai_review_status IS NULL OR ai_review_status = 'retry')`",
+      "expressionSha256": "a4ce58ab64bb1e753db52dbfcc9eb2b5d11332db4e6842d628f236f7148e06af",
       "declarationReference": null,
       "statementClass": "UPDATE",
-      "sql": "UPDATE trips SET ai_review_status = 'queued' WHERE id = ? AND user_id = ? AND (ai_review_status IS NULL OR ai_review_status = 'retry')",
-      "sqlSha256": "c594a97aae2cdc66d7f38207a5a0689ee409239f327fe980332b517f98fbbc5b",
+      "sql": "UPDATE trips SET ai_review_status = 'queued', ai_review_json = NULL, ai_review_model = NULL, ai_reviewed_at = NULL WHERE id = ? AND user_id = ? AND (ai_review_status IS NULL OR ai_review_status = 'retry')",
+      "sqlSha256": "51b3d2585f52e94954ff41b4c34745890dba948567e50de2932b0fa1099006e9",
       "tables": [
         "trips"
       ],
@@ -1575,7 +1575,7 @@
     {
       "callSiteId": "cc54cb17179ebff529c65091",
       "file": "worker/auth.ts",
-      "line": 1191,
+      "line": 1192,
       "containingFunction": "handleAccountRequest",
       "occurrence": 71,
       "executionMode": "all",
@@ -1595,19 +1595,19 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "744250ff8539ed9860c43e7e",
+      "callSiteId": "5e549d68d48274f9f4a67b49",
       "file": "worker/auth.ts",
-      "line": 1194,
+      "line": 1195,
       "containingFunction": "handleAccountRequest",
       "occurrence": 72,
       "executionMode": "all",
       "argumentKind": "literal",
-      "expression": "`SELECT id, source, site_id, started_at, ended_at, mode, fishing_method,\n          angler_count, angler_hours, keeper_count, short_released_count, halibut_encounters,\n          no_catch, other_catch_count, other_species, observations_json, notes, moderation_status,\n          observation_contract_version, taxon_catalog_version, target_taxon_id, contract_status,\n          taxon_observations_json, outcome_class, target_encounter_count, any_fish_encounter_count,\n          target_identification_confidence,\n          opportunity_score, fishability_score, model_version, gear_profile_id, rod, reel,\n          bait_lure, rig, ai_review_status, ai_review_json, ai_review_model, ai_reviewed_at, completed_at\n          FROM trips\n          WHERE user_id = ? AND status = 'completed'\n          ORDER BY COALESCE(completed_at, ended_at, started_at) DESC\n          LIMIT 100`",
-      "expressionSha256": "f600893e93e853627f1d9d76e2d303ac930da353cfe6a41bb8d668936823fd24",
+      "expression": "`SELECT id, source, site_id, started_at, ended_at, mode, fishing_method,\n          angler_count, angler_hours, keeper_count, short_released_count, halibut_encounters,\n          no_catch, other_catch_count, other_species, observations_json, notes, moderation_status,\n          observation_contract_version, taxon_catalog_version, target_taxon_id, contract_status,\n          taxon_observations_json, outcome_class, target_encounter_count, any_fish_encounter_count,\n          target_identification_confidence,\n          opportunity_score, fishability_score, model_version, gear_profile_id, rod, reel,\n          bait_lure, rig, ai_review_status,\n          CASE WHEN ai_review_status = 'processing' THEN NULL ELSE ai_review_json END AS ai_review_json,\n          ai_review_model, ai_reviewed_at, completed_at\n          FROM trips INDEXED BY trips_user_history_idx\n          WHERE user_id = ? AND status = 'completed'\n          ORDER BY COALESCE(completed_at, ended_at, started_at) DESC\n          LIMIT 100`",
+      "expressionSha256": "cbb637564fce7a470ef3d06514aec379cc07334ad58b24d1789f1fe51286fb57",
       "declarationReference": null,
       "statementClass": "SELECT",
-      "sql": "SELECT id, source, site_id, started_at, ended_at, mode, fishing_method, angler_count, angler_hours, keeper_count, short_released_count, halibut_encounters, no_catch, other_catch_count, other_species, observations_json, notes, moderation_status, observation_contract_version, taxon_catalog_version, target_taxon_id, contract_status, taxon_observations_json, outcome_class, target_encounter_count, any_fish_encounter_count, target_identification_confidence, opportunity_score, fishability_score, model_version, gear_profile_id, rod, reel, bait_lure, rig, ai_review_status, ai_review_json, ai_review_model, ai_reviewed_at, completed_at FROM trips WHERE user_id = ? AND status = 'completed' ORDER BY COALESCE(completed_at, ended_at, started_at) DESC LIMIT 100",
-      "sqlSha256": "3d010d4b4003c052acb200f7e86876d37aa4c99176bf701f807c3682398bd635",
+      "sql": "SELECT id, source, site_id, started_at, ended_at, mode, fishing_method, angler_count, angler_hours, keeper_count, short_released_count, halibut_encounters, no_catch, other_catch_count, other_species, observations_json, notes, moderation_status, observation_contract_version, taxon_catalog_version, target_taxon_id, contract_status, taxon_observations_json, outcome_class, target_encounter_count, any_fish_encounter_count, target_identification_confidence, opportunity_score, fishability_score, model_version, gear_profile_id, rod, reel, bait_lure, rig, ai_review_status, CASE WHEN ai_review_status = 'processing' THEN NULL ELSE ai_review_json END AS ai_review_json, ai_review_model, ai_reviewed_at, completed_at FROM trips INDEXED BY trips_user_history_idx WHERE user_id = ? AND status = 'completed' ORDER BY COALESCE(completed_at, ended_at, started_at) DESC LIMIT 100",
+      "sqlSha256": "f7471aff10f2a40d5da63d1b62f7785b6b220c366c096c3fa333c727939dcdbc",
       "tables": [
         "trips"
       ],
@@ -1619,7 +1619,7 @@
     {
       "callSiteId": "220af68eb29b08ea30bacccb",
       "file": "worker/auth.ts",
-      "line": 1208,
+      "line": 1211,
       "containingFunction": "handleAccountRequest",
       "occurrence": 73,
       "executionMode": "all",
@@ -1641,7 +1641,7 @@
     {
       "callSiteId": "113b0b7f8e666c54bc864b41",
       "file": "worker/auth.ts",
-      "line": 1235,
+      "line": 1238,
       "containingFunction": "handleAccountRequest",
       "occurrence": 74,
       "executionMode": "all",
@@ -1663,7 +1663,7 @@
     {
       "callSiteId": "fc48ffcf985f7308782374f4",
       "file": "worker/auth.ts",
-      "line": 1255,
+      "line": 1258,
       "containingFunction": "handleAccountRequest",
       "occurrence": 75,
       "executionMode": "run",
@@ -1685,7 +1685,7 @@
     {
       "callSiteId": "d5e81b478cc0542a8e698c7e",
       "file": "worker/auth.ts",
-      "line": 1276,
+      "line": 1279,
       "containingFunction": "handleAccountRequest",
       "occurrence": 76,
       "executionMode": "first",
@@ -1707,7 +1707,7 @@
     {
       "callSiteId": "d5b5fb1d33291a4228ae3a40",
       "file": "worker/auth.ts",
-      "line": 1281,
+      "line": 1284,
       "containingFunction": "handleAccountRequest",
       "occurrence": 77,
       "executionMode": "run",
@@ -1729,7 +1729,7 @@
     {
       "callSiteId": "a5bc28cf220a7e0fd951df92",
       "file": "worker/auth.ts",
-      "line": 1298,
+      "line": 1301,
       "containingFunction": "handleAccountRequest",
       "occurrence": 78,
       "executionMode": "run",
@@ -1751,7 +1751,7 @@
     {
       "callSiteId": "1ec86e4ea8f80906a3e8da07",
       "file": "worker/auth.ts",
-      "line": 1318,
+      "line": 1321,
       "containingFunction": "handleAccountRequest",
       "occurrence": 79,
       "executionMode": "first",
@@ -1773,7 +1773,7 @@
     {
       "callSiteId": "a159c9364d0efc995dabc5cd",
       "file": "worker/auth.ts",
-      "line": 1347,
+      "line": 1350,
       "containingFunction": "handleAccountRequest",
       "occurrence": 80,
       "executionMode": "batch",
@@ -1796,7 +1796,7 @@
     {
       "callSiteId": "5bfd0459253b04e6beaac3e8",
       "file": "worker/auth.ts",
-      "line": 1350,
+      "line": 1353,
       "containingFunction": "handleAccountRequest",
       "occurrence": 81,
       "executionMode": "batch",
@@ -1818,7 +1818,7 @@
     {
       "callSiteId": "23f463fffd89eaa5c77b58b8",
       "file": "worker/auth.ts",
-      "line": 1377,
+      "line": 1380,
       "containingFunction": "handleAccountRequest",
       "occurrence": 82,
       "executionMode": "first",
@@ -1841,7 +1841,7 @@
     {
       "callSiteId": "b7c898386fa1986ebd5fcc0b",
       "file": "worker/auth.ts",
-      "line": 1392,
+      "line": 1395,
       "containingFunction": "handleAccountRequest",
       "occurrence": 83,
       "executionMode": "first",
@@ -1864,7 +1864,7 @@
     {
       "callSiteId": "c7f9f501d6c7d643ee8b650f",
       "file": "worker/auth.ts",
-      "line": 1400,
+      "line": 1403,
       "containingFunction": "handleAccountRequest",
       "occurrence": 84,
       "executionMode": "first",
@@ -1887,7 +1887,7 @@
     {
       "callSiteId": "991849f45354baef5913ed8b",
       "file": "worker/auth.ts",
-      "line": 1473,
+      "line": 1476,
       "containingFunction": "handleAccountRequest",
       "occurrence": 85,
       "executionMode": "first",
@@ -1907,15 +1907,15 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "d00248b684d50465ab365e29",
+      "callSiteId": "497ed10def79153f00da51c7",
       "file": "worker/auth.ts",
-      "line": 1550,
+      "line": 1553,
       "containingFunction": "handleAccountRequest",
       "occurrence": 86,
       "executionMode": "prepared-statement",
       "argumentKind": "reviewed-nonliteral",
-      "expression": "`UPDATE trips SET site_id = ?, started_at = ?, ended_at = ?, mode = ?, fishing_method = ?,\n          angler_count = ?, angler_hours = ?, keeper_count = ?, short_released_count = ?,\n          halibut_encounters = ?, no_catch = ?, gear_profile_id = ?, rod = ?, reel = ?, bait_lure = ?, rig = ?,\n          other_catch_count = ?, other_species = ?, observations_json = ?, notes = ?, updated_at = ?, completed_at = ?,\n          ${forecastInvalidation}\n          observation_contract_version = ?, taxon_catalog_version = ?, target_taxon_id = ?, contract_status = ?,\n          taxon_observations_json = ?, outcome_class = ?, target_encounter_count = ?, any_fish_encounter_count = ?,\n          target_identification_confidence = ?,\n          ai_review_status = 'retry', ai_review_json = NULL, ai_reviewed_at = NULL\n          WHERE id = ? AND user_id = ? AND moderation_status = 'pending'`",
-      "expressionSha256": "edd9f72bd15120f863d2075a2325a41bee53fb90a568e16cb2d4f7421c2d9e79",
+      "expression": "`UPDATE trips SET site_id = ?, started_at = ?, ended_at = ?, mode = ?, fishing_method = ?,\n          angler_count = ?, angler_hours = ?, keeper_count = ?, short_released_count = ?,\n          halibut_encounters = ?, no_catch = ?, gear_profile_id = ?, rod = ?, reel = ?, bait_lure = ?, rig = ?,\n          other_catch_count = ?, other_species = ?, observations_json = ?, notes = ?, updated_at = ?, completed_at = ?,\n          ${forecastInvalidation}\n          observation_contract_version = ?, taxon_catalog_version = ?, target_taxon_id = ?, contract_status = ?,\n          taxon_observations_json = ?, outcome_class = ?, target_encounter_count = ?, any_fish_encounter_count = ?,\n          target_identification_confidence = ?,\n          ai_review_status = 'retry', ai_review_json = NULL, ai_review_model = NULL, ai_reviewed_at = NULL\n          WHERE id = ? AND user_id = ? AND moderation_status = 'pending'`",
+      "expressionSha256": "44a48319b3007a69ccc82ff6d97c890ddd0d4ce13d1f6e9d5728a3d22af2b905",
       "declarationReference": null,
       "statementClass": "UNRESOLVED",
       "sql": null,
@@ -1929,7 +1929,7 @@
     {
       "callSiteId": "18a11aae1564fb843c6b5ee0",
       "file": "worker/auth.ts",
-      "line": 1597,
+      "line": 1600,
       "containingFunction": "handleAccountRequest",
       "occurrence": 87,
       "executionMode": "prepared-statement",
@@ -1952,7 +1952,7 @@
     {
       "callSiteId": "298b03b714953e63bd490fc9",
       "file": "worker/auth.ts",
-      "line": 1632,
+      "line": 1635,
       "containingFunction": "handleAccountRequest",
       "occurrence": 88,
       "executionMode": "first",
@@ -1974,7 +1974,7 @@
     {
       "callSiteId": "dcd32ccc7bbf356f6f183aad",
       "file": "worker/auth.ts",
-      "line": 1653,
+      "line": 1656,
       "containingFunction": "handleAccountRequest",
       "occurrence": 89,
       "executionMode": "all",
@@ -1996,7 +1996,7 @@
     {
       "callSiteId": "5daa541cfe7bc23d55e850b2",
       "file": "worker/auth.ts",
-      "line": 1674,
+      "line": 1677,
       "containingFunction": "handleAccountRequest",
       "occurrence": 90,
       "executionMode": "run",
@@ -2018,7 +2018,7 @@
     {
       "callSiteId": "a75c0878dee8375ec275ebca",
       "file": "worker/auth.ts",
-      "line": 1680,
+      "line": 1683,
       "containingFunction": "handleAccountRequest",
       "occurrence": 91,
       "executionMode": "first",
@@ -2040,7 +2040,7 @@
     {
       "callSiteId": "881acee1b1111c762899229c",
       "file": "worker/auth.ts",
-      "line": 1692,
+      "line": 1695,
       "containingFunction": "handleAccountRequest",
       "occurrence": 92,
       "executionMode": "run",
@@ -2062,7 +2062,7 @@
     {
       "callSiteId": "9668ea8e36921f8d6e9b3eaf",
       "file": "worker/auth.ts",
-      "line": 1867,
+      "line": 1870,
       "containingFunction": "jobStatement",
       "occurrence": 93,
       "executionMode": "returned-statement",
@@ -2084,7 +2084,7 @@
     {
       "callSiteId": "7d970aeb024ffd837d28e2ca",
       "file": "worker/auth.ts",
-      "line": 1884,
+      "line": 1887,
       "containingFunction": "jobStatementForPendingTrip",
       "occurrence": 94,
       "executionMode": "returned-statement",
@@ -2107,7 +2107,7 @@
     {
       "callSiteId": "01a76f0e395fcb4bddf9f741",
       "file": "worker/auth.ts",
-      "line": 1904,
+      "line": 1907,
       "containingFunction": "map-callback",
       "occurrence": 95,
       "executionMode": "returned-statement",
@@ -2129,7 +2129,7 @@
     {
       "callSiteId": "8e7653acdc408fb98d4f2424",
       "file": "worker/auth.ts",
-      "line": 1909,
+      "line": 1912,
       "containingFunction": "map-callback",
       "occurrence": 96,
       "executionMode": "returned-statement",
@@ -2152,7 +2152,7 @@
     {
       "callSiteId": "ac3336953b4ef427b32ebcd8",
       "file": "worker/auth.ts",
-      "line": 1932,
+      "line": 1935,
       "containingFunction": "prepareConditionalFeasibilityCorrectionInsert",
       "occurrence": 97,
       "executionMode": "returned-statement",
@@ -2175,7 +2175,7 @@
     {
       "callSiteId": "11a134e121dd4125138cbfbb",
       "file": "worker/auth.ts",
-      "line": 2002,
+      "line": 2005,
       "containingFunction": "selectDeletionJobByReceipt",
       "occurrence": 98,
       "executionMode": "first",
@@ -2197,7 +2197,7 @@
     {
       "callSiteId": "cf65a850e0ad2ac8b6260a40",
       "file": "worker/auth.ts",
-      "line": 2048,
+      "line": 2051,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 99,
       "executionMode": "prepared-statement",
@@ -2206,7 +2206,7 @@
       "expressionSha256": "a8b771920b8319e47251d1360f5e880bc18e8d329b0f0d003ea3c7e615558947",
       "declarationReference": {
         "name": "query",
-        "declarationLine": 2038,
+        "declarationLine": 2041,
         "initializerSha256": "05139c4a1763b5ed8aa6c9f315d924283f43ed5303c1421963ed34fe4233c78e"
       },
       "statementClass": "UNRESOLVED",
@@ -2221,7 +2221,7 @@
     {
       "callSiteId": "e89634e85da9715f1e51fa81",
       "file": "worker/auth.ts",
-      "line": 2062,
+      "line": 2065,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 100,
       "executionMode": "run",
@@ -2243,7 +2243,7 @@
     {
       "callSiteId": "371fa5dbe66f1a2e5b5cf86a",
       "file": "worker/auth.ts",
-      "line": 2074,
+      "line": 2077,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 101,
       "executionMode": "run",
@@ -2265,7 +2265,7 @@
     {
       "callSiteId": "2c60c73a013acd919b69cc0a",
       "file": "worker/auth.ts",
-      "line": 2091,
+      "line": 2094,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 102,
       "executionMode": "run",
@@ -2287,7 +2287,7 @@
     {
       "callSiteId": "9b2843f57ed8b793fe713102",
       "file": "worker/auth.ts",
-      "line": 2102,
+      "line": 2105,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 103,
       "executionMode": "run",
@@ -2309,7 +2309,7 @@
     {
       "callSiteId": "13a9c3735fa301d7677a341c",
       "file": "worker/auth.ts",
-      "line": 2110,
+      "line": 2113,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 104,
       "executionMode": "run",
@@ -2331,7 +2331,7 @@
     {
       "callSiteId": "e37a63a5a5b571a2e0ea3d91",
       "file": "worker/auth.ts",
-      "line": 2115,
+      "line": 2118,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 105,
       "executionMode": "run",
@@ -2353,7 +2353,7 @@
     {
       "callSiteId": "95c7f8fc9454acef01009cdd",
       "file": "worker/auth.ts",
-      "line": 2123,
+      "line": 2126,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 106,
       "executionMode": "run",
@@ -2375,7 +2375,7 @@
     {
       "callSiteId": "91859efdeed5c64c2adbfc23",
       "file": "worker/auth.ts",
-      "line": 2136,
+      "line": 2139,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 107,
       "executionMode": "run",
@@ -2397,7 +2397,7 @@
     {
       "callSiteId": "36ae1143ae7f0b136f88983c",
       "file": "worker/auth.ts",
-      "line": 2152,
+      "line": 2155,
       "containingFunction": "refreshDeletionJobStatus",
       "occurrence": 108,
       "executionMode": "run",
@@ -2420,7 +2420,7 @@
     {
       "callSiteId": "6a031b4e8baa09c42f2d7525",
       "file": "worker/auth.ts",
-      "line": 2194,
+      "line": 2197,
       "containingFunction": "reconcileDeletionJobs",
       "occurrence": 109,
       "executionMode": "all",
@@ -2442,7 +2442,7 @@
     {
       "callSiteId": "ee1570fb5efa4c70cc590775",
       "file": "worker/auth.ts",
-      "line": 2196,
+      "line": 2199,
       "containingFunction": "reconcileDeletionJobs",
       "occurrence": 110,
       "executionMode": "all",
@@ -2465,7 +2465,7 @@
     {
       "callSiteId": "06ffa4553080959c25a01d65",
       "file": "worker/auth.ts",
-      "line": 2230,
+      "line": 2233,
       "containingFunction": "cleanupAuthData",
       "occurrence": 111,
       "executionMode": "batch",
@@ -2487,7 +2487,7 @@
     {
       "callSiteId": "abced008399f8bfaed891d86",
       "file": "worker/auth.ts",
-      "line": 2234,
+      "line": 2237,
       "containingFunction": "cleanupAuthData",
       "occurrence": 112,
       "executionMode": "batch",
@@ -2509,7 +2509,7 @@
     {
       "callSiteId": "f84574e7fba817ef8177cd85",
       "file": "worker/auth.ts",
-      "line": 2238,
+      "line": 2241,
       "containingFunction": "cleanupAuthData",
       "occurrence": 113,
       "executionMode": "batch",
@@ -2531,7 +2531,7 @@
     {
       "callSiteId": "760498dc8083e0434980cad5",
       "file": "worker/auth.ts",
-      "line": 2242,
+      "line": 2245,
       "containingFunction": "cleanupAuthData",
       "occurrence": 114,
       "executionMode": "batch",
@@ -2553,7 +2553,7 @@
     {
       "callSiteId": "9f091f813ccaa0af6a6fb71a",
       "file": "worker/auth.ts",
-      "line": 2247,
+      "line": 2250,
       "containingFunction": "cleanupAuthData",
       "occurrence": 115,
       "executionMode": "batch",
@@ -2576,7 +2576,7 @@
     {
       "callSiteId": "3bc77b028c114e05198d9785",
       "file": "worker/auth.ts",
-      "line": 2258,
+      "line": 2261,
       "containingFunction": "cleanupAuthData",
       "occurrence": 116,
       "executionMode": "batch",
@@ -2598,7 +2598,7 @@
     {
       "callSiteId": "de0344008ba1de8251bc9cf9",
       "file": "worker/auth.ts",
-      "line": 2269,
+      "line": 2272,
       "containingFunction": "selectUserForSession",
       "occurrence": 117,
       "executionMode": "first",
@@ -2620,7 +2620,7 @@
     {
       "callSiteId": "0c1ec66083b47ac59fbabf50",
       "file": "worker/auth.ts",
-      "line": 2290,
+      "line": 2293,
       "containingFunction": "map-callback",
       "occurrence": 118,
       "executionMode": "all",
@@ -2642,7 +2642,7 @@
     {
       "callSiteId": "66ae0e66c6417dc9a25f5706",
       "file": "worker/auth.ts",
-      "line": 2293,
+      "line": 2296,
       "containingFunction": "createSessionResponse",
       "occurrence": 119,
       "executionMode": "batch",
@@ -2664,7 +2664,7 @@
     {
       "callSiteId": "af742afb94e2a6ab6e9dd263",
       "file": "worker/auth.ts",
-      "line": 2298,
+      "line": 2301,
       "containingFunction": "createSessionResponse",
       "occurrence": 120,
       "executionMode": "run",
@@ -2686,7 +2686,7 @@
     {
       "callSiteId": "88003dcee41730babe7c4ee6",
       "file": "worker/auth.ts",
-      "line": 2525,
+      "line": 2528,
       "containingFunction": "validateSignupAgeProof",
       "occurrence": 121,
       "executionMode": "first",
@@ -2708,7 +2708,7 @@
     {
       "callSiteId": "a230ebbe7d9247c254256c2d",
       "file": "worker/auth.ts",
-      "line": 2538,
+      "line": 2541,
       "containingFunction": "consumeSignupAgeProof",
       "occurrence": 122,
       "executionMode": "run",
@@ -2730,7 +2730,7 @@
     {
       "callSiteId": "0ba24ed48e6b39e73b873b62",
       "file": "worker/auth.ts",
-      "line": 2641,
+      "line": 2644,
       "containingFunction": "assertEmailChallengeAllowed",
       "occurrence": 123,
       "executionMode": "first",
@@ -2752,7 +2752,7 @@
     {
       "callSiteId": "dcb25624cb743ef337910be2",
       "file": "worker/auth.ts",
-      "line": 2660,
+      "line": 2663,
       "containingFunction": "verifyEmailChallenge",
       "occurrence": 124,
       "executionMode": "first",
@@ -2774,7 +2774,7 @@
     {
       "callSiteId": "0e55e4584e4b2b3ebd5efa2a",
       "file": "worker/auth.ts",
-      "line": 2677,
+      "line": 2680,
       "containingFunction": "verifyEmailChallenge",
       "occurrence": 125,
       "executionMode": "run",
@@ -2796,7 +2796,7 @@
     {
       "callSiteId": "3df2fc4e67d863f481b0d1fe",
       "file": "worker/auth.ts",
-      "line": 2885,
+      "line": 2888,
       "containingFunction": "cleanupSignupAgeProofCandidate",
       "occurrence": 126,
       "executionMode": "run",
@@ -2818,7 +2818,7 @@
     {
       "callSiteId": "9da71619750ba868daaec60a",
       "file": "worker/auth.ts",
-      "line": 2898,
+      "line": 2901,
       "containingFunction": "cleanupEmailChallengeCandidate",
       "occurrence": 127,
       "executionMode": "run",
@@ -3478,19 +3478,19 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "26ae0e0f2e25a801b3126712",
+      "callSiteId": "10bc72fcf7a5178a067bff97",
       "file": "worker/privacy-export.ts",
       "line": 649,
       "containingFunction": "buildPrivacyExportPayload",
       "occurrence": 27,
       "executionMode": "all",
       "argumentKind": "literal",
-      "expression": "`SELECT id, status, source, site_id, started_at, ended_at, mode, fishing_method,\n      gear, gear_profile_id, rod, reel, bait_lure, rig, angler_count, angler_hours,\n      keeper_count, short_released_count, halibut_encounters, no_catch, other_catch_count,\n      other_species, observations_json, observation_contract_version, taxon_catalog_version,\n      target_taxon_id, contract_status, taxon_observations_json, outcome_class,\n      target_encounter_count, any_fish_encounter_count, target_identification_confidence,\n      notes, consent, consent_at, moderation_status,\n      referral_code, opportunity_window_id, opportunity_score, habitat_score, seasonality_score,\n      conditions_score, fishability_score, model_version, score_influenced_choice,\n      prediction_metadata_json, photo_content_type, photo_size_bytes, created_at, updated_at,\n      completed_at, ai_review_status, ai_review_json, ai_review_model, ai_reviewed_at,\n      CASE WHEN photo_key IS NULL THEN 0 ELSE 1 END AS has_photo, photo_key\n      FROM trips WHERE user_id = ? ORDER BY created_at DESC`",
-      "expressionSha256": "591215d668ecd06b3821a363cc587832e6d6b0474197c15613ef53a431024b2c",
+      "expression": "`SELECT id, status, source, site_id, started_at, ended_at, mode, fishing_method,\n      gear, gear_profile_id, rod, reel, bait_lure, rig, angler_count, angler_hours,\n      keeper_count, short_released_count, halibut_encounters, no_catch, other_catch_count,\n      other_species, observations_json, observation_contract_version, taxon_catalog_version,\n      target_taxon_id, contract_status, taxon_observations_json, outcome_class,\n      target_encounter_count, any_fish_encounter_count, target_identification_confidence,\n      notes, consent, consent_at, moderation_status,\n      referral_code, opportunity_window_id, opportunity_score, habitat_score, seasonality_score,\n      conditions_score, fishability_score, model_version, score_influenced_choice,\n      prediction_metadata_json, photo_content_type, photo_size_bytes, created_at, updated_at,\n      completed_at, ai_review_status,\n      CASE WHEN ai_review_status = 'processing' THEN NULL ELSE ai_review_json END AS ai_review_json,\n      ai_review_model, ai_reviewed_at,\n      CASE WHEN photo_key IS NULL THEN 0 ELSE 1 END AS has_photo, photo_key\n      FROM trips WHERE user_id = ? ORDER BY created_at DESC`",
+      "expressionSha256": "35cc4c4cff0389c0de815983c3a05433d0e1fe4a47f73836ec348f6f0c4d5bd8",
       "declarationReference": null,
       "statementClass": "SELECT",
-      "sql": "SELECT id, status, source, site_id, started_at, ended_at, mode, fishing_method, gear, gear_profile_id, rod, reel, bait_lure, rig, angler_count, angler_hours, keeper_count, short_released_count, halibut_encounters, no_catch, other_catch_count, other_species, observations_json, observation_contract_version, taxon_catalog_version, target_taxon_id, contract_status, taxon_observations_json, outcome_class, target_encounter_count, any_fish_encounter_count, target_identification_confidence, notes, consent, consent_at, moderation_status, referral_code, opportunity_window_id, opportunity_score, habitat_score, seasonality_score, conditions_score, fishability_score, model_version, score_influenced_choice, prediction_metadata_json, photo_content_type, photo_size_bytes, created_at, updated_at, completed_at, ai_review_status, ai_review_json, ai_review_model, ai_reviewed_at, CASE WHEN photo_key IS NULL THEN 0 ELSE 1 END AS has_photo, photo_key FROM trips WHERE user_id = ? ORDER BY created_at DESC",
-      "sqlSha256": "369ec8856c9ae369d42562864477e222c82acbb16cf1602bf5c7ef324b8add70",
+      "sql": "SELECT id, status, source, site_id, started_at, ended_at, mode, fishing_method, gear, gear_profile_id, rod, reel, bait_lure, rig, angler_count, angler_hours, keeper_count, short_released_count, halibut_encounters, no_catch, other_catch_count, other_species, observations_json, observation_contract_version, taxon_catalog_version, target_taxon_id, contract_status, taxon_observations_json, outcome_class, target_encounter_count, any_fish_encounter_count, target_identification_confidence, notes, consent, consent_at, moderation_status, referral_code, opportunity_window_id, opportunity_score, habitat_score, seasonality_score, conditions_score, fishability_score, model_version, score_influenced_choice, prediction_metadata_json, photo_content_type, photo_size_bytes, created_at, updated_at, completed_at, ai_review_status, CASE WHEN ai_review_status = 'processing' THEN NULL ELSE ai_review_json END AS ai_review_json, ai_review_model, ai_reviewed_at, CASE WHEN photo_key IS NULL THEN 0 ELSE 1 END AS has_photo, photo_key FROM trips WHERE user_id = ? ORDER BY created_at DESC",
+      "sqlSha256": "edd22b8836ae5190e043f3d44818f5cea0395ff16e9492e5a952fc596aabac29",
       "tables": [
         "trips"
       ],
@@ -3502,7 +3502,7 @@
     {
       "callSiteId": "05f1f6845a6b5fcb728994d3",
       "file": "worker/privacy-export.ts",
-      "line": 678,
+      "line": 680,
       "containingFunction": "buildPrivacyExportPayload",
       "occurrence": 28,
       "executionMode": "all",
@@ -3525,7 +3525,7 @@
     {
       "callSiteId": "c6b2f36428fbc68ccd411a95",
       "file": "worker/privacy-export.ts",
-      "line": 688,
+      "line": 690,
       "containingFunction": "buildPrivacyExportPayload",
       "occurrence": 29,
       "executionMode": "all",
@@ -3548,7 +3548,7 @@
     {
       "callSiteId": "623e192f595fda08eec5ee29",
       "file": "worker/privacy-export.ts",
-      "line": 692,
+      "line": 694,
       "containingFunction": "buildPrivacyExportPayload",
       "occurrence": 30,
       "executionMode": "all",
@@ -3571,7 +3571,7 @@
     {
       "callSiteId": "6aaa23dc0d3b397f3deb7c9c",
       "file": "worker/privacy-export.ts",
-      "line": 696,
+      "line": 698,
       "containingFunction": "buildPrivacyExportPayload",
       "occurrence": 31,
       "executionMode": "all",
@@ -3594,7 +3594,7 @@
     {
       "callSiteId": "fc514ef6283d281838ba5a79",
       "file": "worker/privacy-export.ts",
-      "line": 700,
+      "line": 702,
       "containingFunction": "buildPrivacyExportPayload",
       "occurrence": 32,
       "executionMode": "all",
@@ -3616,7 +3616,7 @@
     {
       "callSiteId": "d5a3056ecfcba3f58369d598",
       "file": "worker/privacy-export.ts",
-      "line": 709,
+      "line": 711,
       "containingFunction": "buildPrivacyExportPayload",
       "occurrence": 33,
       "executionMode": "all",
@@ -3639,7 +3639,7 @@
     {
       "callSiteId": "750e621a24fe1fade9bfd795",
       "file": "worker/privacy-export.ts",
-      "line": 775,
+      "line": 777,
       "containingFunction": "activeJobForUser",
       "occurrence": 34,
       "executionMode": "first",
@@ -3792,33 +3792,11 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "10773ef1778cd4a0bb7ed0c9",
+      "callSiteId": "a75deccdde5808e7f48e65c5",
       "file": "worker/trip-review-queue.ts",
-      "line": 244,
+      "line": 247,
       "containingFunction": "dispatchJob",
       "occurrence": 6,
-      "executionMode": "run",
-      "argumentKind": "literal",
-      "expression": "`UPDATE trips SET ai_review_status = 'retry'\n      WHERE id = ? AND ai_review_status = 'processing'`",
-      "expressionSha256": "4271f157a87ef363f849db9433815d8918b1a5f9a5176db134148ea6f497e154",
-      "declarationReference": null,
-      "statementClass": "UPDATE",
-      "sql": "UPDATE trips SET ai_review_status = 'retry' WHERE id = ? AND ai_review_status = 'processing'",
-      "sqlSha256": "1596cbad675f086aef3a28eae07983f2126d62c87abf837001fc888dfa9d67d0",
-      "tables": [
-        "trips"
-      ],
-      "placeholderCount": 1,
-      "hasWhere": true,
-      "hasOrderBy": false,
-      "hasLimit": false
-    },
-    {
-      "callSiteId": "4727eee7cf5c116b711ac5d3",
-      "file": "worker/trip-review-queue.ts",
-      "line": 251,
-      "containingFunction": "dispatchJob",
-      "occurrence": 7,
       "executionMode": "run",
       "argumentKind": "literal",
       "expression": "`UPDATE ai_review_jobs SET state = 'queued',\n      available_at = ?, lease_expires_at = NULL, last_error_code = NULL, updated_at = ?\n    WHERE id = ? AND state IN ('pending', 'retry', 'queued', 'processing')\n      AND (((state = 'pending' OR state = 'retry' OR state = 'queued') AND available_at <= ?)\n        OR (state = 'processing' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))`",
@@ -3836,11 +3814,11 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "d8d89047b85fd7270719b2c0",
+      "callSiteId": "5a808bdc9b3e84000807994d",
       "file": "worker/trip-review-queue.ts",
-      "line": 263,
+      "line": 259,
       "containingFunction": "dispatchJob",
-      "occurrence": 8,
+      "occurrence": 7,
       "executionMode": "run",
       "argumentKind": "literal",
       "expression": "`UPDATE ai_review_jobs SET state = 'pending', available_at = ?,\n        last_error_code = 'queue_publish_failed', updated_at = ?\n      WHERE id = ? AND state = 'queued'`",
@@ -3858,9 +3836,31 @@
       "hasLimit": false
     },
     {
+      "callSiteId": "4dffe7ebd62d1f32a76f058a",
+      "file": "worker/trip-review-queue.ts",
+      "line": 280,
+      "containingFunction": "consumeMessage",
+      "occurrence": 8,
+      "executionMode": "run",
+      "argumentKind": "literal",
+      "expression": "`UPDATE ai_review_jobs SET state = 'processing',\n      attempts = attempts + 1, lease_expires_at = ?, updated_at = ?\n    WHERE id = ? AND attempts < ?\n      AND (state = 'queued'\n        OR ((state = 'pending' OR state = 'retry') AND available_at <= ?)\n        OR (state = 'processing' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))`",
+      "expressionSha256": "9621bc52014c81ff64c8e6921eb0335f5f7d8531b03d2b6d0766dc0c2dcf535b",
+      "declarationReference": null,
+      "statementClass": "UPDATE",
+      "sql": "UPDATE ai_review_jobs SET state = 'processing', attempts = attempts + 1, lease_expires_at = ?, updated_at = ? WHERE id = ? AND attempts < ? AND (state = 'queued' OR ((state = 'pending' OR state = 'retry') AND available_at <= ?) OR (state = 'processing' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))",
+      "sqlSha256": "0f23bb6343dc6d543ea8962a7737fd4243649ea536e57c387fddf23c0853db17",
+      "tables": [
+        "ai_review_jobs"
+      ],
+      "placeholderCount": 6,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": false
+    },
+    {
       "callSiteId": "b6f1174973d97755cdb4839f",
       "file": "worker/trip-review-queue.ts",
-      "line": 284,
+      "line": 293,
       "containingFunction": "consumeMessage",
       "occurrence": 9,
       "executionMode": "first",
@@ -3880,99 +3880,33 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "06381a9bf253a16466823a54",
+      "callSiteId": "6aedd0cdcd465325ea4cd4fe",
       "file": "worker/trip-review-queue.ts",
-      "line": 288,
+      "line": 302,
       "containingFunction": "consumeMessage",
       "occurrence": 10,
       "executionMode": "run",
       "argumentKind": "literal",
-      "expression": "`UPDATE ai_review_jobs SET state = 'processing',\n      attempts = attempts + 1, lease_expires_at = ?, updated_at = ?\n    WHERE id = ? AND attempts < ?\n      AND (state = 'queued'\n        OR ((state = 'pending' OR state = 'retry') AND available_at <= ?)\n        OR (state = 'processing' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))`",
-      "expressionSha256": "9621bc52014c81ff64c8e6921eb0335f5f7d8531b03d2b6d0766dc0c2dcf535b",
+      "expression": "`UPDATE trips SET ai_review_status = 'retry', ai_review_json = NULL,\n      ai_review_model = NULL, ai_reviewed_at = NULL\n    WHERE id = ? AND ai_review_status = 'needs_attention'`",
+      "expressionSha256": "1a1a064606711c9f88c227836d7bf3c8226752dc8cba48768243c5ad26e1afa3",
       "declarationReference": null,
       "statementClass": "UPDATE",
-      "sql": "UPDATE ai_review_jobs SET state = 'processing', attempts = attempts + 1, lease_expires_at = ?, updated_at = ? WHERE id = ? AND attempts < ? AND (state = 'queued' OR ((state = 'pending' OR state = 'retry') AND available_at <= ?) OR (state = 'processing' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))",
-      "sqlSha256": "0f23bb6343dc6d543ea8962a7737fd4243649ea536e57c387fddf23c0853db17",
+      "sql": "UPDATE trips SET ai_review_status = 'retry', ai_review_json = NULL, ai_review_model = NULL, ai_reviewed_at = NULL WHERE id = ? AND ai_review_status = 'needs_attention'",
+      "sqlSha256": "279eca0edb2db50c3aba290b78ab27215ed6aa0ab61d530b88d64dab01115f00",
       "tables": [
-        "ai_review_jobs"
+        "trips"
       ],
-      "placeholderCount": 6,
+      "placeholderCount": 1,
       "hasWhere": true,
       "hasOrderBy": false,
       "hasLimit": false
     },
     {
-      "callSiteId": "137bd608846bccfbe9966a01",
+      "callSiteId": "c19f3e3851d42bf66064193e",
       "file": "worker/trip-review-queue.ts",
-      "line": 301,
+      "line": 309,
       "containingFunction": "consumeMessage",
       "occurrence": 11,
-      "executionMode": "first",
-      "argumentKind": "literal",
-      "expression": "`SELECT id, trip_id, state, attempts, available_at, lease_expires_at\n    FROM ai_review_jobs WHERE id = ? LIMIT 1`",
-      "expressionSha256": "c6e9fc93778b501f2aed2a0d3b0e13fee9d2a4e42abc3fd9c6fb4de00d0d0af3",
-      "declarationReference": null,
-      "statementClass": "SELECT",
-      "sql": "SELECT id, trip_id, state, attempts, available_at, lease_expires_at FROM ai_review_jobs WHERE id = ? LIMIT 1",
-      "sqlSha256": "43bf67a22bbdd6ddf21579aead620777b70790dd0f6f3d9b4842d740237f58ec",
-      "tables": [
-        "ai_review_jobs"
-      ],
-      "placeholderCount": 1,
-      "hasWhere": true,
-      "hasOrderBy": false,
-      "hasLimit": true
-    },
-    {
-      "callSiteId": "4d55670002aa681bde0bba40",
-      "file": "worker/trip-review-queue.ts",
-      "line": 311,
-      "containingFunction": "consumeMessage",
-      "occurrence": 12,
-      "executionMode": "run",
-      "argumentKind": "literal",
-      "expression": "`UPDATE trips SET ai_review_status = 'retry'\n      WHERE id = ? AND ai_review_status = 'processing'`",
-      "expressionSha256": "4271f157a87ef363f849db9433815d8918b1a5f9a5176db134148ea6f497e154",
-      "declarationReference": null,
-      "statementClass": "UPDATE",
-      "sql": "UPDATE trips SET ai_review_status = 'retry' WHERE id = ? AND ai_review_status = 'processing'",
-      "sqlSha256": "1596cbad675f086aef3a28eae07983f2126d62c87abf837001fc888dfa9d67d0",
-      "tables": [
-        "trips"
-      ],
-      "placeholderCount": 1,
-      "hasWhere": true,
-      "hasOrderBy": false,
-      "hasLimit": false
-    },
-    {
-      "callSiteId": "c83399ad97cda04bbfb07032",
-      "file": "worker/trip-review-queue.ts",
-      "line": 316,
-      "containingFunction": "consumeMessage",
-      "occurrence": 13,
-      "executionMode": "run",
-      "argumentKind": "literal",
-      "expression": "`UPDATE trips SET ai_review_status = 'retry'\n    WHERE id = ? AND ai_review_status = 'needs_attention'`",
-      "expressionSha256": "fa589957622fd0d66c140d013fbb127f7621fe05e40dca20dbbf1f1fa7ded761",
-      "declarationReference": null,
-      "statementClass": "UPDATE",
-      "sql": "UPDATE trips SET ai_review_status = 'retry' WHERE id = ? AND ai_review_status = 'needs_attention'",
-      "sqlSha256": "9bad55ae5c5cafcddd9b4525851d3e58a53367fb28b2141825f2033ff8a20d92",
-      "tables": [
-        "trips"
-      ],
-      "placeholderCount": 1,
-      "hasWhere": true,
-      "hasOrderBy": false,
-      "hasLimit": false
-    },
-    {
-      "callSiteId": "c9e0888f247d4aad5af56a8f",
-      "file": "worker/trip-review-queue.ts",
-      "line": 322,
-      "containingFunction": "consumeMessage",
-      "occurrence": 14,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "\"SELECT ai_review_status FROM trips WHERE id = ? LIMIT 1\"",
@@ -3990,11 +3924,11 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "ea5b1671215d56502a18d4a3",
+      "callSiteId": "040f51068a3e80647b5ba16e",
       "file": "worker/trip-review-queue.ts",
-      "line": 327,
+      "line": 314,
       "containingFunction": "consumeMessage",
-      "occurrence": 15,
+      "occurrence": 12,
       "executionMode": "run",
       "argumentKind": "literal",
       "expression": "`UPDATE ai_review_jobs SET state = 'completed', available_at = ?,\n        lease_expires_at = NULL, last_error_code = NULL, updated_at = ?, completed_at = ?\n      WHERE id = ? AND state = 'processing'`",
@@ -4012,11 +3946,11 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "8c9bb43b257ac58fa2713edd",
+      "callSiteId": "678c7777aac2a509eb1471f1",
       "file": "worker/trip-review-queue.ts",
-      "line": 341,
+      "line": 328,
       "containingFunction": "consumeMessage",
-      "occurrence": 16,
+      "occurrence": 13,
       "executionMode": "prepared-statement",
       "argumentKind": "literal",
       "expression": "`UPDATE ai_review_jobs SET state = ?, available_at = ?,\n      lease_expires_at = NULL, last_error_code = ?, updated_at = ?\n    WHERE id = ? AND state = 'processing'`",
@@ -4034,19 +3968,19 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "600e3d1f9cf6f37859209403",
+      "callSiteId": "2e172261f5b4aafe82586dc7",
       "file": "worker/trip-review-queue.ts",
-      "line": 354,
+      "line": 341,
       "containingFunction": "consumeMessage",
-      "occurrence": 17,
+      "occurrence": 14,
       "executionMode": "batch",
       "argumentKind": "literal",
-      "expression": "`UPDATE trips SET ai_review_status = 'needs_attention'\n        WHERE id = ? AND ai_review_status != 'reviewed'`",
-      "expressionSha256": "31022d9815778bd5b82aa59f389fa7131a46c24c2d69a4f370cb700a43920908",
+      "expression": "`UPDATE trips SET ai_review_status = 'needs_attention', ai_review_json = NULL,\n          ai_review_model = NULL, ai_reviewed_at = NULL\n        WHERE id = ? AND ai_review_status != 'reviewed'`",
+      "expressionSha256": "b2d2216075de0c67ebe7a8f97c815bc0f6f2c74b77fb85deb0c259b18135068c",
       "declarationReference": null,
       "statementClass": "UPDATE",
-      "sql": "UPDATE trips SET ai_review_status = 'needs_attention' WHERE id = ? AND ai_review_status != 'reviewed'",
-      "sqlSha256": "109186ab743aa9b2d5e1decd7bb2fff02e8eea97a1151d9904a92edf63f65fbb",
+      "sql": "UPDATE trips SET ai_review_status = 'needs_attention', ai_review_json = NULL, ai_review_model = NULL, ai_reviewed_at = NULL WHERE id = ? AND ai_review_status != 'reviewed'",
+      "sqlSha256": "0e11af51f0ff63c1d5c62b92f3df6d546b81fc1c14d5adeb480d85638d8d583f",
       "tables": [
         "trips"
       ],
@@ -4056,11 +3990,11 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "5b7ac2bdc58b4757d3e4368f",
+      "callSiteId": "5f8a1d6b0692c7c6ec8305b4",
       "file": "worker/trip-review-queue.ts",
-      "line": 373,
+      "line": 361,
       "containingFunction": "settleUnclaimedMessage",
-      "occurrence": 18,
+      "occurrence": 15,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "\"SELECT state, available_at FROM ai_review_jobs WHERE id = ? LIMIT 1\"",
@@ -4078,11 +4012,11 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "d7f41089f078178939c6c11a",
+      "callSiteId": "56329ea6c59b1e8211e238d8",
       "file": "worker/trip-review-queue.ts",
-      "line": 401,
+      "line": 389,
       "containingFunction": "deferMessage",
-      "occurrence": 19,
+      "occurrence": 16,
       "executionMode": "run",
       "argumentKind": "literal",
       "expression": "`UPDATE ai_review_jobs SET state = 'pending', available_at = ?,\n      lease_expires_at = NULL, last_error_code = ?, updated_at = ?\n    WHERE id = ? AND state != 'completed' AND state != 'needs_attention'`",
@@ -4100,85 +4034,41 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "1b7719999ac0de17b8f72c0d",
+      "callSiteId": "339045a36794293815d71512",
       "file": "worker/trip-review.ts",
-      "line": 92,
+      "line": 156,
       "containingFunction": "reviewTripWithMimo",
       "occurrence": 1,
       "executionMode": "run",
       "argumentKind": "literal",
-      "expression": "`UPDATE trips SET ai_review_status = 'processing'\n    WHERE id = ? AND status = 'completed'\n      AND (ai_review_status IS NULL OR ai_review_status = 'queued' OR ai_review_status = 'retry')`",
-      "expressionSha256": "e0c886c30fd26b7f924cb0e5d9768718cf3fc356bdaa6b698a7325df897ff7ed",
+      "expression": "`UPDATE trips SET ai_review_status = 'reviewed', ai_review_json = ?,\n      ai_review_model = ?, ai_reviewed_at = ?\n      WHERE id = ? AND ai_review_status = 'processing' AND ai_review_json = ?`",
+      "expressionSha256": "ccf06a8b73d50c78273fc652da288b71fa908738547c156edeb50ee90a7071ed",
       "declarationReference": null,
       "statementClass": "UPDATE",
-      "sql": "UPDATE trips SET ai_review_status = 'processing' WHERE id = ? AND status = 'completed' AND (ai_review_status IS NULL OR ai_review_status = 'queued' OR ai_review_status = 'retry')",
-      "sqlSha256": "0a839b6e3859c0d9d458ce88fe921f87f3009861dc0d46c22037810890975901",
+      "sql": "UPDATE trips SET ai_review_status = 'reviewed', ai_review_json = ?, ai_review_model = ?, ai_reviewed_at = ? WHERE id = ? AND ai_review_status = 'processing' AND ai_review_json = ?",
+      "sqlSha256": "f5f5ab09f8b636d58afc7c3058605aeef33131b23d09236c1c01d930acfacec3",
       "tables": [
         "trips"
       ],
-      "placeholderCount": 1,
+      "placeholderCount": 5,
       "hasWhere": true,
       "hasOrderBy": false,
       "hasLimit": false
     },
     {
-      "callSiteId": "af3ca6943f96841fc928dfb3",
+      "callSiteId": "eaba91a6aedc32478c8daca1",
       "file": "worker/trip-review.ts",
-      "line": 98,
-      "containingFunction": "reviewTripWithMimo",
+      "line": 189,
+      "containingFunction": "claimReviewTrip",
       "occurrence": 2,
-      "executionMode": "first",
-      "argumentKind": "literal",
-      "expression": "`SELECT * FROM trips\n    WHERE id = ? AND status = 'completed' AND ai_review_status = 'processing' LIMIT 1`",
-      "expressionSha256": "5ffa87e3144298d2232792544c6704c0edec4de1befd951749862c6a922b8935",
-      "declarationReference": null,
-      "statementClass": "SELECT",
-      "sql": "SELECT * FROM trips WHERE id = ? AND status = 'completed' AND ai_review_status = 'processing' LIMIT 1",
-      "sqlSha256": "9315171934d2b5ec265694beacdaaad91294fef5c5cd0952633e0baaa1ffef33",
-      "tables": [
-        "trips"
-      ],
-      "placeholderCount": 1,
-      "hasWhere": true,
-      "hasOrderBy": false,
-      "hasLimit": true
-    },
-    {
-      "callSiteId": "83e31c4e89d4d754d054f5c1",
-      "file": "worker/trip-review.ts",
-      "line": 157,
-      "containingFunction": "reviewTripWithMimo",
-      "occurrence": 3,
       "executionMode": "run",
       "argumentKind": "literal",
-      "expression": "`UPDATE trips SET ai_review_status = 'reviewed', ai_review_json = ?,\n      ai_review_model = ?, ai_reviewed_at = ? WHERE id = ? AND ai_review_status = 'processing'`",
-      "expressionSha256": "b0fe959eeda61ea8a87ad053172e20707925fc274b23834bdcbeb257c8df1cf2",
+      "expression": "`UPDATE trips SET ai_review_status = 'processing', ai_review_json = ?,\n        ai_review_model = NULL, ai_reviewed_at = NULL\n      WHERE id = ? AND status = 'completed'\n        AND (ai_review_status IS NULL OR ai_review_status = 'queued' OR ai_review_status = 'retry')`",
+      "expressionSha256": "e9f46f5c2247db690b8a0838a3252a2f106c1cc5dc2b86617dfe7fa5f81ddfbd",
       "declarationReference": null,
       "statementClass": "UPDATE",
-      "sql": "UPDATE trips SET ai_review_status = 'reviewed', ai_review_json = ?, ai_review_model = ?, ai_reviewed_at = ? WHERE id = ? AND ai_review_status = 'processing'",
-      "sqlSha256": "84171029954df8ab9d2e29e4d72ab89ef2d8ae885665285b09dc4aedc1b7e610",
-      "tables": [
-        "trips"
-      ],
-      "placeholderCount": 4,
-      "hasWhere": true,
-      "hasOrderBy": false,
-      "hasLimit": false
-    },
-    {
-      "callSiteId": "320bf24fa0b45a905a1144e4",
-      "file": "worker/trip-review.ts",
-      "line": 167,
-      "containingFunction": "reviewTripWithMimo",
-      "occurrence": 4,
-      "executionMode": "run",
-      "argumentKind": "literal",
-      "expression": "`UPDATE trips SET ai_review_status = 'retry', ai_review_model = ?\n      WHERE id = ? AND ai_review_status = 'processing'`",
-      "expressionSha256": "897c96e6ee8f5a95afbb62765a329b814349dcbf9fe83a398a220b13ff978324",
-      "declarationReference": null,
-      "statementClass": "UPDATE",
-      "sql": "UPDATE trips SET ai_review_status = 'retry', ai_review_model = ? WHERE id = ? AND ai_review_status = 'processing'",
-      "sqlSha256": "2374bfd68d8aa6b614a8261efa010767352a2bf7af65dfb8fd273e10fe2eec72",
+      "sql": "UPDATE trips SET ai_review_status = 'processing', ai_review_json = ?, ai_review_model = NULL, ai_reviewed_at = NULL WHERE id = ? AND status = 'completed' AND (ai_review_status IS NULL OR ai_review_status = 'queued' OR ai_review_status = 'retry')",
+      "sqlSha256": "9394c62abe9bd08f3e126eb6c5d58db6dbe7d3faf59f8ca1c9266e058a44053b",
       "tables": [
         "trips"
       ],
@@ -4188,11 +4078,99 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "f69978061151c38cc81c1b43",
+      "callSiteId": "6d79a2aa589cea3a661ef6a4",
       "file": "worker/trip-review.ts",
-      "line": 225,
-      "containingFunction": "deletionRequestedBeforeDispatch",
+      "line": 203,
+      "containingFunction": "claimReviewTrip",
+      "occurrence": 3,
+      "executionMode": "first",
+      "argumentKind": "literal",
+      "expression": "`SELECT ai_review_json FROM trips\n    WHERE id = ? AND status = 'completed' AND ai_review_status = 'processing' LIMIT 1`",
+      "expressionSha256": "b363b1a0981b542fea4ea98915ee153ceb92c2c6d5996a9b28b8c462a844ef42",
+      "declarationReference": null,
+      "statementClass": "SELECT",
+      "sql": "SELECT ai_review_json FROM trips WHERE id = ? AND status = 'completed' AND ai_review_status = 'processing' LIMIT 1",
+      "sqlSha256": "8309cd0464876ca5e3a42de6a29cda0acc8d2376bd9f67340685bc8cf459c1bc",
+      "tables": [
+        "trips"
+      ],
+      "placeholderCount": 1,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": true
+    },
+    {
+      "callSiteId": "2262132c2ef99870ab699787",
+      "file": "worker/trip-review.ts",
+      "line": 210,
+      "containingFunction": "claimReviewTrip",
+      "occurrence": 4,
+      "executionMode": "run",
+      "argumentKind": "literal",
+      "expression": "`UPDATE trips SET ai_review_json = ?, ai_review_model = NULL, ai_reviewed_at = NULL\n      WHERE id = ? AND status = 'completed' AND ai_review_status = 'processing' AND ai_review_json = ?`",
+      "expressionSha256": "26ab25ef153e0b9665d8012393093146a1e877e6bbc5ca27c89da80b0c577e89",
+      "declarationReference": null,
+      "statementClass": "UPDATE",
+      "sql": "UPDATE trips SET ai_review_json = ?, ai_review_model = NULL, ai_reviewed_at = NULL WHERE id = ? AND status = 'completed' AND ai_review_status = 'processing' AND ai_review_json = ?",
+      "sqlSha256": "9d607c8c16b4a35b8415a542ce42d6ee110c94705e7e6f57d5aa558f64b37da4",
+      "tables": [
+        "trips"
+      ],
+      "placeholderCount": 3,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": false
+    },
+    {
+      "callSiteId": "493dfb65d4e9c22f412c2a8b",
+      "file": "worker/trip-review.ts",
+      "line": 222,
+      "containingFunction": "selectClaimedTrip",
       "occurrence": 5,
+      "executionMode": "first",
+      "argumentKind": "literal",
+      "expression": "`SELECT * FROM trips\n    WHERE id = ? AND status = 'completed' AND ai_review_status = 'processing'\n      AND ai_review_json = ? LIMIT 1`",
+      "expressionSha256": "5904aabdea8d3ef6f6d55000218b1a4487c9ec7a90f6f150ce85ee585464b1d3",
+      "declarationReference": null,
+      "statementClass": "SELECT",
+      "sql": "SELECT * FROM trips WHERE id = ? AND status = 'completed' AND ai_review_status = 'processing' AND ai_review_json = ? LIMIT 1",
+      "sqlSha256": "0c0d5e2ecd267c961376a44c21ef34f889bf9dace84c5557d473cc5115f6ad17",
+      "tables": [
+        "trips"
+      ],
+      "placeholderCount": 2,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": true
+    },
+    {
+      "callSiteId": "39af51d01105208898f7ae71",
+      "file": "worker/trip-review.ts",
+      "line": 252,
+      "containingFunction": "releaseReviewClaim",
+      "occurrence": 6,
+      "executionMode": "run",
+      "argumentKind": "literal",
+      "expression": "`UPDATE trips SET ai_review_status = 'retry', ai_review_json = NULL,\n      ai_review_model = ?, ai_reviewed_at = NULL\n    WHERE id = ? AND ai_review_status = 'processing' AND ai_review_json = ?`",
+      "expressionSha256": "784cd4be30f0bfea8d88543e9f5afbf960c7926691fec770f8406db2f8de2e68",
+      "declarationReference": null,
+      "statementClass": "UPDATE",
+      "sql": "UPDATE trips SET ai_review_status = 'retry', ai_review_json = NULL, ai_review_model = ?, ai_reviewed_at = NULL WHERE id = ? AND ai_review_status = 'processing' AND ai_review_json = ?",
+      "sqlSha256": "27e713b5d3a0477027b187da954552678394bc9a643b817ab13a002b18621012",
+      "tables": [
+        "trips"
+      ],
+      "placeholderCount": 3,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": false
+    },
+    {
+      "callSiteId": "86c01372d88082993448cd57",
+      "file": "worker/trip-review.ts",
+      "line": 310,
+      "containingFunction": "deletionRequestedBeforeDispatch",
+      "occurrence": 7,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "`SELECT 1 AS requested FROM privacy_deletion_jobs\n        WHERE (scope = 'trip' AND subject_hash = ?)\n          OR (scope = 'account' AND owner_subject_hash = ?) LIMIT 1`",
@@ -4210,11 +4188,11 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "60e6885073f97d2cb335a23c",
+      "callSiteId": "41cdf05b10bef460d413d9f6",
       "file": "worker/trip-review.ts",
-      "line": 229,
+      "line": 314,
       "containingFunction": "deletionRequestedBeforeDispatch",
-      "occurrence": 6,
+      "occurrence": 8,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "\"SELECT 1 AS requested FROM privacy_deletion_jobs WHERE scope = 'trip' AND subject_hash = ? LIMIT 1\"",
@@ -4232,23 +4210,23 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "e99eb46e0e8bd7b00d8504a9",
+      "callSiteId": "7a111c2e51ce3ba1d0e91c79",
       "file": "worker/trip-review.ts",
-      "line": 241,
+      "line": 326,
       "containingFunction": "reviewTripBacklog",
-      "occurrence": 7,
+      "occurrence": 9,
       "executionMode": "all",
       "argumentKind": "literal",
-      "expression": "`SELECT id FROM trips\n    WHERE status = 'completed'\n      AND (ai_review_status IS NULL OR ai_review_status = 'queued' OR ai_review_status = 'retry')\n    ORDER BY COALESCE(completed_at, ended_at, started_at) ASC\n    LIMIT ?`",
-      "expressionSha256": "a0faf9f5db03c1c5a1606402bf45dc56bdeb34f964a98580a3edeac0fbf99217",
+      "expression": "`SELECT id FROM trips INDEXED BY trips_ai_review_backlog_idx\n    WHERE status = 'completed'\n      AND ((ai_review_status IS NULL OR ai_review_status = 'queued' OR ai_review_status = 'retry')\n        OR (ai_review_status = 'processing'\n          AND CASE WHEN json_valid(ai_review_json)\n            THEN json_extract(ai_review_json, '$.version') END = ?\n          AND CASE WHEN json_valid(ai_review_json)\n            THEN json_extract(ai_review_json, '$.leaseExpiresAt') END <= ?))\n    ORDER BY COALESCE(completed_at, ended_at, started_at) ASC\n    LIMIT ?`",
+      "expressionSha256": "ba7c0173a862e0a29a51a43338bbff0131f8e84b7d7c4e8585e66599efb38cab",
       "declarationReference": null,
       "statementClass": "SELECT",
-      "sql": "SELECT id FROM trips WHERE status = 'completed' AND (ai_review_status IS NULL OR ai_review_status = 'queued' OR ai_review_status = 'retry') ORDER BY COALESCE(completed_at, ended_at, started_at) ASC LIMIT ?",
-      "sqlSha256": "9ba3fc2bc57ae13d702c91a2a8f4e50e49f709813416287e5b60432b3789dd04",
+      "sql": "SELECT id FROM trips INDEXED BY trips_ai_review_backlog_idx WHERE status = 'completed' AND ((ai_review_status IS NULL OR ai_review_status = 'queued' OR ai_review_status = 'retry') OR (ai_review_status = 'processing' AND CASE WHEN json_valid(ai_review_json) THEN json_extract(ai_review_json, '$.version') END = ? AND CASE WHEN json_valid(ai_review_json) THEN json_extract(ai_review_json, '$.leaseExpiresAt') END <= ?)) ORDER BY COALESCE(completed_at, ended_at, started_at) ASC LIMIT ?",
+      "sqlSha256": "eb883f270c0e1eaa5f8e146926c5abf5c9828e9ce9d3b8b4f3a135a563be93c4",
       "tables": [
         "trips"
       ],
-      "placeholderCount": 1,
+      "placeholderCount": 3,
       "hasWhere": true,
       "hasOrderBy": true,
       "hasLimit": true

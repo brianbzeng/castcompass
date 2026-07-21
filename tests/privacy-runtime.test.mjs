@@ -2831,6 +2831,15 @@ test("export includes user data and downloadable photos without internal locator
   const { sqlite, d1 } = await database();
   const user = await addUser(sqlite, "6");
   const tripId = addTrip(sqlite, user, { photoKey: "private/export.jpg" });
+  const processingTripId = addTrip(sqlite, user);
+  const internalClaim = JSON.stringify({
+    version: "castingcompass.ai-review-claim/1.0.0",
+    token: `airc_${"b".repeat(32)}`,
+    leaseExpiresAt: "2026-07-21T23:59:59.000Z",
+  });
+  sqlite.prepare(`UPDATE trips SET ai_review_status = 'processing', ai_review_json = ?,
+      ai_review_model = NULL, ai_reviewed_at = NULL WHERE id = ?`)
+    .run(internalClaim, processingTripId);
   addDiscussion(sqlite, tripId);
   sqlite.prepare("INSERT INTO saved_sites (user_id, site_id, created_at) VALUES (?, 'ocean-beach', '2026-07-01')").run(user.id);
   sqlite.prepare(`INSERT INTO gear_profiles (id, user_id, name, rod, created_at, updated_at)
@@ -2850,18 +2859,28 @@ test("export includes user data and downloadable photos without internal locator
   }, []);
   assert.equal(exported?.status, 200);
   const payload = await exported.json();
+  const exportedTrip = payload.tripReports.find(({ id }) => id === tripId);
+  const processingExport = payload.tripReports.find(({ id }) => id === processingTripId);
   assert.equal(payload.account.terms_version, LEGAL_VERSION);
-  assert.equal(payload.tripReports[0].consent, 1);
-  assert.equal(payload.tripReports[0].observations_json, '{"waterClarity":"clear"}');
-  assert.equal(payload.tripReports[0].ai_review_model, "mimo-test");
-  assert.equal(payload.tripReports[0].target_taxon_id, "california-halibut");
-  assert.equal(payload.tripReports[0].contract_status, "legacy_unverified");
-  assert.equal(payload.tripReports[0].taxon_observations_json, null);
+  assert.equal(exportedTrip.consent, 1);
+  assert.equal(exportedTrip.observations_json, '{"waterClarity":"clear"}');
+  assert.equal(exportedTrip.ai_review_model, "mimo-test");
+  assert.equal(exportedTrip.target_taxon_id, "california-halibut");
+  assert.equal(exportedTrip.contract_status, "legacy_unverified");
+  assert.equal(exportedTrip.taxon_observations_json, null);
+  assert.equal(processingExport.ai_review_status, "processing");
+  assert.equal(processingExport.ai_review_json, null);
   assert.equal(payload.discussionPosts[0].summary, "Public-safe summary");
   assert.equal(payload.photos[0].availability, "downloadable");
   assert.equal(payload.photos[0].downloadPath, `/api/profile/export/photos/${tripId}`);
   const serialized = JSON.stringify(payload);
-  assert.doesNotMatch(serialized, /private\/export\.jpg|reporter-secret|trip-token-secret|operator-private-identity|approved_by|photo_key|reporter_key_hash|token_hash|idempotency_key_hash/);
+  assert.doesNotMatch(serialized, /private\/export\.jpg|reporter-secret|trip-token-secret|operator-private-identity|approved_by|photo_key|reporter_key_hash|token_hash|idempotency_key_hash|airc_b{32}/);
+
+  const profile = await handleAccountRequest(request("/api/profile", { cookie: user.cookie }), { DB: d1 }, []);
+  const profilePayload = await profile.json();
+  const processingProfile = profilePayload.trips.find(({ id }) => id === processingTripId);
+  assert.equal(processingProfile.ai_review_status, "processing");
+  assert.equal(processingProfile.ai_review_json, null);
 
   const download = await handleAccountRequest(request(`/api/profile/export/photos/${tripId}`, { cookie: user.cookie }), {
     DB: d1,

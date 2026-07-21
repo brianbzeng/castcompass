@@ -241,10 +241,6 @@ async function dispatchJob(env: AiReviewQueueEnv, job: AiReviewJobRow) {
   if (job.state === "completed" || job.state === "needs_attention" || job.available_at > now.toISOString()) return;
   if (job.state === "processing") {
     if (job.lease_expires_at && job.lease_expires_at > now.toISOString()) return;
-    await env.DB.prepare(`UPDATE trips SET ai_review_status = 'retry'
-      WHERE id = ? AND ai_review_status = 'processing'`)
-      .bind(job.trip_id)
-      .run();
   }
   const body: QueueMessageBody = { version: AI_REVIEW_QUEUE_MESSAGE_VERSION, jobId: job.id };
   const redispatchAt = new Date(now.getTime() + REDISPATCH_SECONDS * 1000).toISOString();
@@ -281,10 +277,6 @@ async function consumeMessage(
   const now = new Date();
   const nowIso = now.toISOString();
   const leaseExpiresAt = new Date(now.getTime() + LEASE_SECONDS * 1000).toISOString();
-  const prior = await db.prepare(`SELECT id, trip_id, state, attempts, available_at, lease_expires_at
-    FROM ai_review_jobs WHERE id = ? LIMIT 1`)
-    .bind(body.jobId)
-    .first<AiReviewJobRow>();
   const claimed = await db.prepare(`UPDATE ai_review_jobs SET state = 'processing',
       attempts = attempts + 1, lease_expires_at = ?, updated_at = ?
     WHERE id = ? AND attempts < ?
@@ -307,13 +299,8 @@ async function consumeMessage(
     return;
   }
 
-  if (prior?.state === "processing" && (!prior.lease_expires_at || prior.lease_expires_at <= nowIso)) {
-    await db.prepare(`UPDATE trips SET ai_review_status = 'retry'
-      WHERE id = ? AND ai_review_status = 'processing'`)
-      .bind(job.trip_id)
-      .run();
-  }
-  await db.prepare(`UPDATE trips SET ai_review_status = 'retry'
+  await db.prepare(`UPDATE trips SET ai_review_status = 'retry', ai_review_json = NULL,
+      ai_review_model = NULL, ai_reviewed_at = NULL
     WHERE id = ? AND ai_review_status = 'needs_attention'`)
     .bind(job.trip_id)
     .run();
@@ -351,7 +338,8 @@ async function consumeMessage(
   if (terminal) {
     await db.batch([
       jobStatement,
-      db.prepare(`UPDATE trips SET ai_review_status = 'needs_attention'
+      db.prepare(`UPDATE trips SET ai_review_status = 'needs_attention', ai_review_json = NULL,
+          ai_review_model = NULL, ai_reviewed_at = NULL
         WHERE id = ? AND ai_review_status != 'reviewed'`)
         .bind(job.trip_id),
     ]);

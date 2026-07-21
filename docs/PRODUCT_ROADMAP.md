@@ -607,6 +607,11 @@ after its acceptance checks pass in the intended environment.
       deletion and maintenance recovery, provider-DLQ policy, and a non-executing state-guarded
       replay planner. Production migration, Queue/DLQ bindings, IAM/alerts, isolated failure and
       rollback drills, and the separate activation change remain open.
+    - [x] Make the still-default direct fallback claim independently lease-owned: a provider call
+      follows only exact high-entropy claim read-back, terminal writes repeat that identity,
+      malformed or active processing state is never reclaimed, expired claims recover through
+      the bounded scheduled backlog, and stale workers cannot overwrite a newer result. The
+      internal claim envelope is suppressed from profile and portability responses.
   - [x] Use Cloudflare's managed D1 binding lifecycle instead of inventing a traditional SQL
     connection pool. The optional FastAPI/Postgres process owns one bounded pool with validated
     minimum, maximum, wait-queue, and checkout-timeout settings plus explicit startup/shutdown;

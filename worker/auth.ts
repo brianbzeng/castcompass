@@ -1156,7 +1156,7 @@ export async function handleAccountRequest(
     if (url.pathname === "/api/profile/reviews/retry") {
       if (request.method !== "POST") return methodNotAllowed("POST");
       assertSameOrigin(request);
-      const rows = await db.prepare(`SELECT * FROM trips
+      const rows = await db.prepare(`SELECT * FROM trips INDEXED BY trips_user_history_idx
         WHERE user_id = ? AND status = 'completed'
           AND (ai_review_status IS NULL OR ai_review_status = 'retry')
         ORDER BY COALESCE(completed_at, ended_at, started_at) DESC
@@ -1166,7 +1166,8 @@ export async function handleAccountRequest(
       const trips = rows.results ?? [];
       if (trips.length) {
         const results = await db.batch(trips.map((trip) => db.prepare(
-          `UPDATE trips SET ai_review_status = 'queued'
+          `UPDATE trips SET ai_review_status = 'queued', ai_review_json = NULL,
+              ai_review_model = NULL, ai_reviewed_at = NULL
             WHERE id = ? AND user_id = ?
               AND (ai_review_status IS NULL OR ai_review_status = 'retry')`,
         ).bind(trip.id, user.id)));
@@ -1198,8 +1199,10 @@ export async function handleAccountRequest(
           taxon_observations_json, outcome_class, target_encounter_count, any_fish_encounter_count,
           target_identification_confidence,
           opportunity_score, fishability_score, model_version, gear_profile_id, rod, reel,
-          bait_lure, rig, ai_review_status, ai_review_json, ai_review_model, ai_reviewed_at, completed_at
-          FROM trips
+          bait_lure, rig, ai_review_status,
+          CASE WHEN ai_review_status = 'processing' THEN NULL ELSE ai_review_json END AS ai_review_json,
+          ai_review_model, ai_reviewed_at, completed_at
+          FROM trips INDEXED BY trips_user_history_idx
           WHERE user_id = ? AND status = 'completed'
           ORDER BY COALESCE(completed_at, ended_at, started_at) DESC
           LIMIT 100`)
@@ -1555,7 +1558,7 @@ export async function handleAccountRequest(
           observation_contract_version = ?, taxon_catalog_version = ?, target_taxon_id = ?, contract_status = ?,
           taxon_observations_json = ?, outcome_class = ?, target_encounter_count = ?, any_fish_encounter_count = ?,
           target_identification_confidence = ?,
-          ai_review_status = 'retry', ai_review_json = NULL, ai_reviewed_at = NULL
+          ai_review_status = 'retry', ai_review_json = NULL, ai_review_model = NULL, ai_reviewed_at = NULL
           WHERE id = ? AND user_id = ? AND moderation_status = 'pending'`)
           .bind(
             siteId,

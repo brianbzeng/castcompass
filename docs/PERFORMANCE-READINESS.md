@@ -8,7 +8,7 @@ accounts, or production data.
 ## D1 query inventory
 
 `scripts/generate-d1-query-inventory.mjs` parses every Worker TypeScript source file and records
-all 221 direct `.prepare()` sites: 195 literal statements and 26 separately reviewed nonliteral
+all 219 direct `.prepare()` sites: 193 literal statements and 26 separately reviewed nonliteral
 expressions across eight source files. The committed policy and generated inventory are
 source-hash and call-site bound. CI rejects source-file/count drift, computed or aliased
 `prepare` access, a nonliteral expression without its exact static-authority review, an unscoped
@@ -38,7 +38,7 @@ production-shaped timing and rows-written evidence remains required before calli
 capacity proven.
 
 `scripts/check_d1_query_plans.py` separately applies every migration to an in-memory SQLite
-database, runs 15 representative `EXPLAIN QUERY PLAN` checks, and rejects missing leftmost
+database, runs 23 representative `EXPLAIN QUERY PLAN` checks, and rejects missing leftmost
 indexes for every foreign-key child path. The checked plans cover the highest-frequency or
 growth-sensitive access patterns:
 
@@ -50,7 +50,7 @@ growth-sensitive access patterns:
 | Profile trip history | One authenticated user, completed rows only, `LIMIT 100` | Partial expression index over user and effective completion time; no temporary sort |
 | Complete account trip export | One authenticated user; intentionally complete rather than silently truncated | `(user_id, created_at)` index. Rare cross-child export ordering may sort; no speculative indexes are added solely for exports |
 | Trip submission ceilings | One reporter pseudonym and hour/day windows; active rows have a strict product ceiling | Existing reporter-time index plus a smaller partial active-trip index |
-| Advisory AI backlog | Completed and pending/retry rows, `LIMIT 10` | Partial `(status, effective completion time)` index; row claim remains atomic and idempotent |
+| Advisory AI backlog | Completed new/queued/retry rows plus well-formed expired processing claims, oldest-first with `LIMIT 10` | Reviewed index hint over the completed-trip effective-time partial index; each provider dispatch requires an exact high-entropy read-back claim and stale terminal writes lose |
 | Advisory AI queue outbox | Due pending/retry/queued jobs and expired leases, bounded oldest-first | `(state, available_at, lease_expires_at)` dispatch index plus a unique trip index; D1 remains authoritative under at-least-once delivery |
 | Public discussions | One curated site, newest first, `LIMIT 12`, then a primary-key trip join | Existing `(site_id, observed_at)` index and trip primary key |
 | Privacy deletion receipts, tombstones, jobs, and tasks | Receipt lookup, subject/owner lookup, 50-task worker claims, 100-job reconciliation, and 100-job top-level retention selection; child cascades still require staging cost evidence | Unique receipt, scope/subject, owner/state, state/completion, task retry, and job/object indexes |

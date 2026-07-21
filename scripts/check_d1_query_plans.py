@@ -133,7 +133,7 @@ CHECKS = (
     ),
     PlanCheck(
         "profile trip history",
-        """SELECT id FROM trips
+        """SELECT id FROM trips INDEXED BY trips_user_history_idx
            WHERE user_id = ? AND status = 'completed'
            ORDER BY COALESCE(completed_at, ended_at, started_at) DESC LIMIT 100""",
         ("user_fixture",),
@@ -147,11 +147,17 @@ CHECKS = (
     ),
     PlanCheck(
         "AI review backlog",
-        """SELECT id FROM trips
+        """SELECT id FROM trips INDEXED BY trips_ai_review_backlog_idx
            WHERE status = 'completed'
-             AND (ai_review_status IS NULL OR ai_review_status = 'retry')
+             AND ((ai_review_status IS NULL OR ai_review_status = 'queued'
+                   OR ai_review_status = 'retry')
+               OR (ai_review_status = 'processing'
+                 AND CASE WHEN json_valid(ai_review_json)
+                   THEN json_extract(ai_review_json, '$.version') END = ?
+                 AND CASE WHEN json_valid(ai_review_json)
+                   THEN json_extract(ai_review_json, '$.leaseExpiresAt') END <= ?))
            ORDER BY COALESCE(completed_at, ended_at, started_at) ASC LIMIT ?""",
-        (10,),
+        ("castingcompass.ai-review-claim/1.0.0", "2026-07-21T00:00:00.000Z", 10),
         ("trips_ai_review_backlog_idx",),
     ),
     PlanCheck(
