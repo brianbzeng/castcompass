@@ -75,12 +75,14 @@ the current catalog, not a calibrated chance of catching a fish.
 
 Two owner-requested goals remain incomplete:
 
-1. Extend the separately versioned official water-quality overlay across the
-   Santa Barbara/Goleta catalog and the rest of the launch catalog. The first
-   implemented SFPUC slice covers six San Francisco sites and can suppress a
-   recommendation under a current official status, but it does not change the
-   numeric fishing score. Santa Barbara mappings, source-specific rainfall and
-   outage rules, independent review, guarded deployment, and any validated
+1. Continue the separately versioned official water-quality overlay across the
+   rest of the launch catalog. The second local source slice now covers all 14
+   South Coast locations for explicit countywide BeachWatch actions, with 11
+   direct station mappings and three countywide-only mappings. Active official
+   actions can suppress a recommendation, while an absent, ended, malformed, or
+   unavailable action remains unknown and never changes the numeric fishing
+   score. Independent local mapping/source-latency review, broader Bay Area
+   coverage, complete rainfall semantics, guarded deployment, and any validated
    fishing-quality contribution remain open. No value may imply that water is
    clean, safe, or predictive of catch without the required official and
    prospective evidence.
@@ -91,9 +93,10 @@ Two owner-requested goals remain incomplete:
    invented precise casting spot.
 
 The broader goals remain unchecked in the product roadmap. The implemented
-advisory slice can exclude a currently posted San Francisco site from local
-recommendations without changing the opportunity-score bytes. It does not alter
-Santa Barbara ranking inputs, map structure annotations, or validation boundaries.
+advisory slices can exclude an exactly mapped San Francisco site or a supported
+Santa Barbara action from local recommendations without changing the
+opportunity-score bytes. They do not alter Santa Barbara ranking inputs, map
+structure annotations, or validation boundaries.
 
 ## Trip and validation boundary
 

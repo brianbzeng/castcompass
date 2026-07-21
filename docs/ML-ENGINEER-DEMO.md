@@ -3,9 +3,10 @@
 **Status:** verified local candidate; not a production-release receipt
 
 This demo combines the reviewed Santa Barbara South Coast planning expansion with
-the first fail-closed water-quality advisory slice. It is suitable for a local
-technical walkthrough. It is not authorization to merge, deploy, activate a
-provider, collect validation evidence, or claim model performance.
+the fail-closed San Francisco and Santa Barbara water-contact advisory slices. It
+is suitable for a local technical walkthrough. It is not authorization to merge,
+deploy, activate a provider, collect validation evidence, or claim model
+performance.
 
 ## Start the local candidate
 
@@ -34,13 +35,16 @@ flows as part of the presentation.
    it is not a catch probability.
 3. Open **Forecast check** and show source identity and freshness. Missing or stale
    inputs remain missing or stale instead of receiving invented replacements.
-4. Open `/?site=crissy-field-east-beach` to demonstrate the stable site-link and
-   neutral water-contact context. The checked-in advisory artifact is a
-   deterministic review snapshot, not a live provider query. It never improves
-   the fishing score or claims that contact or seafood is safe.
-5. Point out that an active exact agency status removes a mapped site from the
-   recommendation list without rewriting its attested fishing score. Unmapped,
-   stale, unavailable, or unmonitored sites remain explicitly unknown.
+4. Open `/?site=gaviota-state-park-beach` to demonstrate the stable site-link and
+   the time-stamped State Board posting in the checked-in review snapshot. The
+   official action hides the site from recommendations but does not rewrite its
+   fishing score. Then open `/?site=leadbetter-beach`: its ended action does not
+   become a clean-water claim, so the site remains unknown.
+5. Open `/?site=crissy-field-east-beach` to contrast SFPUC's complete, fresh
+   sample-supported neutral state. Explain that neutral means only no active
+   posting was reported under that source's frozen rules; it never improves the
+   score or claims that contact or seafood is safe. Unmapped, stale, unavailable,
+   unmonitored, and action-absent states remain explicitly unknown.
 6. Show the trip-log language only as a product workflow. Friend and community
    reports remain private ordinary observations; none automatically trains,
    validates, or changes the model.
@@ -59,7 +63,7 @@ flows as part of the presentation.
   the product as validated, accurate, calibrated, predictive, or safer than an
   alternative.
 
-## Verified local receipt
+## Base integration receipt
 
 Implementation commit `ec2d5bc26429eca1a7e45bbef62bfc5c0775d198` passed the Cloudflare build, 472 Node tests, 144 mobile
 Chromium/WebKit cases, ESLint, TypeScript, the complete security and source-
@@ -71,12 +75,21 @@ hosted 144-case web/mobile jobs, API, pipeline, dependency review, all three
 CodeQL languages, release provenance, both native API-image architectures, and
 both optional research-stack platforms. PR `#131` remains draft-only.
 
+The separate Santa Barbara BeachWatch follow-up has also completed its local
+implementation receipt: the Cloudflare build and 475 Node tests, 144 mobile
+Chromium/WebKit cases, ESLint, TypeScript, the full security/SBOM/source-integrity
+chain, both zero-vulnerability npm audits, 29 API tests, 83 pipeline tests (one
+documented optional-`rasterio` skip), Ruff, the synthetic pipeline smoke, and all
+19 D1 query-plan checks passed. This local receipt does not replace the pending
+exact-head hosted receipt and does not authorize a merge or deployment.
+
 ## Deliberately unfinished
 
 - Local-anglers' access review for all 14 regional sites, including two reviews
   for each limited-access site.
-- Official water-quality mappings for Santa Barbara/Goleta and the rest of the
-  launch catalog; any numeric pollution or fishing-quality contribution.
+- Independent local review of the Santa Barbara station/countywide mappings and
+  source latency; official water-quality coverage for the rest of the launch
+  catalog; any numeric pollution or fishing-quality contribution.
 - Location-by-location official/licensed structure and depth inventories.
 - Prospective regional model validation, independent product/safety review,
   provider evidence, guarded deployment, and post-deployment verification.

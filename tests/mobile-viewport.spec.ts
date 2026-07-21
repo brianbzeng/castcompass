@@ -196,9 +196,12 @@ test.beforeEach(async ({ page }, testInfo) => {
       recommendationEffect: "neutral",
       officialLabel: "No active posting reported",
       detail: "Neutral context only. This does not mean the water or seafood is safe and does not improve the fishing score.",
+      sourceId: "sfpuc",
       stationIds: ["4612"],
       stationNames: ["Crissy Field Beach East"],
       sampleDates: ["2026-07-13"],
+      actionStartDates: [],
+      actionEndDates: [],
       checkedAt: "2026-07-17T12:00:00Z",
       scoreDelta: null,
       sourceUrl: "https://webapps.sfpuc.org/sapps/beachesandbay.html",
@@ -208,7 +211,7 @@ test.beforeEach(async ({ page }, testInfo) => {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        schemaVersion: "castingcompass.water-quality-advisory/1.0.0",
+        schemaVersion: "castingcompass.water-quality-advisory/2.0.0",
         policyVersion: "test-policy",
         generatedAt: "2026-07-17T12:00:00Z",
         status: "partial",
@@ -218,8 +221,23 @@ test.beforeEach(async ({ page }, testInfo) => {
           positiveContributionAllowed: false,
           activeAgencyStatusSuppressesRecommendation: true,
         },
-        source: {
-          statusUrl: "https://webapps.sfpuc.org/sapps/beachesandbay.html",
+        sources: {
+          sfpuc: {
+            agency: "San Francisco Public Utilities Commission",
+            programUrl: "https://www.sfpuc.gov/programs/ocean-and-beach-monitoring",
+            statusUrl: "https://webapps.sfpuc.org/sapps/beachesandbay.html",
+            machineUrl: "https://infrastructure.sfwater.org/lims.asmx/getBeaches",
+            absenceBehavior: "neutral-only-with-current-complete-samples",
+            errorCategory: null,
+          },
+          "california-beachwatch-santa-barbara": {
+            agency: "California State Water Resources Control Board",
+            programUrl: "https://www.waterboards.ca.gov/water_issues/programs/beaches/beach_surveys/index.html",
+            statusUrl: "https://beachwatch.waterboards.ca.gov/public/advisory.php",
+            machineUrl: "https://beachwatch.waterboards.ca.gov/public/advisory.php",
+            absenceBehavior: "unknown",
+            errorCategory: null,
+          },
         },
         sites: {
           "baker-beach": assessment({
@@ -231,6 +249,19 @@ test.beforeEach(async ({ page }, testInfo) => {
             stationNames: ["Baker Beach West", "Baker Beach East", "Baker Beach at Lobos Creek"],
           }),
           "crissy-field-east-beach": assessment({}),
+          "gaviota-state-park-beach": assessment({
+            status: "posted",
+            recommendationEffect: "suppress",
+            officialLabel: "Official water-contact posting",
+            detail: "A current county-submitted action in the official State Board table suppresses this site from recommendations.",
+            sourceId: "california-beachwatch-santa-barbara",
+            stationIds: ["WP0000079"],
+            stationNames: ["Gaviota State Beach"],
+            sampleDates: [],
+            actionStartDates: ["2026-06-15"],
+            actionEndDates: [],
+            sourceUrl: "https://beachwatch.waterboards.ca.gov/public/advisory.php",
+          }),
         },
       }),
     }));
@@ -421,9 +452,20 @@ test("primary controls stay inside common phone viewports", async ({ page }) => 
 
 test("official water-quality status suppresses recommendations and keeps neutral status explicit", async ({ page }) => {
   await expect(page.locator(".water-quality-suppression-notice")).toContainText(
-    "1 site is excluded from recommendations",
+    "2 sites are excluded from recommendations",
   );
   await expect(page.locator(".site-card").filter({ hasText: "Baker Beach" })).toHaveCount(0);
+  await expect(page.locator(".site-card").filter({ hasText: "Gaviota State Park Beach" })).toHaveCount(0);
+  await page.goto("/?site=gaviota-state-park-beach");
+  const actionAdvisory = page.locator(".water-quality-advisory");
+  await expect(actionAdvisory).toBeVisible();
+  await expect(actionAdvisory).toContainText("Official water-contact posting");
+  await expect(actionAdvisory).toContainText("Agency action start date: 2026-06-15");
+  await expect(actionAdvisory).toContainText("No end date is reported");
+  await expect(actionAdvisory.getByRole("link", { name: /official agency status/i })).toHaveAttribute(
+    "href",
+    "https://beachwatch.waterboards.ca.gov/public/advisory.php",
+  );
   // Open the exact site through the product's stable deep-link contract. Its rank can move as
   // regional sites are added, so the advisory test must not assume it appears in the first cards.
   await page.goto("/?site=crissy-field-east-beach");

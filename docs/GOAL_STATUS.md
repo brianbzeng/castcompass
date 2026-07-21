@@ -13,6 +13,40 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — Santa Barbara exclusion-only water-contact actions
+
+- [x] Preserve the green regional demo base on draft PR `#131` at exact head
+      `5696ea80afedd7085dc945796bb20bfd64e3fafd`. This follow-up uses a separate stacked branch;
+      it does not modify, merge, deploy, or invalidate that demo receipt.
+- [x] Freeze the second official-source boundary. The California State Water Resources Control
+      Board BeachWatch action table is action-only: an exact current `Closure`, `Posting`, or
+      `Rain` row may suppress a recommendation, but an absent, ended, future, malformed, or
+      unavailable action never becomes a neutral/clean/safe claim and never changes the numeric
+      score.
+- [x] Bind all 14 Santa Barbara South Coast catalog sites to explicit countywide actions; bind 11
+      of those sites to direct reviewed station IDs and leave Mesa Lane, the Harbor Breakwater,
+      and Stearns Wharf countywide-only. Exact closure/posting/rain precedence, start/end dates,
+      independent source failures, and source-specific unknown behavior are machine checked.
+- [x] Extend the artifact contract, collector, browser types/UI, deterministic XML/HTML fixtures,
+      and adversarial tests. The v2 artifact exposes both official sources and action dates while
+      retaining null `scoreDelta` everywhere. The focused 11-test suite, TypeScript, and ESLint
+      pass under pinned Node `22.23.1`.
+- [x] Exercise the adapter against both fixed live official endpoints without changing a provider.
+      The `2026-07-21T07:20:00Z` read-only snapshot parsed both sources, retained absent actions as
+      unknown, and reported open-ended State Board postings for Gaviota and Refugio. The snapshot
+      is time-bound review evidence, not a live guarantee or safety claim.
+- [x] Complete the full local implementation receipt under pinned Node `22.23.1` and the locked
+      Python environments: Cloudflare build plus 475/475 Node tests, ESLint, TypeScript, the
+      complete security/SBOM/source-integrity chain, and zero-vulnerability full and production
+      npm audits passed. The exact Python gates passed 29/29 API tests, Ruff, 83/83 pipeline tests
+      with one documented optional-`rasterio` skip, the deterministic synthetic smoke, and 19
+      migrations / 19 critical D1 query plans with every foreign-key child path indexed. The full
+      Chromium/WebKit phone matrix passed 144/144 cases.
+- [ ] Publish a separate protected draft follow-up and require its exact hosted head to pass CI,
+      CodeQL, release provenance, both native API-image architectures, and both optional research
+      stacks. No merge, deployment, provider mutation, database migration, or production action is
+      authorized by this checkpoint.
+
 ## Active checkpoint — non-production regional and water-quality demo integration
 
 - [x] Reconcile protected `main` `086b2055f44ba5e2595d6bd249866ffb20c3c461`, draft
@@ -1031,9 +1065,17 @@ by that discovery.
       policy maps six exact San Francisco sites, binds its policy/collector/catalog hashes,
       fails stale, incomplete, unmonitored, unavailable, and unmapped status to unknown, gives
       no score credit for a no-posting result, and suppresses recommendations under an active
-      official status without rewriting the attested fishing score. Broader Bay Area and Santa
-      Barbara/Goleta source coverage, rainfall semantics, numeric-contribution validation,
-      independent review, deployment, and post-deployment freshness evidence remain open.
+      official status without rewriting the attested fishing score. Broader Bay Area and
+      remaining launch-catalog source coverage, rainfall semantics, numeric-contribution
+      validation, independent review, deployment, and post-deployment freshness evidence remain
+      open.
+      **Second local advisory slice implemented:** the fixed California State Water Resources
+      Control Board BeachWatch action table covers all 14 South Coast sites for explicit
+      countywide actions and 11 through direct station mappings. Only active closures, postings,
+      or rain actions suppress; absence stays unknown, every `scoreDelta` remains null, and the
+      live adapter check is time-bound repository evidence. Independent mapping/source-latency
+      review, remaining launch-catalog coverage, full local/hosted acceptance, guarded deployment,
+      and every numeric-score gate remain open.
 - [ ] Enrich the map one available location at a time with reviewed notable structure and useful
       depth levels. Every feature needs reproducible official/licensed source provenance, units,
       vertical datum, resolution, retrieval date, checksum, uncertainty, allowed use, sensitive-

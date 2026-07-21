@@ -417,8 +417,10 @@ after its acceptance checks pass in the intended environment.
       request. No local responses or accepted receipt exist yet.
   - [ ] Complete the separately prioritized P2 pollution/water-quality score contract and
     location-by-location structure/depth inventory before claiming either as regional capability.
-    Those deferred goals retain their canonical acceptance boundaries in P2 below and do not block
-    private trip logging or this source-bound geographic checkpoint.
+    The exclusion-only Santa Barbara BeachWatch action slice is locally implemented, but it is not
+    a numeric score input and does not satisfy that broader goal. Those deferred goals retain their
+    canonical acceptance boundaries in P2 below and do not block private trip logging or this
+    source-bound geographic checkpoint.
 
 - [ ] Establish privacy-preserving production observability and an operator console before
   scaling traffic. Evaluate Cloudflare-native logs/analytics and focused vendors such as
@@ -660,11 +662,17 @@ after its acceptance checks pass in the intended environment.
     precedence, explicit stale/unmonitored/unavailable/unmapped states, active-posting
     recommendation suppression, neutral no-posting results, public UI disclosure, deterministic
     adversarial fixtures, and scheduled-review refresh integration.
+  - [x] Freeze and locally implement the second exclusion-only source slice for the Santa Barbara
+    South Coast: the fixed California State Water Resources Control Board BeachWatch action table,
+    all 14 sites covered by explicit countywide actions, 11 direct station mappings, strict
+    closure/posting/rain precedence, action start/end handling, unknown-by-absence semantics,
+    isolated source failures, bounded historical anomaly handling, public action-date disclosure,
+    and deterministic plus live-source adapter checks. Numeric `scoreDelta` remains null.
   - [ ] Extend reviewed official/licensed current-status coverage across the Bay Area and
-    Santa Barbara/Goleta catalogs; freeze source-specific rainfall, geographic-support,
-    freshness, licensing, and outage behavior; validate any proposed numeric fishing-quality
-    contribution against frozen baselines; obtain independent product/safety review; and collect
-    guarded deployment plus post-deployment freshness evidence.
+    remaining launch catalog; independently review the Santa Barbara mappings, source latency,
+    rainfall/geographic support, licensing, and outage behavior; validate any proposed numeric
+    fishing-quality contribution against frozen baselines; obtain independent product/safety
+    review; and collect guarded deployment plus post-deployment freshness evidence.
 - [ ] Build the map location by location until every available location has a reviewed inventory
   of notable structure and useful depth levels. Bind each feature to a reproducible official or
   licensed bathymetry/chart source, units, vertical datum, resolution, retrieval date, checksum,

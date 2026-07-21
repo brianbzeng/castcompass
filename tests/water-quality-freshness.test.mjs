@@ -9,9 +9,12 @@ function assessment(overrides = {}) {
     recommendationEffect: "neutral",
     officialLabel: "No active posting reported",
     detail: "Neutral official context that does not improve the fishing score.",
+    sourceId: "sfpuc",
     stationIds: ["4612"],
     stationNames: ["Crissy Field Beach East"],
     sampleDates: ["2026-07-13"],
+    actionStartDates: [],
+    actionEndDates: [],
     checkedAt: "2026-07-20T20:00:00Z",
     scoreDelta: null,
     sourceUrl: "https://webapps.sfpuc.org/sapps/beachesandbay.html",
@@ -21,7 +24,7 @@ function assessment(overrides = {}) {
 
 function snapshot(siteAssessment) {
   return {
-    schemaVersion: "castingcompass.water-quality-advisory/1.0.0",
+    schemaVersion: "castingcompass.water-quality-advisory/2.0.0",
     policyVersion: "test-policy",
     policySha256: "a".repeat(64),
     collectorSha256: "b".repeat(64),
@@ -35,12 +38,15 @@ function snapshot(siteAssessment) {
       positiveContributionAllowed: false,
       activeAgencyStatusSuppressesRecommendation: true,
     },
-    source: {
-      agency: "San Francisco Public Utilities Commission",
-      programUrl: "https://www.sfpuc.gov/programs/ocean-and-beach-monitoring",
-      statusUrl: "https://webapps.sfpuc.org/sapps/beachesandbay.html",
-      machineUrl: "https://infrastructure.sfwater.org/lims.asmx/getBeaches",
-      errorCategory: null,
+    sources: {
+      sfpuc: {
+        agency: "San Francisco Public Utilities Commission",
+        programUrl: "https://www.sfpuc.gov/programs/ocean-and-beach-monitoring",
+        statusUrl: "https://webapps.sfpuc.org/sapps/beachesandbay.html",
+        machineUrl: "https://infrastructure.sfwater.org/lims.asmx/getBeaches",
+        absenceBehavior: "neutral-only-with-current-complete-samples",
+        errorCategory: null,
+      },
     },
     sites: { "crissy-field-east-beach": siteAssessment },
   };

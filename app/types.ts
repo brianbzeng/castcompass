@@ -141,6 +141,7 @@ export type WaterQualityAdvisoryStatus =
   | "closure"
   | "posted"
   | "advisory"
+  | "rain-advisory"
   | "no-active-posting"
   | "stale"
   | "unmonitored"
@@ -153,16 +154,19 @@ export interface WaterQualitySiteAssessment {
   recommendationEffect: "suppress" | "neutral" | "unknown";
   officialLabel: string;
   detail: string;
+  sourceId: string | null;
   stationIds: string[];
   stationNames: string[];
   sampleDates: string[];
+  actionStartDates: string[];
+  actionEndDates: string[];
   checkedAt: string;
   scoreDelta: null;
   sourceUrl: string;
 }
 
 export interface WaterQualitySnapshot {
-  schemaVersion: "castingcompass.water-quality-advisory/1.0.0";
+  schemaVersion: "castingcompass.water-quality-advisory/2.0.0";
   policyVersion: string;
   policySha256: string;
   collectorSha256: string;
@@ -178,13 +182,14 @@ export interface WaterQualitySnapshot {
     positiveContributionAllowed: false;
     activeAgencyStatusSuppressesRecommendation: true;
   };
-  source: {
+  sources: Record<string, {
     agency: string;
     programUrl: string;
     statusUrl: string;
     machineUrl: string;
+    absenceBehavior: "neutral-only-with-current-complete-samples" | "unknown";
     errorCategory: string | null;
-  };
+  }>;
   sites: Record<string, WaterQualitySiteAssessment>;
 }
 

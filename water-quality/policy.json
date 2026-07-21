@@ -1,23 +1,112 @@
 {
-  "schema_version": "castingcompass.water-quality-policy/1.0.0",
-  "policy_version": "castingcompass.water-quality-advisory/sfpuc-0.1.0",
+  "schema_version": "castingcompass.water-quality-policy/2.0.0",
+  "policy_version": "castingcompass.water-quality-advisory/official-programs-0.2.0",
   "meaning": "human-health water-contact advisory overlay; never a catch-probability or seafood-safety signal",
   "score_contribution": "excluded-pending-frozen-baseline-validation",
   "freshness": {
     "maximum_sample_age_days": 10
   },
-  "source": {
-    "agency": "San Francisco Public Utilities Commission",
-    "program_url": "https://www.sfpuc.gov/programs/ocean-and-beach-monitoring",
-    "status_url": "https://webapps.sfpuc.org/sapps/beachesandbay.html",
-    "machine_url": "https://infrastructure.sfwater.org/lims.asmx/getBeaches"
+  "sources": {
+    "sfpuc": {
+      "source_type": "sfpuc-sample-status-xml",
+      "agency": "San Francisco Public Utilities Commission",
+      "program_url": "https://www.sfpuc.gov/programs/ocean-and-beach-monitoring",
+      "status_url": "https://webapps.sfpuc.org/sapps/beachesandbay.html",
+      "machine_url": "https://infrastructure.sfwater.org/lims.asmx/getBeaches",
+      "absence_behavior": "neutral-only-with-current-complete-samples"
+    },
+    "california-beachwatch-santa-barbara": {
+      "source_type": "california-beachwatch-action-html",
+      "agency": "California State Water Resources Control Board",
+      "program_url": "https://www.waterboards.ca.gov/water_issues/programs/beaches/beach_surveys/index.html",
+      "status_url": "https://beachwatch.waterboards.ca.gov/public/advisory.php",
+      "machine_url": "https://beachwatch.waterboards.ca.gov/public/advisory.php",
+      "county_id": "14",
+      "county_name": "Santa Barbara",
+      "global_station_ids": ["All_Santa_Barbara_County_Beaches"],
+      "absence_behavior": "unknown"
+    }
   },
-  "site_stations": {
-    "baker-beach": ["4608", "4609", "4610"],
-    "china-beach": ["4607"],
-    "crane-cove-park": ["4620"],
-    "crissy-field-east-beach": ["4612"],
-    "ocean-beach-north": ["4604", "4605"],
-    "ocean-beach-south": ["4602"]
+  "site_mappings": {
+    "baker-beach": {
+      "source_id": "sfpuc",
+      "station_ids": ["4608", "4609", "4610"]
+    },
+    "china-beach": {
+      "source_id": "sfpuc",
+      "station_ids": ["4607"]
+    },
+    "crane-cove-park": {
+      "source_id": "sfpuc",
+      "station_ids": ["4620"]
+    },
+    "crissy-field-east-beach": {
+      "source_id": "sfpuc",
+      "station_ids": ["4612"]
+    },
+    "ocean-beach-north": {
+      "source_id": "sfpuc",
+      "station_ids": ["4604", "4605"]
+    },
+    "ocean-beach-south": {
+      "source_id": "sfpuc",
+      "station_ids": ["4602"]
+    },
+    "gaviota-state-park-beach": {
+      "source_id": "california-beachwatch-santa-barbara",
+      "station_ids": ["WP0000079"]
+    },
+    "refugio-state-beach": {
+      "source_id": "california-beachwatch-santa-barbara",
+      "station_ids": ["WP0000183"]
+    },
+    "el-capitan-state-beach": {
+      "source_id": "california-beachwatch-santa-barbara",
+      "station_ids": ["WP0000013"]
+    },
+    "haskells-beach": {
+      "source_id": "california-beachwatch-santa-barbara",
+      "station_ids": ["WP0000186"]
+    },
+    "goleta-beach": {
+      "source_id": "california-beachwatch-santa-barbara",
+      "station_ids": ["WP0000037"]
+    },
+    "arroyo-burro-beach": {
+      "source_id": "california-beachwatch-santa-barbara",
+      "station_ids": ["WP0000147"]
+    },
+    "mesa-lane-beach": {
+      "source_id": "california-beachwatch-santa-barbara",
+      "station_ids": []
+    },
+    "leadbetter-beach": {
+      "source_id": "california-beachwatch-santa-barbara",
+      "station_ids": ["WP0000007"]
+    },
+    "santa-barbara-harbor-breakwater": {
+      "source_id": "california-beachwatch-santa-barbara",
+      "station_ids": []
+    },
+    "stearns-wharf": {
+      "source_id": "california-beachwatch-santa-barbara",
+      "station_ids": []
+    },
+    "east-beach-santa-barbara": {
+      "source_id": "california-beachwatch-santa-barbara",
+      "station_ids": ["WP0000083", "WP0000085"]
+    },
+    "summerland-beach-lookout-park": {
+      "source_id": "california-beachwatch-santa-barbara",
+      "station_ids": ["WP0000188"]
+    },
+    "carpinteria-state-beach": {
+      "source_id": "california-beachwatch-santa-barbara",
+      "station_ids": ["WP0000180"]
+    },
+    "rincon-beach-park": {
+      "source_id": "california-beachwatch-santa-barbara",
+      "station_ids": ["WP0000123"]
+    }
   }
 }

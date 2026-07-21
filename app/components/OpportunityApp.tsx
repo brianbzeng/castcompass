@@ -1303,6 +1303,9 @@ export function OpportunityApp() {
     )),
     [sites, waterQuality],
   );
+  const firstSuppressedWaterQualitySourceUrl = waterQualitySuppressedSites.length
+    ? waterQuality?.sites[waterQualitySuppressedSites[0].id]?.sourceUrl
+    : undefined;
 
   const bestSite = rankedSites[0] ?? null;
   const bestWindow = bestSite ? windowsBySite.get(bestSite.id) ?? null : null;
@@ -1661,8 +1664,8 @@ export function OpportunityApp() {
         {waterQualitySuppressedSites.length > 0 ? (
           <p className="closure-notice water-quality-suppression-notice" role="status">
             {waterQualitySuppressedSites.length} site{waterQualitySuppressedSites.length === 1 ? " is" : "s are"} excluded from recommendations because of an active official water-contact status.
-            {waterQuality?.source.statusUrl ? (
-              <> <a href={waterQuality.source.statusUrl} target="_blank" rel="noreferrer">Official status ↗</a></>
+            {firstSuppressedWaterQualitySourceUrl ? (
+              <> <a href={firstSuppressedWaterQualitySourceUrl} target="_blank" rel="noreferrer">Official status ↗</a></>
             ) : null}
           </p>
         ) : null}
@@ -1949,9 +1952,17 @@ export function OpportunityApp() {
               {selectedWaterQuality?.sampleDates.length ? (
                 <small>Agency sample date{selectedWaterQuality.sampleDates.length === 1 ? "" : "s"}: {selectedWaterQuality.sampleDates.join(", ")}.</small>
               ) : null}
+              {selectedWaterQuality?.actionStartDates.length ? (
+                <small>
+                  Agency action start date{selectedWaterQuality.actionStartDates.length === 1 ? "" : "s"}: {selectedWaterQuality.actionStartDates.join(", ")}.
+                  {selectedWaterQuality.actionEndDates.length
+                    ? ` Reported end date${selectedWaterQuality.actionEndDates.length === 1 ? "" : "s"}: ${selectedWaterQuality.actionEndDates.join(", ")}.`
+                    : " No end date is reported in the source snapshot."}
+                </small>
+              ) : null}
               <small>Water quality does not improve this fishing score and does not establish contact or seafood safety.</small>
               <a
-                href={selectedWaterQuality?.sourceUrl ?? waterQuality?.source.statusUrl ?? "https://www.waterboards.ca.gov/water_issues/programs/beaches/beach_water_quality/"}
+                href={selectedWaterQuality?.sourceUrl ?? Object.values(waterQuality?.sources ?? {})[0]?.statusUrl ?? "https://www.waterboards.ca.gov/water_issues/programs/beaches/beach_water_quality/"}
                 target="_blank"
                 rel="noreferrer"
               >
