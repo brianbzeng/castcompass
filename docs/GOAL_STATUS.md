@@ -61,6 +61,27 @@ by that discovery.
       release-bundle receipt. No push, pull request, merge, deployment, provider query, D1 mutation,
       model change, UI change, or production authorization belongs to this work.
 
+## Active checkpoint — database-confirmed sign-out receipts
+
+- [x] Continue the session audit through account exit. The browser intentionally deletes local
+      trip recovery state only after `{ signedOut: true, user: null }`, but the server returned that
+      exact receipt after a D1 batch without inspecting any presented-token revocation result.
+- [x] Require one result per presented token and accept only authoritative zero-or-one change
+      metadata. One means the active row was revoked; zero is also a valid idempotent receipt when
+      the token is already absent. Missing, malformed, truncated, or impossible metadata cannot
+      manufacture the exact success response.
+- [x] Preserve the existing safe recovery path. An ambiguous revocation returns
+      `503 sign_out_unconfirmed`, clears both browser cookie forms, and tells the UI to perform its
+      read-only session check before clearing local state or permitting a retry.
+- [x] Force a committed DELETE with missing metadata in the direct D1 runtime. The session row is
+      gone and cookies are clearing, but the response remains explicitly unconfirmed and never
+      exposes the exact sign-out receipt that authorizes local recovery-state deletion.
+- [x] Pass the pinned Cloudflare build, ESLint, TypeScript, all 556/556 Node tests, the complete
+      offline security/SBOM/source-integrity chain, both zero-vulnerability npm audits, and the
+      full 200/200 Chromium/WebKit phone matrix. Preserve a clean local commit and deterministic
+      release-bundle receipt. No push, pull request, merge, deployment, provider query, D1 mutation,
+      model change, UI change, or production authorization belongs to this work.
+
 ## Active checkpoint — terminal trip ownership predicates
 
 - [x] Audit owner-scoped trip mutations against the documented D1/SQLite row-security

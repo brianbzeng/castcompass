@@ -303,6 +303,23 @@ test("authentication rotates presented sessions into secure host cookies and log
   assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?").get(user.id).count, 0);
 });
 
+test("logout never returns an exact sign-out receipt without confirmed revocation metadata", async () => {
+  const { sqlite, d1 } = await database();
+  const user = await addUser(sqlite, "signout-receipt-144");
+  d1.omitOnceMutationMetadataSubstring = "DELETE FROM auth_sessions WHERE token_hash";
+
+  const response = await handleAccountRequest(request("/api/auth/logout", {
+    method: "POST",
+    cookie: user.cookie,
+  }), { DB: d1 }, []);
+
+  assert.equal(response?.status, 503);
+  assert.equal((await response.json()).error.code, "sign_out_unconfirmed");
+  assert.equal(sessionCookieFrom(response), null);
+  assert.match(response.headers.get("set-cookie") ?? "", /cc_session=;.*Max-Age=0/u);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?").get(user.id).count, 0);
+});
+
 test("session rotation never sets a cookie or leaves a hidden token without a confirmed insert", async () => {
   const { sqlite, d1 } = await database();
   const user = await addUser(sqlite, "session-receipt-143");

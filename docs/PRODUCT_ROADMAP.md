@@ -172,6 +172,10 @@ after its acceptance checks pass in the intended environment.
       reset, or legacy-rotation cookie. The candidate token is hashed once and exposed only after
       exactly one D1 change; an unconfirmed commit returns `503`, clears both cookie forms, and
       deletes the candidate hash so no usable or orphaned session survives an ambiguous receipt.
+    - [x] Require database-authoritative revocation metadata before returning the exact sign-out
+      receipt that permits browser recovery-state deletion. Every presented token DELETE must
+      report zero or one change and the batch cardinality must match; ambiguous metadata returns
+      `503`, clears browser cookies, and directs the existing read-only status check without replay.
   - [ ] Verify strict schema/size/type validation, contextual output encoding, safe database
     binding, upload signature and metadata checks, and AI prompt-injection boundaries. Model
     instructions and user content remain data, never authority; models receive no ambient

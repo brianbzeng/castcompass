@@ -775,9 +775,21 @@ export async function handleAccountRequest(
       if (request.method !== "POST") return methodNotAllowed("POST");
       assertSameOrigin(request);
       const tokens = presentedSessionTokens(request);
+      let revocationResults: unknown[] = [];
       if (tokens.length > 0) {
-        await db.batch(await Promise.all(tokens.map(async ({ token }) =>
+        revocationResults = await db.batch(await Promise.all(tokens.map(async ({ token }) =>
           db.prepare("DELETE FROM auth_sessions WHERE token_hash = ?").bind(await sha256(token)))));
+      }
+      if (revocationResults.length !== tokens.length || revocationResults.some((result) => {
+        const changes = confirmedMutationChanges(result);
+        return changes !== 0 && changes !== 1;
+      })) {
+        return errorResponse(
+          503,
+          "sign_out_unconfirmed",
+          "The server could not confirm that this session ended. Check sign-out status before retrying.",
+          clearSessionCookies(request),
+        );
       }
       return jsonResponse({ signedOut: true, user: null }, 200, clearSessionCookies(request));
     }
