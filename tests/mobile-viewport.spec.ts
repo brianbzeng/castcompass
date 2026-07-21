@@ -195,7 +195,8 @@ test.beforeEach(async ({ page }, testInfo) => {
     testTitle.includes("slow saved-location removal stays unconfirmed") ||
     testTitle.includes("malformed saved-location receipt stays unresolved");
   const waterQualityAdvisoryTest = testTitle.includes("official water-quality status suppresses recommendations");
-  const structureDepthEvidenceTest = testTitle.includes("source-bound Santa Barbara chart context");
+  const structureDepthEvidenceTest = testTitle.includes("source-bound Santa Barbara chart context")
+    || testTitle.includes("source-bound San Francisco chart context");
   if (structureDepthEvidenceTest) {
     // Keep the committed opportunity fixture selectable so the stable site deep link opens its
     // detail sheet instead of expiring as wall-clock time advances.
@@ -517,6 +518,31 @@ test("source-bound Santa Barbara chart context stays truthful and mobile-safe", 
     "href",
     "https://nauticalcharts.noaa.gov/learn/encdirect/",
   );
+  await expectSelectorInsideViewport(page, ".structure-depth-evidence");
+});
+
+test("source-bound San Francisco chart context preserves partial source-date precision", async ({ page }) => {
+  await page.goto("/?site=torpedo-wharf");
+  const evidence = page.locator(".structure-depth-evidence");
+
+  await expect(evidence).toBeVisible();
+  await expect(evidence).toContainText("0–1.8 m");
+  await expect(evidence).toContainText("some dates have year/month precision");
+  await expect(evidence).toContainText("some records have no source date");
+  await expect(evidence).toContainText("does not change the fishing score");
+  await expect(evidence).toContainText("not for navigation, wading, or access decisions");
+  await expectSelectorInsideViewport(page, ".structure-depth-evidence");
+});
+
+test("source-bound San Francisco chart context keeps a missing sector band explicitly partial", async ({ page }) => {
+  await page.goto("/?site=crane-cove-park");
+  const evidence = page.locator(".structure-depth-evidence");
+
+  await expect(evidence).toBeVisible();
+  await expect(evidence).toContainText("No reviewed NOAA depth-area band intersected this configured sector");
+  await expect(evidence).toContainText("4.9–12 m across 7 deduplicated records within 1,000 m");
+  await expect(evidence).toContainText("Charted wreck");
+  await expect(evidence).toContainText("the gap is not proof of shallow water, safe access, or castability");
   await expectSelectorInsideViewport(page, ".structure-depth-evidence");
 });
 

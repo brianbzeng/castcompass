@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build source-bound Santa Barbara structure/depth planning evidence.
+"""Build source-bound California structure/depth planning evidence.
 
 The collector deliberately does not edit site metadata or opportunity scores.
 It captures a fixed NOAA ENC Direct usage band, summarizes only reviewed
@@ -26,12 +26,14 @@ POLICY_PATH = ROOT / "structure-depth" / "policy.json"
 SITES_PATH = ROOT / "data" / "sites.json"
 DEFAULT_OUTPUT = ROOT / "public" / "data" / "structure-depth.json"
 SNAPSHOT_SCHEMA = "castingcompass.noaa-enc-approach-source/1.0.0"
-ARTIFACT_SCHEMA = "castingcompass.structure-depth-evidence/1.0.0"
+ARTIFACT_SCHEMA = "castingcompass.structure-depth-evidence/1.1.0"
 EXPECTED_POLICY_SCHEMA = "castingcompass.structure-depth-policy/1.0.0"
 USER_AGENT = "CastingCompass/0.1 (public-data planning context; contact: bzeng0000@gmail.com)"
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 MAX_FEATURES = 1_000
 MEAN_EARTH_RADIUS_METERS = 6_371_008.8
+YEAR_PATTERN = re.compile(r"^([0-9]{4})$")
+MONTH_PATTERN = re.compile(r"^([0-9]{4})([0-9]{2})$")
 DATE_PATTERN = re.compile(r"^([0-9]{4})([0-9]{2})([0-9]{2})$")
 SAFE_CELL_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,32}$")
 SAFE_TAG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -124,15 +126,15 @@ def load_inputs() -> tuple[dict[str, Any], list[dict[str, Any]], bytes, bytes]:
     if not isinstance(sites, list):
         raise StructureDepthError("invalid-site-catalog")
     site_by_id = {site.get("id"): site for site in sites if isinstance(site, dict)}
-    expected_ids = policy.get("regional_site_ids")
+    expected_ids = policy.get("covered_site_ids")
     if (
         not isinstance(expected_ids, list)
-        or len(expected_ids) != 14
-        or len(set(expected_ids)) != 14
+        or len(expected_ids) != 24
+        or len(set(expected_ids)) != 24
         or any(not isinstance(site_id, str) or not SAFE_TAG_PATTERN.fullmatch(site_id) for site_id in expected_ids)
         or any(site_id not in site_by_id for site_id in expected_ids)
     ):
-        raise StructureDepthError("invalid-regional-site-set")
+        raise StructureDepthError("invalid-covered-site-set")
     source = policy.get("source")
     if not isinstance(source, dict) or source.get("source_id") != "noaa-enc-direct-approach":
         raise StructureDepthError("invalid-source-policy")
@@ -527,19 +529,32 @@ def validate_snapshot(snapshot: Any, policy: dict[str, Any], sites: list[dict[st
                     raise StructureDepthError("invalid-source-geometry")
 
 
-def date_value(raw: Any) -> tuple[str | None, bool]:
-    if raw in {None, ""}:
-        return None, True
+def date_value(raw: Any) -> tuple[str | None, str | None, bool]:
+    if raw is None or raw == "":
+        return None, None, True
     if not isinstance(raw, str):
         raise StructureDepthError("invalid-source-date")
-    if re.fullmatch(r"[0-9]{4}", raw):
-        return None, True
+    year_match = YEAR_PATTERN.fullmatch(raw)
+    if year_match is not None:
+        try:
+            datetime(int(year_match[1]), 1, 1, tzinfo=timezone.utc)
+        except ValueError as exc:
+            raise StructureDepthError("invalid-source-date") from exc
+        return None, raw, False
+    month_match = MONTH_PATTERN.fullmatch(raw)
+    if month_match is not None:
+        try:
+            month = datetime(int(month_match[1]), int(month_match[2]), 1, tzinfo=timezone.utc)
+        except ValueError as exc:
+            raise StructureDepthError("invalid-source-date") from exc
+        return None, month.strftime("%Y-%m"), False
     match = DATE_PATTERN.fullmatch(raw)
     if match is None:
         raise StructureDepthError("invalid-source-date")
     try:
         return (
             datetime(int(match[1]), int(match[2]), int(match[3]), tzinfo=timezone.utc).date().isoformat(),
+            None,
             False,
         )
     except ValueError as exc:
@@ -558,15 +573,18 @@ def source_cells(features: list[dict[str, Any]]) -> list[str]:
     return sorted(values)
 
 
-def source_dates(features: list[dict[str, Any]]) -> tuple[list[str], bool]:
+def source_dates(features: list[dict[str, Any]]) -> tuple[list[str], list[str], bool]:
     values: set[str] = set()
-    has_undated_records = False
+    partial_values: set[str] = set()
+    has_missing_dates = False
     for feature in features:
-        value, incomplete = date_value(feature["attributes"].get("SORDAT"))
+        value, partial_value, missing = date_value(feature["attributes"].get("SORDAT"))
         if value is not None:
             values.add(value)
-        has_undated_records = has_undated_records or incomplete
-    return sorted(values), has_undated_records
+        if partial_value is not None:
+            partial_values.add(partial_value)
+        has_missing_dates = has_missing_dates or missing
+    return sorted(values), sorted(partial_values), has_missing_dates
 
 
 def numeric_attribute(feature: dict[str, Any], key: str) -> float:
@@ -620,6 +638,7 @@ def derive_depth(
             "contextSoundingDepthRangeMeters": None,
             "nearestContextSoundingDistanceMeters": None,
             "sourceDates": [],
+            "partialSourceDates": [],
             "hasUndatedRecords": False,
             "sourceCells": [],
             "uncertaintyMeters": None,
@@ -664,7 +683,7 @@ def derive_depth(
             for feature in deduplicated_context.values()
         )
         all_features = sector_soundings + context_soundings + contours + areas
-        dates, has_undated_records = source_dates(all_features)
+        dates, partial_dates, has_undated_records = source_dates(all_features)
         cells = source_cells(all_features)
     except StructureDepthError:
         return {
@@ -676,6 +695,7 @@ def derive_depth(
             "contextSoundingDepthRangeMeters": None,
             "nearestContextSoundingDistanceMeters": None,
             "sourceDates": [],
+            "partialSourceDates": [],
             "hasUndatedRecords": False,
             "sourceCells": [],
             "uncertaintyMeters": None,
@@ -703,6 +723,7 @@ def derive_depth(
         "contextSoundingDepthRangeMeters": [context_depths[0], context_depths[-1]] if context_depths else None,
         "nearestContextSoundingDistanceMeters": round(distances[0], 1) if distances else None,
         "sourceDates": dates,
+        "partialSourceDates": partial_dates,
         "hasUndatedRecords": has_undated_records,
         "sourceCells": cells,
         "uncertaintyMeters": None,
@@ -741,7 +762,13 @@ def derive_structure(
             category = layer["category"]
             group = grouped.setdefault(
                 category,
-                {"features": {}, "dates": set(), "hasUndatedRecords": False, "cells": set()},
+                {
+                    "features": {},
+                    "dates": set(),
+                    "partialDates": set(),
+                    "hasUndatedRecords": False,
+                    "cells": set(),
+                },
             )
             for feature in query["features"]:
                 attributes_without_cell = {
@@ -758,8 +785,9 @@ def derive_structure(
                     separators=(",", ":"),
                 )
                 group["features"][signature] = feature
-            dates, has_undated_records = source_dates(query["features"])
+            dates, partial_dates, has_undated_records = source_dates(query["features"])
             group["dates"].update(dates)
+            group["partialDates"].update(partial_dates)
             group["hasUndatedRecords"] = group["hasUndatedRecords"] or has_undated_records
             group["cells"].update(source_cells(query["features"]))
         charted = [
@@ -768,6 +796,7 @@ def derive_structure(
                 "label": FEATURE_LABELS[category],
                 "recordCount": len(group["features"]),
                 "sourceDates": sorted(group["dates"]),
+                "partialSourceDates": sorted(group["partialDates"]),
                 "hasUndatedRecords": group["hasUndatedRecords"],
                 "sourceCells": sorted(group["cells"]),
             }
@@ -825,6 +854,7 @@ def build_artifact(
                 "contextSoundingDepthRangeMeters": None,
                 "nearestContextSoundingDistanceMeters": None,
                 "sourceDates": [],
+                "partialSourceDates": [],
                 "hasUndatedRecords": False,
                 "sourceCells": [],
                 "uncertaintyMeters": None,

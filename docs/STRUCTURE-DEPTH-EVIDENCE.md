@@ -1,12 +1,13 @@
-# Santa Barbara structure and depth evidence
+# California reviewed-location structure and depth evidence
 
 **Status:** source-bound repository slice; independent site and visual review still required
 
 ## Frozen meaning
 
-`castingcompass.structure-depth-evidence/1.0.0` is planning context for the 14
-Santa Barbara South Coast catalog locations. It shows broad NOAA chart depth
-bands intersecting a configured offshore sector and selected chart-feature
+`castingcompass.structure-depth-evidence/1.1.0` is planning context for 24
+reviewed catalog locations: all 14 Santa Barbara South Coast locations plus the
+ten San Francisco coast and waterfront locations. It shows broad NOAA chart
+depth bands intersecting a configured offshore sector and selected chart-feature
 classes within one kilometer. It is not:
 
 - an exact depth at the map marker;
@@ -19,9 +20,9 @@ Every site has `scoreDelta: null`, `navigationUseAllowed: false`, and catalog
 mutation disabled. The checked-in site catalog, provisional target-depth fields,
 habitat priors, opportunity snapshot, and validation geography are unchanged.
 
-## Why NOAA ENC Direct is the regional baseline
+## Why NOAA ENC Direct is the initial baseline
 
-The source review compared three official datasets on 2026-07-21:
+The Santa Barbara source review compared three official datasets on 2026-07-21:
 
 1. [NOAA BlueTopo](https://nauticalcharts.noaa.gov/data/bluetopo_specs.html)
    has explicit elevation, uncertainty, and contributor layers, but the current
@@ -33,7 +34,7 @@ The source review compared three official datasets on 2026-07-21:
    sectors contained valid grid cells, and the nearshore coverage is too
    incomplete to use as the sole 14-site baseline.
 3. [NOAA ENC Direct to GIS](https://nauticalcharts.noaa.gov/learn/encdirect/)
-   returned a depth-area intersection for every configured site sector. The
+   returned a depth-area intersection for every configured Santa Barbara site sector. The
    collector uses only the `Approach` usage band because NOAA recommends one
    scale band per extraction to avoid mixed-resolution duplicates.
 
@@ -43,6 +44,13 @@ The downloaded USGS archive SHA-256 is
 `5ae764fe1d154b43deb2dcd1c1a1de253c737abb5b2221529783ccbead79453b`.
 These receipts explain source selection; neither rejected source is silently
 substituted for a missing ENC value.
+
+The San Francisco extension reuses that exact fixed `Approach` service and
+layer inventory. Nine of ten configured San Francisco sectors intersect one or
+more depth-area records. Crane Cove Park does not; it remains explicitly
+`partial`, even though point soundings and selected chart features exist within
+one kilometer. No other source or catalog prior is substituted to make that
+sector appear complete.
 
 ## Geometry and interpretation
 
@@ -66,9 +74,9 @@ selected layers also do not publish numeric positional accuracy or vertical
 uncertainty. Those fields therefore remain explicit `not-exposed` states rather
 than zeros.
 
-## Captured 14-site inventory
+## Captured 24-site inventory
 
-The normalized source snapshot was captured at `2026-07-21T08:14:38Z` from the
+The normalized source snapshot was captured at `2026-07-21T09:15:58Z` from the
 fixed NOAA `enc_approach` ArcGIS service. Point-sounding counts are deduplicated
 across overlapping ENC cells. “No selected feature record” never means “no
 structure.”
@@ -90,12 +98,25 @@ structure.”
 | Carpinteria State Beach | 0–1.8 m; 3.6–5.4 m; 5.4–10.9 m | 9 | Shoreline construction |
 | Rincon Beach Park | 1.8–3.6 m; 3.6–5.4 m; 5.4–10.9 m; 10.9–14.6 m | 14 | Obstruction; shoreline construction |
 
-The exact full-date depth records range from 2000 through 2019, and every site
-also intersects at least one depth-area record without a full `SORDAT`. One
-charted wreck near Stearns Wharf supplies only the year `2005`; the artifact
-preserves the feature and sets `hasUndatedRecords` instead of inventing a month
-or day. Source age is displayed because weekly service refresh does not make an
-old underlying survey new.
+| San Francisco location | Evidence status | ENC bands intersecting sector | Deduplicated soundings within 1 km | Selected chart-feature classes within 1 km |
+| --- | --- | --- | ---: | --- |
+| Torpedo Wharf | Charted context | 0–1.8 m; 0–3.6 m; 1.8–3.6 m; 3.6–5.4 m; 5.4–9.1 m; 9.1–18.2 m; 18.2–27.4 m | 16 | Seabed description; shoreline construction |
+| Crissy Field East Beach | Charted context | 0–1.8 m; 0–3.6 m; 1.8–3.6 m; 1.8–5.4 m; 5.4–9.1 m; 9.1–18.2 m | 6 | Obstruction; seabed description; shoreline construction |
+| Baker Beach | Charted context | -1.8–0 m; 0–3.6 m; 1.8–3.6 m; 3.6–5.4 m; 5.4–9.1 m; 9.1–10.9 m; 10.9–18.2 m | 20 | Seabed description |
+| China Beach | Charted context | -1.8–0 m; 0–3.6 m; 3.6–5.4 m; 5.4–9.1 m | 10 | Seabed description |
+| Ocean Beach North | Charted context | -1.8–0 m; 0–1.8 m; 0–3.6 m; 1.8–3.6 m; 3.6–5.4 m; 5.4–9.1 m | 17 | No selected feature record |
+| Ocean Beach South | Charted context | -1.8–0 m; 0–1.8 m; 1.8–3.6 m; 3.6–5.4 m; 5.4–9.1 m | 7 | Seabed description |
+| Pier 7 | Charted context | 5.4–9.1 m; 9.1–18.2 m | 14 | Obstruction; shoreline construction |
+| Pier 14 | Charted context | 0–3.6 m; 3.6–5.4 m; 5.4–9.1 m; 9.1–18.2 m | 13 | Obstruction; shoreline construction; wreck |
+| Crane Cove Park | Partial | No intersecting depth-area band | 7 | Obstruction; pile/piling; seabed description; shoreline construction; wreck |
+| Heron's Head Park Pier | Charted context | 0–3.6 m | 16 | Obstruction; seabed description; shoreline construction; wreck |
+
+The exact full-date depth records range from 1999 through 2025. The source also
+publishes valid month-precision values such as `2013-06` and a year-only `2005`
+for the charted wreck near Stearns Wharf. Contract version 1.1 preserves those
+values separately in `partialSourceDates`; it never invents a day. A record with
+no `SORDAT` sets `hasUndatedRecords`. Source age and precision are displayed
+because a current service response does not make an old underlying survey new.
 
 ## Integrity and failure behavior
 
@@ -106,7 +127,7 @@ old underlying survey new.
   querying;
 - caps responses and feature counts, rejects transfer-limit truncation,
   unexpected fields, malformed geometry, invalid depths, invalid source cells,
-  and unreviewed dates;
+  and unreviewed dates, while preserving validated year/month precision;
 - stores normalized feature attributes plus point geometry or a geometry hash,
   avoiding public exact structure coordinates;
 - deduplicates overlapping-cell soundings and geometry-identical structure
@@ -119,13 +140,13 @@ old underlying survey new.
 Any required depth-query failure makes that site's depth unavailable. Any
 selected structure-query failure makes the structure section unavailable while
 retaining catalog clues as explicitly unvalidated. Service metadata drift makes
-all 14 sites unavailable. Errors are fixed categories and never expose local
+all 24 sites unavailable. Errors are fixed categories and never expose local
 paths or exception text.
 
 ## Remaining acceptance work
 
-This completes one regional source-bound inventory slice, not the parent map
-goal. Before a location can be called fully reviewed:
+This completes the first San Francisco extension of the source-bound inventory,
+not the parent map goal. Before a location can be called fully reviewed:
 
 1. a local reviewer must confirm the sector orientation, public access context,
    and whether the displayed chart classes are useful rather than misleading;

@@ -359,10 +359,13 @@ function chartedWaterBands(evidence: StructureDepthSiteEvidence) {
 }
 
 function depthSourceDateLabel(evidence: StructureDepthSiteEvidence) {
-  const dates = evidence.depth.sourceDates;
-  if (!dates.length) return evidence.depth.hasUndatedRecords ? "Source records are undated" : "Source date unavailable";
+  const dates = [...evidence.depth.sourceDates, ...evidence.depth.partialSourceDates].toSorted();
+  if (!dates.length) return evidence.depth.hasUndatedRecords ? "Some source records have no date" : "Source date unavailable";
   const range = dates.length === 1 ? dates[0] : `${dates[0]} to ${dates.at(-1)}`;
-  return evidence.depth.hasUndatedRecords ? `${range}; some records are undated` : range;
+  const qualifiers = [];
+  if (evidence.depth.partialSourceDates.length) qualifiers.push("some dates have year/month precision");
+  if (evidence.depth.hasUndatedRecords) qualifiers.push("some records have no source date");
+  return qualifiers.length ? `${range}; ${qualifiers.join("; ")}` : range;
 }
 
 function fallbackSnapshot(): OpportunitySnapshot {
@@ -2011,36 +2014,49 @@ export function OpportunityApp() {
                   <span>Source-bound depth &amp; structure</span>
                   <strong id="structure-depth-evidence-title">NOAA chart context for this location</strong>
                 </div>
-                {selectedStructureDepth.depth.status === "charted-sector-bands" ? (
-                  <dl>
-                    <div>
-                      <dt>Planning-sector depth bands</dt>
-                      <dd>{chartedWaterBands(selectedStructureDepth).join(", ") || "No submerged band published"}</dd>
-                    </div>
-                    <div>
-                      <dt>Nearby point soundings</dt>
-                      <dd>
-                        {selectedStructureDepth.depth.contextSoundingDepthRangeMeters
-                          ? `${depthNumber(selectedStructureDepth.depth.contextSoundingDepthRangeMeters[0])}–${depthNumber(selectedStructureDepth.depth.contextSoundingDepthRangeMeters[1])} m across ${selectedStructureDepth.depth.contextSoundingCount} deduplicated record${selectedStructureDepth.depth.contextSoundingCount === 1 ? "" : "s"} within ${selectedStructureDepth.geometry.contextRadiusMeters.toLocaleString()} m`
-                          : `No reviewed point sounding within ${selectedStructureDepth.geometry.contextRadiusMeters.toLocaleString()} m`}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Selected chart features nearby</dt>
-                      <dd>
-                        {selectedStructureDepth.structure.chartedFeatures.length
-                          ? selectedStructureDepth.structure.chartedFeatures.map((feature) => feature.label).join(", ")
+                <dl>
+                  <div>
+                    <dt>Planning-sector depth bands</dt>
+                    <dd>
+                      {selectedStructureDepth.depth.status === "charted-sector-bands"
+                        ? chartedWaterBands(selectedStructureDepth).join(", ") || "No submerged band published"
+                        : selectedStructureDepth.depth.status === "no-charted-sector-band"
+                          ? "No reviewed NOAA depth-area band intersected this configured sector; this is an evidence gap"
+                          : "Required NOAA depth queries were unavailable; no depth inference is published"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Nearby point soundings</dt>
+                    <dd>
+                      {selectedStructureDepth.depth.contextSoundingDepthRangeMeters
+                        ? `${depthNumber(selectedStructureDepth.depth.contextSoundingDepthRangeMeters[0])}–${depthNumber(selectedStructureDepth.depth.contextSoundingDepthRangeMeters[1])} m across ${selectedStructureDepth.depth.contextSoundingCount} deduplicated record${selectedStructureDepth.depth.contextSoundingCount === 1 ? "" : "s"} within ${selectedStructureDepth.geometry.contextRadiusMeters.toLocaleString()} m`
+                        : `No reviewed point sounding within ${selectedStructureDepth.geometry.contextRadiusMeters.toLocaleString()} m`}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Selected chart features nearby</dt>
+                    <dd>
+                      {selectedStructureDepth.structure.chartedFeatures.length
+                        ? selectedStructureDepth.structure.chartedFeatures.map((feature) => feature.label).join(", ")
+                        : selectedStructureDepth.structure.status === "source-unavailable"
+                          ? "Selected NOAA feature queries were unavailable; no structure inference is published"
                           : "No selected NOAA feature-class records; this does not mean structure is absent"}
-                      </dd>
-                    </div>
-                  </dl>
+                    </dd>
+                  </div>
+                </dl>
+                {selectedStructureDepth.depth.status === "charted-sector-bands" ? (
+                  <p>
+                    The bands intersect a configured {selectedStructureDepth.geometry.sectorRadiusMeters} m offshore planning sector;
+                    they are not an exact depth at the marker or a shore-reachable casting-depth promise.
+                  </p>
+                ) : selectedStructureDepth.depth.status === "no-charted-sector-band" ? (
+                  <p>
+                    The configured {selectedStructureDepth.geometry.sectorRadiusMeters} m offshore sector returned no reviewed depth-area band.
+                    Nearby soundings and chart features remain context only; the gap is not proof of shallow water, safe access, or castability.
+                  </p>
                 ) : (
-                  <p>NOAA chart context is unavailable for this location. No depth or structure inference is made.</p>
+                  <p>No depth inference is made while the required NOAA depth evidence is unavailable.</p>
                 )}
-                <p>
-                  The bands intersect a configured {selectedStructureDepth.geometry.sectorRadiusMeters} m offshore planning sector;
-                  they are not an exact depth at the marker or a shore-reachable casting-depth promise.
-                </p>
                 <small>
                   Record dates: {depthSourceDateLabel(selectedStructureDepth)} · units: meters · datum: Mean Lower Low Water.
                   These are vector chart features with no fixed grid resolution; the selected service layers expose no numeric positional accuracy or uncertainty.

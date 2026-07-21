@@ -11,7 +11,7 @@ import addFormats from "ajv-formats";
 const root = new URL("../", import.meta.url);
 const snapshotPath = "structure-depth/noaa-enc-approach-snapshot.json";
 const artifactPath = "public/data/structure-depth.json";
-const fixedAsOf = "2026-07-21T08:14:38Z";
+const fixedAsOf = "2026-07-21T09:15:58Z";
 
 async function readJson(path) {
   return JSON.parse(await readFile(new URL(path, root), "utf8"));
@@ -41,7 +41,7 @@ function runCollector(output, sourceSnapshot = snapshotPath) {
   );
 }
 
-test("published 14-site chart context is contract-bound, display-only, and non-navigational", async () => {
+test("published 24-site chart context is contract-bound, display-only, and non-navigational", async () => {
   const [schema, policy, sites, artifact, policyBytes, collectorBytes, siteBytes, snapshotBytes, interfaceSource, disclosure] = await Promise.all([
     readJson("contracts/structure-depth-evidence.schema.json"),
     readJson("structure-depth/policy.json"),
@@ -57,13 +57,13 @@ test("published 14-site chart context is contract-bound, display-only, and non-n
   const ajv = new Ajv2020({ allErrors: true, strict: true });
   addFormats(ajv);
   assert.equal(ajv.validate(schema, artifact), true, JSON.stringify(ajv.errors));
-  assert.equal(artifact.status, "complete");
+  assert.equal(artifact.status, "partial");
   assert.equal(artifact.policyVersion, policy.policy_version);
   assert.equal(artifact.policySha256, sha256(policyBytes));
   assert.equal(artifact.collectorSha256, sha256(collectorBytes));
   assert.equal(artifact.siteCatalogSha256, sha256(siteBytes));
   assert.equal(artifact.sourceSnapshotSha256, sha256(snapshotBytes));
-  assert.deepEqual(Object.keys(artifact.sites).sort(), policy.regional_site_ids.toSorted());
+  assert.deepEqual(Object.keys(artifact.sites).sort(), policy.covered_site_ids.toSorted());
   assert.equal(artifact.scoreContribution.numericContributionAllowed, false);
   assert.equal(artifact.scoreContribution.catalogMutationAllowed, false);
   assert.equal(artifact.source.notForNavigation, true);
@@ -72,14 +72,22 @@ test("published 14-site chart context is contract-bound, display-only, and non-n
   assert.equal(artifact.source.uncertaintyStatus, "not-exposed-by-selected-service-layers");
 
   const sitesById = new Map(sites.map((site) => [site.id, site]));
-  for (const siteId of policy.regional_site_ids) {
+  for (const siteId of policy.covered_site_ids) {
     const evidence = artifact.sites[siteId];
     const site = sitesById.get(siteId);
-    assert.equal(evidence.status, "charted-context");
-    assert.equal(evidence.depth.status, "charted-sector-bands");
-    assert.ok(evidence.depth.chartedBandsMeters.length > 0);
+    assert.notEqual(evidence.status, "source-unavailable");
+    if (siteId === "crane-cove-park") {
+      assert.equal(evidence.status, "partial");
+      assert.equal(evidence.depth.status, "no-charted-sector-band");
+      assert.deepEqual(evidence.depth.chartedBandsMeters, []);
+      assert.ok(evidence.depth.contextSoundingCount > 0);
+    } else {
+      assert.equal(evidence.status, "charted-context");
+      assert.equal(evidence.depth.status, "charted-sector-bands");
+      assert.ok(evidence.depth.chartedBandsMeters.length > 0);
+    }
     assert.equal(evidence.depth.uncertaintyMeters, null);
-    assert.equal(evidence.depth.hasUndatedRecords, true);
+    assert.ok(evidence.depth.sourceDates.length + evidence.depth.partialSourceDates.length > 0);
     assert.equal(evidence.scoreDelta, null);
     assert.equal(evidence.navigationUseAllowed, false);
     assert.deepEqual(
@@ -116,8 +124,9 @@ test("overlapping ENC cells are deduplicated and partial source dates remain exp
     .find((feature) => feature.category === "charted-wreck");
   assert.ok(wreck);
   assert.equal(wreck.recordCount, 1);
-  assert.equal(wreck.hasUndatedRecords, true);
+  assert.equal(wreck.hasUndatedRecords, false);
   assert.deepEqual(wreck.sourceDates, []);
+  assert.deepEqual(wreck.partialSourceDates, ["2005"]);
 });
 
 test("one required site query fails only that evidence slice closed", async (t) => {
@@ -189,7 +198,30 @@ test("source-selection receipt preserves incomplete alternatives instead of over
   ]);
   assert.equal(receipt.blue_topo.unpublished_site_count, 11);
   assert.equal(receipt.usgs_santa_barbara_channel_10m.configured_sector_coverage_site_count, 6);
-  assert.equal(receipt.noaa_enc_direct.configured_sector_depth_area_site_count, 14);
+  assert.equal(receipt.noaa_enc_direct.configured_sector_depth_area_site_count, 23);
+  assert.equal(receipt.san_francisco_extension.site_ids.length, 10);
+  assert.equal(receipt.san_francisco_extension.selection_result, "accepted-with-one-explicit-partial-depth-sector");
   assert.match(receipt.blue_topo.tile_scheme_sha256, /^[a-f0-9]{64}$/);
   assert.match(receipt.usgs_santa_barbara_channel_10m.archive_sha256, /^[a-f0-9]{64}$/);
+});
+
+test("partial ENC source dates retain their published precision and invalid months fail closed", async (t) => {
+  const artifact = await readJson(artifactPath);
+  assert.ok(artifact.sites["torpedo-wharf"].depth.partialSourceDates.includes("2013-06"));
+  assert.ok(artifact.sites["stearns-wharf"].structure.chartedFeatures
+    .some((feature) => feature.partialSourceDates.includes("2005")));
+
+  const directory = await mkdtemp(join(tmpdir(), "castingcompass-structure-depth-date-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const snapshot = await readJson(snapshotPath);
+  snapshot.sites["torpedo-wharf"].queries["soundings:context"].features[0].attributes.SORDAT = "201313";
+  const source = join(directory, "source.json");
+  const output = join(directory, "artifact.json");
+  await writeFile(source, `${JSON.stringify(snapshot, null, 2)}\n`);
+  const result = runCollector(output, source);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const rejected = JSON.parse(await readFile(output, "utf8"));
+  assert.equal(rejected.status, "partial");
+  assert.equal(rejected.sites["torpedo-wharf"].depth.status, "source-unavailable");
+  assert.equal(rejected.sites["torpedo-wharf"].structure.status, "charted-features-present");
 });

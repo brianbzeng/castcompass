@@ -13,6 +13,39 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — San Francisco source-bound depth and structure
+
+- [x] Preserve draft PR `#133` at exact final receipt head
+      `3f2570a88731f13d42801de77047eb4eb6387edd` as the reviewed stacked base. This
+      follow-up remains isolated from the dirty primary checkout and does not merge, deploy,
+      mutate Cloudflare or D1, change the catalog, or modify the attested fishing score.
+- [x] Extend the display-only NOAA ENC Direct `Approach` policy from the 14 Santa Barbara sites
+      to ten reviewed San Francisco coast and waterfront sites. The policy now binds exactly 24
+      covered site IDs and retains meters, MLLW, fixed source layers, checksums, bounded sectors,
+      and fail-closed source and metadata drift handling.
+- [x] Capture and deterministically normalize the fixed source for all 24 sites. Nine of ten San
+      Francisco sites have one or more charted depth-area bands and a deduplicated sounding within
+      1 km. Crane Cove Park is deliberately `partial`: no depth-area band intersects its configured
+      220 m sector, while seven nearby point soundings and reviewed feature records remain visible.
+      Exact, month-precision, year-precision, and missing source dates remain distinguishable.
+- [x] Add truthful detail-sheet rendering for complete, partial, and unavailable chart evidence.
+      The UI presents chart context without claiming castable depth, complete structure inventory,
+      navigation use, access, wading safety, or score improvement. Torpedo Wharf and Crane Cove
+      Park were visually inspected at iPhone width, and the focused truthfulness matrix passed all
+      12 Chromium/WebKit phone cases.
+- [x] Complete the clean full local release matrix under pinned Node `22.23.1` and hash-locked
+      Python environments: fresh zero-script installation, both zero-vulnerability npm audits,
+      Cloudflare build, 483/483 Node tests, ESLint, TypeScript, the complete security/SBOM/source-
+      integrity chain, strict schema validation, eight deterministic/adversarial collector tests,
+      Python syntax/Ruff, 29/29 API tests, 83/83 pipeline tests with one documented optional-
+      `rasterio` skip, deterministic synthetic smoke, and all 19 critical D1 query plans passed.
+      The complete bounded two-worker Chromium/WebKit phone matrix passed 156/156 cases.
+- [ ] Publish a protected stacked draft PR and require exact-head hosted CI, release provenance,
+      both native API-image architectures, both optional research stacks, and applicable security
+      analysis. CodeQL may remain event-inapplicable while the PR targets a non-default stacked
+      base; merge, deployment, provider/database mutation, and production activation remain out of
+      scope.
+
 ## Active checkpoint — Santa Barbara source-bound depth and structure
 
 - [x] Preserve the green stacked demo base on draft PR `#132` at exact head
@@ -41,12 +74,13 @@ by that discovery.
       passed. A resource-saturated four-worker phone attempt passed 133/148; all 15 unrelated
       timing/setup failures then passed 15/15 alone, and the clean bounded two-worker Chromium/
       WebKit matrix passed 148/148.
-- [x] Publish stacked draft PR `#133` without merge or deployment. Exact implementation head
-      `9be895b3ee60f1027af6de332288e8ab22a680c2` passed push and pull-request CI runs
-      `29815841424` and `29815908208`, release-provenance runs `29815841377` and `29815908222`,
-      native API-image run `29815908219` on both architectures, and explicitly dispatched optional
-      research-stack run `29816379172` on Linux CPU and macOS ARM64. Event-inapplicable dependency
-      and release-attestation jobs skipped as designed.
+- [x] Publish stacked draft PR `#133` without merge or deployment. Exact final receipt head
+      `3f2570a88731f13d42801de77047eb4eb6387edd` passed push and pull-request CI runs
+      `29816560795` and `29816563951`, release-provenance runs `29816560802` and `29816563860`,
+      native API-image run `29816563887` on both architectures, and explicitly dispatched optional
+      research-stack run `29816580920` on Linux CPU and macOS ARM64. Event-inapplicable dependency
+      and release-attestation jobs skipped as designed; the immutable receipt is recorded on the
+      draft PR.
 - [ ] Obtain CodeQL evidence when this stack is eventually reviewed against protected `main`;
       GitHub default setup did not trigger on the non-default stacked base, so this checkpoint makes
       no CodeQL claim. Independent local-angler/site review, higher-resolution coverage, scoring
@@ -81,10 +115,16 @@ by that discovery.
       with one documented optional-`rasterio` skip, the deterministic synthetic smoke, and 19
       migrations / 19 critical D1 query plans with every foreign-key child path indexed. The full
       Chromium/WebKit phone matrix passed 144/144 cases.
-- [ ] Publish a separate protected draft follow-up and require its exact hosted head to pass CI,
-      CodeQL, release provenance, both native API-image architectures, and both optional research
-      stacks. No merge, deployment, provider mutation, database migration, or production action is
-      authorized by this checkpoint.
+- [x] Publish protected draft PR `#132` without merge or deployment. Exact final head
+      `20b31eb31136481f160add020caa2f742a6da49a` passed push and pull-request CI runs
+      `29811484371` and `29811505876`, release-provenance runs `29811484319` and `29811505848`,
+      native API-image run `29811505926` on both architectures, and explicitly dispatched optional
+      research-stack run `29817324038` on Linux CPU and macOS ARM64. Event-inapplicable jobs skipped
+      as designed.
+- [ ] Obtain CodeQL evidence when this stack is eventually reviewed against protected `main`;
+      default setup did not trigger on the non-default stacked base. Independent mapping and source-
+      latency review, remaining launch-catalog coverage, merge, deployment, provider/database
+      mutation, and production action remain separate open gates.
 
 ## Active checkpoint — non-production regional and water-quality demo integration
 

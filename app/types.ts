@@ -205,6 +205,7 @@ export interface StructureDepthChartedFeature {
   label: string;
   recordCount: number;
   sourceDates: string[];
+  partialSourceDates: string[];
   hasUndatedRecords: boolean;
   sourceCells: string[];
 }
@@ -228,6 +229,7 @@ export interface StructureDepthSiteEvidence {
     contextSoundingDepthRangeMeters: [number, number] | null;
     nearestContextSoundingDistanceMeters: number | null;
     sourceDates: string[];
+    partialSourceDates: string[];
     hasUndatedRecords: boolean;
     sourceCells: string[];
     uncertaintyMeters: null;
@@ -249,7 +251,7 @@ export interface StructureDepthSiteEvidence {
 }
 
 export interface StructureDepthSnapshot {
-  schemaVersion: "castingcompass.structure-depth-evidence/1.0.0";
+  schemaVersion: "castingcompass.structure-depth-evidence/1.1.0";
   generatedAt: string;
   status: "complete" | "partial" | "unavailable";
   meaning: string;

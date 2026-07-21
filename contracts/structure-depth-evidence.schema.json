@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "castingcompass.structure-depth-evidence/1.0.0",
+  "$id": "castingcompass.structure-depth-evidence/1.1.0",
   "title": "CastingCompass source-bound structure and depth planning context",
   "type": "object",
   "required": [
@@ -18,7 +18,7 @@
     "sites"
   ],
   "properties": {
-    "schemaVersion": { "const": "castingcompass.structure-depth-evidence/1.0.0" },
+    "schemaVersion": { "const": "castingcompass.structure-depth-evidence/1.1.0" },
     "policyVersion": { "type": "string", "minLength": 1, "maxLength": 160 },
     "policySha256": { "$ref": "#/$defs/sha256" },
     "collectorSha256": { "$ref": "#/$defs/sha256" },
@@ -40,8 +40,8 @@
     "source": { "$ref": "#/$defs/source" },
     "sites": {
       "type": "object",
-      "minProperties": 14,
-      "maxProperties": 14,
+      "minProperties": 24,
+      "maxProperties": 24,
       "propertyNames": { "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
       "additionalProperties": { "$ref": "#/$defs/siteEvidence" }
     }
@@ -144,6 +144,7 @@
         "contextSoundingDepthRangeMeters",
         "nearestContextSoundingDistanceMeters",
         "sourceDates",
+        "partialSourceDates",
         "hasUndatedRecords",
         "sourceCells",
         "uncertaintyMeters",
@@ -183,6 +184,12 @@
           "uniqueItems": true,
           "maxItems": 80,
           "items": { "type": "string", "format": "date" }
+        },
+        "partialSourceDates": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 80,
+          "items": { "type": "string", "pattern": "^[0-9]{4}(?:-(?:0[1-9]|1[0-2]))?$" }
         },
         "hasUndatedRecords": { "type": "boolean" },
         "sourceCells": {
@@ -228,7 +235,7 @@
     },
     "chartedFeature": {
       "type": "object",
-      "required": ["category", "label", "recordCount", "sourceDates", "hasUndatedRecords", "sourceCells"],
+      "required": ["category", "label", "recordCount", "sourceDates", "partialSourceDates", "hasUndatedRecords", "sourceCells"],
       "properties": {
         "category": {
           "enum": [
@@ -248,6 +255,12 @@
           "uniqueItems": true,
           "maxItems": 80,
           "items": { "type": "string", "format": "date" }
+        },
+        "partialSourceDates": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 80,
+          "items": { "type": "string", "pattern": "^[0-9]{4}(?:-(?:0[1-9]|1[0-2]))?$" }
         },
         "hasUndatedRecords": { "type": "boolean" },
         "sourceCells": {

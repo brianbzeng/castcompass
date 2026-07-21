@@ -688,11 +688,18 @@ after its acceptance checks pass in the intended environment.
     chart features, record age, meters, MLLW, and the unavailable resolution/accuracy/uncertainty
     fields while keeping `scoreDelta` null, catalog priors unchanged, exact structure geometry
     private, and navigation/access/castability claims prohibited.
+  - [x] Extend the same display-only contract to the ten San Francisco coast and waterfront
+    catalog locations without changing a score or catalog prior. The fixed 2026-07-21 source
+    snapshot provides sector depth bands at nine sites and keeps Crane Cove Park explicitly
+    partial because no reviewed depth-area band intersects its configured sector, even though
+    seven deduplicated point soundings and selected chart features exist within 1 km. Contract
+    version 1.1 preserves exact, month-precision, year-only, and missing source-date states
+    separately instead of rejecting valid partial dates or inventing a day.
   - [ ] Obtain location-by-location local-angler and independent chart review; verify sector
     orientation and usefulness; source dynamic bars, troughs, reef, vegetation, and other catalog
     clues separately or leave them explicitly unvalidated; add BlueTopo or another qualified
     uncertainty-bearing source only where coverage permits; extend the same contract to the
-    remaining launch catalog; and collect protected, guarded deployment plus post-deployment
+    remaining 37 launch-catalog locations; and collect protected, guarded deployment plus post-deployment
     evidence before calling any location fully reviewed or using this evidence in a score.
 - [ ] Add striped bass as the first new beta using a distinct estuary/migration model.
 - [ ] Define and evaluate explicit shore-relevant rockfish species/complexes next; then model
