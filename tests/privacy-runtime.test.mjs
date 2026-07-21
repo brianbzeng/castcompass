@@ -633,6 +633,53 @@ test("password reset never issues a fresh session without a confirmed credential
   }
 });
 
+test("account verification never issues a session without a confirmed user insert", async () => {
+  const { sqlite, d1 } = await database();
+  const challengeId = `challenge_${crypto.randomUUID()}`;
+  const code = "624812";
+  const email = "account-receipt-142@example.com";
+  const password = "account creation receipt passphrase";
+  const salt = Buffer.alloc(18, 142).toString("base64url");
+  const now = new Date();
+  sqlite.prepare(`INSERT INTO email_challenges
+      (id, kind, email, user_id, code_hash, password_salt, password_hash,
+        age_eligibility_confirmed_at, terms_version, privacy_version, expires_at,
+        attempts, resend_count, created_at)
+    VALUES (?, 'signup', ?, NULL, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`)
+    .run(
+      challengeId,
+      email,
+      await sha256(`${challengeId}:${code}`),
+      salt,
+      await passwordHash(password, salt),
+      now.toISOString(),
+      LEGAL_VERSION,
+      LEGAL_VERSION,
+      new Date(now.getTime() + 15 * 60_000).toISOString(),
+      now.toISOString(),
+    );
+
+  d1.omitOnceMutationMetadataSubstring = "INSERT INTO users";
+  const verified = await handleAccountRequest(request("/api/auth/signup/verify", {
+    method: "POST",
+    body: { challengeId, code },
+  }), { DB: d1 }, []);
+  assert.equal(verified?.status, 503);
+  assert.equal((await verified.json()).error.code, "account_creation_unconfirmed");
+  assert.equal(sessionCookieFrom(verified), null);
+  const created = sqlite.prepare("SELECT id FROM users WHERE email = ?").get(email);
+  assert.equal(typeof created.id, "string");
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?").get(challengeId).count, 0);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?").get(created.id).count, 0);
+
+  const login = await handleAccountRequest(request("/api/auth/login", {
+    method: "POST",
+    body: { email, password },
+  }), { DB: d1 }, []);
+  assert.equal(login?.status, 200);
+  assert.match(sessionCookieFrom(login) ?? "", /^__Host-cc_session=/u);
+});
+
 function addTrip(sqlite, user, {
   id = `trip_${crypto.randomUUID()}`,
   photoKey = null,

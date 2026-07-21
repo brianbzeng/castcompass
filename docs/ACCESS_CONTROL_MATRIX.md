@@ -30,6 +30,7 @@ output never grants authority.
 | Resource | Required server predicate | Current mutation rules |
 | --- | --- | --- |
 | Session | `token_hash = sha256(cookie)` and `expires_at > now` | Authentication atomically replaces any session presented by that browser and HTTPS uses `__Host-cc_session`; the prior cookie is accepted only for migration and rotated on session refresh; logout revokes presented sessions, while password reset and account deletion revoke every session for the account |
+| Account creation | One-use signup challenge containing server-created credential hash, age-eligibility timestamp, and exact current legal versions | User insertion and challenge deletion are one D1 batch; welcome delivery and the first authenticated session occur only after exactly one confirmed user insert. An unconfirmed committed batch returns `503` and directs normal sign-in rather than replaying the consumed challenge |
 | Password reset | One-use verified challenge bound server-side to `email_challenges.user_id`; final credential update repeats that user ID | Password change, all-session revocation, and challenge consumption are one D1 batch; a new session is issued only after exactly one confirmed user-row change. Missing mutation metadata returns `503`, clears stale browser session cookies, and instructs sign-in with the submitted password instead of replaying the consumed challenge |
 | Legal acceptance | `users.id = authenticated_user.id` after an active server-side session lookup | The server preserves the prior age-eligibility proof, records only the current Terms/Privacy versions, and returns accepted only for exactly one confirmed D1 change; a deleted-account race clears stale session cookies, and missing mutation metadata returns `503` instead of a compliance receipt |
 | Saved site | `user_id = authenticated_user.id` | Owner may add/remove only their row |
@@ -116,6 +117,11 @@ Password reset uses the same receipt boundary for a more sensitive transition. T
 update, prior-session revocation, and one-use challenge deletion remain atomic, but no replacement
 session is created until D1 confirms exactly one changed user row. An unconfirmed committed batch
 clears stale browser cookies and directs the account owner to try the submitted password at sign-in.
+
+Verified signup similarly couples user insertion and challenge consumption in one batch. Welcome
+delivery and the first session are downstream of an exact one-row insert receipt. If the batch
+commits but D1 omits that metadata, the server returns `503`; the new account can authenticate with
+its submitted password, but no challenge replay or duplicate welcome/session is attempted.
 
 ## Open gates
 

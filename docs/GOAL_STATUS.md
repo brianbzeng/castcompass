@@ -107,6 +107,27 @@ by that discovery.
       request, merge, deployment, provider query, D1 mutation, model change, or UI change belongs
       to this work.
 
+## Active checkpoint — database-confirmed account creation
+
+- [x] Continue the one-use challenge audit through verified signup. User insertion and challenge
+      deletion were already atomic and unique-email protected, but welcome delivery and the first
+      authenticated session occurred without inspecting the user-insert result.
+- [x] Require exactly one confirmed D1 change before either downstream side effect. Missing,
+      malformed, zero, or impossible metadata returns `503 account_creation_unconfirmed`, sends no
+      welcome, and creates no session rather than manufacturing a verified-account receipt.
+- [x] Preserve recovery after an ambiguous committed batch. The one-use challenge is consumed and
+      cannot be replayed; the response directs the new account owner to try ordinary sign-in before
+      starting signup again.
+- [x] Force that path in the direct D1 runtime. The account and legal/age fields commit, the
+      challenge disappears, the verify response remains `503` without a session, and a normal
+      sign-in with the submitted password succeeds and creates the only authenticated session.
+- [x] Pass the pinned Cloudflare build, ESLint, TypeScript, all 554/554 Node tests, the complete
+      offline security/SBOM/source-integrity chain, both zero-vulnerability npm audits, and the
+      full 200/200 Chromium/WebKit phone matrix. Preserve the clean local commit and exact
+      deterministic release-bundle receipts for this repository-only checkpoint. No push, pull
+      request, merge, deployment, provider query, D1 mutation, model change, or UI change belongs
+      to this work.
+
 ## Active checkpoint — database-confirmed password reset
 
 - [x] Continue the credential-lifecycle audit through password reset. Credential replacement,

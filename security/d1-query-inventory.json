@@ -5,7 +5,7 @@
   "sourceFiles": [
     {
       "file": "worker/auth.ts",
-      "sha256": "f52c296bcee8979031a086ed4f49a575b00de6e118b32e1a7f7967b22bc35144",
+      "sha256": "540d2ef8ff27a5116c6a3a6309914ea4dcf081333563d49df36d129e6cbd898a",
       "prepareCallCount": 129
     },
     {
@@ -931,7 +931,7 @@
     {
       "callSiteId": "8c193061726232e588cd06a2",
       "file": "worker/auth.ts",
-      "line": 550,
+      "line": 557,
       "containingFunction": "handleAccountRequest",
       "occurrence": 42,
       "executionMode": "first",
@@ -953,7 +953,7 @@
     {
       "callSiteId": "99355bb047a933b016a6df19",
       "file": "worker/auth.ts",
-      "line": 568,
+      "line": 575,
       "containingFunction": "handleAccountRequest",
       "occurrence": 43,
       "executionMode": "run",
@@ -975,7 +975,7 @@
     {
       "callSiteId": "92ed2b6361ccac306f00b255",
       "file": "worker/auth.ts",
-      "line": 615,
+      "line": 622,
       "containingFunction": "handleAccountRequest",
       "occurrence": 44,
       "executionMode": "run",
@@ -997,7 +997,7 @@
     {
       "callSiteId": "84063920b3b0da9ea7f3e825",
       "file": "worker/auth.ts",
-      "line": 641,
+      "line": 648,
       "containingFunction": "handleAccountRequest",
       "occurrence": 45,
       "executionMode": "first",
@@ -1019,7 +1019,7 @@
     {
       "callSiteId": "7252cf3ada065f4939f65509",
       "file": "worker/auth.ts",
-      "line": 658,
+      "line": 665,
       "containingFunction": "handleAccountRequest",
       "occurrence": 46,
       "executionMode": "run",
@@ -1041,7 +1041,7 @@
     {
       "callSiteId": "9ca854b343c3b2937283e90b",
       "file": "worker/auth.ts",
-      "line": 693,
+      "line": 700,
       "containingFunction": "handleAccountRequest",
       "occurrence": 47,
       "executionMode": "batch",
@@ -1063,7 +1063,7 @@
     {
       "callSiteId": "092eb2861937c7090a92a0e8",
       "file": "worker/auth.ts",
-      "line": 695,
+      "line": 702,
       "containingFunction": "handleAccountRequest",
       "occurrence": 48,
       "executionMode": "batch",
@@ -1085,7 +1085,7 @@
     {
       "callSiteId": "ee3460f6adba1a517352b086",
       "file": "worker/auth.ts",
-      "line": 696,
+      "line": 703,
       "containingFunction": "handleAccountRequest",
       "occurrence": 49,
       "executionMode": "batch",
@@ -1107,7 +1107,7 @@
     {
       "callSiteId": "9876ba22f5b3ada67e410251",
       "file": "worker/auth.ts",
-      "line": 729,
+      "line": 736,
       "containingFunction": "handleAccountRequest",
       "occurrence": 50,
       "executionMode": "first",
@@ -1129,7 +1129,7 @@
     {
       "callSiteId": "5957400adc8f51a42faab281",
       "file": "worker/auth.ts",
-      "line": 737,
+      "line": 744,
       "containingFunction": "handleAccountRequest",
       "occurrence": 51,
       "executionMode": "first",
@@ -1151,7 +1151,7 @@
     {
       "callSiteId": "e76a2ceb965bc08c4cf4e827",
       "file": "worker/auth.ts",
-      "line": 755,
+      "line": 762,
       "containingFunction": "handleAccountRequest",
       "occurrence": 52,
       "executionMode": "run",
@@ -1173,7 +1173,7 @@
     {
       "callSiteId": "ff5dd3a76092000111b1a781",
       "file": "worker/auth.ts",
-      "line": 773,
+      "line": 780,
       "containingFunction": "map-callback",
       "occurrence": 53,
       "executionMode": "all",
@@ -1195,7 +1195,7 @@
     {
       "callSiteId": "1308bd49337f1517b91c5dc6",
       "file": "worker/auth.ts",
-      "line": 791,
+      "line": 798,
       "containingFunction": "handleAccountRequest",
       "occurrence": 54,
       "executionMode": "run",
@@ -1217,7 +1217,7 @@
     {
       "callSiteId": "4f476da598053dc245697dde",
       "file": "worker/auth.ts",
-      "line": 813,
+      "line": 820,
       "containingFunction": "handleAccountRequest",
       "occurrence": 55,
       "executionMode": "first",
@@ -1239,7 +1239,7 @@
     {
       "callSiteId": "45f768db3ea9d5b98b7ce4ff",
       "file": "worker/auth.ts",
-      "line": 893,
+      "line": 900,
       "containingFunction": "handleAccountRequest",
       "occurrence": 56,
       "executionMode": "first",
@@ -1261,7 +1261,7 @@
     {
       "callSiteId": "5a8a1422da232a361ef6ab28",
       "file": "worker/auth.ts",
-      "line": 898,
+      "line": 905,
       "containingFunction": "handleAccountRequest",
       "occurrence": 57,
       "executionMode": "all",
@@ -1283,7 +1283,7 @@
     {
       "callSiteId": "55a4ebbb7afbfc3a06c03411",
       "file": "worker/auth.ts",
-      "line": 901,
+      "line": 908,
       "containingFunction": "handleAccountRequest",
       "occurrence": 58,
       "executionMode": "all",
@@ -1306,7 +1306,7 @@
     {
       "callSiteId": "8937c0620c8fd739801163a3",
       "file": "worker/auth.ts",
-      "line": 908,
+      "line": 915,
       "containingFunction": "handleAccountRequest",
       "occurrence": 59,
       "executionMode": "all",
@@ -1328,7 +1328,7 @@
     {
       "callSiteId": "1475edeb77195a1ecb4158d3",
       "file": "worker/auth.ts",
-      "line": 921,
+      "line": 928,
       "containingFunction": "handleAccountRequest",
       "occurrence": 60,
       "executionMode": "batch",
@@ -1351,7 +1351,7 @@
     {
       "callSiteId": "dc2a9d9fd4786db02a3b7e5f",
       "file": "worker/auth.ts",
-      "line": 926,
+      "line": 933,
       "containingFunction": "handleAccountRequest",
       "occurrence": 61,
       "executionMode": "batch",
@@ -1373,7 +1373,7 @@
     {
       "callSiteId": "f6a296c850497be42fbcd975",
       "file": "worker/auth.ts",
-      "line": 932,
+      "line": 939,
       "containingFunction": "handleAccountRequest",
       "occurrence": 62,
       "executionMode": "batch",
@@ -1396,7 +1396,7 @@
     {
       "callSiteId": "9d21f61b0ab7e7ffa4da0292",
       "file": "worker/auth.ts",
-      "line": 933,
+      "line": 940,
       "containingFunction": "handleAccountRequest",
       "occurrence": 63,
       "executionMode": "batch",
@@ -1418,7 +1418,7 @@
     {
       "callSiteId": "1ef4715f1cc03a5e1875b121",
       "file": "worker/auth.ts",
-      "line": 934,
+      "line": 941,
       "containingFunction": "handleAccountRequest",
       "occurrence": 64,
       "executionMode": "batch",
@@ -1440,7 +1440,7 @@
     {
       "callSiteId": "348dd6f727777414e96d9f5f",
       "file": "worker/auth.ts",
-      "line": 935,
+      "line": 942,
       "containingFunction": "handleAccountRequest",
       "occurrence": 65,
       "executionMode": "batch",
@@ -1462,7 +1462,7 @@
     {
       "callSiteId": "7cdf4cc1fbe7edeb392928a2",
       "file": "worker/auth.ts",
-      "line": 936,
+      "line": 943,
       "containingFunction": "handleAccountRequest",
       "occurrence": 66,
       "executionMode": "batch",
@@ -1484,7 +1484,7 @@
     {
       "callSiteId": "1263f4bee756dc6e8632f839",
       "file": "worker/auth.ts",
-      "line": 937,
+      "line": 944,
       "containingFunction": "handleAccountRequest",
       "occurrence": 67,
       "executionMode": "batch",
@@ -1506,7 +1506,7 @@
     {
       "callSiteId": "a2fa0360e5f910aa71aefb79",
       "file": "worker/auth.ts",
-      "line": 938,
+      "line": 945,
       "containingFunction": "handleAccountRequest",
       "occurrence": 68,
       "executionMode": "batch",
@@ -1528,7 +1528,7 @@
     {
       "callSiteId": "01c6c8f022ad0f6273cbdfb6",
       "file": "worker/auth.ts",
-      "line": 939,
+      "line": 946,
       "containingFunction": "handleAccountRequest",
       "occurrence": 69,
       "executionMode": "batch",
@@ -1550,7 +1550,7 @@
     {
       "callSiteId": "9efa95334a468edd4d74838f",
       "file": "worker/auth.ts",
-      "line": 963,
+      "line": 970,
       "containingFunction": "handleAccountRequest",
       "occurrence": 70,
       "executionMode": "all",
@@ -1572,7 +1572,7 @@
     {
       "callSiteId": "0a73272148ccd03febc45bae",
       "file": "worker/auth.ts",
-      "line": 972,
+      "line": 979,
       "containingFunction": "map-callback",
       "occurrence": 71,
       "executionMode": "batch",
@@ -1594,7 +1594,7 @@
     {
       "callSiteId": "093ec223cd969aa8341ac09e",
       "file": "worker/auth.ts",
-      "line": 987,
+      "line": 994,
       "containingFunction": "handleAccountRequest",
       "occurrence": 72,
       "executionMode": "all",
@@ -1616,7 +1616,7 @@
     {
       "callSiteId": "f94765869f8943927ac3bbee",
       "file": "worker/auth.ts",
-      "line": 990,
+      "line": 997,
       "containingFunction": "handleAccountRequest",
       "occurrence": 73,
       "executionMode": "all",
@@ -1638,7 +1638,7 @@
     {
       "callSiteId": "113b0b7f8e666c54bc864b41",
       "file": "worker/auth.ts",
-      "line": 1004,
+      "line": 1011,
       "containingFunction": "handleAccountRequest",
       "occurrence": 74,
       "executionMode": "all",
@@ -1660,7 +1660,7 @@
     {
       "callSiteId": "34b525f43ed7d94672581634",
       "file": "worker/auth.ts",
-      "line": 1031,
+      "line": 1038,
       "containingFunction": "handleAccountRequest",
       "occurrence": 75,
       "executionMode": "all",
@@ -1682,7 +1682,7 @@
     {
       "callSiteId": "8445789aae8547014dcfe537",
       "file": "worker/auth.ts",
-      "line": 1051,
+      "line": 1058,
       "containingFunction": "handleAccountRequest",
       "occurrence": 76,
       "executionMode": "run",
@@ -1704,7 +1704,7 @@
     {
       "callSiteId": "58aa561b3a3b09e673ffd8e6",
       "file": "worker/auth.ts",
-      "line": 1072,
+      "line": 1079,
       "containingFunction": "handleAccountRequest",
       "occurrence": 77,
       "executionMode": "first",
@@ -1726,7 +1726,7 @@
     {
       "callSiteId": "4b9e804e4896f5a92e62604b",
       "file": "worker/auth.ts",
-      "line": 1077,
+      "line": 1084,
       "containingFunction": "handleAccountRequest",
       "occurrence": 78,
       "executionMode": "run",
@@ -1748,7 +1748,7 @@
     {
       "callSiteId": "a15a7d17cd416ce12ab5697a",
       "file": "worker/auth.ts",
-      "line": 1094,
+      "line": 1101,
       "containingFunction": "handleAccountRequest",
       "occurrence": 79,
       "executionMode": "run",
@@ -1770,7 +1770,7 @@
     {
       "callSiteId": "d17c63113a152439e1215073",
       "file": "worker/auth.ts",
-      "line": 1114,
+      "line": 1121,
       "containingFunction": "handleAccountRequest",
       "occurrence": 80,
       "executionMode": "first",
@@ -1792,7 +1792,7 @@
     {
       "callSiteId": "97ff5a2991299ef901f1efec",
       "file": "worker/auth.ts",
-      "line": 1143,
+      "line": 1150,
       "containingFunction": "handleAccountRequest",
       "occurrence": 81,
       "executionMode": "batch",
@@ -1815,7 +1815,7 @@
     {
       "callSiteId": "6052705433a663419a945a82",
       "file": "worker/auth.ts",
-      "line": 1146,
+      "line": 1153,
       "containingFunction": "handleAccountRequest",
       "occurrence": 82,
       "executionMode": "batch",
@@ -1837,7 +1837,7 @@
     {
       "callSiteId": "219b854bd720288cc8544431",
       "file": "worker/auth.ts",
-      "line": 1173,
+      "line": 1180,
       "containingFunction": "handleAccountRequest",
       "occurrence": 83,
       "executionMode": "first",
@@ -1860,7 +1860,7 @@
     {
       "callSiteId": "a190e8fad5bbb4ba2d33d5fe",
       "file": "worker/auth.ts",
-      "line": 1188,
+      "line": 1195,
       "containingFunction": "handleAccountRequest",
       "occurrence": 84,
       "executionMode": "first",
@@ -1883,7 +1883,7 @@
     {
       "callSiteId": "e798bc5894c4bc4ec4a259c7",
       "file": "worker/auth.ts",
-      "line": 1196,
+      "line": 1203,
       "containingFunction": "handleAccountRequest",
       "occurrence": 85,
       "executionMode": "first",
@@ -1906,7 +1906,7 @@
     {
       "callSiteId": "3756d1089f62ecc367b87d8d",
       "file": "worker/auth.ts",
-      "line": 1269,
+      "line": 1276,
       "containingFunction": "handleAccountRequest",
       "occurrence": 86,
       "executionMode": "first",
@@ -1928,7 +1928,7 @@
     {
       "callSiteId": "c4fdca2601a402b3d303e8bc",
       "file": "worker/auth.ts",
-      "line": 1346,
+      "line": 1353,
       "containingFunction": "handleAccountRequest",
       "occurrence": 87,
       "executionMode": "prepared-statement",
@@ -1948,7 +1948,7 @@
     {
       "callSiteId": "4dc06fb23ab0355a5c4728a2",
       "file": "worker/auth.ts",
-      "line": 1393,
+      "line": 1400,
       "containingFunction": "handleAccountRequest",
       "occurrence": 88,
       "executionMode": "prepared-statement",
@@ -1971,7 +1971,7 @@
     {
       "callSiteId": "3dcd5a4b1212511dcc1e4760",
       "file": "worker/auth.ts",
-      "line": 1428,
+      "line": 1435,
       "containingFunction": "handleAccountRequest",
       "occurrence": 89,
       "executionMode": "first",
@@ -1993,7 +1993,7 @@
     {
       "callSiteId": "4bfc759089f7875c50443a20",
       "file": "worker/auth.ts",
-      "line": 1449,
+      "line": 1456,
       "containingFunction": "handleAccountRequest",
       "occurrence": 90,
       "executionMode": "all",
@@ -2015,7 +2015,7 @@
     {
       "callSiteId": "bef7b9d85f4f58bfe9c29357",
       "file": "worker/auth.ts",
-      "line": 1470,
+      "line": 1477,
       "containingFunction": "handleAccountRequest",
       "occurrence": 91,
       "executionMode": "run",
@@ -2037,7 +2037,7 @@
     {
       "callSiteId": "ced1e4cccb4e7a02f3a3ec2c",
       "file": "worker/auth.ts",
-      "line": 1475,
+      "line": 1482,
       "containingFunction": "handleAccountRequest",
       "occurrence": 92,
       "executionMode": "first",
@@ -2059,7 +2059,7 @@
     {
       "callSiteId": "6152cc85ac4793122511ba72",
       "file": "worker/auth.ts",
-      "line": 1487,
+      "line": 1494,
       "containingFunction": "handleAccountRequest",
       "occurrence": 93,
       "executionMode": "run",
@@ -2081,7 +2081,7 @@
     {
       "callSiteId": "12328b649064d3a226dc8f56",
       "file": "worker/auth.ts",
-      "line": 1658,
+      "line": 1665,
       "containingFunction": "jobStatement",
       "occurrence": 94,
       "executionMode": "returned-statement",
@@ -2103,7 +2103,7 @@
     {
       "callSiteId": "ea21bdc285c6077a76b6f3c3",
       "file": "worker/auth.ts",
-      "line": 1675,
+      "line": 1682,
       "containingFunction": "jobStatementForPendingTrip",
       "occurrence": 95,
       "executionMode": "returned-statement",
@@ -2126,7 +2126,7 @@
     {
       "callSiteId": "65a73118e94c590e9f964cfe",
       "file": "worker/auth.ts",
-      "line": 1695,
+      "line": 1702,
       "containingFunction": "map-callback",
       "occurrence": 96,
       "executionMode": "returned-statement",
@@ -2148,7 +2148,7 @@
     {
       "callSiteId": "40fbcc8ae64a580d42d21048",
       "file": "worker/auth.ts",
-      "line": 1700,
+      "line": 1707,
       "containingFunction": "map-callback",
       "occurrence": 97,
       "executionMode": "returned-statement",
@@ -2171,7 +2171,7 @@
     {
       "callSiteId": "12f3706f263a4c6561ed9d25",
       "file": "worker/auth.ts",
-      "line": 1730,
+      "line": 1737,
       "containingFunction": "prepareConditionalFeasibilityCorrectionInsert",
       "occurrence": 98,
       "executionMode": "returned-statement",
@@ -2194,7 +2194,7 @@
     {
       "callSiteId": "6596ca55a8ba170f39ad9634",
       "file": "worker/auth.ts",
-      "line": 1800,
+      "line": 1807,
       "containingFunction": "selectDeletionJobByReceipt",
       "occurrence": 99,
       "executionMode": "first",
@@ -2216,7 +2216,7 @@
     {
       "callSiteId": "1111cfc7488e318f8130dfd5",
       "file": "worker/auth.ts",
-      "line": 1846,
+      "line": 1853,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 100,
       "executionMode": "prepared-statement",
@@ -2225,7 +2225,7 @@
       "expressionSha256": "a8b771920b8319e47251d1360f5e880bc18e8d329b0f0d003ea3c7e615558947",
       "declarationReference": {
         "name": "query",
-        "declarationLine": 1836,
+        "declarationLine": 1843,
         "initializerSha256": "05139c4a1763b5ed8aa6c9f315d924283f43ed5303c1421963ed34fe4233c78e"
       },
       "statementClass": "UNRESOLVED",
@@ -2240,7 +2240,7 @@
     {
       "callSiteId": "96d1c984df71caf6f5f7cdee",
       "file": "worker/auth.ts",
-      "line": 1860,
+      "line": 1867,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 101,
       "executionMode": "run",
@@ -2262,7 +2262,7 @@
     {
       "callSiteId": "4282b4c41665715a98b0238f",
       "file": "worker/auth.ts",
-      "line": 1872,
+      "line": 1879,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 102,
       "executionMode": "run",
@@ -2284,7 +2284,7 @@
     {
       "callSiteId": "580ecccb50379634e7a76cef",
       "file": "worker/auth.ts",
-      "line": 1889,
+      "line": 1896,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 103,
       "executionMode": "run",
@@ -2306,7 +2306,7 @@
     {
       "callSiteId": "729bdb24915ce6c04d92f7d6",
       "file": "worker/auth.ts",
-      "line": 1900,
+      "line": 1907,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 104,
       "executionMode": "run",
@@ -2328,7 +2328,7 @@
     {
       "callSiteId": "d7a28611ae86e8e4a89ea1f6",
       "file": "worker/auth.ts",
-      "line": 1908,
+      "line": 1915,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 105,
       "executionMode": "run",
@@ -2350,7 +2350,7 @@
     {
       "callSiteId": "229db748eadca15946c78ef0",
       "file": "worker/auth.ts",
-      "line": 1913,
+      "line": 1920,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 106,
       "executionMode": "run",
@@ -2372,7 +2372,7 @@
     {
       "callSiteId": "1f9baa87b811653433caea4e",
       "file": "worker/auth.ts",
-      "line": 1921,
+      "line": 1928,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 107,
       "executionMode": "run",
@@ -2394,7 +2394,7 @@
     {
       "callSiteId": "c4f4581f6723b52d4b9b7005",
       "file": "worker/auth.ts",
-      "line": 1934,
+      "line": 1941,
       "containingFunction": "processPrivacyDeletionTasks",
       "occurrence": 108,
       "executionMode": "run",
@@ -2416,7 +2416,7 @@
     {
       "callSiteId": "6715d9c7ac5cc057ff2b6959",
       "file": "worker/auth.ts",
-      "line": 1950,
+      "line": 1957,
       "containingFunction": "refreshDeletionJobStatus",
       "occurrence": 109,
       "executionMode": "run",
@@ -2439,7 +2439,7 @@
     {
       "callSiteId": "98f04a0603c3a5676eeaa081",
       "file": "worker/auth.ts",
-      "line": 1992,
+      "line": 1999,
       "containingFunction": "reconcileDeletionJobs",
       "occurrence": 110,
       "executionMode": "all",
@@ -2461,7 +2461,7 @@
     {
       "callSiteId": "91489ba78cf39143e00cc284",
       "file": "worker/auth.ts",
-      "line": 1994,
+      "line": 2001,
       "containingFunction": "reconcileDeletionJobs",
       "occurrence": 111,
       "executionMode": "all",
@@ -2484,7 +2484,7 @@
     {
       "callSiteId": "d554ada5059506806c50b9a5",
       "file": "worker/auth.ts",
-      "line": 2028,
+      "line": 2035,
       "containingFunction": "cleanupAuthData",
       "occurrence": 112,
       "executionMode": "batch",
@@ -2506,7 +2506,7 @@
     {
       "callSiteId": "f3e7c4dc5addb66ef9b945ea",
       "file": "worker/auth.ts",
-      "line": 2032,
+      "line": 2039,
       "containingFunction": "cleanupAuthData",
       "occurrence": 113,
       "executionMode": "batch",
@@ -2528,7 +2528,7 @@
     {
       "callSiteId": "d8af22c2da4a3e5c4279e7f5",
       "file": "worker/auth.ts",
-      "line": 2036,
+      "line": 2043,
       "containingFunction": "cleanupAuthData",
       "occurrence": 114,
       "executionMode": "batch",
@@ -2550,7 +2550,7 @@
     {
       "callSiteId": "c5f8160b7ef3608d2e958fb8",
       "file": "worker/auth.ts",
-      "line": 2040,
+      "line": 2047,
       "containingFunction": "cleanupAuthData",
       "occurrence": 115,
       "executionMode": "batch",
@@ -2572,7 +2572,7 @@
     {
       "callSiteId": "3cb40321090b0b62074c3838",
       "file": "worker/auth.ts",
-      "line": 2045,
+      "line": 2052,
       "containingFunction": "cleanupAuthData",
       "occurrence": 116,
       "executionMode": "batch",
@@ -2595,7 +2595,7 @@
     {
       "callSiteId": "ffc269b0795462f8f0959551",
       "file": "worker/auth.ts",
-      "line": 2056,
+      "line": 2063,
       "containingFunction": "cleanupAuthData",
       "occurrence": 117,
       "executionMode": "batch",
@@ -2617,7 +2617,7 @@
     {
       "callSiteId": "30c55cc35b66fd66b84872ca",
       "file": "worker/auth.ts",
-      "line": 2067,
+      "line": 2074,
       "containingFunction": "selectUserForSession",
       "occurrence": 118,
       "executionMode": "first",
@@ -2639,7 +2639,7 @@
     {
       "callSiteId": "26c26153d74eb5cc8736cee1",
       "file": "worker/auth.ts",
-      "line": 2087,
+      "line": 2094,
       "containingFunction": "map-callback",
       "occurrence": 119,
       "executionMode": "all",
@@ -2661,7 +2661,7 @@
     {
       "callSiteId": "f867c6aad53d0babbcbf2f10",
       "file": "worker/auth.ts",
-      "line": 2090,
+      "line": 2097,
       "containingFunction": "createSessionResponse",
       "occurrence": 120,
       "executionMode": "batch",
@@ -2683,7 +2683,7 @@
     {
       "callSiteId": "88003dcee41730babe7c4ee6",
       "file": "worker/auth.ts",
-      "line": 2309,
+      "line": 2316,
       "containingFunction": "validateSignupAgeProof",
       "occurrence": 121,
       "executionMode": "first",
@@ -2705,7 +2705,7 @@
     {
       "callSiteId": "a230ebbe7d9247c254256c2d",
       "file": "worker/auth.ts",
-      "line": 2322,
+      "line": 2329,
       "containingFunction": "consumeSignupAgeProof",
       "occurrence": 122,
       "executionMode": "run",
@@ -2727,7 +2727,7 @@
     {
       "callSiteId": "0ba24ed48e6b39e73b873b62",
       "file": "worker/auth.ts",
-      "line": 2417,
+      "line": 2424,
       "containingFunction": "assertEmailChallengeAllowed",
       "occurrence": 123,
       "executionMode": "first",
@@ -2749,7 +2749,7 @@
     {
       "callSiteId": "dcb25624cb743ef337910be2",
       "file": "worker/auth.ts",
-      "line": 2436,
+      "line": 2443,
       "containingFunction": "verifyEmailChallenge",
       "occurrence": 124,
       "executionMode": "first",
@@ -2771,7 +2771,7 @@
     {
       "callSiteId": "46d49c05fdd4b13b7835fefb",
       "file": "worker/auth.ts",
-      "line": 2440,
+      "line": 2447,
       "containingFunction": "verifyEmailChallenge",
       "occurrence": 125,
       "executionMode": "run",
@@ -2793,7 +2793,7 @@
     {
       "callSiteId": "2d3ccd888360d9161aee36bf",
       "file": "worker/auth.ts",
-      "line": 2448,
+      "line": 2455,
       "containingFunction": "verifyEmailChallenge",
       "occurrence": 126,
       "executionMode": "run",
@@ -2815,7 +2815,7 @@
     {
       "callSiteId": "39509cafac7c48dead74692d",
       "file": "worker/auth.ts",
-      "line": 2456,
+      "line": 2463,
       "containingFunction": "verifyEmailChallenge",
       "occurrence": 127,
       "executionMode": "run",
@@ -2837,7 +2837,7 @@
     {
       "callSiteId": "4abfb7ddcec4486af9720b31",
       "file": "worker/auth.ts",
-      "line": 2458,
+      "line": 2465,
       "containingFunction": "verifyEmailChallenge",
       "occurrence": 128,
       "executionMode": "run",
@@ -2859,7 +2859,7 @@
     {
       "callSiteId": "73051e3a77a670057add1155",
       "file": "worker/auth.ts",
-      "line": 2631,
+      "line": 2638,
       "containingFunction": "catch-callback",
       "occurrence": 129,
       "executionMode": "run",

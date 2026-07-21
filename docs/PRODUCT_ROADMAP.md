@@ -164,6 +164,10 @@ after its acceptance checks pass in the intended environment.
       password update, all-session revocation, and challenge consumption remain one atomic batch,
       but an unconfirmed D1 receipt returns `503`, clears stale cookies, and creates no replacement
       session. Direct runtime proof confirms the submitted password works without replaying code.
+    - [x] Require a database-confirmed user insert before completing verified signup. User creation
+      and one-use challenge deletion remain atomic, while welcome delivery and the first session
+      now wait for exactly one D1 change. Missing metadata returns `503`; direct proof signs in to
+      the committed account without replaying the consumed challenge or creating duplicate state.
   - [ ] Verify strict schema/size/type validation, contextual output encoding, safe database
     binding, upload signature and metadata checks, and AI prompt-injection boundaries. Model
     instructions and user content remain data, never authority; models receive no ambient

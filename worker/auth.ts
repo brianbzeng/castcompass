@@ -519,7 +519,7 @@ export async function handleAccountRequest(
         legalAccepted: true,
       };
       const timestamp = new Date().toISOString();
-      await db.batch([
+      const [accountResult] = await db.batch([
         db.prepare(`INSERT INTO users (id, email, password_salt, password_hash,
           age_eligibility_confirmed_at, terms_accepted_at, terms_version,
           privacy_accepted_at, privacy_version, created_at, updated_at)
@@ -530,6 +530,13 @@ export async function handleAccountRequest(
           ),
         db.prepare("DELETE FROM email_challenges WHERE id = ?").bind(challenge.id),
       ]);
+      if (confirmedMutationChanges(accountResult) !== 1) {
+        throw new AuthError(
+          503,
+          "account_creation_unconfirmed",
+          "Account creation could not be confirmed. Try signing in before starting signup again.",
+        );
+      }
       // Account creation should succeed even if the optional welcome message is
       // delayed. Verification already proved ownership of the address.
       await sendWelcomeEmail(env, user.email, user.id).catch((error) => {
