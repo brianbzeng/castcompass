@@ -61,9 +61,26 @@ by that discovery.
       140/140 mobile cases plus API and pipeline; CodeQL run `29797877045` passed all three
       languages; release-provenance runs `29797876952` and `29797878558` passed. Skips were the
       event-inapplicable attestation, dependency-review, and dependency-submission jobs.
-- [ ] Require the final receipt-only head to pass protected checks, mark PR `#128` ready, merge
-      only accepted evidence, and reconcile protected `main`. Production and Cloudflare remain
-      outside this cycle.
+- [x] Require the final PR `#128` head to pass protected checks before merge. Exact head
+      `8aec61bb05b45213ee1bc27b7c1c98f11ae42a1c` passed push CI run `29798632628` and
+      pull-request CI run `29798634349`, including two independent 140/140 web jobs, plus CodeQL
+      run `29798632819` and release-provenance runs `29798632624` and `29798634244`. It then
+      merged as protected-main commit `26811fd3f5e4332a264af9e4e7c3f9078e745caf`.
+- [x] Classify that merge commit's failed web job rather than rerunning it. Main CI run
+      `29799012204` passed API, pipeline, and dependency submission but passed 139/140 mobile
+      cases: one WebKit trip-recovery setup never received `Limantour Beach`. The app loads its
+      site catalog and 2.9 MB forecast snapshot atomically, and the Vinext test server's recorded
+      premature close on the snapshot correctly left the app on its three-site emergency
+      fallback. CodeQL run `29799011924` and release-provenance run `29799012244` passed.
+- [x] Isolate the mutation-recovery boundary from that unrelated static-file transport. Only the
+      three trip-recovery cases now receive the exact committed site catalog and forecast fixture
+      through Playwright routing, bypassing the local Vinext static stream. Product behavior,
+      fixture contents, timeouts, retries, Cloudflare, and production are unchanged. The affected
+      iPhone SE and WebKit slice passed 60/60 two-worker repetitions; ESLint, TypeScript, the
+      Cloudflare build, and the complete four-project mobile matrix passed 140/140 locally.
+- [ ] Publish the isolated follow-up, require complete exact-head protected checks, merge only
+      accepted evidence, and reconcile protected `main`. Production and Cloudflare remain outside
+      this cycle.
 
 ## Completed work cycle — default-off asynchronous privacy exports
 

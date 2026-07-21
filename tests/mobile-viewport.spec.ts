@@ -161,6 +161,17 @@ test.beforeEach(async ({ page }, testInfo) => {
   const savedSiteRecoveryTest = testTitle.includes("saved-location changes pause while offline") ||
     testTitle.includes("slow saved-location removal stays unconfirmed") ||
     testTitle.includes("malformed saved-location receipt stays unresolved");
+  if (tripRecoveryTest) {
+    // Trip mutation recovery is the boundary under test. Serve the committed catalog and
+    // forecast through Playwright so a transient static-server stream failure cannot leave the
+    // app on its three-site emergency fallback and turn this into an unrelated data-load test.
+    await page.route("**/data/sites.json", (route) => route.fulfill({
+      path: "public/data/sites.json",
+    }));
+    await page.route("**/data/opportunities.json", (route) => route.fulfill({
+      path: "public/data/opportunities.json",
+    }));
+  }
   if (savedSiteRecoveryTest) {
     // Keep the committed forecast fixture inside its availability window so this mutation test
     // exercises recovery behavior instead of expiring as wall-clock time advances.
