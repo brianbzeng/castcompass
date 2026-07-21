@@ -2,8 +2,8 @@
 
 import { createHash, randomUUID } from "node:crypto";
 import { constants } from "node:fs";
-import { lstat, open, readFile, realpath } from "node:fs/promises";
-import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { lstat, open, readFile, realpath, unlink } from "node:fs/promises";
+import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
@@ -176,6 +176,27 @@ async function readPrivateReviewFile(root, path, label) {
   } finally {
     await handle.close();
   }
+}
+
+async function privateTemplateOutputPath(root, outputFile) {
+  if (!isAbsolute(outputFile ?? "")) throw new Error("Template output path must be absolute.");
+  const normalizedOutput = resolve(outputFile);
+  if (normalizedOutput !== outputFile) throw new Error("Template output path must already be normalized.");
+  const rootReal = await realpath(root);
+  const parent = dirname(normalizedOutput);
+  const parentMetadata = await lstat(parent).catch(() => null);
+  if (!parentMetadata || parentMetadata.isSymbolicLink() || !parentMetadata.isDirectory()) {
+    throw new Error("Template output directory must be an existing non-symlink directory.");
+  }
+  const parentReal = await realpath(parent);
+  if (isInside(rootReal, parentReal)) throw new Error("Template output must remain outside the repository checkout.");
+  if ((parentMetadata.mode & 0o077) !== 0) {
+    throw new Error("Template output directory must not grant group or other permissions.");
+  }
+  if (typeof process.getuid === "function" && parentMetadata.uid !== process.getuid()) {
+    throw new Error("Template output directory must be owned by the current user.");
+  }
+  return resolve(parentReal, basename(normalizedOutput));
 }
 
 function assertDigest(value, label) {
@@ -505,7 +526,7 @@ export async function evaluateReviewFiles({
   };
 }
 
-async function template(root, role) {
+async function template(root, role, now = Date.now()) {
   if (!REVIEW_ROLES.includes(role)) throw new Error(`Template role must be one of: ${REVIEW_ROLES.join(", ")}`);
   const target = await loadReviewTarget(root);
   return {
@@ -514,7 +535,7 @@ async function template(root, role) {
     source_commit: LOCKED_SOURCE_COMMIT,
     review_target_sha256: LOCKED_REVIEW_TARGET_SHA256,
     water_quality_policy_version: POLICY_VERSION,
-    reviewed_at: new Date().toISOString(),
+    reviewed_at: new Date(now).toISOString(),
     reviewer_role: role,
     reviewer_independent_of_implementation: true,
     reviewer_competence_evidence_sha256: "REPLACE_WITH_PRIVATE_COMPETENCE_NOTE_SHA256",
@@ -526,6 +547,58 @@ async function template(root, role) {
       ...site,
       ...Object.fromEntries(SITE_REVIEW_CHECKS.map((check) => [check, false])),
     })),
+  };
+}
+
+export async function writeReviewTemplate({
+  root = DEFAULT_ROOT,
+  role,
+  outputFile,
+  now = Date.now(),
+}) {
+  const outputPath = await privateTemplateOutputPath(root, outputFile);
+  const payload = await template(root, role, now);
+  const body = stableJson(payload);
+  let handle;
+  try {
+    handle = await open(
+      outputPath,
+      constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | (constants.O_NOFOLLOW ?? 0),
+      0o600,
+    );
+  } catch (error) {
+    if (error?.code === "EEXIST") throw new Error("Template output file must not already exist.");
+    throw new Error("Template output file could not be created safely.");
+  }
+  let complete = false;
+  try {
+    await handle.chmod(0o600);
+    await handle.writeFile(body, "utf8");
+    await handle.sync();
+    const metadata = await handle.stat();
+    if (!metadata.isFile() || metadata.nlink !== 1 || (metadata.mode & 0o777) !== 0o600) {
+      throw new Error("Template output file did not preserve the required private mode.");
+    }
+    complete = true;
+  } finally {
+    try {
+      await handle.close();
+    } finally {
+      if (!complete) await unlink(outputPath).catch(() => undefined);
+    }
+  }
+  return {
+    schema_version: "castingcompass.water-quality-mapping-review-template-write-receipt/1.0.0",
+    source_commit: LOCKED_SOURCE_COMMIT,
+    review_target_sha256: LOCKED_REVIEW_TARGET_SHA256,
+    reviewer_role: role,
+    catalog_site_count: payload.site_reviews.length,
+    disposition: payload.disposition,
+    owner_only_file_written: true,
+    existing_file_overwritten: false,
+    merge_authorized: false,
+    deployment_authorized: false,
+    production_authorized: false,
   };
 }
 
@@ -553,6 +626,17 @@ async function main(argv) {
     process.stdout.write(stableJson(await template(DEFAULT_ROOT, args.get("--role"))));
     return;
   }
+  if (command === "write-template") {
+    const args = parseArgs(rest);
+    if (args.size !== 2 || !args.has("--role") || !args.has("--output-file")) {
+      throw new Error("write-template requires only --role and --output-file.");
+    }
+    process.stdout.write(stableJson(await writeReviewTemplate({
+      role: args.get("--role"),
+      outputFile: args.get("--output-file"),
+    })));
+    return;
+  }
   if (command === "evaluate") {
     const args = parseArgs(rest);
     const allowed = ["--mapping-review-file", "--public-health-review-file", "--expected-source-commit"];
@@ -566,7 +650,7 @@ async function main(argv) {
     })));
     return;
   }
-  throw new Error("Usage: verify-water-quality-mapping-independent-review.mjs verify-policy | print-template --role ROLE | evaluate --mapping-review-file ABSOLUTE_PATH --public-health-review-file ABSOLUTE_PATH --expected-source-commit SHA");
+  throw new Error("Usage: verify-water-quality-mapping-independent-review.mjs verify-policy | print-template --role ROLE | write-template --role ROLE --output-file ABSOLUTE_PATH | evaluate --mapping-review-file ABSOLUTE_PATH --public-health-review-file ABSOLUTE_PATH --expected-source-commit SHA");
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

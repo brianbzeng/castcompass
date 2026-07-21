@@ -4,6 +4,7 @@ import {
   chmod,
   copyFile,
   link,
+  lstat,
   mkdir,
   mkdtemp,
   readFile,
@@ -28,6 +29,7 @@ import {
   stableJson,
   validateReviewRecord,
   verifyPolicy,
+  writeReviewTemplate,
 } from "../scripts/verify-water-quality-mapping-independent-review.mjs";
 
 const root = new URL("../", import.meta.url).pathname;
@@ -320,4 +322,74 @@ test("private review files reject repository paths, permissive modes, symlinks, 
     publicHealthReviewFile: paths.publicHealthPath,
     expectedSourceCommit: LOCKED_SOURCE_COMMIT,
   }), /must not be hard-linked/u);
+});
+
+test("private template writer creates a canonical owner-only file and never overwrites", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "castingcompass-water-review-template-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await chmod(directory, 0o700);
+  const outputFile = join(directory, "mapping-review.json");
+  const receipt = await writeReviewTemplate({
+    root,
+    role: REVIEW_ROLES[0],
+    outputFile,
+    now: Date.parse("2026-07-21T21:00:00.000Z"),
+  });
+  const metadata = await lstat(outputFile);
+  const source = await readFile(outputFile, "utf8");
+  const payload = JSON.parse(source);
+  assert.equal(metadata.isFile(), true);
+  assert.equal(metadata.isSymbolicLink(), false);
+  assert.equal(metadata.nlink, 1);
+  assert.equal(metadata.mode & 0o777, 0o600);
+  assert.equal(source, stableJson(payload));
+  assert.equal(payload.reviewer_role, REVIEW_ROLES[0]);
+  assert.equal(payload.reviewed_at, "2026-07-21T21:00:00.000Z");
+  assert.equal(payload.disposition, "changes_required");
+  assert.equal(payload.site_reviews.length, 61);
+  assert.equal(receipt.owner_only_file_written, true);
+  assert.equal(receipt.existing_file_overwritten, false);
+  assert.equal(receipt.merge_authorized, false);
+  assert.equal(receipt.deployment_authorized, false);
+  assert.equal(receipt.production_authorized, false);
+  await assert.rejects(writeReviewTemplate({
+    root,
+    role: REVIEW_ROLES[0],
+    outputFile,
+  }), /must not already exist/u);
+  assert.equal(await readFile(outputFile, "utf8"), source);
+});
+
+test("private template writer rejects relative, checkout, permissive, and symlinked destinations", async (t) => {
+  await assert.rejects(writeReviewTemplate({
+    root,
+    role: REVIEW_ROLES[0],
+    outputFile: "mapping-review.json",
+  }), /must be absolute/u);
+  await assert.rejects(writeReviewTemplate({
+    root,
+    role: REVIEW_ROLES[0],
+    outputFile: join(root, "mapping-review.json"),
+  }), /outside the repository checkout/u);
+
+  const directory = await mkdtemp(join(tmpdir(), "castingcompass-water-review-output-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const permissive = join(directory, "permissive");
+  await mkdir(permissive, { mode: 0o755 });
+  await chmod(permissive, 0o755);
+  await assert.rejects(writeReviewTemplate({
+    root,
+    role: REVIEW_ROLES[0],
+    outputFile: join(permissive, "mapping-review.json"),
+  }), /must not grant group or other permissions/u);
+
+  const privateDirectory = join(directory, "private");
+  const linkedDirectory = join(directory, "linked");
+  await mkdir(privateDirectory, { mode: 0o700 });
+  await symlink(privateDirectory, linkedDirectory);
+  await assert.rejects(writeReviewTemplate({
+    root,
+    role: REVIEW_ROLES[0],
+    outputFile: join(linkedDirectory, "mapping-review.json"),
+  }), /existing non-symlink directory/u);
 });

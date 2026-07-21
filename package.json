@@ -61,6 +61,8 @@
     "verify:water-quality-mapping-independent-review": "node scripts/verify-water-quality-mapping-independent-review.mjs evaluate --mapping-review-file \"$WATER_QUALITY_MAPPING_REVIEW_FILE\" --public-health-review-file \"$WATER_QUALITY_PUBLIC_HEALTH_REVIEW_FILE\" --expected-source-commit \"$WATER_QUALITY_REVIEW_EXPECTED_SOURCE_COMMIT\"",
     "template:water-quality-mapping-review": "node scripts/verify-water-quality-mapping-independent-review.mjs print-template --role official_source_mapping_reviewer",
     "template:water-quality-public-health-review": "node scripts/verify-water-quality-mapping-independent-review.mjs print-template --role public_health_risk_communication_reviewer",
+    "write:water-quality-mapping-review-template": "node scripts/verify-water-quality-mapping-independent-review.mjs write-template --role official_source_mapping_reviewer",
+    "write:water-quality-public-health-review-template": "node scripts/verify-water-quality-mapping-independent-review.mjs write-template --role public_health_risk_communication_reviewer",
     "security:ai-review-queue-policy": "node scripts/verify-ai-review-queue-policy.mjs",
     "security:privacy-export-queue-policy": "node scripts/verify-privacy-export-queue-policy.mjs",
     "security:mobile-readiness": "node scripts/verify-mobile-readiness.mjs",

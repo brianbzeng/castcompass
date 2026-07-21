@@ -56,6 +56,11 @@ by that discovery.
       must bind the exact source commit, aggregate target, policy version, reviewer independence,
       ten inventory checks, and three checks for each of all 61 sites; private identity,
       qualifications, notes, paths, and findings enter the public receipt only as digests.
+- [x] Add a guarded private-template writer so the handoff does not depend on error-prone shell
+      redirection. It requires an existing owner-only non-symlink directory outside the checkout,
+      creates canonical `0600` files exclusively without overwrite, synchronizes before success,
+      and emits only a minimized non-authorizing receipt. Both unfilled role templates were
+      materialized outside Git as `changes_required`; this is preparation, not a review outcome.
 - [x] Preserve honest outcomes and fail closed. Acceptance requires all ten inventory checks and
       all 183 site checks with zero blocking findings. A valid `changes_required` review stays
       incomplete, while omission, reordering, remapping, station substitution, input drift,
@@ -73,6 +78,12 @@ by that discovery.
       all 19 critical D1 query plans, 83/83 pipeline tests with one documented optional-`rasterio`
       skip, deterministic synthetic smoke, 188/188 Chromium/WebKit phone cases, and a 157-file
       deterministic release bundle whose manifest, SBOM, and archive checksums verified.
+- [x] Verify the private-writer follow-up under the same pinned Node/npm toolchain. The Cloudflare
+      build and 529/529 Node tests passed, including 11/11 focused mapping-review tests; ESLint,
+      TypeScript, both zero-vulnerability audits, deterministic SBOMs, source-integrity checks,
+      security policies, D1 inventory, and provenance all passed. The follow-up changes only the
+      offline reviewer CLI, tests, runbook, and package command surface; it does not alter the API,
+      pipeline, browser runtime, frozen target, public artifact, model, or production state.
 - [ ] Obtain the two real qualified independent reviews outside Git and evaluate their private
       records. Exact-head hosted CI, dependency review, CodeQL, release provenance, merge,
       deployment, provider/database mutation, and post-deployment evidence remain separate open

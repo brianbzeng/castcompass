@@ -72,15 +72,25 @@ or negative-evidence change invalidates this target and requires a fresh protect
 
 ## Generate the private templates
 
+Create a dedicated directory on the encrypted private volume, make the directory owner-only, and
+use the guarded writer. The directory must already exist, must not itself be a symlink, must be
+owned by the current user, and must grant no group or other permissions. The writer resolves the
+directory's canonical parent path before creating either file.
+
 ```sh
-npm run template:water-quality-mapping-review > /PRIVATE/PATH/mapping-review.json
-npm run template:water-quality-public-health-review > /PRIVATE/PATH/public-health-review.json
-chmod 600 /PRIVATE/PATH/mapping-review.json /PRIVATE/PATH/public-health-review.json
+mkdir -p /PRIVATE/PATH
+chmod 700 /PRIVATE/PATH
+npm run write:water-quality-mapping-review-template -- --output-file /PRIVATE/PATH/mapping-review.json
+npm run write:water-quality-public-health-review-template -- --output-file /PRIVATE/PATH/public-health-review.json
 ```
 
 Templates deliberately start with `changes_required`, one blocking finding, and every check false.
 They contain all 61 locked site outcomes in deterministic order, so omission, duplication,
-reordering, station substitution, remapping, or source drift fails verification.
+reordering, station substitution, remapping, or source drift fails verification. The guarded writer
+uses exclusive creation, refuses an existing destination instead of overwriting it, writes
+canonical JSON with mode `0600`, synchronizes the file before reporting success, and returns only a
+minimized non-authorizing receipt without the private path. The older `template:*` commands remain
+available for read-only inspection, but shell redirection is not the approved private-record path.
 
 ## Verify the private reviews
 
