@@ -771,10 +771,22 @@ export async function handleAccountRequest(
         throw new AuthError(428, "age_eligibility_unavailable", "Account features are paused. Contact privacy support or delete the account.");
       }
       const timestamp = new Date().toISOString();
-      await db.prepare(`UPDATE users SET terms_accepted_at = ?, terms_version = ?,
+      const result = await db.prepare(`UPDATE users SET terms_accepted_at = ?, terms_version = ?,
         privacy_accepted_at = ?, privacy_version = ?, updated_at = ? WHERE id = ?`)
         .bind(timestamp, LEGAL_VERSION, timestamp, LEGAL_VERSION, timestamp, user.id)
         .run();
+      const changes = confirmedMutationChanges(result);
+      if (changes === 0) {
+        return errorResponse(
+          401,
+          "authentication_required",
+          "This account session has ended. Refresh before continuing.",
+          clearSessionCookies(request),
+        );
+      }
+      if (changes !== 1) {
+        throw new AuthError(503, "legal_acceptance_unconfirmed", "Legal acceptance could not be confirmed.");
+      }
       return jsonResponse({ user: { ...user, legalAccepted: true }, legalVersion: LEGAL_VERSION });
     }
 
@@ -2636,7 +2648,7 @@ function methodNotAllowed(allow: string) {
   return errorResponse(405, "method_not_allowed", `Use ${allow} for this endpoint.`, undefined, { Allow: allow });
 }
 
-function errorResponse(status: number, code: string, message: string, cookie?: string, headers?: HeadersInit) {
+function errorResponse(status: number, code: string, message: string, cookie?: string | string[], headers?: HeadersInit) {
   return jsonResponse({ error: { code, message } }, status, cookie, headers);
 }
 

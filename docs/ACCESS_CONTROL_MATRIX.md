@@ -30,6 +30,7 @@ output never grants authority.
 | Resource | Required server predicate | Current mutation rules |
 | --- | --- | --- |
 | Session | `token_hash = sha256(cookie)` and `expires_at > now` | Authentication atomically replaces any session presented by that browser and HTTPS uses `__Host-cc_session`; the prior cookie is accepted only for migration and rotated on session refresh; logout revokes presented sessions, while password reset and account deletion revoke every session for the account |
+| Legal acceptance | `users.id = authenticated_user.id` after an active server-side session lookup | The server preserves the prior age-eligibility proof, records only the current Terms/Privacy versions, and returns accepted only for exactly one confirmed D1 change; a deleted-account race clears stale session cookies, and missing mutation metadata returns `503` instead of a compliance receipt |
 | Saved site | `user_id = authenticated_user.id` | Owner may add/remove only their row |
 | Gear profile | `id = requested_id AND user_id = authenticated_user.id` | Owner may create, patch, or delete; an unknown, other-owned, or concurrently changed ID is `404`; PATCH/DELETE success requires exactly one D1 change and any unconfirmed result fails closed |
 | Trip/profile record | `id = requested_id AND user_id = authenticated_user.id`; enrollment, forecast-impression, feasibility-start, and prior-recruitment sidecars repeat the owner predicate directly or through the parent trip | Owner may patch/delete only while `moderation_status = 'pending'`; success requires exactly one confirmed D1 change, a confirmed zero remains the generic reviewed-trip conflict, and an unconfirmable delete preserves an owner receipt for read-only recovery; active completion and cancellation bind `id`, `user_id`, `status = 'active'`, and `token_hash` together in the final D1 statement; manual advisory-review retry binds `id`, `user_id`, and retryable state in every final update and dispatches only D1-confirmed rows; server-controlled contract fields cannot be overridden |
@@ -104,6 +105,11 @@ Pending-trip PATCH and DELETE distinguish an authoritative zero-change moderatio
 missing or malformed D1 receipt. The former remains a correct generic `409`; the latter returns
 `503` so the browser preserves its draft and blocks replay. An unconfirmed deletion also sets the
 opaque owner receipt cookie, allowing status verification without exposing a job identifier.
+
+Legal reacceptance is also database-authoritative. The response marks the account accepted only
+when D1 confirms one owner-row change. A confirmed zero after session lookup means the account no
+longer exists, clears both session-cookie forms, and returns `401`; unavailable change metadata
+returns `503` without manufacturing a Terms or Privacy acceptance receipt.
 
 ## Open gates
 

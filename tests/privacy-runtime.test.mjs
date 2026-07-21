@@ -929,6 +929,38 @@ test("legal reacceptance preserves prior age eligibility and legacy accounts fai
   assert.equal(legacyExport?.status, 200);
 });
 
+test("legal acceptance requires a confirmed live account mutation", async () => {
+  const { sqlite, d1 } = await database();
+  const deleted = await addUser(sqlite, "legal-race-139");
+  sqlite.prepare("UPDATE users SET terms_version = 'old', privacy_version = 'old' WHERE id = ?").run(deleted.id);
+  d1.beforeOnceQuerySubstring = "UPDATE users SET terms_accepted_at";
+  d1.beforeOnceQuery = () => sqlite.prepare("DELETE FROM users WHERE id = ?").run(deleted.id);
+  const deletedResponse = await handleAccountRequest(request("/api/auth/eligibility", {
+    method: "POST",
+    cookie: deleted.cookie,
+    body: { termsAccepted: true, privacyAccepted: true },
+  }), { DB: d1 }, []);
+  assert.equal(deletedResponse?.status, 401);
+  assert.equal((await deletedResponse.json()).error.code, "authentication_required");
+  assert.match(deletedResponse.headers.get("Set-Cookie") ?? "", /cc_session=;.*Max-Age=0/u);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM users WHERE id = ?").get(deleted.id).count, 0);
+
+  const unconfirmed = await addUser(sqlite, "legal-receipt-140");
+  sqlite.prepare("UPDATE users SET terms_version = 'old', privacy_version = 'old' WHERE id = ?").run(unconfirmed.id);
+  d1.omitOnceMutationMetadataSubstring = "UPDATE users SET terms_accepted_at";
+  const unconfirmedResponse = await handleAccountRequest(request("/api/auth/eligibility", {
+    method: "POST",
+    cookie: unconfirmed.cookie,
+    body: { termsAccepted: true, privacyAccepted: true },
+  }), { DB: d1 }, []);
+  assert.equal(unconfirmedResponse?.status, 503);
+  assert.equal((await unconfirmedResponse.json()).error.code, "legal_acceptance_unconfirmed");
+  assert.deepEqual(
+    { ...sqlite.prepare("SELECT terms_version, privacy_version FROM users WHERE id = ?").get(unconfirmed.id) },
+    { terms_version: LEGAL_VERSION, privacy_version: LEGAL_VERSION },
+  );
+});
+
 test("per-record authorization denies cross-account reads and mutations", async () => {
   const { sqlite, d1 } = await database();
   const owner = await addUser(sqlite, "31");

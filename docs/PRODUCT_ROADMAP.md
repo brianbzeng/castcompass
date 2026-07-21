@@ -156,6 +156,10 @@ after its acceptance checks pass in the intended environment.
       DELETE keep the final `id` plus `user_id` plus pending-state predicate; an authoritative zero
       remains `409`, while malformed D1 metadata is now a replay-blocking `503` rather than a
       false reviewed-trip claim. Unconfirmed deletion preserves the opaque status receipt cookie.
+    - [x] Make legal reacceptance receipts database-authoritative. The current Terms/Privacy
+      versions are returned as accepted only after exactly one confirmed owner-row change; a
+      deleted-account race clears stale session cookies, while missing D1 metadata returns `503`
+      instead of a false compliance receipt. Prior age eligibility remains untouched.
   - [ ] Verify strict schema/size/type validation, contextual output encoding, safe database
     binding, upload signature and metadata checks, and AI prompt-injection boundaries. Model
     instructions and user content remain data, never authority; models receive no ambient

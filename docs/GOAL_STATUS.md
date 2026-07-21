@@ -107,6 +107,24 @@ by that discovery.
       request, merge, deployment, provider query, D1 mutation, model change, or UI change belongs
       to this work.
 
+## Active checkpoint — database-confirmed legal acceptance
+
+- [x] Continue the authenticated-receipt audit through current Terms and Privacy reacceptance.
+      The route bound the server-derived account ID and preserved age eligibility, but returned
+      `legalAccepted: true` without proving the user row changed.
+- [x] Require exactly one confirmed D1 change before issuing the compliance receipt. A confirmed
+      zero after session lookup now returns `401` and clears both secure and legacy session-cookie
+      forms; missing, malformed, or impossible metadata returns `503 legal_acceptance_unconfirmed`.
+- [x] Force both failure modes in the direct D1 runtime. A concurrent account deletion cascades
+      the session, produces no acceptance, and sends clearing cookies. A committed write with an
+      omitted receipt updates both legal versions but remains explicitly unconfirmed to the client.
+- [x] Pass the pinned Cloudflare build, ESLint, TypeScript, all 552/552 Node tests, the complete
+      offline security/SBOM/source-integrity chain, both zero-vulnerability npm audits, and the
+      full 200/200 Chromium/WebKit phone matrix. Preserve the clean local commit and exact
+      deterministic release-bundle receipts for this repository-only checkpoint. No push, pull
+      request, merge, deployment, provider query, D1 mutation, model change, or UI change belongs
+      to this work.
+
 ## Active checkpoint — database-confirmed pending-trip mutations
 
 - [x] Continue the private-object receipt audit through owner trip PATCH and DELETE. Both final
