@@ -40,9 +40,18 @@ by that discovery.
       `rasterio` skip, deterministic synthetic smoke, and all 19 critical D1 query plans passed.
       The complete Chromium/WebKit phone matrix passed 172/172 cases. Bolinas partial evidence and
       Drakes chart/date evidence were visually inspected from the production build at iPhone width.
-- [ ] Publish a protected stacked draft PR, obtain exact-head hosted receipts, and keep CodeQL,
-      independent location/chart review, merge, deployment, provider/database mutation, and
-      production activation as explicit separate gates.
+- [x] Publish protected stacked draft PR `#136` without merge or deployment. Exact implementation
+      head `69711aad640150385f4f3f5d1e8bf76f17f48236` passed push and pull-request CI runs
+      `29824229852` and `29824250752`; release-provenance runs `29824229826` and `29824250787`;
+      native API-image run `29824250751` on Linux AMD64 and ARM64; and explicitly dispatched
+      optional research-stack run `29824261659` on Linux CPU and macOS ARM64. Hosted proof includes
+      485/485 Node tests, a 172/172 Chromium/WebKit mobile matrix, both zero-vulnerability audits,
+      the secret/source-integrity/security chain, API and pipeline checks, and all 19 critical D1
+      query plans. Event-inapplicable dependency and release-attestation jobs skipped as designed.
+- [ ] Obtain CodeQL evidence when this stack is eventually reviewed against protected `main`;
+      default setup did not trigger on the non-default stacked base. Independent location/chart
+      review, merge, deployment, provider/database mutation, and production activation remain
+      separate open gates.
 
 ## Active checkpoint — San Mateo Coast and Half Moon Bay source-bound chart context
 
