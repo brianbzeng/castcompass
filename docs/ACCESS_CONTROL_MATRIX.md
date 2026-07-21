@@ -34,11 +34,12 @@ output never grants authority.
 | Gear profile | `id = requested_id AND user_id = authenticated_user.id` | Owner may create, patch, or delete; an unknown or other-owned ID is `404` |
 | Trip/profile record | `id = requested_id AND user_id = authenticated_user.id` | Owner may patch/delete only while `moderation_status = 'pending'`; server-controlled contract fields cannot be overridden |
 | Stored trip photo | Trip predicate above before any R2 key is read | Owner-only authenticated download with `no-store`; object key is never accepted from the URL or request body |
-| Account export | Every account-linked query binds `authenticated_user.id` | Export is owner-only and omits internal object locators and moderator identity |
+| Account export | Every account-linked query and status/download lookup binds `authenticated_user.id`; asynchronous Queue messages contain only an opaque job ID | Export is owner-only and omits internal object locators and moderator identity. The default-off package is private, expires after 24 hours, and is canceled/adopted atomically by account deletion |
 | Deletion receipt | Hash of a high-entropy, path-scoped `HttpOnly` receipt cookie | Exposes aggregate status only; receipt can be cleared and expires; it cannot restore content or authenticate an account |
 | Public discussion | Approved post fields plus matching trip `moderation_status = 'approved'` | Read-only public projection; feature defaults off; sensitive/prompt-like text is rejected or minimized |
 | Validation evidence | Server-created activation/account/attestation identity and append-only database guards | No client-supplied evaluator/admin role; default-off activation; account export/deletion use separately minimized mappings |
 | Advisory AI queue job | Opaque job ID resolved server-side to one D1 trip foreign key | No browser route; no trip/account identity in the message; unique trip job, atomic lease, five-attempt attention state, and trip-delete cascade; replay plan accepts only an opaque attention-job ID |
+| Privacy export queue job | Opaque job ID plus authenticated account predicate in D1 | Same-origin owner request; read-only owner status; sensitive owner download; exact two-field Queue message; one active job per account; five-attempt attention state; 24-hour expiry; account-deletion cancellation and multi-store purge |
 
 ## Mandatory rules for every new route
 

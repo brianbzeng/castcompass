@@ -277,6 +277,10 @@ prove that the object is either attached to a live trip or durably queued for cl
       activation; postflight verified its exact table, unique-trip and dispatch indexes, zero
       initial jobs, and foreign-key cascade. The production flag and bindings remain off until
       every provider/staging/rollback/alert gate in `docs/AI-REVIEW-QUEUE.md` passes.
+- [ ] Migration `0019_async_privacy_exports.sql` completed before any privacy-export Queue or
+      private R2 binding; postflight verified its empty ledger, five indexes, and deletion-task
+      storage class. The production flag and bindings remain off until the separate export
+      activation drill passes.
 - [ ] Privacy pre/postflight counts match; the missing-age and legal-reacceptance cohorts have
       an explicit support decision, while export and account deletion remain available.
 - [ ] Canonical, redirect-alias, and `workers.dev` smoke checks passed.

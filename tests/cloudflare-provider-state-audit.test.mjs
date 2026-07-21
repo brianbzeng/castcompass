@@ -127,6 +127,7 @@ test("current provider drift produces only aggregate blockers and never leaks pr
   assert.deepEqual(receipt.configuration.missing_binding_names, [
     "RATE_LIMITING_ENABLED",
     "AI_REVIEW_QUEUE_ENABLED",
+    "PRIVACY_EXPORT_QUEUE_ENABLED",
     ...contract.config.ratelimits.map(({ name }) => name),
   ]);
   assert.deepEqual(receipt.configuration.mismatched_binding_names,

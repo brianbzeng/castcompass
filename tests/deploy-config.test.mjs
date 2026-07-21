@@ -22,6 +22,7 @@ test("generated Cloudflare configuration keeps discussions off and exposes versi
   assert.equal(config.vars?.TRIP_PHOTO_UPLOADS_ENABLED, "false");
   assert.equal(config.vars?.TURNSTILE_ENABLED, "false");
   assert.equal(config.vars?.AI_REVIEW_QUEUE_ENABLED, "false");
+  assert.equal(config.vars?.PRIVACY_EXPORT_QUEUE_ENABLED, "false");
   assert.equal(config.vars?.TURNSTILE_SITE_KEY, undefined);
   assert.equal(config.vars?.TURNSTILE_SECRET_KEY, undefined);
   assert.equal(config.version_metadata?.binding, "CF_VERSION_METADATA");

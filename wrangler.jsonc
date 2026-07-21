@@ -14,6 +14,7 @@
     "TURNSTILE_ENABLED": "false",
     "RATE_LIMITING_ENABLED": "false",
     "AI_REVIEW_QUEUE_ENABLED": "false",
+    "PRIVACY_EXPORT_QUEUE_ENABLED": "false",
     "RELEASE_MAINTENANCE_MODE": "false"
   },
   "ratelimits": [

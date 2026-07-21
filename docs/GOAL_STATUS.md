@@ -1,6 +1,6 @@
 # CastingCompass goal status
 
-Last reconciled: **2026-07-20 UTC**
+Last reconciled: **2026-07-21 UTC**
 
 This is the owner-facing dashboard for the complete goal list. The detailed acceptance
 criteria and immutable receipts remain in [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md); provider
@@ -13,7 +13,37 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
-## Active work cycle — complete D1 query inventory
+## Active work cycle — default-off asynchronous privacy exports
+
+- [x] Reconcile protected `main`, draft regional PR `#118`, draft asynchronous-export PR `#127`,
+      issue `#86`, and the P1 scale roadmap without touching Cloudflare or production. Starting
+      `main` is `a9f1efc1d0b7d095ed8b71738b403d1cdc1b23f9`; both draft PRs remain open.
+- [x] Independently audit the complete default-off export path. Queue messages remain limited to
+      an opaque job ID, D1 remains authoritative, objects remain private and owner-bound for 24
+      hours, retries and expiry are bounded, account deletion adopts committed objects, and no
+      producer/consumer or R2 provider binding is configured. Migration `0019` remains unapplied,
+      the feature remains off, and no provider or production change was made.
+- [x] Close the download-integrity gap found during that audit. Every download now recomputes the
+      D1 object-locator hash and rejects any mismatch in the recorded byte count, SHA-256 upload
+      metadata, or export-contract version before reading or streaming the private object. All
+      integrity failures use one generic 503 response and a bounded error code; adversarial tests
+      prove neither responses nor logs expose account, job, email, or object-locator identity.
+- [x] Freeze the four download-integrity bindings in the machine-checked export policy, document
+      the boundary in the export and data-lifecycle runbooks, regenerate the D1 source inventory,
+      and bind the revised artifacts into the combined release SBOM. The check does not claim a
+      full byte rehash on download or any provider/deployment evidence.
+- [x] Complete the local release-sized verification matrix. A fresh npm `10.9.8` no-script install
+      restored 533 packages and both audits found zero vulnerabilities; Cloudflare build,
+      456/456 Node tests, 140/140 Chromium/WebKit mobile cases, ESLint, TypeScript, and every
+      offline security/SBOM/query-inventory gate passed. Exact Python environments passed 29/29
+      API tests, Ruff, 81/81 pipeline tests with one documented optional-raster skip, the
+      deterministic synthetic smoke, 19 migrations, 19 critical query plans, and every
+      foreign-key child index contract.
+- [ ] Obtain exact-head hosted CI/CodeQL/release-provenance evidence and complete the protected PR
+      workflow. Provider setup, migration `0019`, Queue/DLQ/R2/IAM/alerts, staging failure and
+      deletion drills, activation, and production release remain separate reviewed gates.
+
+## Completed work cycle — complete D1 query inventory
 
 - [x] Reconcile protected `main`, draft regional PR `#118`, draft query-inventory PR `#125`, open
       issue `#86`, and the scale roadmap without touching Cloudflare or production. Starting
@@ -21,9 +51,9 @@ by that discovery.
 - [x] Identify the earliest repository-actionable P1 gap. Existing evidence covered 14
       representative plans but did not inventory every production D1 statement, so query source
       coverage and remaining unbounded reads could not be independently audited.
-- [x] Implement a deterministic TypeScript-AST inventory for all 187 direct Worker `.prepare()`
-      sites across seven files: 162 literal statements, 25 exact reviewed nonliteral expressions,
-      and 11 reviewed literal multi-row reads without `LIMIT`. The gate rejects source drift,
+- [x] Implement a deterministic TypeScript-AST inventory for all 221 direct Worker `.prepare()`
+      sites across eight files: 195 literal statements, 26 exact reviewed nonliteral expressions,
+      and 12 reviewed literal multi-row reads without `LIMIT`. The gate rejects source drift,
       computed/aliased prepare access, unreviewed dynamic SQL, unscoped literal writes, and
       unreviewed multi-row reads.
 - [x] Preserve truthful scale boundaries. Nine reads are complete authenticated rights exports
@@ -783,16 +813,22 @@ by that discovery.
       remains deferred pending privacy review.
 - [ ] Make data and execution paths measurably scalable: query plans/indexes, bounded access,
       cache matrix, justified asynchronous work, D1-managed connections, optional API pooling,
-      and isolated load/soak/spike/failure tests. **A complete static inventory now covers all 187
+      and isolated load/soak/spike/failure tests. **A complete static inventory now covers all 221
       Worker prepare sites, and exact 100-item saved-location/gear-preset account ceilings now
       fail closed on overflow without truncating rights exports, while local query/index/cache/
-      connection contracts,
-      production-refusing harness, and the default-off advisory Queue adapter with its opaque
-      message, D1 outbox/lease/attention ledger, bounded retries, deletion/maintenance recovery,
-      DLQ policy, and guarded replay planner are complete;** migrations, provider Queue/DLQ
-      bindings, IAM/alerts, asynchronous complete export packaging, staging measurements,
+      connection contracts, production-refusing harness, the default-off advisory Queue adapter,
+      and a default-off complete privacy-export adapter with an opaque message, owner-bound D1
+      lease ledger, private 24-hour object, progress UI, bounded expiry/retries, and account-delete
+      race adoption are complete;** migrations, provider Queue/DLQ/R2 bindings, IAM/alerts,
+      export activation, staging measurements,
       child-cascade cost evidence, failure injection,
       rollback evidence, and authorized penetration testing remain.
+      Local acceptance for the default-off export adapter passed the Cloudflare build and
+      455/455 Node tests, 140/140 Chromium/WebKit mobile cases, ESLint, TypeScript, the complete
+      security/SBOM/query-inventory chain and both zero-vulnerability npm audits, 29/29 API tests,
+      the 19-plan D1/index contract, Ruff, 81/81 pipeline tests with one documented optional-
+      raster skip, and deterministic pipeline smoke. This is repository evidence only; no
+      migration, Queue, R2, variable, deployment, or production request was made.
 - [ ] Freeze and deploy the species-aware observation/model-run contract. **Local contract
       complete;** production migration, legacy-row audit, and first approved ingestion manifest
       remain.

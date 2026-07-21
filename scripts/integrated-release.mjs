@@ -33,6 +33,7 @@ export const STAGED_MIGRATIONS = Object.freeze([
   "0016_data_resilience_indexes.sql",
   "0017_trip_idempotency.sql",
   "0018_ai_review_queue.sql",
+  "0019_async_privacy_exports.sql",
 ]);
 export const ALL_RELEASE_MIGRATIONS = Object.freeze([
   ...BASE_APPLIED_MIGRATIONS,
@@ -122,6 +123,21 @@ const STAGE_ABSENCE_QUERIES = Object.freeze({
       + (SELECT COUNT(*) FROM sqlite_master
         WHERE type = 'index' AND name IN (
           'ai_review_jobs_trip_unique', 'ai_review_jobs_dispatch_idx'
+        )) AS target_artifacts_found`,
+  "0019_async_privacy_exports.sql": `
+    SELECT
+      (SELECT COUNT(*) FROM sqlite_master
+        WHERE type = 'table' AND name = 'privacy_export_jobs')
+      + (SELECT COUNT(*) FROM pragma_table_info('privacy_deletion_tasks')
+        WHERE name = 'object_store')
+      + (SELECT COUNT(*) FROM sqlite_master
+        WHERE type = 'index' AND name IN (
+          'privacy_export_jobs_active_user_unique',
+          'privacy_export_jobs_object_key_unique',
+          'privacy_export_jobs_dispatch_idx',
+          'privacy_export_jobs_expiry_idx',
+          'privacy_export_jobs_owner_idx',
+          'privacy_deletion_tasks_store_retry_idx'
         )) AS target_artifacts_found`,
 });
 
@@ -252,7 +268,8 @@ export function verifyFinalPostflight(payload) {
   requireMigrationArray("remote migration ledger", appliedMigrations, ALL_RELEASE_MIGRATIONS);
   for (const [field, expected] of Object.entries({
     exact_approval_columns: 3,
-    privacy_tables: 3,
+    privacy_tables: 4,
+    privacy_deletion_store_columns: 1,
     species_columns: 9,
     species_completion_triggers: 2,
     validation_tables: 11,
@@ -262,6 +279,9 @@ export function verifyFinalPostflight(payload) {
     ai_review_queue_tables: 1,
     ai_review_queue_indexes: 2,
     ai_review_queue_rows: 0,
+    privacy_export_queue_tables: 1,
+    privacy_export_queue_indexes: 5,
+    privacy_export_queue_rows: 0,
     non_legacy_trip_rows: 0,
     trip_photo_locators: 0,
     discussion_rows_with_approval_metadata: 0,

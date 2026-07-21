@@ -5,12 +5,20 @@ import sites from "../public/data/sites.json";
 import { handleTripRequest, type TripApiEnv } from "./trips";
 import { cleanupAuthData, getAuthenticatedUser, handleAccountRequest, legalAcceptanceRequiredResponse, unauthorizedResponse } from "./auth";
 import {
+  AI_REVIEW_QUEUE_MESSAGE_VERSION,
   consumeAiReviewQueue,
   dispatchAiReviewBacklog,
   scheduleTripReview,
   type AiReviewQueueEnv,
   type QueueBatchLike,
+  type QueueMessageLike,
 } from "./trip-review-queue.ts";
+import {
+  PRIVACY_EXPORT_QUEUE_MESSAGE_VERSION,
+  consumePrivacyExportQueue,
+  dispatchPrivacyExportBacklog,
+  type PrivacyExportEnv,
+} from "./privacy-export.ts";
 import { handleDiscussionRequest } from "./discussions";
 import {
   canonicalRedirect,
@@ -42,7 +50,7 @@ interface AssetFetcher {
   fetch(request: Request): Promise<Response>;
 }
 
-interface Env extends TripApiEnv, TurnstileEnv, RateLimitEnv, ObservabilityEnv, AiReviewQueueEnv {
+interface Env extends TripApiEnv, TurnstileEnv, RateLimitEnv, ObservabilityEnv, AiReviewQueueEnv, PrivacyExportEnv {
   ASSETS: AssetFetcher;
   MIMO_API_KEY?: string;
   MIMO_MODEL?: string;
@@ -83,11 +91,36 @@ const worker = {
   async scheduled(_controller: unknown, env: Env, ctx: ExecutionContext) {
     if (releaseMaintenanceEnabled(env)) return;
     ctx.waitUntil(observeScheduledTask(env, "trip_review_backlog", () => dispatchAiReviewBacklog(env, sites)));
+    ctx.waitUntil(observeScheduledTask(env, "privacy_export_backlog", () => dispatchPrivacyExportBacklog(env)));
     ctx.waitUntil(observeScheduledTask(env, "auth_data_cleanup", () => cleanupAuthData(env)));
   },
 
   async queue(batch: QueueBatchLike, env: Env) {
-    await observeQueueTask(env, "ai_review_consumer", () => consumeAiReviewQueue(batch, env, sites));
+    const aiReviewMessages: QueueMessageLike[] = [];
+    const privacyExportMessages: QueueMessageLike[] = [];
+    for (const message of batch.messages) {
+      const version = message.body && typeof message.body === "object" && !Array.isArray(message.body)
+        ? (message.body as { version?: unknown }).version
+        : null;
+      if (version === AI_REVIEW_QUEUE_MESSAGE_VERSION) aiReviewMessages.push(message);
+      else if (version === PRIVACY_EXPORT_QUEUE_MESSAGE_VERSION) privacyExportMessages.push(message);
+      else {
+        logEvent("warn", "queue.message.rejected", { error_code: "unknown_queue_message_version" });
+        message.ack();
+      }
+    }
+    if (aiReviewMessages.length) {
+      await observeQueueTask(env, "ai_review_consumer", () => consumeAiReviewQueue({
+        queue: batch.queue,
+        messages: aiReviewMessages,
+      }, env, sites));
+    }
+    if (privacyExportMessages.length) {
+      await observeQueueTask(env, "privacy_export_consumer", () => consumePrivacyExportQueue({
+        queue: batch.queue,
+        messages: privacyExportMessages,
+      }, env));
+    }
   },
 };
 

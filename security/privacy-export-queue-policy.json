@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "castingcompass.privacy-export-queue-policy/1.0.0",
+  "messageContract": "castingcompass.privacy-export-queue/1.0.0",
+  "featureFlag": "PRIVACY_EXPORT_QUEUE_ENABLED",
+  "productionDefault": "false",
+  "producerBinding": "PRIVACY_EXPORT_QUEUE",
+  "privateObjectBinding": "PRIVACY_EXPORTS",
+  "consumer": {
+    "maxBatchSize": 5,
+    "maxBatchTimeoutSeconds": 10,
+    "maxRetries": 8,
+    "maxConcurrency": 1,
+    "deadLetterQueueRequired": true
+  },
+  "application": {
+    "maximumAttempts": 5,
+    "leaseSeconds": 300,
+    "redispatchAfterSeconds": 900,
+    "maximumRetryDelaySeconds": 3600,
+    "retentionSeconds": 86400,
+    "expiryBatchSize": 50,
+    "photoManifestConcurrency": 4,
+    "messageContainsOnly": ["version", "jobId"],
+    "authoritativeState": "D1 privacy_export_jobs ledger",
+    "objectVisibility": "private owner-authenticated download only",
+    "downloadIntegrityBindings": [
+      "D1 object-key hash",
+      "D1 byte size",
+      "D1 SHA-256 metadata",
+      "object contract version"
+    ]
+  }
+}

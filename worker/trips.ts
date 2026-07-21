@@ -183,7 +183,7 @@ export interface D1DatabaseLike {
   batch(statements: D1PreparedStatementLike[]): Promise<unknown[]>;
 }
 
-interface R2BucketLike {
+export interface R2BucketLike {
   put(
     key: string,
     value: ArrayBuffer,
@@ -192,6 +192,12 @@ interface R2BucketLike {
       customMetadata?: Record<string, string>;
     },
   ): Promise<unknown>;
+  get?(key: string): Promise<{
+    body?: ReadableStream<Uint8Array>;
+    arrayBuffer?(): Promise<ArrayBuffer>;
+    size?: number;
+    httpMetadata?: { contentType?: string };
+  } | null>;
   delete(key: string): Promise<void>;
 }
 

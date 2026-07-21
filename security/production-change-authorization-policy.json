@@ -233,6 +233,23 @@
         "time_travel_bookmark_recorded"
       ]
     },
+    "migrate:0019_async_privacy_exports.sql": {
+      "fixed_release_commit": null,
+      "required_evidence": [
+        "automatic_deployments_disabled",
+        "change_window_approved",
+        "current_provider_state_recorded",
+        "key_custody_reviewed",
+        "maintenance_version_verified",
+        "notification_path_confirmed",
+        "previous_ledger_verified",
+        "rollback_path_recorded",
+        "security_alert_inventory_reviewed",
+        "snapshot_schedule_paused",
+        "source_commit_reviewed",
+        "time_travel_bookmark_recorded"
+      ]
+    },
     "deploy:normal": {
       "fixed_release_commit": null,
       "required_evidence": [

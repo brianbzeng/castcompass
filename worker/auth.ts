@@ -14,6 +14,16 @@ import {
 } from "./turnstile.ts";
 import { logEvent } from "./observability.ts";
 import { API_ROUTE_PATTERNS } from "./route-policy.ts";
+import {
+  buildPrivacyExportPayload,
+  downloadPrivacyExport,
+  privacyExportJobForOwner,
+  privacyExportQueueMode,
+  processExpiredPrivacyExports,
+  publicPrivacyExportStatus,
+  requestPrivacyExport,
+  type PrivacyExportEnv,
+} from "./privacy-export.ts";
 
 const SESSION_COOKIE = "__Host-cc_session";
 const LEGACY_SESSION_COOKIE = "cc_session";
@@ -39,17 +49,8 @@ const PWNED_PASSWORDS_MAX_RESPONSE_BYTES = 64 * 1024;
 const PASSWORD_RECOVERY_MINIMUM_RESPONSE_MS = 250;
 const DUMMY_PASSWORD_SALT = "Y2FzdGluZ2NvbXBhc3MtdGltaW5n";
 
-export interface AuthApiEnv extends TurnstileEnv {
+export interface AuthApiEnv extends TurnstileEnv, PrivacyExportEnv {
   DB?: D1DatabaseLike;
-  TRIP_PHOTOS?: {
-    delete(key: string): Promise<void>;
-    get?(key: string): Promise<{
-      body?: ReadableStream<Uint8Array>;
-      arrayBuffer?(): Promise<ArrayBuffer>;
-      size?: number;
-      httpMetadata?: { contentType?: string };
-    } | null>;
-  };
   RESEND_API_KEY?: string;
   AUTH_EMAIL_FROM?: string;
 }
@@ -212,6 +213,7 @@ const CREATE_PRIVACY_DELETION_TASKS_SQL = `CREATE TABLE IF NOT EXISTS privacy_de
   job_id TEXT NOT NULL,
   object_key TEXT,
   object_key_hash TEXT NOT NULL,
+  object_store TEXT NOT NULL DEFAULT 'trip_photos' CHECK (object_store IN ('trip_photos', 'privacy_exports')),
   state TEXT NOT NULL CHECK (state IN ('pending', 'leased', 'completed', 'needs_attention')),
   attempts INTEGER NOT NULL DEFAULT 0,
   available_at TEXT NOT NULL,
@@ -225,6 +227,33 @@ const CREATE_PRIVACY_DELETION_TASKS_SQL = `CREATE TABLE IF NOT EXISTS privacy_de
   UNIQUE (job_id, object_key_hash),
   CHECK ((state = 'completed' AND object_key IS NULL)
     OR (state != 'completed' AND object_key IS NOT NULL))
+)`;
+
+const CREATE_PRIVACY_EXPORT_JOBS_SQL = `CREATE TABLE IF NOT EXISTS privacy_export_jobs (
+  id TEXT PRIMARY KEY NOT NULL,
+  user_id TEXT,
+  owner_subject_hash TEXT NOT NULL,
+  state TEXT NOT NULL CHECK (state IN ('pending', 'queued', 'processing', 'retry', 'completed', 'canceled', 'expired', 'needs_attention')),
+  attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0 AND attempts <= 5),
+  available_at TEXT NOT NULL,
+  lease_expires_at TEXT,
+  lease_token TEXT,
+  object_key TEXT,
+  object_key_hash TEXT,
+  content_sha256 TEXT,
+  size_bytes INTEGER,
+  record_count INTEGER,
+  last_error_code TEXT,
+  requested_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  completed_at TEXT,
+  expires_at TEXT,
+  CHECK ((object_key IS NULL AND object_key_hash IS NULL)
+    OR (object_key IS NOT NULL AND object_key_hash IS NOT NULL)),
+  CHECK (state != 'completed' OR (user_id IS NOT NULL AND object_key IS NOT NULL
+    AND content_sha256 IS NOT NULL AND size_bytes IS NOT NULL AND record_count IS NOT NULL
+    AND completed_at IS NOT NULL AND expires_at IS NOT NULL)),
+  CHECK (state != 'expired' OR (user_id IS NULL AND object_key IS NULL))
 )`;
 
 async function initialize(db: D1DatabaseLike) {
@@ -241,6 +270,7 @@ async function initialize(db: D1DatabaseLike) {
         db.prepare(CREATE_SIGNUP_AGE_PROOFS_SQL),
         db.prepare(CREATE_PRIVACY_DELETION_JOBS_SQL),
         db.prepare(CREATE_PRIVACY_DELETION_TASKS_SQL),
+        db.prepare(CREATE_PRIVACY_EXPORT_JOBS_SQL),
       ]);
       await db.batch([
         db.prepare("CREATE INDEX IF NOT EXISTS auth_sessions_user_idx ON auth_sessions (user_id, expires_at)"),
@@ -260,6 +290,12 @@ async function initialize(db: D1DatabaseLike) {
         db.prepare("CREATE INDEX IF NOT EXISTS privacy_deletion_jobs_scope_subject_idx ON privacy_deletion_jobs (scope, subject_hash)"),
         db.prepare("CREATE INDEX IF NOT EXISTS privacy_deletion_jobs_state_completed_idx ON privacy_deletion_jobs (state, completed_at)"),
         db.prepare("CREATE INDEX IF NOT EXISTS privacy_deletion_tasks_retry_idx ON privacy_deletion_tasks (state, available_at, lease_expires_at)"),
+        db.prepare("CREATE INDEX IF NOT EXISTS privacy_deletion_tasks_store_retry_idx ON privacy_deletion_tasks (object_store, state, available_at, lease_expires_at)"),
+        db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS privacy_export_jobs_active_user_unique ON privacy_export_jobs (user_id) WHERE user_id IS NOT NULL AND state IN ('pending', 'queued', 'processing', 'retry', 'completed', 'needs_attention')"),
+        db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS privacy_export_jobs_object_key_unique ON privacy_export_jobs (object_key) WHERE object_key IS NOT NULL"),
+        db.prepare("CREATE INDEX IF NOT EXISTS privacy_export_jobs_dispatch_idx ON privacy_export_jobs (state, available_at, lease_expires_at)"),
+        db.prepare("CREATE INDEX IF NOT EXISTS privacy_export_jobs_expiry_idx ON privacy_export_jobs (state, expires_at, lease_expires_at)"),
+        db.prepare("CREATE INDEX IF NOT EXISTS privacy_export_jobs_owner_idx ON privacy_export_jobs (owner_subject_hash, updated_at)"),
       ]);
     })().catch((error) => {
       initializedDatabases.delete(db as object);
@@ -770,104 +806,52 @@ export async function handleAccountRequest(
       });
     }
 
-    if (url.pathname === "/api/profile/export") {
+    const exportDownloadMatch = url.pathname.match(API_ROUTE_PATTERNS.profileExportDownload);
+    if (exportDownloadMatch) {
       if (request.method !== "GET") return methodNotAllowed("GET");
-      const [account, saved, gear, trips] = await Promise.all([
-        db.prepare(`SELECT id, email, age_eligibility_confirmed_at, terms_accepted_at, terms_version,
-          privacy_accepted_at, privacy_version, created_at, updated_at FROM users WHERE id = ? LIMIT 1`)
-          .bind(user.id).first<Record<string, unknown>>(),
-        db.prepare("SELECT site_id, created_at FROM saved_sites WHERE user_id = ? ORDER BY created_at DESC")
-          .bind(user.id).all<Record<string, unknown>>(),
-        db.prepare(`SELECT id, name, rod, reel, bait_lure, rig, created_at, updated_at
-          FROM gear_profiles WHERE user_id = ? ORDER BY updated_at DESC`)
-          .bind(user.id).all<Record<string, unknown>>(),
-        db.prepare(`SELECT id, status, source, site_id, started_at, ended_at, mode, fishing_method,
-          gear, gear_profile_id, rod, reel, bait_lure, rig, angler_count, angler_hours,
-          keeper_count, short_released_count, halibut_encounters, no_catch, other_catch_count,
-          other_species, observations_json, observation_contract_version, taxon_catalog_version,
-          target_taxon_id, contract_status, taxon_observations_json, outcome_class,
-          target_encounter_count, any_fish_encounter_count, target_identification_confidence,
-          notes, consent, consent_at, moderation_status,
-          referral_code, opportunity_window_id, opportunity_score, habitat_score, seasonality_score,
-          conditions_score, fishability_score, model_version, score_influenced_choice,
-          prediction_metadata_json, photo_content_type, photo_size_bytes, created_at, updated_at,
-          completed_at, ai_review_status, ai_review_json, ai_review_model, ai_reviewed_at,
-          CASE WHEN photo_key IS NULL THEN 0 ELSE 1 END AS has_photo, photo_key
-          FROM trips WHERE user_id = ? ORDER BY created_at DESC`)
-          .bind(user.id).all<Record<string, unknown>>(),
-      ]);
-      const tripRows = trips.results ?? [];
-      const tripReports = tripRows.map((trip) => {
-        const exportedTrip = { ...trip };
-        delete exportedTrip.photo_key;
-        return exportedTrip;
-      });
-      const [
-        discussionRows,
-        forecastImpressionRows,
-        validationProvenanceRows,
-        validationFeasibilityRows,
-        validationFeasibilityRecruitmentRows,
-        validationFeasibilityCorrectionRows,
-      ] = await Promise.all([
-        db.prepare(`SELECT site_discussion_posts.id, site_discussion_posts.trip_id,
-            site_discussion_posts.site_id, site_discussion_posts.summary, site_discussion_posts.gear_summary,
-            site_discussion_posts.technique_tags_json, site_discussion_posts.observed_at,
-            site_discussion_posts.created_at, site_discussion_posts.updated_at,
-            site_discussion_posts.review_model, site_discussion_posts.approved_at,
-            site_discussion_posts.source_ai_reviewed_at
-          FROM site_discussion_posts
-          JOIN trips ON trips.id = site_discussion_posts.trip_id
-          WHERE trips.user_id = ? ORDER BY site_discussion_posts.created_at DESC`)
-          .bind(user.id).all<Record<string, unknown>>(),
-        db.prepare(`SELECT forecast_impressions.* FROM forecast_impressions
-          JOIN trips ON trips.id = forecast_impressions.trip_id
-          WHERE trips.user_id = ? ORDER BY forecast_impressions.attested_at ASC`)
-          .bind(user.id).all<Record<string, unknown>>(),
-        db.prepare(`SELECT trip_validation_provenance.* FROM trip_validation_provenance
-          JOIN trips ON trips.id = trip_validation_provenance.trip_id
-          WHERE trips.user_id = ? ORDER BY trip_validation_provenance.created_at ASC`)
-          .bind(user.id).all<Record<string, unknown>>(),
-        db.prepare(`SELECT validation_feasibility_events.* FROM validation_feasibility_events
-          JOIN trips ON trips.id = validation_feasibility_events.trip_id
-          WHERE trips.user_id = ? ORDER BY validation_feasibility_events.sequence ASC`)
-          .bind(user.id).all<Record<string, unknown>>(),
-        db.prepare(`SELECT recruitment.event_id, recruitment.activation_id,
-            recruitment.participant_group_id, recruitment.event_contract_version,
-            recruitment.recruitment_frame_id, recruitment.recruitment_source_id,
-            recruitment.selection_method, recruitment.recruited_at, recruitment.campaign_id,
-            recruitment.invite_issued_at, recruitment.invite_expires_at,
-            recruitment.community_approval_sha256, recruitment.event_sha256, recruitment.created_at
-          FROM validation_feasibility_recruitment_events AS recruitment
-          WHERE recruitment.user_id = ? ORDER BY recruitment.sequence ASC`)
-          .bind(user.id).all<Record<string, unknown>>(),
-        db.prepare(`SELECT corrections.* FROM validation_feasibility_corrections AS corrections
-          JOIN trips ON trips.id = corrections.trip_id
-          WHERE trips.user_id = ? ORDER BY corrections.sequence ASC`)
-          .bind(user.id).all<Record<string, unknown>>(),
-      ]);
-      const photoManifest = await Promise.all(tripRows
-        .filter((trip) => typeof trip.photo_key === "string" && trip.photo_key)
-        .map((trip) => buildPhotoExportManifest(env, trip)));
-      const exportedFeasibilityEvents = (validationFeasibilityRows.results ?? []).map((row) => {
-        const exported = { ...row };
-        delete exported.snapshot_suppression_sha256;
-        return exported;
-      });
-      return jsonResponse({
-        exportedAt: new Date().toISOString(),
-        account,
-        savedSites: saved.results ?? [],
-        gearProfiles: gear.results ?? [],
-        tripReports,
-        forecastImpressions: forecastImpressionRows.results ?? [],
-        validationProvenance: validationProvenanceRows.results ?? [],
-        validationFeasibilityEvents: exportedFeasibilityEvents,
-        validationFeasibilityRecruitment: validationFeasibilityRecruitmentRows.results ?? [],
-        validationFeasibilityCorrections: validationFeasibilityCorrectionRows.results ?? [],
-        discussionPosts: discussionRows.results ?? [],
-        photos: photoManifest,
-      }, 200, undefined, { "Content-Disposition": `attachment; filename="castingcompass-data-${new Date().toISOString().slice(0, 10)}.json"` });
+      return await downloadPrivacyExport(env, user.id, exportDownloadMatch[1])
+        ?? errorResponse(404, "privacy_export_not_found", "That export request could not be found.");
+    }
+
+    const exportStatusMatch = url.pathname.match(API_ROUTE_PATTERNS.profileExportStatus);
+    if (exportStatusMatch) {
+      if (request.method !== "GET") return methodNotAllowed("GET");
+      const job = await privacyExportJobForOwner(db, user.id, exportStatusMatch[1]);
+      if (!job) return errorResponse(404, "privacy_export_not_found", "That export request could not be found.");
+      return jsonResponse({ export: publicPrivacyExportStatus(job) });
+    }
+
+    if (url.pathname === "/api/profile/export") {
+      if (request.method === "POST") {
+        assertSameOrigin(request);
+        const result = await requestPrivacyExport(env, user.id);
+        if (result.configurationError === "feature_disabled") {
+          return errorResponse(409, "async_privacy_export_disabled", "Background export packaging is not enabled yet. The direct JSON download remains available.");
+        }
+        if (result.configurationError || !result.job) {
+          logEvent("error", "privacy_export.request.configuration_rejected", {
+            error_code: result.configurationError ?? "privacy_export_unavailable",
+          });
+          return errorResponse(503, "privacy_export_unavailable", "The background export service is unavailable. Try again later.");
+        }
+        const status = publicPrivacyExportStatus(result.job);
+        return jsonResponse({ export: status }, status.status === "ready" ? 200 : 202);
+      }
+      if (request.method !== "GET") return methodNotAllowed("GET, POST");
+      const exportMode = privacyExportQueueMode(env);
+      if (exportMode === "invalid") {
+        return errorResponse(503, "privacy_export_configuration_invalid", "The export service is unavailable. Try again later.");
+      }
+      if (exportMode === "enabled") {
+        return errorResponse(409, "async_privacy_export_required", "Request a background export before downloading it.");
+      }
+      const built = await buildPrivacyExportPayload(env, user.id);
+      return jsonResponse(
+        built.payload,
+        200,
+        undefined,
+        { "Content-Disposition": `attachment; filename="castingcompass-data-${new Date().toISOString().slice(0, 10)}.json"` },
+      );
     }
 
     if (url.pathname === "/api/profile" && request.method === "DELETE") {
@@ -885,17 +869,23 @@ export async function handleAccountRequest(
       const photos = await db.prepare("SELECT photo_key FROM trips WHERE user_id = ? AND photo_key IS NOT NULL")
         .bind(user.id).all<{ photo_key: string }>();
       const ownerSubjectHash = await sha256(`account:${user.id}`);
-      const pendingPhotos = await db.prepare(`SELECT privacy_deletion_tasks.object_key
+      const pendingObjects = await db.prepare(`SELECT privacy_deletion_tasks.object_key,
+          privacy_deletion_tasks.object_store
         FROM privacy_deletion_tasks
         JOIN privacy_deletion_jobs ON privacy_deletion_jobs.id = privacy_deletion_tasks.job_id
         WHERE privacy_deletion_jobs.owner_subject_hash = ?
           AND privacy_deletion_tasks.state != 'completed' AND privacy_deletion_tasks.object_key IS NOT NULL`)
+        .bind(ownerSubjectHash).all<{ object_key: string; object_store: PrivacyObjectStore }>();
+      const exportObjects = await db.prepare(`SELECT object_key FROM privacy_export_jobs
+        WHERE owner_subject_hash = ? AND object_key IS NOT NULL
+          AND state IN ('pending', 'queued', 'processing', 'retry', 'completed', 'needs_attention')`)
         .bind(ownerSubjectHash).all<{ object_key: string }>();
-      const photoKeys = [...new Set([
-        ...(photos.results ?? []).map((photo) => photo.photo_key),
-        ...(pendingPhotos.results ?? []).map((photo) => photo.object_key),
-      ])];
-      const deletion = await prepareDeletionJob("account", user.id, user.id, photoKeys);
+      const deletionObjects: PrivacyDeletionObject[] = [
+        ...(photos.results ?? []).map((photo) => ({ objectStore: "trip_photos" as const, objectKey: photo.photo_key })),
+        ...(pendingObjects.results ?? []).map((object) => ({ objectStore: object.object_store, objectKey: object.object_key })),
+        ...(exportObjects.results ?? []).map((object) => ({ objectStore: "privacy_exports" as const, objectKey: object.object_key })),
+      ];
+      const deletion = await prepareDeletionJob("account", user.id, user.id, deletionObjects);
       await db.batch([
         deletion.jobStatement(db),
         ...deletion.taskStatements(db),
@@ -904,6 +894,12 @@ export async function handleAccountRequest(
           WHERE state = 'needs_attention' AND object_key IS NOT NULL
             AND job_id IN (SELECT id FROM privacy_deletion_jobs WHERE owner_subject_hash = ?)`)
           .bind(deletion.requestedAt, deletion.requestedAt, ownerSubjectHash),
+        db.prepare(`UPDATE privacy_export_jobs
+          SET state = 'canceled', user_id = NULL, lease_expires_at = NULL, lease_token = NULL,
+            last_error_code = 'account_deleted', updated_at = ?
+          WHERE owner_subject_hash = ?
+            AND state IN ('pending', 'queued', 'processing', 'retry', 'completed', 'needs_attention')`)
+          .bind(deletion.requestedAt, ownerSubjectHash),
         db.prepare("DELETE FROM site_discussion_posts WHERE trip_id IN (SELECT id FROM trips WHERE user_id = ?)").bind(user.id),
         db.prepare("DELETE FROM trips WHERE user_id = ?").bind(user.id),
         db.prepare("DELETE FROM saved_sites WHERE user_id = ?").bind(user.id),
@@ -1086,7 +1082,12 @@ export async function handleAccountRequest(
       }
 
       if (request.method === "DELETE") {
-        const deletion = await prepareDeletionJob("trip", tripId, user.id, trip.photo_key ? [trip.photo_key] : []);
+        const deletion = await prepareDeletionJob(
+          "trip",
+          tripId,
+          user.id,
+          trip.photo_key ? [{ objectStore: "trip_photos", objectKey: trip.photo_key }] : [],
+        );
         const deletionResults = await db.batch([
           deletion.jobStatementForPendingTrip(db, tripId, user.id),
           ...deletion.taskStatementsForPendingTrip(db, tripId, user.id),
@@ -1541,20 +1542,31 @@ interface PrivacyDeletionJobRow {
   completed_at: string | null;
 }
 
+type PrivacyObjectStore = "trip_photos" | "privacy_exports";
+
+interface PrivacyDeletionObject {
+  objectStore: PrivacyObjectStore;
+  objectKey: string;
+}
+
 async function prepareDeletionJob(
   scope: PrivacyDeletionJobRow["scope"],
   stableSubjectId: string,
   ownerStableId: string,
-  objectKeys: string[],
+  objects: PrivacyDeletionObject[],
 ) {
   const id = `deletion_${crypto.randomUUID()}`;
   const receipt = randomSecret(32);
   const timestamp = new Date().toISOString();
-  const uniqueKeys = [...new Set(objectKeys)];
-  const tasks = await Promise.all(uniqueKeys.map(async (objectKey) => ({
+  const uniqueObjects = [...new Map(objects.map((object) => [
+    `${object.objectStore}\u0000${object.objectKey}`,
+    object,
+  ])).values()];
+  const tasks = await Promise.all(uniqueObjects.map(async ({ objectStore, objectKey }) => ({
     id: `deletion_task_${crypto.randomUUID()}`,
+    objectStore,
     objectKey,
-    objectKeyHash: await sha256(objectKey),
+    objectKeyHash: await sha256(`${objectStore}\u0000${objectKey}`),
   })));
   const subjectHash = await sha256(`${scope}:${stableSubjectId}`);
   const ownerSubjectHash = await sha256(`account:${ownerStableId}`);
@@ -1604,16 +1616,16 @@ async function prepareDeletionJob(
         userId,
       ),
     taskStatements: (db: D1DatabaseLike) => tasks.map((task) => db.prepare(`INSERT INTO privacy_deletion_tasks
-      (id, job_id, object_key, object_key_hash, state, attempts, available_at, lease_expires_at,
+      (id, job_id, object_key, object_key_hash, object_store, state, attempts, available_at, lease_expires_at,
         lease_token, last_error_code, created_at, updated_at, completed_at)
-      VALUES (?, ?, ?, ?, 'pending', 0, ?, NULL, NULL, NULL, ?, ?, NULL)`)
-      .bind(task.id, id, task.objectKey, task.objectKeyHash, timestamp, timestamp, timestamp)),
+      VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, NULL, NULL, NULL, ?, ?, NULL)`)
+      .bind(task.id, id, task.objectKey, task.objectKeyHash, task.objectStore, timestamp, timestamp, timestamp)),
     taskStatementsForPendingTrip: (db: D1DatabaseLike, tripId: string, userId: string) => tasks.map((task) => db.prepare(`INSERT INTO privacy_deletion_tasks
-      (id, job_id, object_key, object_key_hash, state, attempts, available_at, lease_expires_at,
+      (id, job_id, object_key, object_key_hash, object_store, state, attempts, available_at, lease_expires_at,
         lease_token, last_error_code, created_at, updated_at, completed_at)
-      SELECT ?, ?, ?, ?, 'pending', 0, ?, NULL, NULL, NULL, ?, ?, NULL
+      SELECT ?, ?, ?, ?, ?, 'pending', 0, ?, NULL, NULL, NULL, ?, ?, NULL
       WHERE EXISTS (SELECT 1 FROM trips WHERE id = ? AND user_id = ? AND moderation_status = 'pending')`)
-      .bind(task.id, id, task.objectKey, task.objectKeyHash, timestamp, timestamp, timestamp, tripId, userId)),
+      .bind(task.id, id, task.objectKey, task.objectKeyHash, task.objectStore, timestamp, timestamp, timestamp, tripId, userId)),
   };
 }
 
@@ -1725,6 +1737,7 @@ interface PrivacyDeletionTaskRow {
   job_id: string;
   object_key: string | null;
   object_key_hash: string;
+  object_store: PrivacyObjectStore;
   state: "pending" | "leased";
   attempts: number;
 }
@@ -1736,12 +1749,12 @@ export async function processPrivacyDeletionTasks(env: AuthApiEnv, onlyJobId?: s
   const now = new Date();
   const nowIso = now.toISOString();
   const query = onlyJobId
-    ? `SELECT id, job_id, object_key, object_key_hash, state, attempts FROM privacy_deletion_tasks
+    ? `SELECT id, job_id, object_key, object_key_hash, object_store, state, attempts FROM privacy_deletion_tasks
        WHERE job_id = ?
          AND ((state = 'pending' AND available_at <= ?)
            OR (state = 'leased' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))
        ORDER BY created_at LIMIT 50`
-    : `SELECT id, job_id, object_key, object_key_hash, state, attempts FROM privacy_deletion_tasks
+    : `SELECT id, job_id, object_key, object_key_hash, object_store, state, attempts FROM privacy_deletion_tasks
        WHERE (state = 'pending' AND available_at <= ?)
          OR (state = 'leased' AND (lease_expires_at IS NULL OR lease_expires_at <= ?))
        ORDER BY available_at, created_at LIMIT 50`;
@@ -1761,7 +1774,7 @@ export async function processPrivacyDeletionTasks(env: AuthApiEnv, onlyJobId?: s
     if (task.state === "leased" && Number(task.attempts) >= MAX_DELETION_ATTEMPTS) {
       await db.prepare(`UPDATE privacy_deletion_tasks
         SET state = 'needs_attention', lease_expires_at = NULL, lease_token = NULL,
-          last_error_code = 'photo_delete_lease_expired', updated_at = ?
+          last_error_code = 'object_delete_lease_expired', updated_at = ?
         WHERE id = ? AND state = 'leased' AND attempts >= ?
           AND (lease_expires_at IS NULL OR lease_expires_at <= ?)`)
         .bind(nowIso, task.id, MAX_DELETION_ATTEMPTS, nowIso).run();
@@ -1774,7 +1787,7 @@ export async function processPrivacyDeletionTasks(env: AuthApiEnv, onlyJobId?: s
     await db.prepare(`UPDATE privacy_deletion_tasks
       SET state = 'needs_attention', attempts = CASE WHEN attempts < ? THEN ? ELSE attempts END,
         lease_expires_at = NULL, lease_token = NULL,
-        last_error_code = 'photo_locator_missing', updated_at = ?
+        last_error_code = 'object_locator_missing', updated_at = ?
       WHERE id = ? AND state != 'completed'`)
       .bind(MAX_DELETION_ATTEMPTS, MAX_DELETION_ATTEMPTS, nowIso, task.id).run();
   }
@@ -1783,24 +1796,20 @@ export async function processPrivacyDeletionTasks(env: AuthApiEnv, onlyJobId?: s
     await reconcileDeletionJobs(db);
     return 0;
   }
-  if (!env.TRIP_PHOTOS) {
-    const retryAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
-    await db.batch([
-      ...runnableTasks.map((task) => db.prepare(`UPDATE privacy_deletion_tasks
-        SET state = 'needs_attention', available_at = ?, lease_expires_at = NULL, lease_token = NULL,
-          last_error_code = 'photo_storage_unavailable', updated_at = ? WHERE id = ? AND state != 'completed'
-          AND (state != 'leased' OR lease_expires_at IS NULL OR lease_expires_at <= ?)`)
-        .bind(retryAt, nowIso, task.id, nowIso)),
-      ...[...jobIds].map((jobId) => db.prepare(`UPDATE privacy_deletion_jobs
-        SET state = 'needs_attention', last_error_code = 'photo_storage_unavailable', updated_at = ?
-        WHERE id = ? AND state != 'completed'`).bind(nowIso, jobId)),
-    ]);
-    await reconcileDeletionJobs(db);
-    return 0;
-  }
-
   let completed = 0;
   for (const task of runnableTasks) {
+    const bucket = task.object_store === "privacy_exports" ? env.PRIVACY_EXPORTS : env.TRIP_PHOTOS;
+    if (!bucket) {
+      const retryAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+      await db.prepare(`UPDATE privacy_deletion_tasks
+        SET state = 'needs_attention', available_at = ?, lease_expires_at = NULL, lease_token = NULL,
+          last_error_code = 'object_storage_unavailable', updated_at = ?
+        WHERE id = ? AND state != 'completed'
+          AND (state != 'leased' OR lease_expires_at IS NULL OR lease_expires_at <= ?)`)
+        .bind(retryAt, nowIso, task.id, nowIso)
+        .run();
+      continue;
+    }
     const leaseExpiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
     const leaseToken = randomSecret(24);
     const claimed = await db.prepare(`UPDATE privacy_deletion_tasks
@@ -1814,14 +1823,25 @@ export async function processPrivacyDeletionTasks(env: AuthApiEnv, onlyJobId?: s
     await db.prepare("UPDATE privacy_deletion_jobs SET state = 'purging', last_error_code = NULL, updated_at = ? WHERE id = ? AND state != 'completed'")
       .bind(nowIso, task.job_id).run();
     try {
-      await env.TRIP_PHOTOS.delete(task.object_key as string);
+      await bucket.delete(task.object_key as string);
       const finishedAt = new Date().toISOString();
       const finalized = await db.prepare(`UPDATE privacy_deletion_tasks SET state = 'completed', object_key = NULL,
         lease_expires_at = NULL, lease_token = NULL, last_error_code = NULL,
         completed_at = ?, updated_at = ?
         WHERE id = ? AND state = 'leased' AND lease_token = ?`)
         .bind(finishedAt, finishedAt, task.id, leaseToken).run();
-      if (Number(finalized.meta?.changes ?? 0) === 1) completed += 1;
+      if (Number(finalized.meta?.changes ?? 0) === 1) {
+        completed += 1;
+        if (task.object_store === "privacy_exports") {
+          await db.prepare(`UPDATE privacy_export_jobs
+            SET state = 'expired', user_id = NULL, object_key = NULL, object_key_hash = NULL,
+              content_sha256 = NULL, size_bytes = NULL, record_count = NULL,
+              lease_expires_at = NULL, lease_token = NULL, last_error_code = NULL, updated_at = ?
+            WHERE object_key_hash = ? AND user_id IS NULL AND state != 'completed'`)
+            .bind(finishedAt, task.object_key_hash)
+            .run();
+        }
+      }
     } catch {
       const attempts = Number(task.attempts) + 1;
       const backoffSeconds = Math.min(6 * 60 * 60, 30 * (2 ** Math.min(attempts - 1, 10)));
@@ -1829,7 +1849,7 @@ export async function processPrivacyDeletionTasks(env: AuthApiEnv, onlyJobId?: s
       await db.prepare(`UPDATE privacy_deletion_tasks
         SET state = CASE WHEN attempts >= ? THEN 'needs_attention' ELSE 'pending' END,
         available_at = ?, lease_expires_at = NULL,
-        lease_token = NULL, last_error_code = 'photo_delete_failed', updated_at = ?
+        lease_token = NULL, last_error_code = 'object_delete_failed', updated_at = ?
         WHERE id = ? AND state = 'leased' AND lease_token = ?`)
         .bind(MAX_DELETION_ATTEMPTS, retryAt, new Date().toISOString(), task.id, leaseToken).run();
     }
@@ -1898,46 +1918,6 @@ async function reconcileDeletionJobs(db: D1DatabaseLike, onlyJobId?: string) {
   for (const job of rows.results ?? []) await refreshDeletionJobStatus(db, job.id);
 }
 
-async function buildPhotoExportManifest(env: AuthApiEnv, trip: Record<string, unknown>) {
-  const tripId = String(trip.id);
-  const contentType = safePhotoContentType(trip.photo_content_type);
-  const sizeBytes = typeof trip.photo_size_bytes === "number" ? trip.photo_size_bytes : null;
-  if (!env.TRIP_PHOTOS?.get) {
-    return {
-      tripId,
-      contentType,
-      sizeBytes,
-      availability: "unavailable",
-      downloadPath: null,
-      reason: "photo_storage_unavailable",
-    };
-  }
-  try {
-    const object = await env.TRIP_PHOTOS.get(String(trip.photo_key));
-    if (!object) {
-      return { tripId, contentType, sizeBytes, availability: "missing", downloadPath: null, reason: "photo_object_missing" };
-    }
-    await object.body?.cancel().catch(() => undefined);
-    return {
-      tripId,
-      contentType: safePhotoContentType(object.httpMetadata?.contentType ?? contentType),
-      sizeBytes: object.size ?? sizeBytes,
-      availability: "downloadable",
-      downloadPath: `/api/profile/export/photos/${tripId}`,
-      reason: null,
-    };
-  } catch {
-    return {
-      tripId,
-      contentType,
-      sizeBytes,
-      availability: "temporarily_unavailable",
-      downloadPath: null,
-      reason: "photo_storage_error",
-    };
-  }
-}
-
 function photoFileExtension(contentType: string) {
   if (contentType === "image/jpeg") return "jpg";
   if (contentType === "image/png") return "png";
@@ -1988,7 +1968,13 @@ export async function cleanupAuthData(env: AuthApiEnv) {
             WHERE job_id = privacy_deletion_jobs.id AND state != 'completed')
         ORDER BY completed_at, id LIMIT ?
       )`).bind(tombstoneCutoff, AUTH_RETENTION_DELETE_BATCH),
+    env.DB.prepare(`DELETE FROM privacy_export_jobs WHERE id IN (
+      SELECT id FROM privacy_export_jobs
+      WHERE state = 'expired' AND updated_at < ? AND object_key IS NULL
+      ORDER BY updated_at, id LIMIT ?
+    )`).bind(tombstoneCutoff, AUTH_RETENTION_DELETE_BATCH),
   ]);
+  await processExpiredPrivacyExports(env);
   await processPrivacyDeletionTasks(env);
 }
 

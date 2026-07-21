@@ -424,8 +424,8 @@ after its acceptance checks pass in the intended environment.
   - [ ] Inventory every production query, capture representative `EXPLAIN QUERY PLAN` evidence,
     add only workload-justified indexes, bound scans/pagination, eliminate N+1 patterns, verify
     cross-account predicates, and regression-test query latency and migration cost.
-    - [x] Add a deterministic AST-backed inventory for all 187 Worker `.prepare()` sites across
-      seven files, including exact review contracts for 25 nonliteral expressions and 11 literal
+    - [x] Add a deterministic AST-backed inventory for all 221 Worker `.prepare()` sites across
+      eight files, including exact review contracts for 26 nonliteral expressions and 12 literal
       multi-row reads without `LIMIT`. CI and release provenance fail closed on inventory drift,
       computed/aliased prepare access, unreviewed dynamic SQL, unscoped literal writes, and
       unreviewed multi-row reads; the policy and generated ledger are SBOM-bound release inputs.
@@ -438,9 +438,15 @@ after its acceptance checks pass in the intended environment.
       run the actual bounded statements through the query-plan contract. Existing privacy object
       work remains bounded to 50 tasks and 100-job reconciliation; child cascades still require
       isolated cost evidence.
-    - [ ] Move large export packaging off the request path. Then capture production-shaped
-      latency, rows-read/written, child-cascade cost, and migration-cost evidence in isolated
-      staging. The static inventory is not that performance evidence.
+    - [x] Locally move complete export packaging behind a default-off managed Queue adapter with
+      an opaque two-field message, owner-bound D1 job/lease ledger, private 24-hour object,
+      progress/download UI, bounded retries/expiry, and account-deletion race adoption. Direct
+      authenticated export remains the disabled-mode fallback, and rights rows are never
+      truncated.
+    - [ ] Apply `0019`, provision the private Queue/DLQ/R2 bindings, capture production-shaped
+      latency, rows-read/written, child-cascade/migration cost and race/failure evidence in
+      isolated staging, activate alerts/IAM, then enable only through the separate gate in
+      `docs/ASYNC-PRIVACY-EXPORTS.md`.
   - [x] Publish a cache matrix by asset/data class with owner, privacy classification, cache key,
     TTL, invalidation trigger, stale policy, and failure behavior. Authenticated, personalized,
     error, cookie-setting, and every `/api/*` response fail closed to browser/CDN `no-store`; the

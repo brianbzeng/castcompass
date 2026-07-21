@@ -1,7 +1,7 @@
 # Integrated production release
 
 This runbook is the authoritative path for the first release containing migrations
-`0009` through `0018`. It exists because production has a known, narrowly bounded drift:
+`0009` through `0019`. It exists because production has a known, narrowly bounded drift:
 the eight nullable `0007_legal_acceptance.sql` columns are already present, while the D1
 migration ledger records only `0000` through `0006`. Running Wrangler against the normal
 `drizzle` directory would try `0007` again and then every later migration. Do not run raw
@@ -92,7 +92,7 @@ npm run preflight:cloudflare:remote
 ```
 
 Stop unless the preflight succeeds. It must observe the exact `0000`–`0006` ledger; all eight
-`0007` columns; no `0009`–`0018` release schema or indexes; no photo locators; no
+`0007` columns; no `0009`–`0019` release schema or indexes; no photo locators; no
 foreign-key violations; and
 only aggregate user, trip, and discussion counts. Preserve its aggregate evidence hash and
 output. The confirmation flags in later commands assert that the bookmark was already stored;
@@ -194,12 +194,18 @@ export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/migrate-0018.json
 npm run migrate:cloudflare:remote -- \
   --confirm-primary contourcast-trips --confirm-bookmark-recorded
 
+export RELEASE_MIGRATION=0019_async_privacy_exports.sql
+export RELEASE_AUTHORIZATION_FILE=/PRIVATE/ENCRYPTED/PATH/migrate-0019.json
+npm run migrate:cloudflare:remote -- \
+  --confirm-primary contourcast-trips --confirm-bookmark-recorded
+
 npm run postflight:cloudflare:remote
 ```
 
 The postflight must prove the exact full ledger; approval, privacy, species, validation, and
 snapshot-suppression schema; all 15 workload-backed data-resilience indexes; the exact nullable
 text trip-idempotency column; the exact empty advisory-review job table and its two indexes;
+the exact empty privacy-export job table, its five indexes, and the deletion-task storage class;
 every pre-release trip classified `legacy_unverified`; zero photo
 locators; zero discussion approval metadata; zero validation activations/events; and no
 foreign-key violations. Preserve its aggregate evidence hash. Once `0011` begins, never route

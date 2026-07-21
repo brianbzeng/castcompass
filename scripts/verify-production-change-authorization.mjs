@@ -9,7 +9,7 @@ import { verifyReleaseCheckout } from "./verify-release-checkout.mjs";
 
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const POLICY_PATH = "security/production-change-authorization-policy.json";
-const LOCKED_POLICY_SHA256 = "c4205d74ebe38f1e0743cb20426fa1b072bdbb64e3e73ebb23311a6c1c7669c3";
+const LOCKED_POLICY_SHA256 = "6e2a405435d519bc4d47d3078e9a142883e112dc7cf383d676780cd489141f57";
 const MAX_AUTHORIZATION_BYTES = 64 * 1024;
 const CLOCK_SKEW_MS = 60 * 1000;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
@@ -31,6 +31,7 @@ const EXPECTED_ACTIONS = Object.freeze([
   "migrate:0016_data_resilience_indexes.sql",
   "migrate:0017_trip_idempotency.sql",
   "migrate:0018_ai_review_queue.sql",
+  "migrate:0019_async_privacy_exports.sql",
   "deploy:normal",
 ]);
 

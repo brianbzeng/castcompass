@@ -26,7 +26,15 @@ test("every declared API route example resolves to its exact executable policy",
     }
     if (policy.authorization === "owner" && !policy.currentLegalAcceptanceRequired) {
       assert.equal(
-        ["auth.eligibility", "profile.export_photo", "profile.export", "profile.delete"].includes(policy.id),
+        [
+          "auth.eligibility",
+          "profile.export_photo",
+          "profile.export_status",
+          "profile.export_download",
+          "profile.export",
+          "profile.export_request",
+          "profile.delete",
+        ].includes(policy.id),
         true,
         policy.id,
       );
@@ -42,6 +50,25 @@ test("route policy records actor, CSRF, legal, and abuse controls for representa
     ["/api/auth/signup/request", "POST", "auth.signup_request", "public", true, false, ["auth", "email"]],
     ["/api/privacy/deletion-status", "GET", "privacy.deletion_status.read", "receipt", false, false, ["read"]],
     ["/api/profile/export", "GET", "profile.export", "owner", false, false, ["read", "sensitive"]],
+    ["/api/profile/export", "POST", "profile.export_request", "owner", true, false, ["sensitive", "write"]],
+    [
+      "/api/profile/exports/pexj_00000000000000000000000000000000",
+      "GET",
+      "profile.export_status",
+      "owner",
+      false,
+      false,
+      ["read"],
+    ],
+    [
+      "/api/profile/exports/pexj_00000000000000000000000000000000/download",
+      "GET",
+      "profile.export_download",
+      "owner",
+      false,
+      false,
+      ["read", "sensitive"],
+    ],
     ["/api/profile", "DELETE", "profile.delete", "owner", true, false, ["sensitive", "write"]],
     ["/api/gear-profiles", "POST", "gear_profiles.create", "owner", true, true, ["write"]],
     [
@@ -72,6 +99,10 @@ test("unclassified and malformed API paths fail route discovery closed", () => {
     "/api/admin",
     "/api/authentication/login",
     "/api/profile/export/photos/not-a-trip",
+    "/api/profile/exports/not-a-job",
+    "/api/profile/exports/pexj_0000000000000000000000000000000g",
+    "/api/profile/exports/pexj_00000000000000000000000000000000/extra",
+    "/api/profile/exports/pexj_00000000000000000000000000000000/download/extra",
     "/api/profile/trips/trip_00000000-0000-4000-8000-000000000000/extra",
     "/api/trips/start/extra",
     "/api//health",

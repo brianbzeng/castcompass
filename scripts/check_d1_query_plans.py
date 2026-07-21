@@ -108,6 +108,44 @@ CHECKS = (
         reject_temporary_sort=False,
     ),
     PlanCheck(
+        "privacy export owner job",
+        """SELECT id FROM privacy_export_jobs
+           WHERE user_id = ?
+             AND state IN ('pending', 'queued', 'processing', 'retry', 'completed', 'needs_attention')
+           ORDER BY requested_at DESC LIMIT 1""",
+        ("user_fixture",),
+        ("privacy_export_jobs_active_user_unique",),
+        reject_temporary_sort=False,
+    ),
+    PlanCheck(
+        "privacy export queue dispatch",
+        """SELECT id FROM privacy_export_jobs
+           WHERE (((state = 'pending' OR state = 'retry' OR state = 'queued') AND available_at <= ?)
+             OR (state = 'processing' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))
+             AND user_id IS NOT NULL
+           ORDER BY available_at, requested_at LIMIT ?""",
+        ("2026-07-17T00:00:00.000Z", "2026-07-17T00:00:00.000Z", 10),
+        ("privacy_export_jobs_dispatch_idx",),
+        reject_temporary_sort=False,
+    ),
+    PlanCheck(
+        "privacy export expiry",
+        """SELECT id FROM privacy_export_jobs
+           WHERE object_key IS NOT NULL
+             AND state = 'completed' AND expires_at <= ?
+           ORDER BY expires_at, id LIMIT ?""",
+        ("2026-07-17T00:00:00.000Z", 50),
+        ("privacy_export_jobs_expiry_idx",),
+    ),
+    PlanCheck(
+        "typed privacy object retry",
+        """SELECT id FROM privacy_deletion_tasks
+           WHERE object_store = ? AND state = 'pending' AND available_at <= ?
+           ORDER BY available_at LIMIT ?""",
+        ("privacy_exports", "2026-07-17T00:00:00.000Z", 50),
+        ("privacy_deletion_tasks_store_retry_idx",),
+    ),
+    PlanCheck(
         "active-trip abuse ceiling",
         """SELECT COUNT(*) FROM trips
            WHERE reporter_key_hash = ? AND status = 'active' AND created_at >= ?""",
@@ -155,8 +193,8 @@ CHECKS = (
 
 def apply_migrations(connection: sqlite3.Connection) -> list[Path]:
     migrations = sorted(MIGRATIONS.glob("*.sql"))
-    if not migrations or migrations[-1].name != "0018_ai_review_queue.sql":
-        raise AssertionError("0018_ai_review_queue.sql must be the latest D1 migration")
+    if not migrations or migrations[-1].name != "0019_async_privacy_exports.sql":
+        raise AssertionError("0019_async_privacy_exports.sql must be the latest D1 migration")
     connection.execute("PRAGMA foreign_keys = ON")
     for path in migrations:
         sql = path.read_text(encoding="utf-8").replace("--> statement-breakpoint", "")

@@ -140,6 +140,7 @@ export const privacyDeletionTasks = sqliteTable(
     jobId: text("job_id").notNull().references(() => privacyDeletionJobs.id, { onDelete: "cascade" }),
     objectKey: text("object_key"),
     objectKeyHash: text("object_key_hash").notNull(),
+    objectStore: text("object_store").notNull().default("trip_photos"),
     state: text("state").notNull(),
     attempts: integer("attempts").notNull().default(0),
     availableAt: text("available_at").notNull(),
@@ -153,10 +154,72 @@ export const privacyDeletionTasks = sqliteTable(
   (table) => [
     uniqueIndex("privacy_deletion_tasks_job_object_unique").on(table.jobId, table.objectKeyHash),
     index("privacy_deletion_tasks_retry_idx").on(table.state, table.availableAt, table.leaseExpiresAt),
+    index("privacy_deletion_tasks_store_retry_idx").on(
+      table.objectStore,
+      table.state,
+      table.availableAt,
+      table.leaseExpiresAt,
+    ),
     check("privacy_deletion_tasks_state_check", sql`${table.state} in ('pending', 'leased', 'completed', 'needs_attention')`),
+    check("privacy_deletion_tasks_object_store_check", sql`${table.objectStore} in ('trip_photos', 'privacy_exports')`),
     check(
       "privacy_deletion_tasks_locator_check",
       sql`((${table.state} = 'completed' and ${table.objectKey} is null) or (${table.state} != 'completed' and ${table.objectKey} is not null))`,
+    ),
+  ],
+);
+
+export const privacyExportJobs = sqliteTable(
+  "privacy_export_jobs",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id"),
+    ownerSubjectHash: text("owner_subject_hash").notNull(),
+    state: text("state").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    availableAt: text("available_at").notNull(),
+    leaseExpiresAt: text("lease_expires_at"),
+    leaseToken: text("lease_token"),
+    objectKey: text("object_key"),
+    objectKeyHash: text("object_key_hash"),
+    contentSha256: text("content_sha256"),
+    sizeBytes: integer("size_bytes"),
+    recordCount: integer("record_count"),
+    lastErrorCode: text("last_error_code"),
+    requestedAt: text("requested_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    completedAt: text("completed_at"),
+    expiresAt: text("expires_at"),
+  },
+  (table) => [
+    uniqueIndex("privacy_export_jobs_active_user_unique")
+      .on(table.userId)
+      .where(sql`${table.userId} is not null and ${table.state} in ('pending', 'queued', 'processing', 'retry', 'completed', 'needs_attention')`),
+    uniqueIndex("privacy_export_jobs_object_key_unique")
+      .on(table.objectKey)
+      .where(sql`${table.objectKey} is not null`),
+    index("privacy_export_jobs_dispatch_idx").on(table.state, table.availableAt, table.leaseExpiresAt),
+    index("privacy_export_jobs_expiry_idx").on(table.state, table.expiresAt, table.leaseExpiresAt),
+    index("privacy_export_jobs_owner_idx").on(table.ownerSubjectHash, table.updatedAt),
+    check(
+      "privacy_export_jobs_state_check",
+      sql`${table.state} in ('pending', 'queued', 'processing', 'retry', 'completed', 'canceled', 'expired', 'needs_attention')`,
+    ),
+    check("privacy_export_jobs_attempts_check", sql`${table.attempts} >= 0 and ${table.attempts} <= 5`),
+    check(
+      "privacy_export_jobs_locator_check",
+      sql`(${table.objectKey} is null and ${table.objectKeyHash} is null)
+        or (${table.objectKey} is not null and ${table.objectKeyHash} is not null)`,
+    ),
+    check(
+      "privacy_export_jobs_completed_check",
+      sql`${table.state} != 'completed' or (${table.userId} is not null and ${table.objectKey} is not null
+        and ${table.contentSha256} is not null and ${table.sizeBytes} is not null
+        and ${table.recordCount} is not null and ${table.completedAt} is not null and ${table.expiresAt} is not null)`,
+    ),
+    check(
+      "privacy_export_jobs_expired_check",
+      sql`${table.state} != 'expired' or (${table.userId} is null and ${table.objectKey} is null)`,
     ),
   ],
 );
