@@ -58,8 +58,8 @@ test("public legal pages separate forecast limitations, privacy, and automated r
   assert.match(terms, /not navigational data/);
   assert.match(ai, /hybrid ranking system/);
   assert.match(ai, /not a catch probability/);
-  assert.match(ai, /updatedDate="July 19, 2026"/);
-  assert.match(ai, /documentVersion="2026-07-19\.1"/);
+  assert.match(ai, /updatedDate="July 20, 2026"/);
+  assert.match(ai, /documentVersion="2026-07-20\.1"/);
   assert.match(ai, /has not activated a prospective validation study/);
   assert.match(ai, /eligible prospective or confirmatory validation sample/);
   assert.match(ai, /preregistered baseline comparisons/);

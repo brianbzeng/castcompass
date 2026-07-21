@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "castingcompass.water-quality-advisory/1.0.0",
+  "title": "CastingCompass public water-quality advisory overlay",
+  "type": "object",
+  "required": [
+    "schemaVersion", "policyVersion", "policySha256", "collectorSha256",
+    "siteCatalogSha256", "generatedAt", "status", "meaning",
+    "freshness", "scoreContribution", "source", "sites"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "castingcompass.water-quality-advisory/1.0.0" },
+    "policyVersion": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "policySha256": { "$ref": "#/$defs/sha256" },
+    "collectorSha256": { "$ref": "#/$defs/sha256" },
+    "siteCatalogSha256": { "$ref": "#/$defs/sha256" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "status": { "enum": ["fresh", "partial", "unavailable"] },
+    "meaning": { "type": "string", "minLength": 20, "maxLength": 300 },
+    "freshness": {
+      "type": "object",
+      "required": ["maximumSampleAgeDays"],
+      "properties": {
+        "maximumSampleAgeDays": { "type": "integer", "minimum": 1, "maximum": 14 }
+      },
+      "additionalProperties": false
+    },
+    "scoreContribution": {
+      "type": "object",
+      "required": ["mode", "positiveContributionAllowed", "activeAgencyStatusSuppressesRecommendation"],
+      "properties": {
+        "mode": { "const": "excluded-pending-frozen-baseline-validation" },
+        "positiveContributionAllowed": { "const": false },
+        "activeAgencyStatusSuppressesRecommendation": { "const": true }
+      },
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "required": ["agency", "programUrl", "statusUrl", "machineUrl", "errorCategory"],
+      "properties": {
+        "agency": { "const": "San Francisco Public Utilities Commission" },
+        "programUrl": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "statusUrl": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "machineUrl": { "const": "https://infrastructure.sfwater.org/lims.asmx/getBeaches" },
+        "errorCategory": { "type": ["string", "null"], "maxLength": 80 }
+      },
+      "additionalProperties": false
+    },
+    "sites": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+      "additionalProperties": { "$ref": "#/$defs/siteAssessment" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "siteAssessment": {
+      "type": "object",
+      "required": [
+        "status", "recommendationEffect", "officialLabel", "detail",
+        "stationIds", "stationNames", "sampleDates", "checkedAt",
+        "scoreDelta", "sourceUrl"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "closure", "posted", "advisory", "no-active-posting", "stale",
+            "unmonitored", "unknown", "source-unavailable", "not-covered"
+          ]
+        },
+        "recommendationEffect": { "enum": ["suppress", "neutral", "unknown"] },
+        "officialLabel": { "type": "string", "minLength": 3, "maxLength": 160 },
+        "detail": { "type": "string", "minLength": 20, "maxLength": 300 },
+        "stationIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[0-9]+$" }
+        },
+        "stationNames": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 160 }
+        },
+        "sampleDates": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "format": "date" }
+        },
+        "checkedAt": { "type": "string", "format": "date-time" },
+        "scoreDelta": { "type": "null" },
+        "sourceUrl": { "type": "string", "format": "uri", "pattern": "^https://" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

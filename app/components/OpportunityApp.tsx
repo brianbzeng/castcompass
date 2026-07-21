@@ -33,12 +33,15 @@ import type {
   SourceFreshness,
   TimeFilter,
   TripReportRequest,
+  WaterQualitySnapshot,
+  WaterQualitySiteAssessment,
 } from "../types";
 import {
   applyCurrentFreshness,
   hasLiveForecastInputs,
   sourceStatusTone,
 } from "../lib/forecast-freshness";
+import { applyCurrentWaterQualityFreshness } from "../lib/water-quality-freshness";
 import structureImages from "../data/structure-images.json";
 
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
@@ -257,10 +260,22 @@ async function loadForecastData() {
       return Array.isArray(payload) ? payload : payload.pulses ?? [];
     })
     .catch(() => [] as CommunityPulse[]);
+  const waterQualityPromise = fetch("/data/water-quality.json")
+    .then(async (response) => {
+      if (!response.ok) return null;
+      return applyCurrentWaterQualityFreshness(
+        (await response.json()) as WaterQualitySnapshot,
+      );
+    })
+    .catch(() => null as WaterQualitySnapshot | null);
   const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
   if (apiBase) {
-    const [staticSites, community] = await Promise.all([staticSitesPromise, communityPromise]);
+    const [staticSites, community, waterQuality] = await Promise.all([
+      staticSitesPromise,
+      communityPromise,
+      waterQualityPromise,
+    ]);
     try {
       const from = new Date().toISOString();
       const response = await fetch(
@@ -273,6 +288,7 @@ async function loadForecastData() {
         sites: staticSites,
         snapshot,
         community,
+        waterQuality,
         state: hasLiveForecastInputs(snapshot)
           ? "live" as const
           : "cached" as const,
@@ -285,6 +301,7 @@ async function loadForecastData() {
         sites: staticSites,
         snapshot,
         community,
+        waterQuality,
         state: hasLiveForecastInputs(snapshot)
           ? "live" as const
           : "cached" as const,
@@ -292,17 +309,30 @@ async function loadForecastData() {
     }
   }
 
-  const [staticSites, staticSnapshot, community] = await Promise.all([
+  const [staticSites, staticSnapshot, community, waterQuality] = await Promise.all([
     staticSitesPromise,
     fetch("/data/opportunities.json").then((response) => {
       if (!response.ok) throw new Error("snapshot unavailable");
       return response.json() as Promise<OpportunitySnapshot>;
     }),
     communityPromise,
+    waterQualityPromise,
   ]);
   const currentSnapshot = applyCurrentFreshness(staticSnapshot);
   const state = hasLiveForecastInputs(currentSnapshot) ? "live" : "cached";
-  return { sites: staticSites, snapshot: currentSnapshot, community, state: state as "live" | "cached" };
+  return {
+    sites: staticSites,
+    snapshot: currentSnapshot,
+    community,
+    waterQuality,
+    state: state as "live" | "cached",
+  };
+}
+
+function waterQualityTone(assessment: WaterQualitySiteAssessment | null) {
+  if (assessment?.recommendationEffect === "suppress") return "active";
+  if (assessment?.status === "no-active-posting") return "neutral";
+  return "unknown";
 }
 
 function fallbackSnapshot(): OpportunitySnapshot {
@@ -1019,6 +1049,7 @@ export function OpportunityApp() {
   const [sites, setSites] = useState<FishingSite[]>(FALLBACK_SITES);
   const [snapshot, setSnapshot] = useState<OpportunitySnapshot>(fallbackSnapshot);
   const [communityPulses, setCommunityPulses] = useState<CommunityPulse[]>([]);
+  const [waterQuality, setWaterQuality] = useState<WaterQualitySnapshot | null>(null);
   const [discussionFeed, setDiscussionFeed] = useState<{ siteId: string; posts: LocationDiscussionPost[] } | null>(null);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [selectedDetailWindowId, setSelectedDetailWindowId] = useState<string | null>(null);
@@ -1050,11 +1081,12 @@ export function OpportunityApp() {
   useEffect(() => {
     let active = true;
     loadForecastData()
-      .then(({ sites: nextSites, snapshot: nextSnapshot, community, state }) => {
+      .then(({ sites: nextSites, snapshot: nextSnapshot, community, waterQuality: nextWaterQuality, state }) => {
         if (!active) return;
         setSites(nextSites);
         setSnapshot(nextSnapshot);
         setCommunityPulses(community);
+        setWaterQuality(nextWaterQuality);
         setDataState(state);
       })
       .catch(() => {
@@ -1239,6 +1271,7 @@ export function OpportunityApp() {
   const rankedSites = useMemo(() => {
     return sites
       .filter((site) => site.accessStatus !== "closed")
+      .filter((site) => waterQuality?.sites[site.id]?.recommendationEffect !== "suppress")
       .filter((site) => (
         region === "All water" ||
         (region === "Saved locations" ? account.savedSiteIds.has(site.id) : site.region === region)
@@ -1261,7 +1294,15 @@ export function OpportunityApp() {
         }
         return (windowsBySite.get(b.id)?.score ?? 0) - (windowsBySite.get(a.id)?.score ?? 0);
       });
-  }, [account.savedSiteIds, activeRadiusMiles, sites, region, userPosition, windowsBySite]);
+  }, [account.savedSiteIds, activeRadiusMiles, sites, region, userPosition, waterQuality, windowsBySite]);
+
+  const waterQualitySuppressedSites = useMemo(
+    () => sites.filter((site) => (
+      site.accessStatus !== "closed"
+      && waterQuality?.sites[site.id]?.recommendationEffect === "suppress"
+    )),
+    [sites, waterQuality],
+  );
 
   const bestSite = rankedSites[0] ?? null;
   const bestWindow = bestSite ? windowsBySite.get(bestSite.id) ?? null : null;
@@ -1283,6 +1324,9 @@ export function OpportunityApp() {
     : -1;
   const selectedCommunity = selectedSiteId
     ? communityPulses.find((pulse) => pulse.siteId === selectedSiteId) ?? null
+    : null;
+  const selectedWaterQuality = selectedSiteId
+    ? waterQuality?.sites[selectedSiteId] ?? null
     : null;
   const selectedStructureGuides = selectedSite ? structureGuidesForSite(selectedSite) : [];
   const hasHourFilter = Boolean(availableFrom || availableUntil);
@@ -1611,6 +1655,14 @@ export function OpportunityApp() {
             ) : null}
           </p>
         ) : null}
+        {waterQualitySuppressedSites.length > 0 ? (
+          <p className="closure-notice water-quality-suppression-notice" role="status">
+            {waterQualitySuppressedSites.length} site{waterQualitySuppressedSites.length === 1 ? " is" : "s are"} excluded from recommendations because of an active official water-contact status.
+            {waterQuality?.source.statusUrl ? (
+              <> <a href={waterQuality.source.statusUrl} target="_blank" rel="noreferrer">Official status ↗</a></>
+            ) : null}
+          </p>
+        ) : null}
       </section>
 
       <section className={`workspace ${view === "list" ? "list-only" : ""}`}>
@@ -1876,6 +1928,34 @@ export function OpportunityApp() {
               <p>Relative rank among current options, with a practical fishability cap when conditions make the water hard to work.</p>
             </div>
 
+            <section
+              className={"water-quality-advisory " + waterQualityTone(selectedWaterQuality)}
+              aria-labelledby="water-quality-advisory-title"
+              role={selectedWaterQuality?.recommendationEffect === "suppress" ? "alert" : "status"}
+            >
+              <div>
+                <span>Official water-contact context</span>
+                <strong id="water-quality-advisory-title">
+                  {selectedWaterQuality?.officialLabel ?? "Official status unavailable"}
+                </strong>
+              </div>
+              <p>
+                {selectedWaterQuality?.detail
+                  ?? "CastingCompass could not verify an exact official station status for this site. No clean-water or safety claim is made."}
+              </p>
+              {selectedWaterQuality?.sampleDates.length ? (
+                <small>Agency sample date{selectedWaterQuality.sampleDates.length === 1 ? "" : "s"}: {selectedWaterQuality.sampleDates.join(", ")}.</small>
+              ) : null}
+              <small>Water quality does not improve this fishing score and does not establish contact or seafood safety.</small>
+              <a
+                href={selectedWaterQuality?.sourceUrl ?? waterQuality?.source.statusUrl ?? "https://www.waterboards.ca.gov/water_issues/programs/beaches/beach_water_quality/"}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Check the official agency status ↗
+              </a>
+            </section>
+
             <div className="component-block">
               <h3>Why this time stands out</h3>
               <MetricBar label="Bottom" value={selectedWindow.habitatScore} note="How fishy the nearby structure looks" />
@@ -2098,6 +2178,10 @@ export function OpportunityApp() {
               <details>
                 <summary><span>Expected fishing pressure</span><b>Small access modifier</b></summary>
                 <p>A time-of-day and weekend schedule is combined with a curated estimate of how constrained each spot usually feels. It is not Google Popular Times or live headcount, and it can move the raw score by only a few points.</p>
+              </details>
+              <details>
+                <summary><span>Water-quality advisories</span><b>Separate safety guardrail</b></summary>
+                <p>Exact official station postings can remove a site from recommendations. A no-posting result never raises the fishing score, and missing, stale, unmonitored, or unmapped status stays unknown. The score does not establish water-contact or seafood safety.</p>
               </details>
             </div>
             <div className="method-callout">

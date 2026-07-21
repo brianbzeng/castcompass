@@ -1,0 +1,23 @@
+{
+  "schema_version": "castingcompass.water-quality-policy/1.0.0",
+  "policy_version": "castingcompass.water-quality-advisory/sfpuc-0.1.0",
+  "meaning": "human-health water-contact advisory overlay; never a catch-probability or seafood-safety signal",
+  "score_contribution": "excluded-pending-frozen-baseline-validation",
+  "freshness": {
+    "maximum_sample_age_days": 10
+  },
+  "source": {
+    "agency": "San Francisco Public Utilities Commission",
+    "program_url": "https://www.sfpuc.gov/programs/ocean-and-beach-monitoring",
+    "status_url": "https://webapps.sfpuc.org/sapps/beachesandbay.html",
+    "machine_url": "https://infrastructure.sfwater.org/lims.asmx/getBeaches"
+  },
+  "site_stations": {
+    "baker-beach": ["4608", "4609", "4610"],
+    "china-beach": ["4607"],
+    "crane-cove-park": ["4620"],
+    "crissy-field-east-beach": ["4612"],
+    "ocean-beach-north": ["4604", "4605"],
+    "ocean-beach-south": ["4602"]
+  }
+}

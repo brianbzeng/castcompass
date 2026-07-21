@@ -618,6 +618,17 @@ after its acceptance checks pass in the intended environment.
   freshness are preserved, missing or stale inputs fail closed, and the contribution is validated
   against frozen baselines. Keep agency advisories visible and authoritative; never imply that a
   fishing score proves water, contact, or seafood-consumption safety.
+  - [x] Freeze and locally implement the first human-health advisory slice without changing the
+    attested fishing score: an exact six-site SFPUC mapping, fixed-source bounded collector,
+    policy/collector/catalog hashes, ten-day weekly-sample freshness, strict multi-station
+    precedence, explicit stale/unmonitored/unavailable/unmapped states, active-posting
+    recommendation suppression, neutral no-posting results, public UI disclosure, deterministic
+    adversarial fixtures, and scheduled-review refresh integration.
+  - [ ] Extend reviewed official/licensed current-status coverage across the Bay Area and
+    Santa Barbara/Goleta catalogs; freeze source-specific rainfall, geographic-support,
+    freshness, licensing, and outage behavior; validate any proposed numeric fishing-quality
+    contribution against frozen baselines; obtain independent product/safety review; and collect
+    guarded deployment plus post-deployment freshness evidence.
 - [ ] Build the map location by location until every available location has a reviewed inventory
   of notable structure and useful depth levels. Bind each feature to a reproducible official or
   licensed bathymetry/chart source, units, vertical datum, resolution, retrieval date, checksum,

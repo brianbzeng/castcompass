@@ -152,7 +152,7 @@ test("publishes a compact attestation index bound to the exact public assets", a
   }
 });
 
-test("every supported snapshot refresh chains the byte-binding attestation emitter", async () => {
+test("every supported snapshot refresh chains the advisory overlay and byte-binding attestation emitter", async () => {
   const [packageJson, workflow, snapshotGenerator, attestationEmitter] = await Promise.all([
     readJson("package.json"),
     readFile(new URL(".github/workflows/refresh-snapshot.yml", root), "utf8"),
@@ -160,17 +160,26 @@ test("every supported snapshot refresh chains the byte-binding attestation emitt
     readFile(new URL("scripts/generate_opportunity_attestations.py", root), "utf8"),
   ]);
   const refresh = packageJson.scripts["data:refresh"];
+  assert.match(refresh, /PYTHONPATH=\. python3 scripts\/refresh_water_quality\.py/);
   assert.match(refresh, /PYTHONPATH=\. python3 scripts\/generate_snapshot\.py/);
   assert.match(refresh, /&& PYTHONPATH=\. python3 scripts\/generate_opportunity_attestations\.py/);
+  assert.ok(
+    refresh.indexOf("refresh_water_quality.py") < refresh.indexOf("generate_snapshot.py"),
+  );
   assert.ok(
     refresh.indexOf("generate_snapshot.py") < refresh.indexOf("generate_opportunity_attestations.py"),
   );
   assert.match(workflow, /PYTHONPATH: \./);
   assert.ok(
+    workflow.indexOf("python scripts/refresh_water_quality.py") <
+      workflow.indexOf("python scripts/generate_snapshot.py"),
+  );
+  assert.ok(
     workflow.indexOf("python scripts/generate_snapshot.py") <
       workflow.indexOf("python scripts/generate_opportunity_attestations.py"),
   );
   assert.match(workflow, /python -m json\.tool public\/data\/opportunity-attestations\.json/);
+  assert.match(workflow, /python -m json\.tool public\/data\/water-quality\.json/);
   assert.doesNotMatch(snapshotGenerator, /opportunity-attestations|write_opportunity_attestation/);
   assert.match(attestationEmitter, /snapshot_path\.read_bytes\(\)/);
   assert.match(attestationEmitter, /site_catalog_path\.read_bytes\(\)/);

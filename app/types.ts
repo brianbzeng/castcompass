@@ -130,6 +130,57 @@ export interface OpportunitySnapshot {
   windows: OpportunityWindow[];
 }
 
+export type WaterQualityAdvisoryStatus =
+  | "closure"
+  | "posted"
+  | "advisory"
+  | "no-active-posting"
+  | "stale"
+  | "unmonitored"
+  | "unknown"
+  | "source-unavailable"
+  | "not-covered";
+
+export interface WaterQualitySiteAssessment {
+  status: WaterQualityAdvisoryStatus;
+  recommendationEffect: "suppress" | "neutral" | "unknown";
+  officialLabel: string;
+  detail: string;
+  stationIds: string[];
+  stationNames: string[];
+  sampleDates: string[];
+  checkedAt: string;
+  scoreDelta: null;
+  sourceUrl: string;
+}
+
+export interface WaterQualitySnapshot {
+  schemaVersion: "castingcompass.water-quality-advisory/1.0.0";
+  policyVersion: string;
+  policySha256: string;
+  collectorSha256: string;
+  siteCatalogSha256: string;
+  generatedAt: string;
+  status: "fresh" | "partial" | "unavailable";
+  meaning: string;
+  freshness: {
+    maximumSampleAgeDays: number;
+  };
+  scoreContribution: {
+    mode: "excluded-pending-frozen-baseline-validation";
+    positiveContributionAllowed: false;
+    activeAgencyStatusSuppressesRecommendation: true;
+  };
+  source: {
+    agency: string;
+    programUrl: string;
+    statusUrl: string;
+    machineUrl: string;
+    errorCategory: string | null;
+  };
+  sites: Record<string, WaterQualitySiteAssessment>;
+}
+
 export type TimeFilter = "today" | "tomorrow" | "custom";
 
 export interface TripReportRequest {

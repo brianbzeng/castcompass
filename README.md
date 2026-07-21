@@ -86,7 +86,9 @@ Trip-report APIs are served by the PWA Worker itself. Local and hosted builds us
 npm run data:refresh
 ```
 
-The generator never substitutes invented ocean/weather values. Missing sources remain null and are marked excluded. Open-Meteo's public endpoint is non-commercial and requires attribution; switch to a commercial plan or another licensed provider before enabling subscriptions or ads.
+The refresh also publishes a separately versioned official water-quality advisory overlay. Exact current agency postings can suppress a site from recommendations, while no-posting, stale, missing, unmonitored, and unmapped states never improve the fishing score or imply that water or seafood is safe. See [docs/WATER-QUALITY-ADVISORY.md](docs/WATER-QUALITY-ADVISORY.md).
+
+The generators never substitute invented ocean, weather, or water-quality values. Missing sources remain null or explicitly unknown and are marked excluded. Open-Meteo's public endpoint is non-commercial and requires attribution; switch to a commercial plan or another licensed provider before enabling subscriptions or ads.
 
 ### FastAPI
 

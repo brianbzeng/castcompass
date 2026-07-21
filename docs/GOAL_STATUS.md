@@ -13,7 +13,42 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
-## Active work cycle — deterministic mobile release evidence
+## Active work cycle — official water-quality advisory guardrail
+
+- [x] Reconcile protected main 086b2055f44ba5e2595d6bd249866ffb20c3c461, open draft
+      regional PR #118, issue #86, and the ordered roadmap. The remaining P0/P1
+      boundaries require provider, counsel, staging, deployment, independent-review, or
+      real-data evidence; none can be truthfully closed by another repository-only change.
+- [x] Freeze water quality as a separately versioned human-health advisory overlay, not a
+      catch-probability, pollution-severity, or seafood-safety signal. An active exact official
+      status suppresses a recommendation without rewriting its attested fishing score; a fresh
+      no-posting result is neutral; every stale, incomplete, unmonitored, unavailable, unmapped,
+      future-dated, invalid, or unreviewed state fails to unknown and cannot make a safety claim.
+- [x] Implement the first exact official-source slice. The fixed HTTPS SFPUC collector maps six
+      catalog sites to reviewed station IDs, caps and parses the source defensively, rejects
+      redirects, duplicate stations, malformed payloads, and unreviewed status codes, binds
+      policy/collector/catalog hashes, and emits a strict public contract. The browser
+      independently expires neutral results on the same ten-day Pacific-calendar rule while
+      retaining old active statuses as conservative suppression.
+- [x] Integrate and disclose the guardrail without contaminating frozen model evidence. The
+      scheduled snapshot-review workflow refreshes the overlay; the interface excludes sites
+      under an active official status, links the controlling agency, displays exact or unknown
+      support, and repeats that no-posting status cannot improve the score or prove contact or
+      seafood safety. The AI disclosure, Terms, runbook, roadmap, and owner dashboard agree.
+- [x] Complete the local release matrix. Fresh zero-script npm installation audited 534 packages
+      with zero vulnerabilities; the Cloudflare build, ESLint, TypeScript, complete security,
+      SBOM, source-integrity, and D1-query inventory gates passed; all 464 Node tests and the
+      two-worker 144/144 Chromium/WebKit mobile matrix passed. The API passed 29/29 with all 19
+      critical D1 query plans and foreign-key child indexes verified. Ruff, 81/81 pipeline tests
+      with one documented optional-raster skip, and deterministic smoke also passed. A prior
+      four-worker run passed 143/144 only because Vinext prematurely closed the large static
+      forecast stream in an unrelated trip test; that exact case passed on immediate isolated
+      retry, and the complete two-worker rerun then passed 144/144.
+- [ ] Publish a protected draft PR, require complete exact-head push and pull-request CI,
+      CodeQL, and release-provenance evidence, and record the immutable receipt. Production,
+      Cloudflare, provider bindings, migrations, and regional PR #118 remain outside this cycle.
+
+## Completed work cycle — deterministic mobile release evidence
 
 - [x] Reconcile protected `main` after privacy-export PR `#127`. Exact merge commit
       `5756146d061dce9aa3ba63aef73f0d34bde4a21b` passed release provenance, both native API-image
@@ -93,9 +128,14 @@ by that discovery.
       Vinext reproduced the irrelevant static-file premature-close warning. ESLint, TypeScript,
       the Cloudflare build, 456/456 Node tests, secret and install-policy checks, and both complete
       and production-only npm audits also passed. Hosted exact-head evidence remains required below.
-- [ ] Publish the isolated follow-up, require complete exact-head protected checks, merge only
-      accepted evidence, and reconcile protected `main`. Production and Cloudflare remain outside
-      this cycle.
+- [x] Publish the isolated follow-up, require complete exact-head protected checks, merge only
+      accepted evidence, and reconcile protected `main`. PR `#129` exact head
+      `02d0789cda4c05d5d9ea81557aea31ec66a8b6c0` passed push CI `29801444205` and
+      pull-request CI `29801446092`, including two independent 140/140 Chromium/WebKit web jobs,
+      plus CodeQL `29801444300` and release-provenance runs `29801444203` and `29801446067`.
+      It merged as protected-main commit `086b2055f44ba5e2595d6bd249866ffb20c3c461`;
+      main CI `29801749298`, CodeQL `29801748832`, and release provenance `29801749264`
+      passed that exact commit. Production and Cloudflare remained outside this cycle.
 
 ## Completed work cycle — default-off asynchronous privacy exports
 
@@ -964,7 +1004,13 @@ by that discovery.
       after its meaning, official/licensed sources, spatial and temporal support, freshness,
       uncertainty, missing-data behavior, and validation gates are frozen. Agency advisories stay
       authoritative; the product must not turn a fishing score into a water-contact or seafood-
-      consumption safety claim.
+      consumption safety claim. **First local advisory slice complete:** the versioned SFPUC
+      policy maps six exact San Francisco sites, binds its policy/collector/catalog hashes,
+      fails stale, incomplete, unmonitored, unavailable, and unmapped status to unknown, gives
+      no score credit for a no-posting result, and suppresses recommendations under an active
+      official status without rewriting the attested fishing score. Broader Bay Area and Santa
+      Barbara/Goleta source coverage, rainfall semantics, numeric-contribution validation,
+      independent review, deployment, and post-deployment freshness evidence remain open.
 - [ ] Enrich the map one available location at a time with reviewed notable structure and useful
       depth levels. Every feature needs reproducible official/licensed source provenance, units,
       vertical datum, resolution, retrieval date, checksum, uncertainty, allowed use, sensitive-

@@ -1881,6 +1881,65 @@ footer > div {
   color: var(--ink);
 }
 
+.water-quality-advisory {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--amber);
+  color: var(--ink-soft);
+  background: rgba(232, 216, 166, 0.09);
+}
+
+.water-quality-advisory.active {
+  border-left-color: var(--coral);
+  background: rgba(223, 110, 91, 0.1);
+}
+
+.water-quality-advisory.neutral {
+  border-left-color: var(--seafoam);
+  background: rgba(81, 185, 144, 0.08);
+}
+
+.water-quality-advisory > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.water-quality-advisory span,
+.water-quality-advisory small {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  line-height: 1.5;
+}
+
+.water-quality-advisory span {
+  color: var(--ink-soft);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.water-quality-advisory strong {
+  color: var(--ink);
+  font-size: 0.82rem;
+}
+
+.water-quality-advisory p {
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.55;
+}
+
+.water-quality-advisory a {
+  width: fit-content;
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--seafoam);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
 .component-block,
 .structure-guide-block,
 .access-block,

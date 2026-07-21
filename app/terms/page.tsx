@@ -40,6 +40,7 @@ export default function TermsPage() {
       <LegalSection title="2. What the forecast means">
         <p>CastingCompass ranks currently evaluated locations and time windows for California halibut. An Opportunity Score is a relative percentile within the current comparison set. A score of 80 means the option ranks ahead of about 80% of the options being compared. It does not mean an 80% chance of catching a fish.</p>
         <p>Scores combine public environmental data, site and habitat information, seasonality, practical fishability adjustments, and experimental model outputs. Inputs can be missing, delayed, estimated, stale, imprecise, or wrong. Fish behavior and fishing results are uncertain. No score, explanation, map, chart, message, or discussion post guarantees that fish are present or that a location is accessible, safe, legal, or fishable.</p>
+        <p>A separate official water-quality advisory overlay may suppress an exactly mapped site from recommendations. A no-posting result does not improve its score or mean water contact or seafood consumption is safe. Missing, stale, unmonitored, unavailable, or unmapped status remains unknown.</p>
       </LegalSection>
 
       <LegalSection title="3. Safety, navigation, access, and regulations">

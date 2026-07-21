@@ -156,7 +156,7 @@ test("AI disclosure renders the current all-zero validation boundary and negativ
   assert.equal(response.status, 200);
   const html = await response.text();
   const text = articleText(html);
-  assert.match(text, /Effective and last updated: July 19, 2026 · Document version 2026-07-19\.1/);
+  assert.match(text, /Effective and last updated: July 20, 2026 · Document version 2026-07-20\.1/);
   assert.match(text, /has not activated a prospective validation study/);
   assert.match(text, /0 attempts/);
   assert.match(text, /0 eligible target encounters and 0 eligible target non-encounters/);

@@ -33,12 +33,13 @@ export default function AiDisclosurePage() {
       eyebrow="Transparency · Automated systems"
       title="AI and Forecast Disclosure"
       summary="CastingCompass uses automated scoring and a third-party language model. This page separates what is live today from research that is still being tested."
-      updatedDate="July 19, 2026"
-      documentVersion="2026-07-19.1"
+      updatedDate="July 20, 2026"
+      documentVersion="2026-07-20.1"
     >
       <LegalSection title="The live Opportunity Score">
         <p>The live score is a hybrid ranking system. It combines curated habitat and access information, public seasonal data, tides, weather and marine conditions, daylight and moon context, and practical fishability adjustments. The result is converted to a 0–100 percentile among the current location and time-window candidates.</p>
         <p>It is not a catch probability, a statement that halibut are present, or a promise that the water is safe or practical to fish. Public inputs can be wrong or unavailable. Trip reports may inform product review, but they do not validate or train the current score.</p>
+        <p>A separately versioned water-quality advisory overlay can remove an exactly mapped site from recommendations when the official agency reports an active water-contact status. A no-posting result never increases the Opportunity Score. Missing, stale, unmonitored, unavailable, and unmapped status stays unknown, and neither the overlay nor the score establishes water-contact or seafood safety.</p>
       </LegalSection>
 
       <LegalSection title="Validation evidence today">
