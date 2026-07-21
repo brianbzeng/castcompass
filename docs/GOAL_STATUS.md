@@ -77,15 +77,22 @@ by that discovery.
       missed `Limantour Beach`. Routing the exact 2.9 MB forecast around Vinext had removed the
       premature-close dependency but still made catalog publication wait for an irrelevant large
       transfer and parse. That transport is not part of trip-mutation recovery.
+- [x] Classify PR `#129`'s second exact head rather than rerunning it. Its push web job again
+      passed 140/140 while its pull-request web job passed 139/140 at the same setup. Reducing the
+      forecast to a tiny schema-valid payload ruled out forecast size. A subsequent local WebKit
+      trace showed the trip form already held a valid selected location while the driver waited
+      for a replaceable combobox option. The failure was in unrelated catalog interaction, not the
+      mutation-recovery behavior under test.
 - [x] Isolate the mutation-recovery boundary completely. Only the three trip-recovery cases now
-      receive the exact committed site catalog plus a tiny schema-valid empty forecast through
-      Playwright routing. Product behavior, committed forecast data, timeouts, retries,
-      Cloudflare, and production are unchanged. Before the final payload reduction, the affected
-      iPhone SE and WebKit slice passed 60/60 two-worker repetitions; ESLint, TypeScript, the
-      Cloudflare build, 456/456 Node tests, and the complete four-project mobile matrix passed
-      140/140 locally. The final payload boundary then passed another 60/60 focused repetitions
-      and the exact hosted two-worker shape passed 140/140 locally. Hosted evidence remains
-      required below.
+      use the form's already-valid default location and assert its stable selected-status contract.
+      The past-report endpoint remains mocked, and the cases no longer type into the catalog,
+      inspect transient option DOM, route static data, or make any catalog-ready timing assumption.
+      Product behavior, public data, timeouts, retries, Cloudflare, and production are unchanged.
+      With a fresh server on every run, the final driver passed 60/60 focused iPhone SE and WebKit
+      repetitions and the exact two-worker four-project matrix passed 140/140, including while
+      Vinext reproduced the irrelevant static-file premature-close warning. ESLint, TypeScript,
+      the Cloudflare build, 456/456 Node tests, secret and install-policy checks, and both complete
+      and production-only npm audits also passed. Hosted exact-head evidence remains required below.
 - [ ] Publish the isolated follow-up, require complete exact-head protected checks, merge only
       accepted evidence, and reconcile protected `main`. Production and Cloudflare remain outside
       this cycle.

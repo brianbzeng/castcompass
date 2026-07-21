@@ -26,14 +26,6 @@ const TURNSTILE_MOCK_SCRIPT = `(() => {
   };
 })();`;
 
-const TRIP_RECOVERY_FORECAST = JSON.stringify({
-  generatedAt: "2026-07-21T00:00:00.000Z",
-  modelVersion: "mobile-trip-recovery-fixture/1.0.0",
-  methodology: "Deterministic empty forecast for trip mutation recovery tests.",
-  sources: [],
-  windows: [],
-});
-
 async function preparePastTripForSubmission(page: Page) {
   const trigger = page.locator(".log-trip-button");
   const modal = page.locator(".trip-modal");
@@ -42,11 +34,7 @@ async function preparePastTripForSubmission(page: Page) {
   await trigger.click();
   await expect(modal).toBeVisible({ timeout: 8_000 });
   await expect(location).toBeVisible({ timeout: 8_000 });
-  await location.fill("Limantour Beach");
-  await expect(modal.getByRole("option", { name: /Limantour Beach/ })).toBeVisible();
-  await location.press("ArrowDown");
-  await location.press("Enter");
-  await expect(modal.locator(".site-combobox-status")).toHaveText("Selected: Limantour Beach");
+  await expect(modal.locator(".site-combobox-status")).toHaveText(/^Selected: .+$/);
   const fishingMode = modal.getByLabel("Fishing mode for the whole trip");
   await fishingMode.focus();
   await expect(location).toHaveAttribute("aria-expanded", "false");
@@ -169,18 +157,6 @@ test.beforeEach(async ({ page }, testInfo) => {
   const savedSiteRecoveryTest = testTitle.includes("saved-location changes pause while offline") ||
     testTitle.includes("slow saved-location removal stays unconfirmed") ||
     testTitle.includes("malformed saved-location receipt stays unresolved");
-  if (tripRecoveryTest) {
-    // Trip mutation recovery is the boundary under test. Serve the committed catalog and a
-    // schema-valid empty forecast through Playwright so a transient static-server stream failure
-    // cannot leave the app on its three-site emergency fallback or delay catalog publication.
-    await page.route("**/data/sites.json", (route) => route.fulfill({
-      path: "public/data/sites.json",
-    }));
-    await page.route("**/data/opportunities.json", (route) => route.fulfill({
-      contentType: "application/json",
-      body: TRIP_RECOVERY_FORECAST,
-    }));
-  }
   if (savedSiteRecoveryTest) {
     // Keep the committed forecast fixture inside its availability window so this mutation test
     // exercises recovery behavior instead of expiring as wall-clock time advances.
