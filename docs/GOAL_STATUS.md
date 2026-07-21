@@ -13,6 +13,26 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — consolidate the regional evidence stack
+
+- [x] Reconcile the 18 open drafts against current protected `main`
+      `086b2055f44ba5e2595d6bd249866ffb20c3c461`. Exact stack head
+      `e906250079c9a54d35d9312906ba64b68f89779c` is a direct descendant of that commit,
+      contains both original roots `#118` and `#130`, and includes every checkpoint through
+      `#146`; no cherry-pick, history rewrite, merge, deployment, or provider mutation is
+      required to expose the integrated diff.
+- [x] Retarget existing draft PR `#146` to protected `main` as the single integration review
+      surface and document the complete regional, chart-context, water-quality, and pollution-
+      boundary scope. The PR remains draft and mergeable. PRs `#118` and `#130`–`#145`
+      remain open as immutable audit checkpoints until the replacement head passes main-based
+      review; none should be merged individually or out of order.
+- [ ] Pass fresh exact-head CI, CodeQL, release-provenance, native API-image, and optional-platform
+      checks against `main`, then record the immutable consolidated receipt without merging or
+      deploying.
+- [ ] Only after the consolidated receipt is green, close the 17 ancestor drafts as superseded by
+      `#146`, preserving their branches, comments, commits, and hosted evidence for audit and
+      rollback reference.
+
 ## Active checkpoint — pollution-score independent-review handoff
 
 - [x] Preserve protected draft PR `#145` at exact final receipt head
