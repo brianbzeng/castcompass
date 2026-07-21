@@ -24,6 +24,7 @@ from refresh_water_quality import (
     SITES_PATH,
     USER_AGENT,
     WaterQualityError,
+    clean_text,
     isoformat,
     load_inputs,
     parse_as_of,
@@ -116,21 +117,28 @@ def parse_registry_records(body: bytes, station_ids: list[str]) -> dict[str, dic
         station_id = item.get("site_id")
         location = item.get("location")
         coordinates = location.get("coordinates") if isinstance(location, dict) else None
+        station_name = clean_text(item.get("site_name"))
+        station_type = clean_text(item.get("site_type"), maximum=40)
+        process_date = item.get("process_da")
         if (
             station_id not in station_ids
             or station_id in records
-            or not isinstance(item.get("site_name"), str)
-            or not isinstance(item.get("site_type"), str)
-            or not isinstance(item.get("process_da"), str)
+            or station_name is None
+            or station_type is None
+            or not isinstance(process_date, str)
             or not isinstance(coordinates, list)
             or len(coordinates) != 2
         ):
             raise WaterQualityError("invalid-source-record-set")
+        try:
+            record_date = datetime.fromisoformat(process_date.replace("Z", "+00:00")).date()
+        except ValueError as exc:
+            raise WaterQualityError("invalid-source-date") from exc
         records[station_id] = {
             "stationId": station_id,
-            "stationName": item["site_name"],
-            "stationType": item["site_type"],
-            "recordDate": item["process_da"][:10],
+            "stationName": station_name,
+            "stationType": station_type,
+            "recordDate": record_date.isoformat(),
             "latitude": coordinate(coordinates[1], latitude=True),
             "longitude": coordinate(coordinates[0], latitude=False),
         }
@@ -158,6 +166,11 @@ def build_audit(
         {station_id for mapping in mappings.values() for station_id in mapping["station_ids"]}
     )
     records = parse_registry_records(source_body, station_ids)
+    if any(
+        datetime.fromisoformat(record["recordDate"]).date() > as_of.date()
+        for record in records.values()
+    ):
+        raise WaterQualityError("invalid-source-date")
     sites_by_id = {site["id"]: site for site in sites}
 
     audited_sites = []

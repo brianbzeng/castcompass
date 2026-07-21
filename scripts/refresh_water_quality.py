@@ -474,7 +474,10 @@ def parse_san_mateo_records(
                 continue
             if station_id in postings:
                 raise WaterQualityError("duplicate-source-station-id")
-            postings[station_id] = {"station_name": value, "section": section}
+            postings[station_id] = {
+                "station_name": clean_text(value) or "Unnamed station",
+                "section": section,
+            }
     return {
         "updated_date": updated_date,
         "sample_date": sample_date_value,

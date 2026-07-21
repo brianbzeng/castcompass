@@ -1,6 +1,6 @@
 {
   "schemaVersion": "castingcompass.water-quality-mapping-audit/1.0.0",
-  "generatedAt": "2026-07-21T13:45:00Z",
+  "generatedAt": "2026-07-21T14:10:00Z",
   "meaning": "historical station identity and coordinate support for local preliminary review; not current water quality, safety, or score evidence",
   "automaticMappingAllowed": false,
   "independentReviewRequired": true,
@@ -16,7 +16,7 @@
     "registryUse": "station identity and spatial context only; never current status"
   },
   "policySha256": "209fba12b4b1e568278dc80f6194856712f831e3b3f0617591fbb9dd80f0ad6a",
-  "auditToolSha256": "3773d7a76472d0177edec69f69ed10af4ae26c1da0ea74e3807f5fecdf5f29d9",
+  "auditToolSha256": "4f0c5cf832aab5043437c2b0e1dfe4c437d404d26ce2893414658d6b3dbb1cc5",
   "siteCatalogSha256": "a7145a66368c6dd5dd13b6bec421d430d228a3082d2fa8ad31941fc84e14078d",
   "method": {
     "distance": "haversine",
