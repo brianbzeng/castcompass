@@ -13,7 +13,38 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
-## Active work cycle — default-off asynchronous privacy exports
+## Active work cycle — deterministic mobile release evidence
+
+- [x] Reconcile protected `main` after privacy-export PR `#127`. Exact merge commit
+      `5756146d061dce9aa3ba63aef73f0d34bde4a21b` passed release provenance, both native API-image
+      architectures, all three CodeQL languages, API, pipeline, dependency submission, and the
+      complete web job after one failed-job rerun on the unchanged commit. No deployment,
+      provider query, binding, migration, or production mutation ran.
+- [x] Classify the failed main web result from run `29794888259` using its exact log rather than
+      rerunning blindly. One WebKit case missed the reopened trip dialog; the exact case passed
+      12/12 local repetitions and both pre-merge hosted web jobs. The prior main failure was a
+      different WebKit lazy-map detachment, establishing a release-gate synchronization risk
+      rather than a privacy-export regression.
+- [x] Harden only the observed test boundaries. Recovery setup waits for the mocked authenticated
+      `Profile` state and uses the fixed topbar trip control; close/reopen coverage proves the old
+      dialog is hidden and the replacement is visible before checking the restored ambiguous
+      state. Lazy-map scrolling now runs inside the existing retry and re-resolves the map after
+      React replacement. Product behavior, timeouts, retries, and provider state are unchanged.
+- [x] Stress the two revised WebKit boundaries sequentially in the clean worktree: trip recovery
+      passed 10/10 and lazy-map loading passed 10/10. Earlier artificial concurrent repetition
+      attempts were discarded after the machine reached temporary-storage and unrelated system-
+      load saturation; no assertion result from that polluted environment is treated as evidence.
+- [x] Complete the ordinary local release matrix. The exact two-worker hosted-CI shape passed all
+      140 mobile cases, including both revised WebKit boundaries. Fresh npm installation, the
+      Cloudflare build, 456/456 Node tests, ESLint, TypeScript, the complete security/SBOM/query-
+      inventory chain and both zero-vulnerability npm audits, 29/29 API tests, Ruff, 19/19 D1
+      query plans with every foreign-key child path indexed, 81/81 pipeline tests with one
+      documented optional-raster skip, and the deterministic pipeline smoke all passed.
+- [ ] Publish a protected draft PR, require the full exact-head hosted mobile/CI/CodeQL/provenance
+      evidence, merge only accepted evidence, and reconcile protected `main`. Production and
+      Cloudflare remain outside this cycle.
+
+## Completed work cycle — default-off asynchronous privacy exports
 
 - [x] Reconcile protected `main`, draft regional PR `#118`, draft asynchronous-export PR `#127`,
       issue `#86`, and the P1 scale roadmap without touching Cloudflare or production. Starting
@@ -39,9 +70,14 @@ by that discovery.
       API tests, Ruff, 81/81 pipeline tests with one documented optional-raster skip, the
       deterministic synthetic smoke, 19 migrations, 19 critical query plans, and every
       foreign-key child index contract.
-- [ ] Obtain exact-head hosted CI/CodeQL/release-provenance evidence and complete the protected PR
-      workflow. Provider setup, migration `0019`, Queue/DLQ/R2/IAM/alerts, staging failure and
-      deletion drills, activation, and production release remain separate reviewed gates.
+- [x] Complete the protected workflow without provider mutation. PR `#127` exact implementation
+      head `719d4c3c142dbb0e029a6583aa86f122777fbc6a` passed push and pull-request CI, release
+      provenance, CodeQL, and both native API-image architectures, then merged as protected-main
+      commit `5756146d061dce9aa3ba63aef73f0d34bde4a21b`. Main CI run `29794888259` attempt 2 passed
+      the unchanged commit, including 140/140 mobile cases; release provenance `29794888254`,
+      API image security `29794888264`, and CodeQL `29794887894` also passed. Provider setup,
+      migration `0019`, Queue/DLQ/R2/IAM/alerts, staging failure and deletion drills, activation,
+      and production release remain separate reviewed gates.
 
 ## Completed work cycle — complete D1 query inventory
 
@@ -824,7 +860,7 @@ by that discovery.
       child-cascade cost evidence, failure injection,
       rollback evidence, and authorized penetration testing remain.
       Local acceptance for the default-off export adapter passed the Cloudflare build and
-      455/455 Node tests, 140/140 Chromium/WebKit mobile cases, ESLint, TypeScript, the complete
+      456/456 Node tests, 140/140 Chromium/WebKit mobile cases, ESLint, TypeScript, the complete
       security/SBOM/query-inventory chain and both zero-vulnerability npm audits, 29/29 API tests,
       the 19-plan D1/index contract, Ruff, 81/81 pipeline tests with one documented optional-
       raster skip, and deterministic pipeline smoke. This is repository evidence only; no
