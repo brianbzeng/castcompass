@@ -53,8 +53,13 @@ by that discovery.
       local candidate demonstrates, what remains unvalidated, and which actions stay outside the
       demo. Docker, provider access, production credentials, Cloudflare, and deployment are not
       required.
-- [ ] Bind the verified tree to an exact integration commit and obtain protected hosted checks.
-      Separate branch receipts and an uncommitted local matrix are not proof of the final head.
+- [x] Bind the fully verified implementation tree to merge commit
+      `ec2d5bc26429eca1a7e45bbef62bfc5c0775d198`, whose parents are the reviewed regional head
+      `0c90f1afe08b9f8866b26d3bfeef07f541d226e8` and water-quality receipt head
+      `3ac7bec5a3410bf0bdeb0de500e43a1fa7b1025b`.
+- [ ] Publish the documentation-only receipt head as a draft integration PR and obtain its exact
+      protected hosted checks. Separate branch receipts and local verification are not proof of
+      the final review head.
 - [ ] Keep the candidate local or draft-only for the ML-engineer demo. It must not merge or deploy
       until the Santa Barbara access review, guarded production checklist, and every other open
       gate above are independently satisfied. Structure/depth mapping and broader official
