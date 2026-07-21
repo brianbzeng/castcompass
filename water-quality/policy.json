@@ -1,6 +1,6 @@
 {
   "schema_version": "castingcompass.water-quality-policy/2.0.0",
-  "policy_version": "castingcompass.water-quality-advisory/official-programs-0.3.0",
+  "policy_version": "castingcompass.water-quality-advisory/official-programs-0.4.0",
   "meaning": "human-health water-contact advisory overlay; never a catch-probability or seafood-safety signal",
   "score_contribution": "excluded-pending-frozen-baseline-validation",
   "freshness": {
@@ -24,6 +24,19 @@
       "county_id": "14",
       "county_name": "Santa Barbara",
       "global_station_ids": ["All_Santa_Barbara_County_Beaches"],
+      "absence_behavior": "unknown"
+    },
+    "california-beachwatch-marin": {
+      "source_type": "california-beachwatch-action-html",
+      "agency": "California State Water Resources Control Board",
+      "program_url": "https://www.waterboards.ca.gov/water_issues/programs/beaches/beach_surveys/index.html",
+      "status_url": "https://beachwatch.waterboards.ca.gov/public/advisory.php",
+      "machine_url": "https://beachwatch.waterboards.ca.gov/public/advisory.php",
+      "station_registry_url": "https://beachwatch.waterboards.ca.gov/public/result.php",
+      "station_registry_machine_url": "https://beachwatch.waterboards.ca.gov/public/getstation.php",
+      "county_id": "6",
+      "county_name": "Marin",
+      "global_station_ids": ["All_Marin_County_Beaches"],
       "absence_behavior": "unknown"
     },
     "san-mateo-county-health": {
@@ -124,6 +137,30 @@
     "oyster-point-fishing-pier": {
       "source_id": "san-mateo-county-health",
       "station_ids": ["AB18761"]
+    },
+    "drakes-beach": {
+      "source_id": "california-beachwatch-marin",
+      "station_ids": ["DRAKES BEACH"]
+    },
+    "bolinas-beach": {
+      "source_id": "california-beachwatch-marin",
+      "station_ids": ["BOLINAS"]
+    },
+    "stinson-beach": {
+      "source_id": "california-beachwatch-marin",
+      "station_ids": ["STINSON BEACH - CENTRAL", "STINSON BEACH - NORTH", "STINSON BEACH - SOUTH"]
+    },
+    "muir-beach": {
+      "source_id": "california-beachwatch-marin",
+      "station_ids": ["MUIR BEACH - CENTRAL", "MUIR BEACH - NORTH", "MUIR BEACH - SOUTH"]
+    },
+    "rodeo-beach": {
+      "source_id": "california-beachwatch-marin",
+      "station_ids": ["RODEO BEACH - CENTRAL", "RODEO BEACH - NORTH", "RODEO BEACH - SOUTH"]
+    },
+    "mcnears-beach-pier": {
+      "source_id": "california-beachwatch-marin",
+      "station_ids": ["McNEARS BEACH"]
     },
     "gaviota-state-park-beach": {
       "source_id": "california-beachwatch-santa-barbara",

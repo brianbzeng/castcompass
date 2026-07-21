@@ -11,6 +11,7 @@ import addFormats from "ajv-formats";
 const root = new URL("../", import.meta.url);
 const sfpucFixture = "tests/fixtures/sfpuc-beaches-water-quality.xml";
 const beachwatchFixture = "tests/fixtures/california-beachwatch-santa-barbara.html";
+const marinBeachwatchFixture = "tests/fixtures/california-beachwatch-marin.html";
 const sanMateoFixture = "tests/fixtures/san-mateo-current-water-quality.html";
 
 async function readJson(path) {
@@ -27,6 +28,7 @@ function runCollector(output, options = {}) {
     "--as-of", options.asOf ?? "2026-07-20T20:00:00Z",
     "--sfpuc-source-file", options.sfpucSource ?? sfpucFixture,
     "--beachwatch-source-file", options.beachwatchSource ?? beachwatchFixture,
+    "--marin-beachwatch-source-file", options.marinBeachwatchSource ?? marinBeachwatchFixture,
     "--san-mateo-source-file", options.sanMateoSource ?? sanMateoFixture,
     "--output", output,
   ];
@@ -84,6 +86,7 @@ test("deterministic fixtures preserve source-specific suppression, neutral, unkn
       "refugio-state-beach", "leadbetter-beach", "goleta-beach", "mesa-lane-beach", "pier-7",
       "pacifica-state-beach", "pillar-point-west-jetty", "pillar-point-east-jetty",
       "rockaway-beach", "sharp-park-beach", "francis-state-beach", "poplar-beach",
+      "bolinas-beach", "muir-beach", "mcnears-beach-pier", "limantour-beach",
     ].map((siteId) => [siteId, [payload.sites[siteId].status, payload.sites[siteId].recommendationEffect]])),
     {
       "baker-beach": ["posted", "suppress"],
@@ -105,6 +108,10 @@ test("deterministic fixtures preserve source-specific suppression, neutral, unkn
       "sharp-park-beach": ["unknown", "unknown"],
       "francis-state-beach": ["unknown", "unknown"],
       "poplar-beach": ["not-covered", "unknown"],
+      "bolinas-beach": ["posted", "suppress"],
+      "muir-beach": ["unknown", "unknown"],
+      "mcnears-beach-pier": ["unknown", "unknown"],
+      "limantour-beach": ["not-covered", "unknown"],
     },
   );
   assert.equal(payload.sites["crissy-field-east-beach"].scoreDelta, null);
@@ -117,6 +124,15 @@ test("deterministic fixtures preserve source-specific suppression, neutral, unkn
   assert.deepEqual(payload.sites["pillar-point-east-jetty"].stationIds, ["AB41140"]);
   assert.match(payload.sites["sharp-park-beach"].detail, /does not prove no posting/i);
   assert.deepEqual(payload.sites["sharp-park-beach"].sampleDates, []);
+  assert.deepEqual(payload.sites["bolinas-beach"].stationIds, ["BOLINAS"]);
+  assert.deepEqual(payload.sites["bolinas-beach"].actionStartDates, ["2026-07-15"]);
+  assert.deepEqual(
+    payload.sites["muir-beach"].stationIds,
+    [
+      "MUIR BEACH - CENTRAL", "MUIR BEACH - NORTH", "MUIR BEACH - SOUTH",
+      "All_Marin_County_Beaches",
+    ],
+  );
 });
 
 test("one unavailable source fails closed without erasing the independent source", async (t) => {
@@ -131,8 +147,28 @@ test("one unavailable source fails closed without erasing the independent source
   assert.equal(payload.sources.sfpuc.errorCategory, "source-file-unavailable");
   assert.equal(payload.sites["baker-beach"].status, "source-unavailable");
   assert.equal(payload.sites["gaviota-state-park-beach"].status, "posted");
+  assert.equal(payload.sites["bolinas-beach"].status, "posted");
   assert.equal(payload.sites["pacifica-state-beach"].status, "posted");
   assert.equal(JSON.stringify(payload).includes(directory), false);
+});
+
+test("an unavailable Marin action source fails only Marin mappings closed", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "castingcompass-marin-beachwatch-error-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const output = join(directory, "water-quality.json");
+  const result = runCollector(output, {
+    marinBeachwatchSource: join(directory, "missing.html"),
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const payload = JSON.parse(await readFile(output, "utf8"));
+  assert.equal(
+    payload.sources["california-beachwatch-marin"].errorCategory,
+    "source-file-unavailable",
+  );
+  assert.equal(payload.sites["bolinas-beach"].status, "source-unavailable");
+  assert.equal(payload.sites["bolinas-beach"].recommendationEffect, "unknown");
+  assert.equal(payload.sites["gaviota-state-park-beach"].status, "posted");
+  assert.equal(payload.sites["pacifica-state-beach"].status, "posted");
 });
 
 test("an unavailable County page fails only San Mateo mappings closed", async (t) => {

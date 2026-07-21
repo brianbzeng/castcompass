@@ -30,18 +30,31 @@ POLICY_PATH = ROOT / "water-quality" / "policy.json"
 SITES_PATH = ROOT / "data" / "sites.json"
 DEFAULT_OUTPUT = ROOT / "public" / "data" / "water-quality.json"
 SFP_SOURCE_ID = "sfpuc"
-BEACHWATCH_SOURCE_ID = "california-beachwatch-santa-barbara"
+SANTA_BARBARA_BEACHWATCH_SOURCE_ID = "california-beachwatch-santa-barbara"
+MARIN_BEACHWATCH_SOURCE_ID = "california-beachwatch-marin"
+BEACHWATCH_SOURCE_IDS = (
+    SANTA_BARBARA_BEACHWATCH_SOURCE_ID,
+    MARIN_BEACHWATCH_SOURCE_ID,
+)
 SAN_MATEO_SOURCE_ID = "san-mateo-county-health"
 EXPECTED_SOURCES = {
     SFP_SOURCE_ID: {
         "source_type": "sfpuc-sample-status-xml",
         "machine_url": "https://infrastructure.sfwater.org/lims.asmx/getBeaches",
     },
-    BEACHWATCH_SOURCE_ID: {
+    SANTA_BARBARA_BEACHWATCH_SOURCE_ID: {
         "source_type": "california-beachwatch-action-html",
         "machine_url": "https://beachwatch.waterboards.ca.gov/public/advisory.php",
         "county_id": "14",
         "county_name": "Santa Barbara",
+    },
+    MARIN_BEACHWATCH_SOURCE_ID: {
+        "source_type": "california-beachwatch-action-html",
+        "machine_url": "https://beachwatch.waterboards.ca.gov/public/advisory.php",
+        "station_registry_url": "https://beachwatch.waterboards.ca.gov/public/result.php",
+        "station_registry_machine_url": "https://beachwatch.waterboards.ca.gov/public/getstation.php",
+        "county_id": "6",
+        "county_name": "Marin",
     },
     SAN_MATEO_SOURCE_ID: {
         "source_type": "san-mateo-current-posting-html",
@@ -55,6 +68,7 @@ MAX_BEACHWATCH_ROWS = 5_000
 MAX_SAN_MATEO_POSTINGS = 200
 HISTORICAL_MALFORMED_ACTION_GRACE_DAYS = 90
 STATION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_]+$")
+BEACHWATCH_STATION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_.# -]{1,96}$")
 BEACHWATCH_HEADERS = [
     "Type",
     "County",
@@ -183,14 +197,18 @@ def load_inputs() -> tuple[dict[str, Any], list[dict[str, Any]], bytes]:
         for url_key in ("program_url", "status_url", "machine_url"):
             if not isinstance(source.get(url_key), str) or not source[url_key].startswith("https://"):
                 raise WaterQualityError("invalid-source-url")
-    beachwatch_source = sources[BEACHWATCH_SOURCE_ID]
-    global_station_ids = beachwatch_source.get("global_station_ids")
-    if (
-        not isinstance(global_station_ids, list)
-        or not global_station_ids
-        or not all(isinstance(value, str) and STATION_ID_PATTERN.fullmatch(value) for value in global_station_ids)
-    ):
-        raise WaterQualityError("invalid-global-station-map")
+    for source_id in BEACHWATCH_SOURCE_IDS:
+        beachwatch_source = sources[source_id]
+        global_station_ids = beachwatch_source.get("global_station_ids")
+        if (
+            not isinstance(global_station_ids, list)
+            or not global_station_ids
+            or not all(
+                isinstance(value, str) and BEACHWATCH_STATION_ID_PATTERN.fullmatch(value)
+                for value in global_station_ids
+            )
+        ):
+            raise WaterQualityError("invalid-global-station-map")
     san_mateo_source = sources[SAN_MATEO_SOURCE_ID]
     if (
         not isinstance(san_mateo_source.get("station_registry_url"), str)
@@ -227,9 +245,16 @@ def load_inputs() -> tuple[dict[str, Any], list[dict[str, Any]], bytes]:
         station_ids = mapping.get("station_ids")
         if source_id not in sources or not isinstance(station_ids, list):
             raise WaterQualityError("invalid-station-map")
-        if (
-            len(set(station_ids)) != len(station_ids)
-            or not all(isinstance(value, str) and STATION_ID_PATTERN.fullmatch(value) for value in station_ids)
+        if len(set(station_ids)) != len(station_ids) or not all(
+            isinstance(value, str) for value in station_ids
+        ):
+            raise WaterQualityError("invalid-station-map")
+        if source_id in BEACHWATCH_SOURCE_IDS and not all(
+            BEACHWATCH_STATION_ID_PATTERN.fullmatch(station_id) for station_id in station_ids
+        ):
+            raise WaterQualityError("invalid-beachwatch-station-map")
+        if source_id not in BEACHWATCH_SOURCE_IDS and not all(
+            STATION_ID_PATTERN.fullmatch(station_id) for station_id in station_ids
         ):
             raise WaterQualityError("invalid-station-map")
         if source_id == SFP_SOURCE_ID and (
@@ -248,7 +273,7 @@ def fetch_source(source_id: str, source: dict[str, Any]) -> bytes:
     data = None
     if source_id == SFP_SOURCE_ID:
         headers["Accept"] = "application/xml,text/xml"
-    elif source_id == BEACHWATCH_SOURCE_ID:
+    elif source_id in BEACHWATCH_SOURCE_IDS:
         headers["Accept"] = "text/html"
         headers["Content-Type"] = "application/x-www-form-urlencoded"
         data = urllib.parse.urlencode(
@@ -325,7 +350,7 @@ def parse_beachwatch_records(
             raise WaterQualityError("unexpected-source-county")
         if action_type not in {"Closure", "Posting", "Rain"}:
             raise WaterQualityError("unreviewed-action-type")
-        if not station_id or not STATION_ID_PATTERN.fullmatch(station_id):
+        if not station_id or not BEACHWATCH_STATION_ID_PATTERN.fullmatch(station_id):
             raise WaterQualityError("invalid-source-station-id")
         start_date = parse_action_date(start)
         end_date = parse_action_date(end) if end else None
@@ -639,6 +664,7 @@ def assess_sfpuc_site(
 
 
 def assess_beachwatch_site(
+    source_id: str,
     station_ids: list[str],
     global_station_ids: list[str],
     records: list[dict[str, str | date | None]],
@@ -674,7 +700,7 @@ def assess_beachwatch_site(
         )
         return {
             **assessment_base(
-                source_id=BEACHWATCH_SOURCE_ID,
+                source_id=source_id,
                 station_ids=selected_station_ids,
                 station_names=selected_station_names,
                 as_of=as_of,
@@ -689,7 +715,7 @@ def assess_beachwatch_site(
         }
     return {
         **assessment_base(
-            source_id=BEACHWATCH_SOURCE_ID,
+            source_id=source_id,
             station_ids=configured_station_ids,
             station_names=[],
             as_of=as_of,
@@ -795,7 +821,7 @@ def build_payload(
             station_ids = mapping["station_ids"]
             if source_errors[source_id] is not None:
                 unavailable_station_ids = station_ids
-                if source_id == BEACHWATCH_SOURCE_ID:
+                if source_id in BEACHWATCH_SOURCE_IDS:
                     unavailable_station_ids = list(
                         dict.fromkeys([*station_ids, *source["global_station_ids"]])
                     )
@@ -820,14 +846,17 @@ def build_payload(
                     as_of,
                     source["status_url"],
                 )
-            else:
+            elif source_id in BEACHWATCH_SOURCE_IDS:
                 assessment = assess_beachwatch_site(
+                    source_id,
                     station_ids,
                     source["global_station_ids"],
                     source_records[source_id],
                     as_of,
                     source["status_url"],
                 )
+            else:
+                raise WaterQualityError("untrusted-source-id")
         site_assessments[site_id] = assessment
     mapped = [site_assessments[site_id] for site_id in mappings]
     unavailable_count = sum(error is not None for error in source_errors.values())
@@ -885,6 +914,11 @@ def main() -> None:
         help="Read a California BeachWatch HTML fixture instead of the network",
     )
     parser.add_argument(
+        "--marin-beachwatch-source-file",
+        type=Path,
+        help="Read a Marin California BeachWatch HTML fixture instead of the network",
+    )
+    parser.add_argument(
         "--san-mateo-source-file",
         type=Path,
         help="Read a San Mateo County Health HTML fixture instead of the network",
@@ -895,7 +929,8 @@ def main() -> None:
     policy, sites, policy_bytes = load_inputs()
     fixture_paths = {
         SFP_SOURCE_ID: args.sfpuc_source_file,
-        BEACHWATCH_SOURCE_ID: args.beachwatch_source_file,
+        SANTA_BARBARA_BEACHWATCH_SOURCE_ID: args.beachwatch_source_file,
+        MARIN_BEACHWATCH_SOURCE_ID: args.marin_beachwatch_source_file,
         SAN_MATEO_SOURCE_ID: args.san_mateo_source_file,
     }
     source_records: dict[str, Any] = {}
@@ -906,7 +941,7 @@ def main() -> None:
             body = fixture_path.read_bytes() if fixture_path else fetch_source(source_id, source)
             if source_id == SFP_SOURCE_ID:
                 source_records[source_id] = parse_sfpuc_records(body)
-            elif source_id == BEACHWATCH_SOURCE_ID:
+            elif source_id in BEACHWATCH_SOURCE_IDS:
                 source_records[source_id] = parse_beachwatch_records(
                     body, source["county_name"], as_of
                 )

@@ -13,6 +13,40 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — Marin County action-only water-quality coverage
+
+- [x] Preserve draft PR `#140` at exact receipt head
+      `1ffa68cbb7be41d82eba86c74f56e1e3121684fc` as the stacked base. This follow-up is
+      isolated from the dirty primary checkout and does not merge, deploy, mutate Cloudflare or
+      D1, alter site priors, or turn water quality into a numeric fishing score.
+- [x] Add a fourth independently failing official adapter using only the fixed State Water Board
+      BeachWatch Marin County identifier `6`. It shares the reviewed action-only semantics but
+      cannot erase Santa Barbara, SFPUC, or San Mateo evidence when its own response fails.
+- [x] Bind six catalog sites only to exact official station identities: Drakes, Bolinas, three
+      Stinson stations, three Muir stations, three Rodeo stations, and McNears. Every site also
+      receives only an explicit countywide action; absence remains unknown and every numeric
+      `scoreDelta` remains null.
+- [x] Preserve four negative mapping results. Limantour, Point Reyes South, and Fort Baker have no
+      exact registry identity; Paradise Beach Pier stays unmapped because the official
+      `PARADISE COVE` identity is not the same public location. Similar names and proximity do not
+      authorize a mapping.
+- [x] Capture the bounded 31-station registry and four-source action snapshot at
+      `2026-07-21T14:40:40Z`, with response/policy/tool/catalog hashes and an independent-review
+      requirement. All four current-source reads succeeded; an open-ended July 15 Bolinas posting
+      suppresses Bolinas in the repository artifact while the other Marin mappings remain unknown.
+- [x] Complete the clean local release matrix under pinned Node `22.23.1` and the locked Python
+      environments: a fresh zero-script install, both zero-vulnerability npm audits, Cloudflare
+      build, 501/501 Node tests, ESLint, TypeScript, the complete offline security/SBOM/source-
+      integrity chain, Ruff and Python syntax, 29/29 API tests, 83/83 pipeline tests with one
+      documented optional-`rasterio` skip, deterministic synthetic smoke, and all 19 critical D1
+      query plans passed. The full Chromium/WebKit phone matrix passed 188/188 cases, and a focused
+      four-browser check proves Bolinas suppression is visible, linked to the State Board source,
+      score-excluded, and mobile-safe.
+- [ ] Publish and seal a protected stacked draft PR. Independent mapping/source-latency review,
+      CodeQL on protected `main`, guarded deployment, post-deployment freshness, provider/database
+      mutation, production activation, and every numeric-contribution validation gate remain
+      separate open work.
+
 ## Active checkpoint — San Mateo County action-only water-quality coverage
 
 - [x] Preserve draft PR `#139` at exact receipt head
@@ -1427,6 +1461,12 @@ by that discovery.
       coordinates are identity/spatial support only; independent mapping review is still required;
       and every numeric `scoreDelta` remains null. Full local/hosted acceptance, guarded
       deployment, post-deployment freshness, and every numeric-score gate remain open.
+      **Fourth local advisory slice implemented:** a fixed Marin BeachWatch action request maps
+      six catalog sites only through exact official station identities and leaves four ambiguous
+      or missing identities uncovered. A current open-ended Bolinas posting suppresses Bolinas;
+      absence remains unknown, all numeric `scoreDelta` values stay null, and the registry audit
+      cannot infer mappings or establish current status. Full local/hosted acceptance, independent
+      mapping review, guarded deployment, and every numeric-score gate remain open.
 - [ ] Enrich the map one available location at a time with reviewed notable structure and useful
       depth levels. Every feature needs reproducible official/licensed source provenance, units,
       vertical datum, resolution, retrieval date, checksum, uncertainty, allowed use, sensitive-

@@ -135,8 +135,8 @@ only a date-order anomaly that has already been wholly historical for more than
 exception covers a documented old row without letting an old data defect disable
 current actions or become a no-posting inference.
 
-The checked-in three-source snapshot was refreshed at
-`2026-07-21T13:54:25Z`. At that instant the State Board table returned
+The checked-in four-source snapshot was refreshed at
+`2026-07-21T14:40:40Z`. At that instant the State Board table returned
 open-ended postings for Gaviota (`2026-06-15`) and Refugio (`2026-06-08`), so
 those two recommendations are suppressed in this repository artifact. That is a
 time-stamped review snapshot, not a live guarantee; users must check the linked
@@ -189,18 +189,60 @@ documented local spatial authority. Poplar therefore remains `not-covered`,
 `unknown`, and null-score.
 
 The checked-in current-status snapshot was refreshed at
-`2026-07-21T13:54:25Z`. The County notice itself was last updated July 15 based
+`2026-07-21T14:40:40Z`. The County notice itself was last updated July 15 based
 on July 13 samples. Exact active listings suppressed Pacifica State Beach,
 Rockaway Beach through Calera Creek, and both Pillar Point jetty mappings at
 that instant. This is time-bound repository evidence, not a live guarantee;
 the official page and posted signs remain authoritative.
 
+## Marin County action source
+
+Source `california-beachwatch-marin` uses the same fixed State Water Board
+BeachWatch action table with only the Marin County identifier `6`. It inherits
+the Santa Barbara adapter's strict `Closure` / `Posting` / `Rain` parsing,
+date-order validation, action precedence, and action-only absence behavior.
+The two county requests fail independently: one malformed or unavailable
+response cannot erase a valid action from the other county or from SFPUC or San
+Mateo County Health.
+
+The fixed public station selector currently exposes 31 Marin station identities.
+A bounded audit maps only six exact public identities:
+
+| CastingCompass site | BeachWatch station support |
+| --- | --- |
+| Drakes Beach | DRAKES BEACH |
+| Bolinas Beach | BOLINAS |
+| Stinson Beach | STINSON BEACH - CENTRAL, NORTH, SOUTH |
+| Muir Beach | MUIR BEACH - CENTRAL, NORTH, SOUTH |
+| Rodeo Beach | RODEO BEACH - CENTRAL, NORTH, SOUTH |
+| McNears Beach Pier | McNEARS BEACH |
+
+All six also inherit only an explicit `All_Marin_County_Beaches` action. The
+audit deliberately leaves Limantour Beach, Point Reyes South Beach, Paradise
+Beach Pier, and Fort Baker Fishing Pier unmapped. In particular, `PARADISE
+COVE` is not treated as Paradise Beach Pier: similar words are not exact public
+location identity or spatial authority.
+
+`water-quality/audits/marin-beachwatch-station-mappings.json` binds the exact
+registry response, policy, audit tool, and site catalog by SHA-256. The registry
+supports station identity only; it supplies no current action, spatial coverage,
+clean-water conclusion, seafood-safety conclusion, or fishing-score input.
+Every mapping remains local preliminary evidence requiring independent review,
+and the audit tool cannot edit policy or create a mapping.
+
+At the checked-in `2026-07-21T14:40:40Z` capture, the State Board table reported
+an open-ended Bolinas posting that began July 15. Bolinas is therefore suppressed
+in the repository artifact. The other five mapped sites remain unknown rather
+than neutral because absence from an action table cannot establish a current
+no-posting state. This receipt is time-bound; the official table and posted signs
+remain authoritative.
+
 ## Integrity and failure behavior
 
 `scripts/refresh_water_quality.py`:
 
-- permits only the three fixed HTTPS current-status endpoints and rejects
-  redirects;
+- permits only the four fixed source configurations across three HTTPS current-
+  status endpoints and rejects redirects;
 - caps every response at 2 MiB and rejects malformed source structure;
 - binds the artifact to SHA-256 digests of the policy, collector, and exact site
   catalog;
@@ -212,7 +254,7 @@ the official page and posted signs remain authoritative.
 - keeps missing BeachWatch actions unknown instead of inferring a neutral state;
 - sanitizes source failures into fixed categories without publishing exception
   text or local paths; and
-- supports separate local XML and two HTML fixtures plus `--as-of` for
+- supports separate local XML and three HTML fixtures plus `--as-of` for
   deterministic adversarial tests.
 
 `scripts/audit_sfpuc_station_coverage.py` separately creates a reproducible,
@@ -229,13 +271,19 @@ the receipt to policy, tool, source response, and catalog hashes. The registry
 is explicitly barred from supplying current status, and independent local
 mapping review remains open.
 
+`scripts/audit_marin_beachwatch_station_mappings.py` separately submits only the
+fixed Marin county identifier to the official station-selector endpoint. It
+requires a bounded unique numeric registry key for every exact mapped station
+name, records four unsupported catalog sites, binds all inputs by hash, and
+cannot infer a mapping from a similar name or edit policy.
+
 The browser independently expires neutral SFPUC sample evidence on the same
 Pacific-calendar freshness rule. The scheduled snapshot workflow refreshes and
 validates `public/data/water-quality.json` before opening its ordinary review PR.
 
 ## Local implementation receipt
 
-The exact follow-up tree passed the Cloudflare build and 496 Node tests, the
+The exact follow-up tree passed the Cloudflare build and 501 Node tests, the
 complete 188-case Chromium/WebKit phone matrix, ESLint, TypeScript, the full
 security/SBOM/source-integrity chain, both zero-vulnerability npm audits, 29 API
 tests, Ruff, 83 pipeline tests with one documented optional-`rasterio` skip, the
@@ -250,7 +298,7 @@ score component, CastingCompass still needs:
 
 1. reviewed official-source adapters and exact mappings for the remaining
    launch catalog;
-2. independent local review of the Santa Barbara and San Mateo station mappings,
+2. independent local review of the Santa Barbara, San Mateo, and Marin station mappings,
    source latency, rainfall semantics, geographic support, and outage behavior;
 3. frozen retrospective and prospective baselines that test whether any fishing-
    quality contribution improves ranking without creating misleading health
