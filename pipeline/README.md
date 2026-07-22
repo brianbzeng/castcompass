@@ -579,6 +579,18 @@ authorizes no source-quality review, raster alignment, patch corpus, training, s
 deployment change. Because it is another representation of the same release, it is exploratory
 and cannot serve as independent confirmation even under a passing result.
 
+Screen the same frozen direct-sediment endpoint inside the four exact Santa Barbara South Coast
+metadata footprints with:
+
+```bash
+.venv/bin/python pipeline/scripts/run_usgs_south_coast_sediment_support_audit.py
+```
+
+The runner verifies both official source manifests, the full DS182 archive, same-position Point
+geometry, and each raster checksum/CRS/transform/shape/bound without reading pixels. The frozen
+result finds 26 valid rows/sites across three sources, zero gravel-bearing observations, and zero
+eligible whole-source partitions. It cannot build patches, train, promote, score, serve, or deploy.
+
 Run the strict substrate-component probe with:
 
 ```bash

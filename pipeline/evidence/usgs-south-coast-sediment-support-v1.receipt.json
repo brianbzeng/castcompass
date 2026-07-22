@@ -1,0 +1,147 @@
+{
+  "schema_version": "castingcompass.usgs-south-coast-sediment-support-receipt/1.0.0",
+  "created_at": "2026-07-22T15:44:00Z",
+  "source_commit": "44cb3189cf22756c0ebe32485f5e7bf09da84d5a",
+  "experiment_class": "exploratory_preexposed_same_release_geographic_support",
+  "result": {
+    "path": "docs/experiments/2026-07-22-usgs-south-coast-sediment-support-v1.md",
+    "sha256": "050c4d11c225241728709d48d7a402300fdf9a5ee7d94d0921c471aa41883559"
+  },
+  "protocol": {
+    "path": "docs/experiments/2026-07-22-usgs-south-coast-sediment-support-protocol-v1.md",
+    "sha256": "a279ec6aea51123aac35f8ae32ff7149d70bf38471f2330e7a2c0b8e8d4271e6",
+    "frozen_before_south_coast_membership_or_support_aggregation": true,
+    "prior_global_dbf_exposure_disclosed": true,
+    "independent_confirmatory_evidence": false
+  },
+  "source_manifests": {
+    "sediment": {
+      "path": "pipeline/sources/usgs_ds182_pacific_ext_sediment.json",
+      "sha256": "dedd43815362728e05be10de3fa2d787b3a964fad2734baf36d00c0722442af3"
+    },
+    "south_coast": {
+      "path": "pipeline/sources/usgs_santa_barbara_south_coast.json",
+      "sha256": "00e76431122c1c400e771aac8b2e18869c53879eb7bd53e1f33ac96f68b79ec5"
+    }
+  },
+  "source_policy": {
+    "path": "pipeline/source-admissibility-policy.json",
+    "sha256": "d4e5b94b11f7a44505eab48ed49692f1bc8fd2f2573bd0c240c11a96c3aab88d",
+    "south_coast_allowed_operation": "endpoint-support-footprint",
+    "raster_pixels_authorized": false,
+    "training_or_validation_authorized": false
+  },
+  "official_inputs": {
+    "independent_sediment_download_sets": 2,
+    "all_sediment_archive_and_source_table_bytes_match": true,
+    "sediment_archive": {
+      "bytes": 1087605,
+      "sha256": "0643827168d4a91e8f2ed6df7962dee16ff39bdf203a263a833e7f3d7faa51ff",
+      "member_inventory_verified": true,
+      "dbf_records": 16485,
+      "point_records": 16485
+    },
+    "source_table": {
+      "bytes": 19495,
+      "sha256": "89bc35fd455f623cae5c3c7ab3942e9bd933bac7a56f447f7ec236f000af4a1e",
+      "records": 114
+    },
+    "region_rasters": {
+      "offshore_refugio_beach": {
+        "sha256": "fba0b0fa9f3dd2c29890a8b1260b4a3d53a74fc3d909e7b98e2656439319259a",
+        "crs": "EPSG:32610",
+        "width": 8960,
+        "height": 8960,
+        "bounds": [758070.0, 3808160.0, 775990.0, 3826080.0],
+        "pixels_read": false
+      },
+      "offshore_coal_oil_point": {
+        "sha256": "c63ab37fbc9f64b838fabd8d3fcee4b4c9a4de21ecd3410109d9fd12d01c595f",
+        "crs": "EPSG:32611",
+        "width": 8963,
+        "height": 8960,
+        "bounds": [223875.0, 3803500.0, 241801.0, 3821420.0],
+        "pixels_read": false
+      },
+      "offshore_santa_barbara": {
+        "sha256": "877a7ab310b60a5dbb263c47de640234a2254b3b44b4291960254c1a2d5eb408",
+        "crs": "EPSG:32611",
+        "width": 8960,
+        "height": 8960,
+        "bounds": [241390.0, 3801510.0, 259310.00000000003, 3819430.0],
+        "pixels_read": false
+      },
+      "offshore_carpinteria": {
+        "sha256": "eb687e6a5fefeedc094f51f1d23a08d92b2b2c81e7bba3c26d62446558c9abea",
+        "crs": "EPSG:32611",
+        "width": 8960,
+        "height": 8960,
+        "bounds": [258760.0, 3797180.0, 276680.0, 3815100.0],
+        "pixels_read": false
+      }
+    }
+  },
+  "audit": {
+    "experiment_version": "exp-target-agnostic-551e1543969cc3e56b04831ac30a3f0b5bd4267377de583243eea1abc653686a",
+    "model_version": "model-target-agnostic-ae6ebfa964ca09db66cbaf0922ee2180957eeaff501432b250ec0b6d995cbbb7",
+    "footprint_assignment": {
+      "inside_records": 95,
+      "outside_records": 15482,
+      "multi_region_records_assigned_by_priority": 3,
+      "raster_pixels_read": false
+    },
+    "row_flow": {
+      "official_records": 16485,
+      "exact_duplicate_rows_removed": 908,
+      "distinct_sample_keys": 15577,
+      "endpoint_valid_rows": 26,
+      "endpoint_valid_sites": 26,
+      "endpoint_valid_source_groups": 3
+    },
+    "overall_support": {
+      "gravel_bearing_rows_and_sites": 0,
+      "mud_bearing_rows_and_sites": 23,
+      "sand_dominant_rows_and_sites": 3
+    },
+    "support_by_region_rows": {
+      "offshore_refugio_beach": 1,
+      "offshore_coal_oil_point": 9,
+      "offshore_santa_barbara": 11,
+      "offshore_carpinteria": 5
+    },
+    "partition_audit": {
+      "group_definition": "whole DataSetKey",
+      "source_groups": ["29", "268", "404"],
+      "candidate_whole_source_partitions": 3,
+      "eligible_whole_source_partitions": 0
+    },
+    "metrics_sha256": "6b5ad746fc419bfdd93ced43a73051c59285af42595d0bb1294faef4127a4f41"
+  },
+  "reproduction": {
+    "executions": 2,
+    "independent_sediment_download_sets": 2,
+    "metrics_bytes_exact": true,
+    "run_metadata_sha256": [
+      "c85dc379ed8e30767157114de47b58265809f2ed296b6c2fc3e7e046059249ff",
+      "0e6dc0cc1442e837ea93f5501158257581aa9f67ce76431fe9b95bf292741335"
+    ],
+    "normalized_run_metadata_bytes_exact": true,
+    "normalized_run_metadata_sha256": "6ae878a34f30e697bd09c1dce9625e529d72591e37efb474c6cf4dffa180c902",
+    "normalization": "Remove created_at and run_id; replace every input path with its basename."
+  },
+  "decision": {
+    "source_schema_valid": true,
+    "raw_endpoint_support_admissible": false,
+    "source_accuracy_review_authorized": false,
+    "raster_alignment_authorized": false,
+    "independent_confirmation_required": true,
+    "confirmatory_claim_authorized": false,
+    "patch_corpus_built": false,
+    "model_training_run": false,
+    "encoder_promoted": false,
+    "serving_or_score_changed": false,
+    "production_or_provider_state_changed": false,
+    "reason": "The 26 valid rows/sites span only three sources, contain zero gravel-bearing observations, and yield zero whole-source partitions meeting the frozen support floor."
+  },
+  "claim_boundary": "This exploratory result establishes only that the preexposed DS182 dBASE endpoint is structurally valid but support-incomplete inside the four metadata-only South Coast footprints. It does not establish current habitat, fish presence, fishing skill, score calibration, model promotion, product readiness, or deployment authority."
+}

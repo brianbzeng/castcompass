@@ -140,10 +140,18 @@ by that discovery.
       reproduce byte-identical metrics. No source-quality or alignment review is authorized, no
       raster pixel is read, and no corpus, model, score, serving path, production state, or
       deployment authority changes.
+- [x] Test the same frozen direct-sediment endpoint inside the exact Santa Barbara South Coast
+      imagery before attempting local training. Ninety-five distinct samples fall inside the four
+      metadata-only footprints; 26 rows/sites across three sources pass every endpoint rule, but
+      zero are gravel-bearing and only three are sand-dominant. Zero of three whole-source
+      partitions meets the fixed support floor. The result reproduces exactly, reads no raster
+      pixels, and authorizes no source review, alignment, corpus, training, score, serving,
+      production, or deployment change.
 - [ ] Acquire a genuinely support-complete independent endpoint before the next representation
       comparison. Neither the San Francisco track groups, the Santa Barbara South Coast cruises,
-      the residual statewide catalog, nor the DS182 direct-sediment representations provide a
-      support-complete, source-separable endpoint inside the admitted imagery. Additional
+      the residual statewide catalog, nor the San Francisco or Santa Barbara DS182
+      direct-sediment screens provide a support-complete, source-separable endpoint inside the
+      admitted imagery. Additional
       direct-video tracks must distribute every class across separable groups, a prospective
       independent survey must be designed, or a materially different scientific question must be
       preregistered before its labels are read; post-outcome class dropping, schema repair, and

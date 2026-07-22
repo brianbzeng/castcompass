@@ -397,3 +397,11 @@ fixed-width schema and Point pairing validate, but only 136 distinct-sample reco
 exact San Francisco reference footprint and zero satisfy all frozen surface, type, and composition
 rules. The endpoint therefore has no valid source group or partition, authorizes no source-quality
 or raster-alignment review, and changes no corpus, model, score, or serving path.
+
+The follow-up
+[Santa Barbara South Coast sediment screen](experiments/2026-07-22-usgs-south-coast-sediment-support-v1.md)
+uses the same frozen endpoint and four exact metadata-only bathymetry footprints. Of 95 distinct
+samples inside the footprint, 26 rows/sites across three source groups satisfy every rule, but zero
+are gravel-bearing and only three are sand-dominant. Zero of three whole-source partitions passes.
+No raster pixel is read and the result cannot authorize alignment, training, promotion, or a local
+habitat/fishing claim.

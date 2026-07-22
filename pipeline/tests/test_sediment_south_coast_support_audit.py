@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,12 +12,48 @@ from pipeline.contourcast.sediment_south_coast_support_audit import (
     _verify_region_rasters,
 )
 
+ROOT = Path(__file__).resolve().parents[2]
+
 
 def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 class SedimentSouthCoastSupportAuditTests(unittest.TestCase):
+    def test_receipt_binds_exact_negative_south_coast_result(self) -> None:
+        receipt = json.loads(
+            (
+                ROOT
+                / "pipeline/evidence/usgs-south-coast-sediment-support-v1.receipt.json"
+            ).read_text(encoding="utf-8")
+        )
+        artifacts = [
+            receipt["result"],
+            receipt["protocol"],
+            *receipt["source_manifests"].values(),
+            receipt["source_policy"],
+        ]
+        for artifact_record in artifacts:
+            artifact = ROOT / artifact_record["path"]
+            self.assertEqual(_sha(artifact), artifact_record["sha256"])
+
+        self.assertEqual(receipt["audit"]["row_flow"]["endpoint_valid_rows"], 26)
+        self.assertEqual(
+            receipt["audit"]["partition_audit"][
+                "candidate_whole_source_partitions"
+            ],
+            3,
+        )
+        self.assertEqual(
+            receipt["audit"]["partition_audit"][
+                "eligible_whole_source_partitions"
+            ],
+            0,
+        )
+        self.assertFalse(receipt["decision"]["raw_endpoint_support_admissible"])
+        self.assertFalse(receipt["decision"]["model_training_run"])
+        self.assertFalse(receipt["audit"]["footprint_assignment"]["raster_pixels_read"])
+
     def test_region_assignment_uses_frozen_priority_without_pixels(self) -> None:
         metadata = {
             "offshore_refugio_beach": {
