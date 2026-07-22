@@ -15,8 +15,10 @@ from .ingest import ingest_bathymetry, ingest_observations, load_grid, load_mode
 from .metadata import sha256_file, write_json
 from .sources import summarize_sources
 from .structure import (
+    append_aligned_layers,
     audit_feature_resolution,
     derive_structure_channels,
+    load_feature_stack,
     save_feature_stack,
 )
 from .terrain import (
@@ -28,6 +30,7 @@ from .training import (
     build_geotiff_pretraining_corpus,
     build_pretraining_corpus,
     run_bathymetry_pretraining,
+    run_hybrid_seafloor_pretraining,
 )
 from .validation_protocol import (
     DEFAULT_PROTOCOL_PATH,
@@ -40,6 +43,16 @@ from .workflow import run_baseline_workflow, run_smoke_workflow
 
 def _path(value: str) -> Path:
     return Path(value).expanduser()
+
+
+def _named_values(values: Sequence[str], *, paths: bool = False) -> dict[str, Any]:
+    parsed: dict[str, Any] = {}
+    for value in values:
+        name, separator, item = value.partition("=")
+        if not separator or not name or not item or name in parsed:
+            raise ValueError("named values must be unique NAME=VALUE pairs")
+        parsed[name] = _path(item) if paths else item
+    return parsed
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -85,6 +98,14 @@ def build_parser() -> argparse.ArgumentParser:
     resolution.add_argument("--horizontal-accuracy-m", type=float)
     resolution.add_argument("--feature-widths-m", type=float, nargs="+")
 
+    aligned = subcommands.add_parser("append-aligned-layer")
+    aligned.add_argument("--feature-stack", required=True, type=_path)
+    aligned.add_argument("--layer", required=True, type=_path)
+    aligned.add_argument("--layer-name", required=True)
+    aligned.add_argument("--output", required=True, type=_path)
+    aligned.add_argument("--feature-stack-sha256")
+    aligned.add_argument("--layer-sha256")
+
     corpus = subcommands.add_parser("build-pretraining-corpus")
     corpus.add_argument("--feature-stack", required=True, type=_path)
     corpus.add_argument("--output", required=True, type=_path)
@@ -112,6 +133,9 @@ def build_parser() -> argparse.ArgumentParser:
     geotiff_corpus.add_argument("--horizontal-accuracy-m", type=float)
     geotiff_corpus.add_argument("--tile-size", type=int, default=1024)
     geotiff_corpus.add_argument("--seed", type=int, default=42)
+    geotiff_corpus.add_argument("--aligned-layer", action="append", default=[])
+    geotiff_corpus.add_argument("--aligned-layer-sha256", action="append", default=[])
+    geotiff_corpus.add_argument("--min-aligned-valid-fraction", type=float, default=0.0)
 
     pretrain = subcommands.add_parser("pretrain-bathymetry")
     pretrain.add_argument("--corpus", required=True, type=_path)
@@ -129,6 +153,31 @@ def build_parser() -> argparse.ArgumentParser:
     pretrain.add_argument("--split-regions", type=int, default=5)
     pretrain.add_argument("--device", default="auto")
     pretrain.add_argument("--seed", type=int, default=42)
+
+    hybrid = subcommands.add_parser("pretrain-hybrid-seafloor")
+    hybrid.add_argument("--corpus", required=True, type=_path)
+    hybrid.add_argument("--output-dir", required=True, type=_path)
+    hybrid.add_argument(
+        "--modality",
+        required=True,
+        choices=("bathymetry", "backscatter", "fused"),
+    )
+    hybrid.add_argument("--epochs", type=int, default=10)
+    hybrid.add_argument("--batch-size", type=int, default=32)
+    hybrid.add_argument("--learning-rate", type=float, default=3e-4)
+    hybrid.add_argument("--weight-decay", type=float, default=1e-4)
+    hybrid.add_argument("--base-width", type=int, default=32)
+    hybrid.add_argument("--blocks-per-stage", type=int, default=2)
+    hybrid.add_argument("--projection-dim", type=int, default=128)
+    hybrid.add_argument("--temperature", type=float, default=0.2)
+    hybrid.add_argument("--min-negative-distance-m", type=float, default=512)
+    hybrid.add_argument("--reconstruction-weight", type=float, default=1.0)
+    hybrid.add_argument("--mask-fraction", type=float, default=0.25)
+    hybrid.add_argument("--mask-block-size", type=int, default=4)
+    hybrid.add_argument("--validation-fold", type=int, default=0)
+    hybrid.add_argument("--split-regions", type=int, default=5)
+    hybrid.add_argument("--device", default="auto")
+    hybrid.add_argument("--seed", type=int, default=42)
 
     probe = subcommands.add_parser("probe-seafloor-character")
     probe.add_argument("--corpus", required=True, type=_path)
@@ -314,6 +363,55 @@ def main(argv: Sequence[str] | None = None) -> int:
                 candidate_widths_m=widths,
             )
         )
+    elif args.command == "append-aligned-layer":
+        if args.output.resolve() == args.feature_stack.resolve():
+            raise ValueError("append-aligned-layer requires a distinct output path")
+        for path, expected, label in (
+            (args.feature_stack, args.feature_stack_sha256, "feature stack"),
+            (args.layer, args.layer_sha256, "aligned layer"),
+        ):
+            if expected and sha256_file(path) != expected.lower():
+                raise ValueError(f"{label} checksum does not match the declared SHA-256")
+        channels, reference, channel_names, feature_metadata = load_feature_stack(
+            args.feature_stack
+        )
+        layer = load_grid(args.layer)
+        combined, combined_names, layer_metadata = append_aligned_layers(
+            channels,
+            channel_names,
+            reference,
+            {args.layer_name: layer},
+        )
+        existing_layers = feature_metadata.get("aligned_layers", {})
+        if not isinstance(existing_layers, dict):
+            raise ValueError("feature stack aligned_layers metadata must be an object")
+        if args.layer_name in existing_layers:
+            raise ValueError("feature stack already declares this aligned layer")
+        combined_metadata = {
+            **feature_metadata,
+            "aligned_layers": {**existing_layers, **layer_metadata},
+        }
+        save_feature_stack(
+            args.output,
+            combined,
+            reference,
+            combined_names,
+            combined_metadata,
+        )
+        provenance = {
+            "status": "completed",
+            "feature_stack_sha256": sha256_file(args.feature_stack),
+            "layer_sha256": sha256_file(args.layer),
+            "output_sha256": sha256_file(args.output),
+            "layer_name": args.layer_name,
+            "layer_metadata": layer_metadata[args.layer_name],
+            "claim_boundary": (
+                "Alignment and missingness are recorded preprocessing facts only; this output "
+                "does not establish habitat, catch, or live-score validity."
+            ),
+        }
+        write_json(args.output.with_suffix(".provenance.json"), provenance)
+        _print(provenance)
     elif args.command == "build-pretraining-corpus":
         _print(
             build_pretraining_corpus(
@@ -346,6 +444,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 horizontal_accuracy_m=args.horizontal_accuracy_m,
                 tile_size=args.tile_size,
                 seed=args.seed,
+                aligned_layer_paths=_named_values(args.aligned_layer, paths=True),
+                aligned_layer_expected_sha256=_named_values(args.aligned_layer_sha256),
+                min_aligned_valid_fraction=args.min_aligned_valid_fraction,
             )
         )
     elif args.command == "pretrain-bathymetry":
@@ -362,6 +463,30 @@ def main(argv: Sequence[str] | None = None) -> int:
                 projection_dim=args.projection_dim,
                 temperature=args.temperature,
                 min_negative_distance_m=args.min_negative_distance_m,
+                validation_fold=args.validation_fold,
+                split_regions=args.split_regions,
+                device=args.device,
+                seed=args.seed,
+            )
+        )
+    elif args.command == "pretrain-hybrid-seafloor":
+        _print(
+            run_hybrid_seafloor_pretraining(
+                args.corpus,
+                args.output_dir,
+                modality=args.modality,
+                epochs=args.epochs,
+                batch_size=args.batch_size,
+                learning_rate=args.learning_rate,
+                weight_decay=args.weight_decay,
+                base_width=args.base_width,
+                blocks_per_stage=args.blocks_per_stage,
+                projection_dim=args.projection_dim,
+                temperature=args.temperature,
+                min_negative_distance_m=args.min_negative_distance_m,
+                reconstruction_weight=args.reconstruction_weight,
+                mask_fraction=args.mask_fraction,
+                mask_block_size=args.mask_block_size,
                 validation_fold=args.validation_fold,
                 split_regions=args.split_regions,
                 device=args.device,

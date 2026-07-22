@@ -140,6 +140,16 @@ def _bilinear_sample(layer: np.ndarray, rows: np.ndarray, cols: np.ndarray) -> n
     return (top * (1.0 - row_weight) + bottom * row_weight).astype(np.float32)
 
 
+def _nearest_sample(layer: np.ndarray, rows: np.ndarray, cols: np.ndarray) -> np.ndarray:
+    """Sample categorical or availability channels without inventing fractions."""
+
+    height, width = layer.shape[1:]
+    row_grid, col_grid = np.meshgrid(rows, cols, indexing="ij")
+    row_indices = np.clip(np.floor(row_grid + 0.5).astype(int), 0, height - 1)
+    col_indices = np.clip(np.floor(col_grid + 0.5).astype(int), 0, width - 1)
+    return layer[:, row_indices, col_indices].astype(np.float32)
+
+
 def extract_multiscale_patches(
     channels: np.ndarray,
     grid: GeoGrid,
@@ -149,6 +159,7 @@ def extract_multiscale_patches(
     radii_m: Sequence[float] = (64.0, 256.0, 1024.0),
     output_size: int = 33,
     min_valid_fraction: float = 0.8,
+    nearest_channel_indices: Sequence[int] = (),
 ) -> Tuple[np.ndarray, Dict[str, object]]:
     """Extract physically sized views without pretending resampling adds detail.
 
@@ -168,6 +179,11 @@ def extract_multiscale_patches(
         raise ValueError("radii_m must contain positive values")
     if tuple(sorted(scales)) != scales:
         raise ValueError("radii_m must be strictly nondecreasing")
+    nearest = tuple(int(index) for index in nearest_channel_indices)
+    if len(set(nearest)) != len(nearest):
+        raise ValueError("nearest_channel_indices must be unique")
+    if nearest and (min(nearest) < 0 or max(nearest) >= channels.shape[0]):
+        raise ValueError("nearest_channel_indices contains an out-of-range channel")
     validate_observation_extent(grid, x, y)
     rows, cols = grid.xy_to_row_col(np.asarray(x), np.asarray(y))
     valid_source = np.all(np.isfinite(channels), axis=0)
@@ -188,6 +204,10 @@ def extract_multiscale_patches(
             sample_rows = np.linspace(center_row - row_radius, center_row + row_radius, output_size)
             sample_cols = np.linspace(center_col - col_radius, center_col + col_radius, output_size)
             output[example, scale_index] = _bilinear_sample(filled, sample_rows, sample_cols)
+            if nearest:
+                output[example, scale_index, list(nearest)] = _nearest_sample(
+                    filled[list(nearest)], sample_rows, sample_cols
+                )
             sampled_valid = _bilinear_sample(
                 valid_source.astype(np.float32)[None, ...], sample_rows, sample_cols
             )[0]
@@ -206,6 +226,7 @@ def extract_multiscale_patches(
         "requested_centers": int(len(rows)),
         "retained_centers": int(np.sum(keep)),
         "min_valid_fraction": min_valid_fraction,
+        "nearest_channel_indices": list(nearest),
         "resampling_warning": (
             "views with fewer native cells than output pixels are interpolated for tensor "
             "alignment only; they contain no additional spatial detail"

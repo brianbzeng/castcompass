@@ -82,6 +82,20 @@ class ModelRunMetadataTests(unittest.TestCase):
         self.assertEqual(record["target_scope"], {"kind": "target-agnostic", "taxon_id": None})
         self.assertRegex(record["model_version"], r"^model-target-agnostic-[a-f0-9]{64}$")
 
+    def test_unlabeled_remote_sensing_run_is_target_agnostic(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            input_path = Path(temporary) / "hybrid-corpus.npz"
+            input_path.write_bytes(b"hybrid")
+            record = build_run_record(
+                command="pretrain-hybrid-seafloor",
+                target_taxon_id=None,
+                config={"modality": "fused"},
+                input_paths=(input_path,),
+                dataset_kind="official_unlabeled_seafloor_remote_sensing",
+            )
+        self.assertIsNone(record["observation_contract_version"])
+        self.assertEqual(record["target_scope"], {"kind": "target-agnostic", "taxon_id": None})
+
     def test_target_changes_content_identity_and_invalid_targets_fail(self):
         with tempfile.TemporaryDirectory() as temporary:
             input_path = Path(temporary) / "input.csv"

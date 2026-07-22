@@ -177,6 +177,16 @@ kelp-canopy, or surf-break layers must align exactly to the reference grid.
 Every auxiliary value layer receives a paired availability mask before missing
 values are filled.
 
+The first frozen hybrid experiment uses the four official 2 m USGS Offshore of
+San Francisco backscatter survey rasters (`8101_2004`, `8101_2007`,
+`8101_2008`, and `7125_2006`) listed by the source catalog. They are distinct
+survey footprints, not interchangeable repeated observations. Acquisition must
+retain every source ZIP and metadata file, record byte hashes, mosaic only onto
+the matching 2 m bathymetry reference grid, and leave all uncovered cells
+explicitly unavailable. The resulting corpus kind is
+`official_unlabeled_seafloor_remote_sensing`; it is target-agnostic and cannot
+be interpreted as catch or habitat labels.
+
 ## Physical resolution contract
 
 CastingCompass separates pixel spacing from reliable feature detection:

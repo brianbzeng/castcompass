@@ -87,7 +87,11 @@
         "target_scope": { "const": { "kind": "target-agnostic", "taxon_id": null } },
         "observation_contract_version": { "const": null },
         "dataset_kind": {
-          "enum": ["official_unlabeled_bathymetry", "official_seafloor_character_probe"]
+          "enum": [
+            "official_unlabeled_bathymetry",
+            "official_unlabeled_seafloor_remote_sensing",
+            "official_seafloor_character_probe"
+          ]
         }
       }
     },
@@ -113,6 +117,7 @@
           "not": {
             "enum": [
               "official_unlabeled_bathymetry",
+              "official_unlabeled_seafloor_remote_sensing",
               "official_seafloor_character_probe",
               "synthetic_fixture"
             ]

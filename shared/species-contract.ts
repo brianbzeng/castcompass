@@ -638,7 +638,11 @@ export function validateModelRunContract(value: unknown, options: ValidationOpti
   checkUtcDateTime(value.created_at, "$.created_at", errors);
 
   const targetTaxonId = validateTargetScope(value.target_scope, value.target_taxon_id, environment, "$", errors);
-  const targetAgnosticKinds = new Set(["official_unlabeled_bathymetry", "official_seafloor_character_probe"]);
+  const targetAgnosticKinds = new Set([
+    "official_unlabeled_bathymetry",
+    "official_unlabeled_seafloor_remote_sensing",
+    "official_seafloor_character_probe",
+  ]);
   if (typeof value.dataset_kind === "string") {
     if (targetAgnosticKinds.has(value.dataset_kind)) {
       if (targetTaxonId !== null) errors.push(`$.dataset_kind ${value.dataset_kind} requires target-agnostic scope`);

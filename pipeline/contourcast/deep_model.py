@@ -99,13 +99,15 @@ if nn is not None:
             self.pool = nn.AdaptiveAvgPool2d(1)
             self.output_dim = base_width * 4
 
-        def forward(self, inputs: Any) -> Any:
+        def forward_features(self, inputs: Any) -> Any:
             if inputs.ndim != 4 or inputs.shape[1] != self.input_channels:
                 raise ValueError(
                     f"encoder expects batches shaped (N, {self.input_channels}, H, W)"
                 )
-            hidden = self.stages(self.stem(inputs))
-            return self.pool(hidden).flatten(1)
+            return self.stages(self.stem(inputs))
+
+        def forward(self, inputs: Any) -> Any:
+            return self.pool(self.forward_features(inputs)).flatten(1)
 
 
     class SixChannelResNetEncoder(TerrainResNetEncoder):
@@ -136,7 +138,7 @@ if nn is not None:
         def input_channels(self) -> int:
             return self.encoder.input_channels
 
-        def forward(self, inputs: Any) -> Any:
+        def forward_with_spatial(self, inputs: Any) -> Tuple[Any, Any]:
             if inputs.ndim != 5:
                 raise ValueError("multiscale encoder expects (N, scales, channels, H, W)")
             batch, scales, channels, height, width = inputs.shape
@@ -144,10 +146,19 @@ if nn is not None:
                 raise ValueError(
                     f"expected {self.scales} scales and {self.input_channels} channels"
                 )
-            encoded = self.encoder(inputs.reshape(batch * scales, channels, height, width))
+            spatial = self.encoder.forward_features(
+                inputs.reshape(batch * scales, channels, height, width)
+            )
+            encoded = self.encoder.pool(spatial).flatten(1)
             encoded = encoded.reshape(batch, scales, -1) + self.scale_embeddings[None, :, :]
             weights = torch.softmax(self.attention(encoded).squeeze(-1), dim=1)
-            return torch.sum(encoded * weights[:, :, None], dim=1)
+            embedding = torch.sum(encoded * weights[:, :, None], dim=1)
+            spatial = spatial.reshape(batch, scales, *spatial.shape[1:])
+            return embedding, spatial
+
+        def forward(self, inputs: Any) -> Any:
+            embedding, _ = self.forward_with_spatial(inputs)
+            return embedding
 
 
     class TerrainContrastiveModel(nn.Module):
@@ -164,6 +175,62 @@ if nn is not None:
 
         def forward(self, inputs: Any) -> Any:
             return functional.normalize(self.projector(self.encoder(inputs)), dim=1)
+
+
+    class TerrainMaskedContrastiveModel(nn.Module):
+        """Multiscale encoder with contrastive and masked-reconstruction heads.
+
+        Reconstruction is intentionally limited to caller-declared measured value
+        channels. Availability masks remain model inputs but must never be treated
+        as reconstruction targets.
+        """
+
+        def __init__(
+            self,
+            encoder: MultiScaleTerrainEncoder,
+            *,
+            projection_dim: int = 128,
+            reconstruction_channels: int = 2,
+        ) -> None:
+            super().__init__()
+            if reconstruction_channels < 1:
+                raise ValueError("reconstruction_channels must be positive")
+            self.encoder = encoder
+            self.reconstruction_channels = reconstruction_channels
+            self.projector = nn.Sequential(
+                nn.Linear(encoder.output_dim, encoder.output_dim),
+                nn.ReLU(inplace=True),
+                nn.Linear(encoder.output_dim, projection_dim),
+            )
+            decoder_width = max(8, encoder.output_dim // 2)
+            self.reconstructor = nn.Sequential(
+                nn.Conv2d(encoder.output_dim, decoder_width, kernel_size=3, padding=1),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(decoder_width, reconstruction_channels, kernel_size=1),
+            )
+
+        def forward(self, inputs: Any) -> Dict[str, Any]:
+            if inputs.ndim != 5:
+                raise ValueError(
+                    "masked-contrastive model expects (N, scales, channels, H, W)"
+                )
+            batch, scales, _, height, width = inputs.shape
+            embedding, spatial = self.encoder.forward_with_spatial(inputs)
+            feature_height, feature_width = spatial.shape[-2:]
+            decoded = self.reconstructor(
+                spatial.reshape(batch * scales, self.encoder.output_dim, feature_height, feature_width)
+            )
+            reconstruction = functional.interpolate(
+                decoded,
+                size=(height, width),
+                mode="bilinear",
+                align_corners=False,
+            ).reshape(batch, scales, self.reconstruction_channels, height, width)
+            return {
+                "projection": functional.normalize(self.projector(embedding), dim=1),
+                "reconstruction": reconstruction,
+                "embedding": embedding,
+            }
 
 
     class CatchMultiTaskModel(nn.Module):
@@ -249,6 +316,10 @@ else:
         def __init__(self, *_: Any, **__: Any) -> None:
             require_torch()
 
+    class TerrainMaskedContrastiveModel:  # type: ignore[no-redef]
+        def __init__(self, *_: Any, **__: Any) -> None:
+            require_torch()
+
     class CatchMultiTaskModel:  # type: ignore[no-redef]
         def __init__(self, *_: Any, **__: Any) -> None:
             require_torch()
@@ -264,6 +335,7 @@ def augment_terrain_batch(
     channel_drop: float = 0.05,
     max_shift: int = 2,
     allow_reflection: bool = False,
+    protected_channel_indices: Iterable[int] = (),
 ) -> Any:
     """Orientation-preserving noise, translation, and channel dropout.
 
@@ -273,6 +345,14 @@ def augment_terrain_batch(
     """
 
     require_torch()
+    protected = tuple(int(index) for index in protected_channel_indices)
+    if len(set(protected)) != len(protected):
+        raise ValueError("protected_channel_indices must be unique")
+    channel_axis = 1 if inputs.ndim == 4 else 2 if inputs.ndim == 5 else None
+    if channel_axis is None:
+        raise ValueError("terrain batches must be (N,C,H,W) or (N,S,C,H,W)")
+    if protected and (min(protected) < 0 or max(protected) >= inputs.shape[channel_axis]):
+        raise ValueError("protected_channel_indices contains an out-of-range channel")
     augmented = inputs.clone()
     if allow_reflection and bool(torch.rand(()) < 0.5):
         augmented = torch.flip(augmented, dims=(-1,))
@@ -292,7 +372,13 @@ def augment_terrain_batch(
         augmented = padded[
             ..., row_start : row_start + height, col_start : col_start + width
         ].reshape(original_shape)
-    augmented = augmented + noise_std * torch.randn_like(augmented)
+    noise = noise_std * torch.randn_like(augmented)
+    if protected:
+        if inputs.ndim == 4:
+            noise[:, list(protected)] = 0.0
+        else:
+            noise[:, :, list(protected)] = 0.0
+    augmented = augmented + noise
     if channel_drop > 0:
         if inputs.ndim == 4:
             keep_shape = (len(inputs), inputs.shape[1], 1, 1)
@@ -302,8 +388,90 @@ def augment_terrain_batch(
         else:
             raise ValueError("terrain batches must be (N,C,H,W) or (N,S,C,H,W)")
         keep = torch.rand(keep_shape, device=inputs.device) > channel_drop
+        if protected:
+            if inputs.ndim == 4:
+                keep[:, list(protected)] = True
+            else:
+                keep[:, :, list(protected)] = True
         augmented = augmented * keep
     return augmented
+
+
+def mask_terrain_blocks(
+    inputs: Any,
+    target_channel_indices: Iterable[int],
+    *,
+    mask_fraction: float = 0.25,
+    block_size: int = 4,
+) -> Tuple[Any, Any]:
+    """Mask spatial blocks only in declared value channels.
+
+    The returned boolean mask has the same shape as ``inputs`` so reconstruction
+    eligibility can be intersected with source-availability masks. This function
+    never infers which channels are measurements versus metadata.
+    """
+
+    require_torch()
+    if inputs.ndim != 5:
+        raise ValueError("masked pretraining inputs must be (N,S,C,H,W)")
+    if not 0 < mask_fraction < 1:
+        raise ValueError("mask_fraction must be between zero and one")
+    if block_size < 1:
+        raise ValueError("block_size must be positive")
+    channel_indices = tuple(int(index) for index in target_channel_indices)
+    if not channel_indices or len(set(channel_indices)) != len(channel_indices):
+        raise ValueError("target_channel_indices must be unique and nonempty")
+    if min(channel_indices) < 0 or max(channel_indices) >= inputs.shape[2]:
+        raise ValueError("target_channel_indices contains an out-of-range channel")
+    batch, scales, channels, height, width = inputs.shape
+    coarse_height = (height + block_size - 1) // block_size
+    coarse_width = (width + block_size - 1) // block_size
+    coarse = (
+        torch.rand(
+            (batch, scales, 1, coarse_height, coarse_width),
+            device=inputs.device,
+        )
+        < mask_fraction
+    )
+    spatial = functional.interpolate(
+        coarse.reshape(batch * scales, 1, coarse_height, coarse_width).float(),
+        size=(height, width),
+        mode="nearest",
+    ).bool().reshape(batch, scales, 1, height, width)
+    channel_mask = torch.zeros(
+        (1, 1, channels, 1, 1), device=inputs.device, dtype=torch.bool
+    )
+    channel_mask[:, :, list(channel_indices)] = True
+    mask = spatial & channel_mask
+    if not bool(torch.any(mask)):
+        # Very small synthetic batches can randomly miss every coarse cell. Keep
+        # training defined without changing which semantic channels are eligible.
+        mask[0, 0, channel_indices[0], : min(block_size, height), : min(block_size, width)] = True
+    return inputs.masked_fill(mask, 0.0), mask
+
+
+def masked_reconstruction_loss(
+    predictions: Any,
+    targets: Any,
+    masked_pixels: Any,
+    *,
+    available_pixels: Any | None = None,
+) -> Any:
+    """Smooth-L1 reconstruction over masked, genuinely measured pixels only."""
+
+    require_torch()
+    if predictions.shape != targets.shape or predictions.ndim != 5:
+        raise ValueError("reconstruction predictions and targets must be equal (N,S,C,H,W)")
+    if masked_pixels.shape != predictions.shape:
+        raise ValueError("masked_pixels must match reconstruction targets")
+    eligible = masked_pixels.bool()
+    if available_pixels is not None:
+        if available_pixels.shape != predictions.shape:
+            raise ValueError("available_pixels must match reconstruction targets")
+        eligible = eligible & available_pixels.bool()
+    if not bool(torch.any(eligible)):
+        raise ValueError("masked reconstruction has no measured eligible pixels")
+    return functional.smooth_l1_loss(predictions[eligible], targets[eligible])
 
 
 def nt_xent_loss(first: Any, second: Any, temperature: float = 0.2) -> Any:

@@ -13,6 +13,50 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — hybrid seafloor representation experiment
+
+- [x] Resume model work from the recorded negative result rather than from product intuition. The
+      frozen seafloor-character probe found that bathymetry pretraining improved log loss and
+      beat depth-only features but did not beat the classical multiscale geomorphology baseline
+      on macro F1, so its encoder remains unpromoted and disconnected from scoring.
+- [x] Freeze a comparable three-way bathymetry-only, backscatter-only, and fused experiment.
+      Every mode uses the same source corpus, geographic fold, seed, architecture capacity,
+      optimizer, mask policy, and epoch budget; the new target-agnostic dataset kind cannot carry
+      a California-halibut target or observation contract.
+- [x] Implement the documented hybrid objective: shared multiscale ResNet features feed spatial
+      NT-Xent and a measured-channel reconstruction decoder. Each survey-bound intensity keeps a
+      binary availability input that is never noised, dropped, masked, or reconstructed, and
+      loss excludes every unavailable source pixel. Overlapping surveys remain distinct rather
+      than being silently averaged or mislabeled as calibrated dB.
+- [x] Add fail-closed aligned-layer and corpus provenance boundaries. CRS/shape/affine alignment,
+      source identity, source-operation admission, checksum inputs, paired missingness metadata,
+      binary availability, unique channel order, and modality-specific reconstruction targets
+      must all pass before training.
+- [x] Prove the architecture and runner on synthetic tensors using the locked macOS ARM64
+      Geo/PyTorch environment. The test performs a real one-epoch fused run and verifies its
+      checkpoint, metrics, content-derived target-agnostic model identity, and explicit
+      non-catch-accuracy claim. This is pipeline plumbing evidence only.
+- [x] Acquire every official byte twice and reproduce the full aligned corpus exactly. The
+      matching bathymetry plus four 2 m survey archives and extracted GeoTIFFs matched their
+      recorded SHA-256 values on two downloads. A seeded reservoir retained 4,096 locations from
+      7,075 eligible centers across all 53 tiles and all four survey footprints; two independent
+      builds produced corpus SHA-256
+      `dd88342209522d12726208259640fe7ac9379a61fa79cd9e606475945dd9af4a`.
+      Survey overlaps remain separate and the southern 2006 footprint is no longer lost to the
+      prior north-first early-stop bias.
+- [ ] Complete and exactly reproduce the three official-data hybrid pretraining runs. All modes
+      use validation fold `3`, the first deterministic availability-only fold whose training
+      geography contains measured pixels from all four surveys, plus the same seed, spatial
+      split, optimizer, mask policy, and epoch budget. Preserve every configuration, checkpoint,
+      metric, source/corpus binding, and negative result.
+- [ ] Run the same independent seafloor/habitat probe for all three frozen encoders plus the
+      declared classical and random baselines, then run a separate rare-structure probe. Do not
+      promote or connect any encoder to the live score unless the existing model-governance and
+      confirmatory-validation gates independently pass.
+
+This checkpoint changes no browser behavior, API, Worker, D1/R2/Queue state, production provider,
+live score, public model claim, or deployment authority.
+
 ## Active checkpoint — exact isolated-staging exercise identity
 
 - [x] Close the adjacent remote-load identity gap before designing any authenticated mutation

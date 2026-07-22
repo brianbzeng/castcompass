@@ -346,6 +346,55 @@ SimCLR views, excludes nearby overlapping terrain from the negative-pair set,
 and saves the best checkpoint plus hashes, configuration, and loss history.
 NT-Xent is an optimization diagnostic, not catch accuracy.
 
+The next frozen experiment adds measured acoustic backscatter without hiding
+coverage gaps. First ingest the official raster through `ingest-bathymetry`
+using its real source identity and checksum, then append it to the already
+derived structure stack. Alignment must match exactly; the value layer is
+paired with a binary availability channel before missing cells are filled.
+
+```bash
+python3 -m pipeline.contourcast.cli append-aligned-layer \
+  --feature-stack data/processed/structure.npz \
+  --feature-stack-sha256 REPLACE_WITH_REAL_SHA256 \
+  --layer data/processed/backscatter.npz \
+  --layer-sha256 REPLACE_WITH_REAL_SHA256 \
+  --layer-name backscatter_intensity_8101_2004 \
+  --output data/processed/structure-backscatter.npz
+
+python3 -m pipeline.contourcast.cli build-pretraining-corpus \
+  --feature-stack data/processed/structure-backscatter.npz \
+  --output data/processed/hybrid-pretraining-corpus.npz \
+  --radii-m 32 128 512 \
+  --output-size 33 \
+  --stride-m 64 \
+  --max-centers 4096
+```
+
+Run all three modalities with the same corpus, fold, architecture, optimizer,
+masking, and seed. Each run combines spatial NT-Xent with masked reconstruction;
+backscatter reconstruction is scored only where its source-availability mask
+is true.
+
+```bash
+for modality in bathymetry backscatter fused; do
+  python3 -m pipeline.contourcast.cli pretrain-hybrid-seafloor \
+    --corpus data/processed/hybrid-pretraining-corpus.npz \
+    --output-dir "artifacts/hybrid-seafloor-${modality}-v1" \
+    --modality "$modality" \
+    --epochs 20 \
+    --batch-size 64 \
+    --validation-fold 0 \
+    --split-regions 5 \
+    --seed 42
+done
+```
+
+These commands produce target-agnostic model-run receipts under dataset kind
+`official_unlabeled_seafloor_remote_sensing`. A lower hybrid loss is not fishing
+skill, habitat validation, or a promotion result. The three frozen encoders must
+still face the same independent seafloor/habitat probe and a dedicated
+rare-structure test.
+
 ## Reproducible USGS 2 m pilot
 
 The first official-data pilot uses the USGS Offshore of San Francisco 2 m
@@ -384,6 +433,26 @@ PYTHON_BIN=.venv-geo-deep/bin/python \
 The complete run uses five spatial regions, 20 epochs, nearby-negative
 exclusion, and a wider encoder. Its checkpoint remains research-only until it
 passes an independently labeled seafloor-character or habitat probe.
+
+The follow-up hybrid experiment has a separate reproducible runner. It verifies
+the bathymetry archive plus all four survey-specific backscatter archives and
+GeoTIFF hashes, streams a seeded geographic reservoir across the complete
+eligible footprint, reprojects masks onto the exact bathymetry grid, and runs
+the locked bathymetry/backscatter/fused comparison:
+
+```bash
+PYTHON_BIN=.venv-geo-deep/bin/python DEVICE=mps \
+  pipeline/scripts/run_usgs_sf_hybrid_pretraining.sh
+```
+
+The published backscatter values are 8-bit relative intensity, not calibrated
+dB. Overlapping survey pixels are retained as distinct value/mask channel pairs;
+the runner never averages them or invents a priority mosaic.
+
+Validation fold `3` is frozen for v1 because it is the first deterministic fold
+whose training geography contains measured pixels from all four surveys. That
+choice uses source availability only, before optimization, and does not consult
+habitat, catch, or probe labels.
 
 Run the strict substrate-component probe with:
 

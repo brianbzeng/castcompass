@@ -167,6 +167,7 @@ def verify_run_record_integrity(
         raise ValueError("run record target scope is inconsistent")
     target_agnostic_kinds = {
         "official_unlabeled_bathymetry",
+        "official_unlabeled_seafloor_remote_sensing",
         "official_seafloor_character_probe",
     }
     if target_taxon_id is None:
@@ -252,6 +253,7 @@ def build_run_record(
     validate_contract_assets()
     target_agnostic_kinds = {
         "official_unlabeled_bathymetry",
+        "official_unlabeled_seafloor_remote_sensing",
         "official_seafloor_character_probe",
     }
     if dataset_kind in target_agnostic_kinds:

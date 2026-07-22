@@ -11,6 +11,34 @@
   "access": {
     "mode": "direct_official_download",
     "bathymetry_url": "https://pubs.usgs.gov/ds/781/OffshoreSanFrancisco/data/Bathymetry_OffshoreSanFrancisco.zip",
+    "bathymetry_archive_sha256": "79c93fac3ae3d35213b808b3913115744676c03aead72a686651817e86d5be53",
+    "bathymetry_geotiff_sha256": "75629f6a8bc7e3ea78fb6b3b22c737ec75a8cba1621f2c0066a2343ab61a242a",
+    "backscatter_assets": [
+      {
+        "survey": "8101_2004",
+        "url": "https://pubs.usgs.gov/ds/781/OffshoreSanFrancisco/data/BackscatterA_8101_2004_OffshoreSanFrancisco.zip",
+        "archive_sha256": "b4d60827335870c896f8f655dfc33d37e0eb7c86f814124e16546d2fb8c7fc2b",
+        "geotiff_sha256": "6fd2b9d9b9109d7a2b8f7cf3eaee2dbda9102c09295e8760a663015b92162bf0"
+      },
+      {
+        "survey": "8101_2007",
+        "url": "https://pubs.usgs.gov/ds/781/OffshoreSanFrancisco/data/BackscatterB_8101_2007_OffshoreSanFrancisco.zip",
+        "archive_sha256": "20d4b6eea5c8610ade7efe01ff5d2056add40963d9e302e89d1afd1411904e84",
+        "geotiff_sha256": "9910dc1a1b5726f4866eee8d4a07702fa85048a78c993dc522d0213ae141be34"
+      },
+      {
+        "survey": "8101_2008",
+        "url": "https://pubs.usgs.gov/ds/781/OffshoreSanFrancisco/data/BackscatterC_8101_2008_OffshoreSanFrancisco.zip",
+        "archive_sha256": "7222d45f50c08380da44eeda8039112f1e47417fb17168e9810ff1b897a1c881",
+        "geotiff_sha256": "8885f1414fd4638981f8a0ede253b825b9d331c73ca3d4c7004665127ed3d8d2"
+      },
+      {
+        "survey": "7125_2006",
+        "url": "https://pubs.usgs.gov/ds/781/OffshoreSanFrancisco/data/BackscatterD_7125_2006_OffshoreSanFrancisco.zip",
+        "archive_sha256": "c78b31386069ea01d1414aa991d225d413dd778d14bb2acfcd1556b9e767156b",
+        "geotiff_sha256": "f44b5ebbabe5f979fbc49ce65704cf3b4f354a826cf7cab61f22f0dc64bdd972"
+      }
+    ],
     "available_layers": [
       "2 m bathymetry",
       "2 m acoustic backscatter",
@@ -38,6 +66,7 @@
   "limitations": [
     "Not for navigation.",
     "The source is high resolution but historical; structure may have changed since collection.",
+    "Backscatter is published as survey-specific 8-bit relative intensity, not calibrated dB; survey channels must remain distinct and retain availability masks.",
     "The mapped area does not cover most interior San Francisco Bay shoreline sites.",
     "A 2 m pixel does not prove that a 2 m feature is reliably identifiable; CastingCompass uses a conservative three-cell feature threshold."
   ]

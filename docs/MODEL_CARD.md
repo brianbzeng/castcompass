@@ -57,6 +57,8 @@ predeclared metrics under the same geographic folds.
 - three residual stages with spatial downsampling and global average pooling;
 - a shared-weight multiscale encoder with learned scale attention;
 - a SimCLR-style projection head for self-supervised terrain pretraining;
+- a target-agnostic hybrid pretraining head that combines spatial contrastive
+  learning with masked reconstruction of declared measured value channels;
 - a two-head fine-tuning model:
   - occurrence logit;
   - conditional `log1p(CPUE)` prediction.
@@ -68,7 +70,12 @@ channel dropout. Reflections are disabled by default so shoreline-relative
 orientation, bedform direction, and linear alignment remain meaningful. The
 contrastive objective is NT-Xent, with nearby overlapping locations excluded
 from the negative-pair set so the model is not rewarded for separating the same
-geomorphic structure sampled twice. The
+geomorphic structure sampled twice. For the frozen follow-up experiment,
+bathymetry-only, backscatter-only, and fused runs use identical geographic
+folds and budgets. Each survey-bound backscatter raster retains a paired binary
+availability channel; those channels are never corrupted or reconstructed,
+and reconstruction loss is computed only where a real source pixel exists. Hybrid loss remains an
+optimization diagnostic rather than habitat or fishing accuracy. The
 fine-tuning objective combines binary cross-entropy and positive-only SmoothL1
 log-CPUE loss, with optional batch-normalized sample-count weights for released
 CRFS reliability fields. Loss weights, random seeds, architecture width/depth, optimizer,
@@ -138,6 +145,24 @@ For a neural report, also compare random initialization against self-supervised
 pretraining under identical folds and fine-tuning budgets. Additional temporal,
 weather, tide, or user-history features belong in separately named experiments;
 they must not be slipped into the terrain-only benchmark.
+
+The next seafloor-representation report additionally requires a locked
+three-way modality ablation:
+
+| Modality | Model inputs | Reconstruction targets |
+| --- | --- | --- |
+| `bathymetry` | Ten declared structure channels | Measured depth |
+| `backscatter` | Survey-bound backscatter intensities plus their availability masks | Available measured intensities only |
+| `fused` | Ten structure channels plus survey-bound intensities and availability | Depth plus available measured intensities |
+
+All three runs must use the same corpus locations, spatial split, seed,
+architecture capacity, optimizer, mask policy, and epoch budget. Comparing
+losses across different folds or source coverage is prohibited.
+
+The fixed USGS v1 comparison uses validation fold `3`: it is the first seeded
+geographic fold with nonzero training coverage from every one of the four
+survey-bound intensity channels. This availability-only choice is frozen before
+optimization and never consulted a habitat, catch, or probe label.
 
 ## Version and promotion contract
 
@@ -244,6 +269,7 @@ channel order, source version, or coverage contract fails.
 | Self-supervised pretraining | [Pilot completed on official USGS 2 m bathymetry](experiments/2026-07-11-usgs-sf-2m-ssl-pilot.md) | Best geographically held-out NT-Xent 2.6161 at epoch 1; optimization/provenance validation only, not catch accuracy |
 | Full-survey self-supervised pretraining | [Completed and exactly reproduced on 4,096 USGS 2 m locations](experiments/2026-07-11-usgs-sf-2m-full-ssl-v1.md) | Best geographically held-out NT-Xent 1.4683 at epoch 20; eligible for habitat probing, not live scoring |
 | Frozen seafloor-character probe | [Completed and exactly reproduced on a strict unseen region](experiments/2026-07-11-usgs-sf-2m-seafloor-probe-v1.md) | Pretrained macro F1 0.3914; beats depth-only but is reliably worse than classical structure summaries, so it is not promoted |
+| Hybrid bathymetry/backscatter foundation | Implemented; official three-way run not yet completed | Aligned-layer provenance, binary missingness, masked reconstruction, spatial contrastive loss, modality contracts, target-agnostic receipts, and synthetic end-to-end checkpoint path are implemented; no official-data result |
 | Two-head fine-tuning | Unrun | No checkpoint |
 | Geographic generalization | Unrun | No result |
 | Calibration / ablations | Unrun on official data | No result |

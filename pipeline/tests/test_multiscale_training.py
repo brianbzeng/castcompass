@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 
 from pipeline.contourcast.geo import GeoGrid
+from pipeline.contourcast.metadata import sha256_file
 from pipeline.contourcast.patches import (
     extract_multiscale_patches,
     load_patch_corpus,
@@ -12,8 +13,14 @@ from pipeline.contourcast.patches import (
     save_patch_corpus,
 )
 from pipeline.contourcast.structure import STRUCTURE_CHANNELS, derive_structure_channels
-from pipeline.contourcast.training import normalize_patches, robust_patch_normalization
-from pipeline.contourcast.training import build_geotiff_pretraining_corpus
+from pipeline.contourcast.training import (
+    build_geotiff_pretraining_corpus,
+    normalize_hybrid_patches,
+    normalize_patches,
+    resolve_hybrid_pretraining_contract,
+    robust_hybrid_normalization,
+    robust_patch_normalization,
+)
 
 try:
     import rasterio
@@ -80,6 +87,89 @@ class MultiScaleTrainingTests(unittest.TestCase):
         training_values = normalized[train_indices]
         np.testing.assert_allclose(np.median(training_values, axis=(0, 1, 3, 4)), 0, atol=1e-6)
 
+    def test_availability_masks_use_nearest_resampling(self):
+        availability = np.zeros(self.grid.values.shape, dtype=np.float32)
+        availability[:, availability.shape[1] // 2 :] = 1.0
+        channels = np.concatenate([self.channels, availability[None, ...]], axis=0)
+        x, y = sample_water_centers(channels, self.grid, stride_m=150, max_centers=8, seed=2)
+        patches, _ = extract_multiscale_patches(
+            channels,
+            self.grid,
+            x,
+            y,
+            radii_m=(20, 60),
+            output_size=17,
+            min_valid_fraction=1.0,
+            nearest_channel_indices=(channels.shape[0] - 1,),
+        )
+        self.assertTrue(np.all(np.isin(patches[:, :, -1], (0.0, 1.0))))
+
+    def test_hybrid_contract_freezes_comparable_modalities_and_source_provenance(self):
+        value_name = "backscatter_intensity_8101_2004"
+        availability_name = f"{value_name}__available"
+        names = STRUCTURE_CHANNELS + (value_name, availability_name)
+        metadata = {
+            "feature_metadata": {
+                "aligned_layers": {
+                    value_name: {
+                        "source_id": "usgs_sf_state_waters_2m",
+                        "valid_fraction": 0.82,
+                        "missingness_channel": availability_name,
+                    }
+                }
+            }
+        }
+        bathymetry = resolve_hybrid_pretraining_contract(
+            names, metadata, modality="bathymetry"
+        )
+        backscatter = resolve_hybrid_pretraining_contract(
+            names, metadata, modality="backscatter"
+        )
+        fused = resolve_hybrid_pretraining_contract(names, metadata, modality="fused")
+        self.assertEqual(bathymetry["input_channel_names"], list(STRUCTURE_CHANNELS))
+        self.assertEqual(
+            backscatter["input_channel_names"],
+            [value_name, availability_name],
+        )
+        self.assertEqual(fused["reconstruction_channel_names"], ["depth_m", value_name])
+        self.assertEqual(fused["reconstruction_availability_indices"], [None, 11])
+        with self.assertRaisesRegex(ValueError, "aligned_layers provenance"):
+            resolve_hybrid_pretraining_contract(
+                names,
+                {"feature_metadata": {}},
+                modality="fused",
+            )
+
+    def test_hybrid_normalization_preserves_binary_availability(self):
+        generator = np.random.default_rng(8)
+        patches = generator.normal(size=(8, 2, 3, 5, 5)).astype(np.float32)
+        patches[:, :, 2] = generator.integers(0, 2, size=(8, 2, 5, 5))
+        median, scale = robust_hybrid_normalization(
+            patches,
+            np.arange(6),
+            availability_channel_indices=(2,),
+            value_availability_pairs=((1, 2),),
+        )
+        normalized = normalize_hybrid_patches(
+            patches,
+            median,
+            scale,
+            value_availability_pairs=((1, 2),),
+        )
+        self.assertEqual(median[2], 0.0)
+        self.assertEqual(scale[2], 1.0)
+        self.assertTrue(np.array_equal(normalized[:, :, 2], patches[:, :, 2]))
+        self.assertTrue(np.all(normalized[:, :, 1][patches[:, :, 2] == 0] == 0.0))
+        invalid = patches.copy()
+        invalid[0, 0, 2, 0, 0] = 0.5
+        with self.assertRaisesRegex(ValueError, "zero or one"):
+            robust_hybrid_normalization(
+                invalid,
+                np.arange(6),
+                availability_channel_indices=(2,),
+                value_availability_pairs=((1, 2),),
+            )
+
     @unittest.skipIf(rasterio is None, "rasterio is optional")
     def test_windowed_geotiff_corpus_uses_full_source_contract(self):
         rows, cols = np.mgrid[0:256, 0:256]
@@ -87,6 +177,7 @@ class MultiScaleTrainingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             source = root / "source.tif"
+            backscatter = root / "backscatter.tif"
             output = root / "corpus.npz"
             with rasterio.open(
                 source,
@@ -101,6 +192,23 @@ class MultiScaleTrainingTests(unittest.TestCase):
                 nodata=-9999,
             ) as dataset:
                 dataset.write(elevation, 1)
+            intensity = np.full((256, 256), 120, dtype=np.uint8)
+            intensity[:, :32] = 0
+            with rasterio.open(
+                backscatter,
+                "w",
+                driver="GTiff",
+                height=256,
+                width=256,
+                count=1,
+                dtype="uint8",
+                crs="EPSG:32610",
+                transform=from_origin(500000, 4200000, 2, 2),
+                nodata=0,
+            ) as dataset:
+                dataset.write(intensity, 1)
+            layer_name = "backscatter_intensity_test_survey"
+            backscatter_sha256 = sha256_file(backscatter)
             report = build_geotiff_pretraining_corpus(
                 source,
                 output,
@@ -117,12 +225,24 @@ class MultiScaleTrainingTests(unittest.TestCase):
                 horizontal_accuracy_m=2,
                 tile_size=128,
                 seed=7,
+                aligned_layer_paths={layer_name: backscatter},
+                aligned_layer_expected_sha256={layer_name: backscatter_sha256},
+                min_aligned_valid_fraction=0.5,
             )
             patches, x, y, names, metadata = load_patch_corpus(output)
         self.assertEqual(report["patches"], 16)
-        self.assertEqual(patches.shape, (16, 3, 10, 9, 9))
+        self.assertEqual(patches.shape, (16, 3, 12, 9, 9))
         self.assertEqual(len(x), len(y))
-        self.assertEqual(names, STRUCTURE_CHANNELS)
+        self.assertEqual(
+            names,
+            STRUCTURE_CHANNELS + (layer_name, f"{layer_name}__available"),
+        )
+        self.assertTrue(np.all(np.isin(patches[:, :, -1], (0.0, 1.0))))
+        self.assertEqual(
+            metadata["feature_metadata"]["aligned_layers"][layer_name]["source_sha256"],
+            backscatter_sha256,
+        )
+        self.assertIn(layer_name, report["aligned_layers"])
         self.assertEqual(metadata["source_shape"], [256, 256])
         self.assertGreaterEqual(metadata["sampling"]["tiles_processed"], 1)
 
