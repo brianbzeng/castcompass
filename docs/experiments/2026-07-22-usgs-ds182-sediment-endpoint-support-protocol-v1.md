@@ -48,6 +48,13 @@ The outcome values, accepted exact values (`GRZ` and `TXR`), source selection, s
 composition checks, grouping, support thresholds, and decisions are unchanged. The exact archive
 member is uppercase `PAC_EXT.txt`; member-name matching remains case-sensitive.
 
+The same pre-result structural inspection found a published-count discrepancy. The metadata says
+16,486 point features, while `PAC_EXT.txt` contains exactly 16,485 data rows and the dBASE header
+and Point shapefile record sequence independently contain 16,485 records. The locked manifest must
+preserve both counts and enforce 16,485 as the exact, internally consistent archive count. Any
+future disagreement among those three exact archive representations still fails closed. No
+composition aggregate or partition result was computed before this erratum was recorded.
+
 Only the laboratory-oriented extracted output (`EXT`) is admissible. Parsed (`PRS`) or calculated
 (`CLC`) outputs, later mapped products, and unlisted mirrors are out of scope. Published metadata
 reports 16,486 extracted point features assembled from more than 300 heterogeneous sources whose
