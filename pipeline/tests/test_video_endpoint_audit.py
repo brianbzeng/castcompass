@@ -10,12 +10,14 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import numpy as np
 
 from pipeline.contourcast.video_endpoint_audit import (
+    RESIDUAL_STATEWIDE_VIDEO_CRUISES,
     SOUTH_COAST_REGION_PRIORITY,
     VIDEO_CLASS_NAMES,
     _parse_dbf_required_fields,
     _parse_point_shapefile,
     _read_archive,
     _whole_group_partition_audit,
+    audit_usgs_residual_statewide_video_support,
     audit_usgs_sf_video_endpoint,
     audit_usgs_south_coast_video_endpoint,
 )
@@ -404,6 +406,54 @@ class VideoEndpointAuditTests(unittest.TestCase):
             )
             self.assertEqual(metrics["leakage_gate"]["eligible_partition_count"], 7)
             self.assertIn("exact cruise_id", metrics["leakage_gate"]["group_definition"])
+
+    def test_residual_statewide_screen_stops_before_rasters_or_training(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            archives = {}
+            specs = []
+            for cruise in RESIDUAL_STATEWIDE_VIDEO_CRUISES:
+                archive = root / f"{cruise}.zip"
+                specs.append(
+                    _archive(
+                        archive,
+                        cruise,
+                        (("1", "1", "1"), ("2", "1", "1"), ("4", "1", "1")),
+                    )
+                )
+                archives[cruise] = archive
+            manifest = {
+                "access": {
+                    "prior_audit_cruises": [
+                        "f208nc",
+                        "f307nc",
+                        "s1c08sc",
+                        "sw109sc",
+                        "z107sc",
+                        "z206sc",
+                    ],
+                    "video_observation_assets": specs,
+                }
+            }
+            with patch(
+                "pipeline.contourcast.video_endpoint_audit.get_source_manifest",
+                return_value=manifest,
+            ):
+                result = audit_usgs_residual_statewide_video_support(
+                    archives,
+                    root / "output",
+                    min_group_class_rows=1,
+                )
+            metrics = json.loads(result["metrics"].read_text(encoding="utf-8"))
+            run = json.loads(result["run_metadata"].read_text(encoding="utf-8"))
+            self.assertTrue(metrics["decision"]["raw_endpoint_support_admissible"])
+            self.assertFalse(metrics["decision"]["raster_acquisition_authorized"])
+            self.assertFalse(metrics["decision"]["model_training_run"])
+            self.assertEqual(metrics["leakage_gate"]["candidate_partition_count"], 31)
+            self.assertEqual(metrics["leakage_gate"]["eligible_partition_count"], 31)
+            self.assertEqual(metrics["row_flow"]["official_records"], 18)
+            self.assertEqual(run["dataset_kind"], "official_video_endpoint_admissibility_audit")
+            self.assertFalse(run["metrics"]["model_training_run"])
 
 
 if __name__ == "__main__":

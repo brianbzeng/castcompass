@@ -36,6 +36,7 @@ from .training import (
     run_hybrid_seafloor_pretraining,
 )
 from .video_endpoint_audit import (
+    audit_usgs_residual_statewide_video_support,
     audit_usgs_sf_video_endpoint,
     audit_usgs_south_coast_video_endpoint,
 )
@@ -322,6 +323,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     south_coast_video.add_argument("--tile-size", type=int, default=1024)
     south_coast_video.add_argument("--min-group-class-rows", type=int, default=16)
+
+    residual_video = subcommands.add_parser(
+        "audit-usgs-residual-statewide-video-support"
+    )
+    residual_video.add_argument(
+        "--video-archive",
+        action="append",
+        default=[],
+        metavar="CRUISE_ID=PATH",
+        help="Repeat for each frozen residual DS 781 video cruise archive.",
+    )
+    residual_video.add_argument("--output-dir", required=True, type=_path)
+    residual_video.add_argument(
+        "--source-id", default="usgs_ds781_residual_video_observations"
+    )
+    residual_video.add_argument("--min-group-class-rows", type=int, default=16)
 
     rare_corpus = subcommands.add_parser("build-rare-structure-corpus")
     rare_corpus.add_argument("--input", required=True, type=_path)
@@ -764,6 +781,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                 relief_radius=args.relief_radius,
                 horizontal_accuracy_m=args.horizontal_accuracy_m,
                 tile_size=args.tile_size,
+                min_group_class_rows=args.min_group_class_rows,
+            )
+        )
+    elif args.command == "audit-usgs-residual-statewide-video-support":
+        _print(
+            audit_usgs_residual_statewide_video_support(
+                _named_values(args.video_archive, paths=True),
+                args.output_dir,
+                source_id=args.source_id,
                 min_group_class_rows=args.min_group_class_rows,
             )
         )

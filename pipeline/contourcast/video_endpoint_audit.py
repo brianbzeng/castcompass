@@ -32,6 +32,7 @@ from .sources import SOURCE_DIR, get_source_manifest
 VIDEO_ENDPOINT_AUDIT_SCHEMA_VERSION = (
     "castingcompass.usgs-video-endpoint-admissibility-audit/1.0.0"
 )
+VIDEO_SUPPORT_SCREEN_SCHEMA_VERSION = "castingcompass.usgs-video-support-screen/1.0.0"
 VIDEO_CLASS_NAMES: Tuple[str, ...] = (
     "smooth_fine_medium_sediment",
     "mixed_or_rugose_rock",
@@ -43,6 +44,14 @@ SOUTH_COAST_REGION_PRIORITY: Tuple[str, ...] = (
     "offshore_coal_oil_point",
     "offshore_santa_barbara",
     "offshore_carpinteria",
+)
+RESIDUAL_STATEWIDE_VIDEO_CRUISES: Tuple[str, ...] = (
+    "c0111sc",
+    "c109nc",
+    "c210nc",
+    "c0212sc",
+    "l908nc",
+    "s2210mb",
 )
 
 
@@ -981,9 +990,206 @@ def audit_usgs_south_coast_video_endpoint(
     return {"metrics": metrics_path, "run_metadata": run_metadata_path}
 
 
+def audit_usgs_residual_statewide_video_support(
+    video_archive_paths: Mapping[str, Path],
+    output_dir: Path,
+    *,
+    source_id: str = "usgs_ds781_residual_video_observations",
+    min_group_class_rows: int = 16,
+) -> Mapping[str, Path]:
+    """Screen the residual DS 781 catalog for whole-cruise class support only.
+
+    This intentionally stops before raster acquisition, spatial alignment, or
+    model fitting.  Passing it establishes only that a later endpoint protocol
+    is worth designing.
+    """
+
+    manifest = get_source_manifest(source_id)
+    access = manifest.get("access")
+    if not isinstance(access, Mapping):
+        raise ValueError("residual video source manifest has no access contract")
+    specs = access.get("video_observation_assets")
+    if not isinstance(specs, list) or not specs:
+        raise ValueError("residual video source manifest has no archive inventory")
+    expected_cruises = [
+        str(spec.get("cruise_id")) if isinstance(spec, Mapping) else "" for spec in specs
+    ]
+    if tuple(expected_cruises) != RESIDUAL_STATEWIDE_VIDEO_CRUISES:
+        raise ValueError("residual video cruises disagree with the frozen catalog selection")
+    if set(video_archive_paths) != set(RESIDUAL_STATEWIDE_VIDEO_CRUISES):
+        raise ValueError("video archive arguments disagree with the frozen residual inventory")
+    prior_cruises = access.get("prior_audit_cruises")
+    if not isinstance(prior_cruises, list) or set(prior_cruises) & set(expected_cruises):
+        raise ValueError("residual and prior-audit cruise inventories are not disjoint")
+
+    labels: list[int] = []
+    groups: list[str] = []
+    asset_summaries: Dict[str, Any] = {}
+    for spec in specs:
+        if not isinstance(spec, Mapping):
+            raise ValueError("video observation specification must be an object")
+        cruise_id = str(spec["cruise_id"])
+        members = _read_archive(video_archive_paths[cruise_id], spec)
+        stem = str(spec["dataset_stem"])
+        points = _parse_point_shapefile(members[f"{stem}.shp"])
+        fields = _parse_dbf_required_fields(members[f"{stem}.dbf"])
+        if len(points) != len(fields["CLASS"]) or len(points) != spec.get("record_count"):
+            raise ValueError(f"video geometry/table count mismatch for {cruise_id}")
+        nonblank = {value for value in fields["CLASS"] if value}
+        if not nonblank.issubset(VIDEO_CLASS_COLLAPSE):
+            raise ValueError(f"video archive {cruise_id} has an unknown CLASS value")
+        raw_class_counts = Counter(value for value in fields["CLASS"] if value)
+        collapsed_counts = np.zeros(len(VIDEO_CLASS_NAMES), dtype=np.int64)
+        for index, raw_class in enumerate(fields["CLASS"]):
+            if not raw_class:
+                continue
+            if not fields["LINE"][index] or not fields["TAPE"][index]:
+                raise ValueError(
+                    f"labeled video observation lacks LINE or TAPE for {cruise_id}"
+                )
+            class_index = VIDEO_CLASS_COLLAPSE[raw_class]
+            labels.append(class_index)
+            groups.append(cruise_id)
+            collapsed_counts[class_index] += 1
+        asset_summaries[cruise_id] = {
+            "record_count": len(points),
+            "labeled_record_count": int(sum(raw_class_counts.values())),
+            "raw_class_counts": dict(sorted(raw_class_counts.items())),
+            "collapsed_class_counts": {
+                name: int(count)
+                for name, count in zip(VIDEO_CLASS_NAMES, collapsed_counts)
+            },
+            "archive_sha256": spec["archive_sha256"],
+            "member_inventory_verified": True,
+        }
+    if len(labels) < 2:
+        raise ValueError("residual video inventory has too few labeled observations")
+
+    label_array = np.asarray(labels, dtype=np.int64)
+    group_array = np.asarray(groups, dtype=str)
+    total_counts = np.bincount(label_array, minlength=len(VIDEO_CLASS_NAMES))
+    partition_audit = _whole_group_partition_audit(
+        label_array,
+        group_array,
+        min_rows_per_class=min_group_class_rows,
+        group_definition="exact cruise_id; no LINE, TAPE, date, coordinate, or adjacent-row split",
+    )
+    admissible = partition_audit["eligible_partition_count"] > 0
+    manifest_path = SOURCE_DIR / "usgs_ds781_residual_video_observations.json"
+    protocol_path = (
+        SOURCE_DIR.parents[1]
+        / "docs"
+        / "experiments"
+        / "2026-07-22-usgs-residual-statewide-video-support-screen-protocol-v1.md"
+    )
+    metrics = {
+        "schema_version": VIDEO_SUPPORT_SCREEN_SCHEMA_VERSION,
+        "source_id": source_id,
+        "source_manifest_sha256": sha256_file(manifest_path),
+        "protocol_sha256": sha256_file(protocol_path),
+        "catalog_selection": {
+            "residual_cruises": list(RESIDUAL_STATEWIDE_VIDEO_CRUISES),
+            "prior_audit_cruises": prior_cruises,
+            "selection_changed_after_label_read": False,
+        },
+        "endpoint": {
+            "measurement": "direct scientist-recorded camera-video seafloor class",
+            "observation_interval": "one 10-second observation per minute",
+            "horizontal_positional_accuracy": "highly variable, on the order of 10 meters",
+            "selection_design": "targeted sonar-interpretation validation tracks; not uniform",
+            "class_collapse": {
+                "1": VIDEO_CLASS_NAMES[0],
+                "2": VIDEO_CLASS_NAMES[1],
+                "3": VIDEO_CLASS_NAMES[1],
+                "4": VIDEO_CLASS_NAMES[2],
+            },
+        },
+        "assets": asset_summaries,
+        "row_flow": {
+            "official_records": int(sum(item["record_count"] for item in asset_summaries.values())),
+            "labeled_official_rows": len(labels),
+        },
+        "collapsed_class_counts": {
+            name: int(count) for name, count in zip(VIDEO_CLASS_NAMES, total_counts)
+        },
+        "leakage_gate": partition_audit,
+        "next_stage_requirements": {
+            "source_specific_bathymetry_and_backscatter_required": True,
+            "survey_bound_intensity_and_availability_masks_required": True,
+            "existing_multiscale_patch_contract_required": True,
+            "minimum_cross_boundary_buffer_m": 512,
+            "separate_protocol_required_before_training": True,
+        },
+        "decision": {
+            "raw_endpoint_support_admissible": admissible,
+            "raster_acquisition_authorized": False,
+            "model_training_run": False,
+            "encoder_promoted": False,
+            "serving_or_score_changed": False,
+            "reason": (
+                "No whole-cruise partition leaves at least "
+                f"{min_group_class_rows} rows of every collapsed class in both train and test."
+                if not admissible
+                else "At least one whole-cruise partition passes the frozen raw support floor; "
+                "a separately frozen raster, alignment, buffering, and training protocol is still required."
+            ),
+        },
+        "claim_boundary": (
+            "This raw support screen does not establish raster coverage, spatial independence, "
+            "current habitat, fish presence, catch skill, score calibration, model promotion, "
+            "product readiness, or deployment authority."
+        ),
+    }
+    output_dir.mkdir(parents=True, exist_ok=True)
+    metrics_path = output_dir / "usgs_residual_statewide_video_support_screen_metrics.json"
+    write_json(metrics_path, metrics)
+
+    config = {
+        "source_id": source_id,
+        "residual_cruises": list(RESIDUAL_STATEWIDE_VIDEO_CRUISES),
+        "min_group_class_rows": min_group_class_rows,
+        "group_definition": (
+            "exact cruise_id; no LINE, TAPE, date, coordinate, or adjacent-row split"
+        ),
+        "raster_acquisition": False,
+        "model_training": False,
+    }
+    input_paths = [manifest_path, protocol_path]
+    input_paths.extend(video_archive_paths[cruise] for cruise in expected_cruises)
+    run_record = build_run_record(
+        command="audit-usgs-residual-statewide-video-support",
+        target_taxon_id=None,
+        config=config,
+        input_paths=input_paths,
+        dataset_kind="official_video_endpoint_admissibility_audit",
+        status="completed",
+        metrics={
+            "audit_metrics_sha256": sha256_file(metrics_path),
+            "raw_endpoint_support_admissible": admissible,
+            "model_training_run": False,
+            "labeled_rows": len(labels),
+            "eligible_group_partitions": partition_audit["eligible_partition_count"],
+        },
+        notes=(
+            "Residual official video observations were screened under a whole-cruise raw support "
+            "gate. No raster was acquired, no model was fit, and no serving artifact changed."
+        ),
+    )
+    verify_run_record_integrity(
+        run_record,
+        rehash_inputs=True,
+        artifact_paths={"audit_metrics_sha256": metrics_path},
+    )
+    run_metadata_path = output_dir / "usgs_residual_statewide_video_support_run_metadata.json"
+    write_json(run_metadata_path, run_record)
+    return {"metrics": metrics_path, "run_metadata": run_metadata_path}
+
+
 __all__ = [
+    "RESIDUAL_STATEWIDE_VIDEO_CRUISES",
     "VIDEO_CLASS_NAMES",
     "VIDEO_ENDPOINT_AUDIT_SCHEMA_VERSION",
+    "VIDEO_SUPPORT_SCREEN_SCHEMA_VERSION",
     "SOUTH_COAST_REGION_PRIORITY",
     "_parse_dbf_required_fields",
     "_parse_point_shapefile",
@@ -991,4 +1197,5 @@ __all__ = [
     "_whole_group_partition_audit",
     "audit_usgs_sf_video_endpoint",
     "audit_usgs_south_coast_video_endpoint",
+    "audit_usgs_residual_statewide_video_support",
 ]

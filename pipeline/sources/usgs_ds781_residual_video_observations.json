@@ -1,0 +1,129 @@
+{
+  "manifest_version": "1.0.0",
+  "source_id": "usgs_ds781_residual_video_observations",
+  "title": "USGS Data Series 781 residual statewide video observations",
+  "steward": "U.S. Geological Survey",
+  "official_landing_page": "https://pubs.usgs.gov/ds/781/video_observations/data_catalog_video_observations.html",
+  "access": {
+    "mode": "direct_official_download",
+    "selection_rule": "All six DS 781 video-observation archives not used by the earlier San Francisco or Santa Barbara South Coast endpoint audits",
+    "prior_audit_cruises": ["f208nc", "f307nc", "s1c08sc", "sw109sc", "z107sc", "z206sc"],
+    "video_observation_assets": [
+      {
+        "cruise_id": "c0111sc",
+        "dataset_stem": "C0111SC_video_observations",
+        "url": "https://pubs.usgs.gov/ds/781/video_observations/data/c0111sc_video_observations.zip",
+        "archive_sha256": "f61035c87259948397a19a3a7b368b1b5da43d62e560be25db04ee97528ec799",
+        "record_count": 4688,
+        "members": [
+          {"path": "c0111sc_video_observations_metadata.txt", "bytes": 90196, "sha256": "dc13850dd8afae9d922997824316acef60e5a0ae1bc1b958413b994f0625ee68"},
+          {"path": "C0111SC_video_observations.dbf", "bytes": 14545922, "sha256": "5844413df8d8541be02b8fc12d1a187494e6ea4677ecf4ab787ebdf4682c2068"},
+          {"path": "C0111SC_video_observations.prj", "bytes": 145, "sha256": "a02a27b1d1982c8516d83398e85a3c8b1aef1713c13ef4d84d7bde17430c07c4"},
+          {"path": "C0111SC_video_observations.sbn", "bytes": 45116, "sha256": "f34cbb2ecee0b967e1de0be7ea1d952472f47b3a163581568ff1bd3bf753fe6a"},
+          {"path": "C0111SC_video_observations.sbx", "bytes": 788, "sha256": "936c73ac81fce28692c14a728ada53e1458f3a85ca382ff39f78538cdc3ff340"},
+          {"path": "C0111SC_video_observations.shp", "bytes": 131364, "sha256": "f6ce838cf35f6675f4d4369ee1716680ef51c571458fed79e1b4586bd13ee92a"},
+          {"path": "C0111SC_video_observations.shp.xml", "bytes": 173605, "sha256": "ebd41af96a9b4f63964791212a8b10c6e495a488c479b2d5b502987f8c7ad82b"},
+          {"path": "C0111SC_video_observations.shx", "bytes": 37604, "sha256": "ff78c9f3ff818026f395d6ee31e00595d0370d59b482911cb023ee4c6e56c031"}
+        ]
+      },
+      {
+        "cruise_id": "c109nc",
+        "dataset_stem": "C109NC_video_observations",
+        "url": "https://pubs.usgs.gov/ds/781/video_observations/data/c109nc_video_observations.zip",
+        "archive_sha256": "34350c87d9a0a2fe9ded024a093f7adf85d082e06668158a2c17698da7fe37f7",
+        "record_count": 1615,
+        "members": [
+          {"path": "c109nc_video_observations_metadata.txt", "bytes": 90625, "sha256": "b99b3e88e7ca04dfe30b0660a734b611062566ee95befcb6028684229f69db55"},
+          {"path": "C109NC_video_observations.dbf", "bytes": 1925628, "sha256": "cfc79ba4b0a9b426aa16e4beb6af483b4070a9079aa8a89e8e5a1628ea24f1f4"},
+          {"path": "C109NC_video_observations.prj", "bytes": 145, "sha256": "a02a27b1d1982c8516d83398e85a3c8b1aef1713c13ef4d84d7bde17430c07c4"},
+          {"path": "C109NC_video_observations.sbn", "bytes": 15412, "sha256": "f032b55c540ac35ff5a2d10f54b4e87998882466ac54b56e8d2d4f180a03934e"},
+          {"path": "C109NC_video_observations.sbx", "bytes": 588, "sha256": "ed0d7b5ab8772afde5fee19bdfba994a0e4a4d211d7368a0756eea3bdb8ed3fe"},
+          {"path": "C109NC_video_observations.shp", "bytes": 45320, "sha256": "e0ecc6dc7b3a194b229d34f2975976459867fe44fff21186351dff5d1190de3d"},
+          {"path": "C109NC_video_observations.shp.xml", "bytes": 122726, "sha256": "24aa1968419e2a39fefeed0f15948ebea20197ba60e6c1031da15449b1aa8ec9"},
+          {"path": "C109NC_video_observations.shx", "bytes": 13020, "sha256": "15935ee1390407ee27f5ee06f3a9d3131825bb7a562d059f1a6176651745689d"}
+        ]
+      },
+      {
+        "cruise_id": "c210nc",
+        "dataset_stem": "C210NC_video_observations",
+        "url": "https://pubs.usgs.gov/ds/781/video_observations/data/c210nc_video_observations.zip",
+        "archive_sha256": "f2cb502f075041760994197965716f33b448695bc1e9004368bd09b91f14fef8",
+        "record_count": 2718,
+        "members": [
+          {"path": "c210nc_video_observations_metadata.txt", "bytes": 90622, "sha256": "c45b4a9bf32b5e73d845358600a0cc0cf57bd61cc9f4c0983fe839cfec47326e"},
+          {"path": "C210NC_video_observations.dbf", "bytes": 8405116, "sha256": "9dc6c0608fb61a213a7390605f0082c5c93f3b8b0119260cbdd952f5a96b869f"},
+          {"path": "C210NC_video_observations.prj", "bytes": 145, "sha256": "a02a27b1d1982c8516d83398e85a3c8b1aef1713c13ef4d84d7bde17430c07c4"},
+          {"path": "C210NC_video_observations.shp", "bytes": 76204, "sha256": "ae13a1522388dec5a9e2e90673db5d641ee2b79ed6bf76241fe86be019977485"},
+          {"path": "C210NC_video_observations.shp.xml", "bytes": 136345, "sha256": "cc2fd7d0bea4d13358e387d0770678297d86ae90483efca41c387c494a4fc24c"},
+          {"path": "C210NC_video_observations.shx", "bytes": 21844, "sha256": "7f24d80435b5268cc7742c12259811972de0518a6251205d71de039bc717c4bf"}
+        ]
+      },
+      {
+        "cruise_id": "c0212sc",
+        "dataset_stem": "C0212SC_video_observations",
+        "url": "https://pubs.usgs.gov/ds/781/video_observations/data/c0212sc_video_observations.zip",
+        "archive_sha256": "85f975c6b952a56acf92fee650a70dc55ef50a3747937581503587f678040409",
+        "record_count": 5937,
+        "members": [
+          {"path": "c0212sc_video_observations_metadata.txt", "bytes": 90400, "sha256": "f7f2931ee2c3eff371bc641d9686783063148561bfaf933e41fe6a9e83c14cc8"},
+          {"path": "C0212SC_video_observations.dbf", "bytes": 18417218, "sha256": "f31b3efb740aedb904c0016e1422c4e0109790fe9452946101bcf4b62572d6ea"},
+          {"path": "C0212SC_video_observations.prj", "bytes": 145, "sha256": "a02a27b1d1982c8516d83398e85a3c8b1aef1713c13ef4d84d7bde17430c07c4"},
+          {"path": "C0212SC_video_observations.sbn", "bytes": 55252, "sha256": "7cf1c425c15386f3a44fc961565439cfb0bfdacfedec872d9f20cf008dc8fd30"},
+          {"path": "C0212SC_video_observations.sbx", "bytes": 940, "sha256": "4b8000b1e57ec5d3f1c27562fbad77d2b08b6822abe49bb495ca781e2448f59d"},
+          {"path": "C0212SC_video_observations.shp", "bytes": 166308, "sha256": "78259f58d3aa5f246f22d965532bf77b37daa48d3c8702f8e05189b940748c0c"},
+          {"path": "C0212SC_video_observations.shp.xml", "bytes": 159342, "sha256": "33931d864432a006c2baf62ee414a762a9d3fc19522050c7c43e681eef0b146b"},
+          {"path": "C0212SC_video_observations.shx", "bytes": 47588, "sha256": "4ab520ea5329ecb893c51648b6c80d690e716d245d3feda504017ed4c12fba47"}
+        ]
+      },
+      {
+        "cruise_id": "l908nc",
+        "dataset_stem": "L908NC_video_observations",
+        "url": "https://pubs.usgs.gov/ds/781/video_observations/data/l908nc_video_observations.zip",
+        "archive_sha256": "4970e9a26395cdf47868d72dab37ce1732eef4c65ea0fbb304a557ef5214d902",
+        "record_count": 1917,
+        "members": [
+          {"path": "l908nc_video_observations_metadata.txt", "bytes": 105627, "sha256": "c30b0df690a2ef9d12e0f9fbba3a13e4b9f3bdd977eecd1c9a1f465d10907414"},
+          {"path": "L908NC_video_observations.dbf", "bytes": 5721008, "sha256": "4d98e057bcb3ec3e0547c547639a0ad4471225d52d509a49d615671d10c1b594"},
+          {"path": "L908NC_video_observations.prj", "bytes": 145, "sha256": "a02a27b1d1982c8516d83398e85a3c8b1aef1713c13ef4d84d7bde17430c07c4"},
+          {"path": "L908NC_video_observations.sbn", "bytes": 17468, "sha256": "13e10d48e6013c07b782a4feef9220317823722af5ec94a24dae50dbadcc915c"},
+          {"path": "L908NC_video_observations.sbx", "bytes": 428, "sha256": "52696f2eace12cba3e99e4dabc5bc1ee59d75e3ce2cd58d11e37394807000a79"},
+          {"path": "L908NC_video_observations.shp", "bytes": 53776, "sha256": "a4106378dc52875ea5209f7ee74ff96c5b203d3e89d766c99e4c4fa72fe232aa"},
+          {"path": "L908NC_video_observations.shp.xml", "bytes": 138283, "sha256": "2a54b4b83b00e70a72916ce8d4990175dd63ca44089596bd6352fec3fa169e4c"},
+          {"path": "L908NC_video_observations.shx", "bytes": 15436, "sha256": "3445a612ecdaa09480263a7b65434fef09be02ac6b14a8791325aa9ea6425282"}
+        ]
+      },
+      {
+        "cruise_id": "s2210mb",
+        "dataset_stem": "S2210MB_video_observations",
+        "url": "https://pubs.usgs.gov/ds/781/video_observations/data/s2210mb_video_observations.zip",
+        "archive_sha256": "48283dc9362a1f3654ec24452f72cb84c25092157f2867d9cb6c060393bb44a6",
+        "record_count": 1848,
+        "members": [
+          {"path": "s2210mb_video_observations_metadata.txt", "bytes": 90700, "sha256": "1aa181cd2cc472a164532cd1773b35fb6cec7649bb0c871d50a26884b7904d2a"},
+          {"path": "S2210MB_video_observations.dbf", "bytes": 5797226, "sha256": "b02477e98949ea569bf1409e41bbf3680b2f63cc4afd52a3ced22db203651eec"},
+          {"path": "S2210MB_video_observations.prj", "bytes": 219, "sha256": "514d90b133d45328d2d8a70e74c01e5cddc18196b90fff7cf818f0f381a11673"},
+          {"path": "S2210MB_video_observations.sbn", "bytes": 16996, "sha256": "61ab3ea3e4349e2e3fb6756db68ac9e1088fe22771d81ad2088c8eada044f4a4"},
+          {"path": "S2210MB_video_observations.sbx", "bytes": 508, "sha256": "1d807101f9eeb48d223b1783cd1419bce18bb780aef66b5328dfce76380af4cb"},
+          {"path": "S2210MB_video_observations.shp", "bytes": 51844, "sha256": "8b9852932344abcf3efecc7dbfc1d08b2ec88141a22af56c17e2a090fd590121"},
+          {"path": "S2210MB_video_observations.shp.xml", "bytes": 62471, "sha256": "fefc0bcdc31ff669a1dc32e986f1dca9fb6ef5c53b1976779fba86f4feb4e785"},
+          {"path": "S2210MB_video_observations.shx", "bytes": 14884, "sha256": "91b73cc819bfa232f3e6fd251f16756a6e83e338e707955d3a1907843fd978ce"}
+        ]
+      }
+    ]
+  },
+  "coverage": {
+    "region": "Residual DS 781 statewide catalog cruises spanning southern, central, north-central, and far northern California"
+  },
+  "resolution": {
+    "observation_interval": "one 10-second observation per minute",
+    "published_horizontal_accuracy": "highly variable, on the order of 10 meters"
+  },
+  "temporal_coverage": "Historical USGS video cruises represented by Data Series 781",
+  "limitations": [
+    "Not for navigation.",
+    "Cruises were targeted to validate sonar interpretations and are not a uniform seafloor sample.",
+    "This source is admitted only for a raw endpoint-support audit; it has no raster-alignment, model-training, validation, scoring, or production authority.",
+    "A passing raw whole-cruise support screen still requires source-specific raster acquisition, alignment, spatial buffering, and a separately frozen protocol before any representation comparison.",
+    "Historical substrate observations do not establish current habitat, fish presence, catch skill, or score calibration."
+  ]
+}

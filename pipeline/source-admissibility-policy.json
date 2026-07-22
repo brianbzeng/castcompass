@@ -107,6 +107,18 @@
       ]
     },
     {
+      "source_id": "usgs_ds781_residual_video_observations",
+      "source_class": "official-video-observation",
+      "allowed_operations": ["endpoint-support-audit"],
+      "supervised_model_training_authorized": false,
+      "model_validation_authorized": false,
+      "production_scoring_authorized": false,
+      "conditions": [
+        "Only exact content-addressed official archives may enter the frozen raw whole-cruise endpoint-support audit.",
+        "A passing support screen does not authorize raster alignment, model training, validation, promotion, production scoring, or deployment."
+      ]
+    },
+    {
       "source_id": "usgs_sf_state_waters_2m",
       "source_class": "official-bathymetry",
       "allowed_operations": ["bathymetry-ingest", "terrain-pretraining"],
