@@ -13,6 +13,35 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — exact account-creation receipts
+
+- [x] Continue the database-authority audit through verified signup. User insertion and one-use
+      challenge deletion were atomic, but welcome delivery and first-session issuance still
+      depended on two D1 mutation receipts and returned a safe but avoidable `503` after an exact
+      committed account lost either metadata result or the batch response.
+- [x] Make the complete account boundary authoritative. Both atomic statements repeat the full
+      challenge snapshot. Success requires the exact server-generated user ID, unique email,
+      credential material, age proof, current legal versions and timestamps; zero prior sessions;
+      zero challenge rows; and no deletion fence. Only that state can send the idempotent welcome
+      message and begin exact session issuance.
+- [x] Force omitted user-insert metadata, omitted challenge-delete metadata, a lost committed batch
+      response, an actual transaction rollback, a receipt-read failure, conflicting account state,
+      a deletion fence before confirmation, and an intervening challenge rotation. Exact committed
+      state recovers without replay; every ambiguous or fenced state sends no welcome and creates
+      no session; the rotated challenge remains `409`. The source ledger covers 242 prepare sites:
+      228 literal, 14 reviewed nonliteral, and nine reviewed complete-rights multi-row reads; 37
+      critical D1 plans cover the complete account receipt.
+- [x] Seal the checkpoint with the pinned Cloudflare build, lint, TypeScript, 628/628 Node tests,
+      complete security/source-integrity chain, two zero-vulnerability npm audits, 29/29 API
+      tests, Ruff, 83 pipeline tests with one documented optional-rasterio skip, deterministic
+      smoke, all 20 migrations and 37 critical query plans, and an isolated 200/200
+      Chromium/WebKit phone matrix. Preserve one clean local commit and its deterministic release
+      bundle. No push, PR, merge, deployment, provider query, production database mutation,
+      feature activation, UI change, or model claim belongs to this checkpoint.
+- [ ] Exercise lost-response, simultaneous signup, unique-email, session creation, deletion-fence,
+      provider idempotency, latency, and rows-read/written behavior with production-shaped
+      synthetic data in isolated staging before treating local receipt proof as deployed evidence.
+
 ## Active checkpoint — exact password-reset receipts
 
 - [x] Continue the database-authority audit through the credential-reset transaction. Password

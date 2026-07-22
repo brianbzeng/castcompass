@@ -187,10 +187,13 @@ after its acceptance checks pass in the intended environment.
       rows, and no deletion fence. Missing metadata and a lost committed response recover without
       replay; rollback, unreadable or conflicting state, and fence races return `503` and create no
       replacement session. A rotated challenge remains the same safe `409`.
-    - [x] Require a database-confirmed user insert before completing verified signup. User creation
-      and one-use challenge deletion remain atomic, while welcome delivery and the first session
-      now wait for exactly one D1 change. Missing metadata returns `503`; direct proof signs in to
-      the committed account without replaying the consumed challenge or creating duplicate state.
+    - [x] Require an exact account-lifecycle receipt before completing verified signup. User
+      creation and one-use challenge deletion remain atomic and repeat the complete challenge
+      snapshot. Welcome delivery and first-session issuance require the exact new credential,
+      age/legal fields and timestamps, unique ID/email cardinality, zero prior sessions, zero
+      challenge rows, and no deletion fence. Missing metadata and a lost committed response recover
+      without replay; rollback, unreadable or conflicting state, and fence races return `503` with
+      no downstream side effect. A rotated challenge remains the same safe `409`.
     - [x] Require an exact database session receipt before setting any login, signup, password-
       reset, or legacy-rotation cookie. The candidate token is hashed once and exposed only after
       read-back proves its random hash, owner, timestamps, live user, and absent deletion fence.

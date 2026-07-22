@@ -56,13 +56,13 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
   validatePolicy(policy, inventory);
   assert.deepEqual(JSON.parse(committed), inventory);
   assert.deepEqual(inventory.summary, {
-    prepareCallCount: 241,
-    literalCallCount: 227,
+    prepareCallCount: 242,
+    literalCallCount: 228,
     nonLiteralCallCount: 14,
     multiRowLiteralWithoutLimitCount: 9,
   });
   assert.equal(inventory.sourceFiles.length, 8);
-  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 241);
+  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 242);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "open-account-cardinality").length, 0);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "complete-rights-export").length, 9);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "owner-lifecycle-cleanup").length, 0);
@@ -122,7 +122,11 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
   assert.ok(inventory.queries.some(({ executionMode, statementClass, sql }) =>
     executionMode === "batch"
       && statementClass === "INSERT"
-      && sql === "INSERT INTO users (id, email, password_salt, password_hash, age_eligibility_confirmed_at, terms_accepted_at, terms_version, privacy_accepted_at, privacy_version, created_at, updated_at) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM email_challenges WHERE id = ? AND kind = 'signup' AND code_hash = ? AND created_at = ? AND attempts = ? AND expires_at > ?)"));
+      && sql === "INSERT INTO users (id, email, password_salt, password_hash, age_eligibility_confirmed_at, terms_accepted_at, terms_version, privacy_accepted_at, privacy_version, created_at, updated_at) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM email_challenges WHERE id = ? AND kind = 'signup' AND email = ? AND code_hash = ? AND password_salt = ? AND password_hash = ? AND age_eligibility_confirmed_at = ? AND terms_version = ? AND privacy_version = ? AND created_at = ? AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?)"));
+  assert.ok(inventory.queries.some(({ executionMode, statementClass, sql }) =>
+    executionMode === "batch"
+      && statementClass === "DELETE"
+      && sql === "DELETE FROM email_challenges WHERE id = ? AND kind = 'signup' AND email = ? AND code_hash = ? AND password_salt = ? AND password_hash = ? AND age_eligibility_confirmed_at = ? AND terms_version = ? AND privacy_version = ? AND created_at = ? AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?"));
   assert.ok(inventory.queries.some(({ executionMode, statementClass, sql }) =>
     executionMode === "batch"
       && statementClass === "INSERT"
@@ -135,6 +139,10 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
     executionMode === "first"
       && statementClass === "SELECT"
       && sql === "SELECT (SELECT COUNT(*) FROM users WHERE id = ? AND email = ? AND password_salt = ? AND password_hash = ? AND updated_at = ?) AS exact_user_count, (SELECT COUNT(*) FROM users WHERE id = ?) AS any_user_count, (SELECT COUNT(*) FROM auth_sessions WHERE user_id = ?) AS session_count, (SELECT COUNT(*) FROM email_challenges WHERE id = ? AND kind = 'password_reset' AND user_id = ? AND code_hash = ? AND created_at = ? AND attempts = ? AND expires_at > ?) AS exact_challenge_count, (SELECT COUNT(*) FROM email_challenges WHERE id = ?) AS any_challenge_count, (SELECT COUNT(*) FROM account_deletion_fences WHERE user_id = ?) AS fence_count"));
+  assert.ok(inventory.queries.some(({ executionMode, statementClass, sql }) =>
+    executionMode === "first"
+      && statementClass === "SELECT"
+      && sql === "SELECT (SELECT COUNT(*) FROM users WHERE id = ? AND email = ? AND password_salt = ? AND password_hash = ? AND age_eligibility_confirmed_at = ? AND terms_accepted_at = ? AND terms_version = ? AND privacy_accepted_at = ? AND privacy_version = ? AND created_at = ? AND updated_at = ?) AS exact_user_count, (SELECT COUNT(*) FROM users WHERE id = ?) AS any_user_count, (SELECT COUNT(*) FROM users WHERE email = ?) AS email_user_count, (SELECT COUNT(*) FROM auth_sessions WHERE user_id = ?) AS session_count, (SELECT COUNT(*) FROM email_challenges WHERE id = ? AND kind = 'signup' AND email = ? AND code_hash = ? AND password_salt = ? AND password_hash = ? AND age_eligibility_confirmed_at = ? AND terms_version = ? AND privacy_version = ? AND created_at = ? AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?) AS exact_challenge_count, (SELECT COUNT(*) FROM email_challenges WHERE id = ?) AS any_challenge_count, (SELECT COUNT(*) FROM account_deletion_fences WHERE user_id = ?) AS fence_count"));
   assert.ok(inventory.queries.some(({ executionMode, statementClass, sql }) =>
     executionMode === "run"
       && statementClass === "DELETE"

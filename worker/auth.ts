@@ -415,41 +415,121 @@ export async function handleAccountRequest(
         legalAccepted: true,
       };
       const timestamp = new Date().toISOString();
-      const [accountResult, challengeResult] = await db.batch([
-        db.prepare(`INSERT INTO users (id, email, password_salt, password_hash,
-          age_eligibility_confirmed_at, terms_accepted_at, terms_version,
-          privacy_accepted_at, privacy_version, created_at, updated_at)
-          SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-          WHERE EXISTS (SELECT 1 FROM email_challenges
-            WHERE id = ? AND kind = 'signup' AND code_hash = ? AND created_at = ?
-              AND attempts = ? AND expires_at > ?)`).bind(
+      try {
+        await db.batch([
+          db.prepare(`INSERT INTO users (id, email, password_salt, password_hash,
+            age_eligibility_confirmed_at, terms_accepted_at, terms_version,
+            privacy_accepted_at, privacy_version, created_at, updated_at)
+            SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            WHERE EXISTS (SELECT 1 FROM email_challenges
+              WHERE id = ? AND kind = 'signup' AND email = ? AND code_hash = ?
+                AND password_salt = ? AND password_hash = ?
+                AND age_eligibility_confirmed_at = ? AND terms_version = ?
+                AND privacy_version = ? AND created_at = ? AND attempts = ?
+                AND resend_count = ? AND expires_at = ? AND expires_at > ?)`).bind(
+              user.id, user.email, challenge.password_salt, challenge.password_hash,
+              challenge.age_eligibility_confirmed_at, timestamp, LEGAL_VERSION,
+              timestamp, LEGAL_VERSION, timestamp, timestamp,
+              challenge.id, challenge.email, challenge.code_hash,
+              challenge.password_salt, challenge.password_hash,
+              challenge.age_eligibility_confirmed_at, challenge.terms_version,
+              challenge.privacy_version, challenge.created_at, Number(challenge.attempts),
+              Number(challenge.resend_count ?? 0), challenge.expires_at, timestamp,
+            ),
+          db.prepare(`DELETE FROM email_challenges
+            WHERE id = ? AND kind = 'signup' AND email = ? AND code_hash = ?
+              AND password_salt = ? AND password_hash = ?
+              AND age_eligibility_confirmed_at = ? AND terms_version = ?
+              AND privacy_version = ? AND created_at = ? AND attempts = ?
+              AND resend_count = ? AND expires_at = ? AND expires_at > ?`)
+            .bind(
+              challenge.id, challenge.email, challenge.code_hash,
+              challenge.password_salt, challenge.password_hash,
+              challenge.age_eligibility_confirmed_at, challenge.terms_version,
+              challenge.privacy_version, challenge.created_at, Number(challenge.attempts),
+              Number(challenge.resend_count ?? 0), challenge.expires_at, timestamp,
+            ),
+        ]);
+      } catch {
+        // A committed atomic signup can lose its batch response. Only the complete post-state decides.
+      }
+      let receipt: AccountCreationReceiptRow | null = null;
+      let receiptReadSucceeded = false;
+      try {
+        receipt = await db.prepare(`SELECT
+            (SELECT COUNT(*) FROM users
+              WHERE id = ? AND email = ? AND password_salt = ? AND password_hash = ?
+                AND age_eligibility_confirmed_at = ? AND terms_accepted_at = ?
+                AND terms_version = ? AND privacy_accepted_at = ? AND privacy_version = ?
+                AND created_at = ? AND updated_at = ?) AS exact_user_count,
+            (SELECT COUNT(*) FROM users WHERE id = ?) AS any_user_count,
+            (SELECT COUNT(*) FROM users WHERE email = ?) AS email_user_count,
+            (SELECT COUNT(*) FROM auth_sessions WHERE user_id = ?) AS session_count,
+            (SELECT COUNT(*) FROM email_challenges
+              WHERE id = ? AND kind = 'signup' AND email = ? AND code_hash = ?
+                AND password_salt = ? AND password_hash = ?
+                AND age_eligibility_confirmed_at = ? AND terms_version = ?
+                AND privacy_version = ? AND created_at = ? AND attempts = ?
+                AND resend_count = ? AND expires_at = ? AND expires_at > ?) AS exact_challenge_count,
+            (SELECT COUNT(*) FROM email_challenges WHERE id = ?) AS any_challenge_count,
+            (SELECT COUNT(*) FROM account_deletion_fences WHERE user_id = ?) AS fence_count`)
+          .bind(
             user.id, user.email, challenge.password_salt, challenge.password_hash,
             challenge.age_eligibility_confirmed_at, timestamp, LEGAL_VERSION,
             timestamp, LEGAL_VERSION, timestamp, timestamp,
-            challenge.id, challenge.code_hash, challenge.created_at, Number(challenge.attempts), timestamp,
-          ),
-        db.prepare(`DELETE FROM email_challenges
-          WHERE id = ? AND kind = 'signup' AND code_hash = ? AND created_at = ?
-            AND attempts = ? AND expires_at > ?`)
-          .bind(challenge.id, challenge.code_hash, challenge.created_at, Number(challenge.attempts), timestamp),
-      ]);
-      const accountChanges = confirmedMutationChanges(accountResult);
-      const challengeChanges = confirmedMutationChanges(challengeResult);
-      if (accountChanges === null || challengeChanges === null) {
+            user.id, user.email, user.id,
+            challenge.id, challenge.email, challenge.code_hash,
+            challenge.password_salt, challenge.password_hash,
+            challenge.age_eligibility_confirmed_at, challenge.terms_version,
+            challenge.privacy_version, challenge.created_at, Number(challenge.attempts),
+            Number(challenge.resend_count ?? 0), challenge.expires_at, timestamp,
+            challenge.id, user.id,
+          )
+          .first<AccountCreationReceiptRow>();
+        receiptReadSucceeded = true;
+      } catch {
+        // Welcome delivery and session issuance must not escape an unreadable account boundary.
+      }
+      const exactUserCount = Number(receipt?.exact_user_count);
+      const anyUserCount = Number(receipt?.any_user_count);
+      const emailUserCount = Number(receipt?.email_user_count);
+      const sessionCount = Number(receipt?.session_count);
+      const exactChallengeCount = Number(receipt?.exact_challenge_count);
+      const anyChallengeCount = Number(receipt?.any_challenge_count);
+      const fenceCount = Number(receipt?.fence_count);
+      const counts = [
+        exactUserCount,
+        anyUserCount,
+        emailUserCount,
+        sessionCount,
+        exactChallengeCount,
+        anyChallengeCount,
+        fenceCount,
+      ];
+      if (!receiptReadSucceeded || counts.some((count) => !Number.isSafeInteger(count) || count < 0)
+        || exactUserCount > 1 || anyUserCount > 1 || emailUserCount > 1
+        || exactChallengeCount > 1 || anyChallengeCount > 1 || fenceCount > 1
+        || exactUserCount > anyUserCount || exactUserCount > emailUserCount
+        || exactChallengeCount > anyChallengeCount) {
         throw new AuthError(
           503,
           "account_creation_unconfirmed",
           "Account creation could not be confirmed. Try signing in before starting signup again.",
         );
       }
-      if (accountChanges === 0 && challengeChanges === 0) {
+      if (exactUserCount === 0 && anyUserCount === 0 && emailUserCount === 1) {
+        throw new AuthError(409, "email_in_use", "An account already uses this email.");
+      }
+      if (exactUserCount === 0 && anyUserCount === 0 && emailUserCount === 0
+        && anyChallengeCount === 1 && exactChallengeCount === 0) {
         throw new AuthError(
           409,
           "signup_challenge_changed",
           "That verification request changed. Use its latest code or start signup again.",
         );
       }
-      if (accountChanges !== 1 || challengeChanges !== 1) {
+      if (exactUserCount !== 1 || anyUserCount !== 1 || emailUserCount !== 1
+        || sessionCount !== 0 || anyChallengeCount !== 0 || fenceCount !== 0) {
         throw new AuthError(
           503,
           "account_creation_unconfirmed",
@@ -3525,6 +3605,16 @@ interface EmailChallengeRow {
 interface PasswordResetReceiptRow {
   exact_user_count: number;
   any_user_count: number;
+  session_count: number;
+  exact_challenge_count: number;
+  any_challenge_count: number;
+  fence_count: number;
+}
+
+interface AccountCreationReceiptRow {
+  exact_user_count: number;
+  any_user_count: number;
+  email_user_count: number;
   session_count: number;
   exact_challenge_count: number;
   any_challenge_count: number;

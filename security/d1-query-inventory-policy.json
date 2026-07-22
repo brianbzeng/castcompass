@@ -11,8 +11,8 @@
     "worker/validation-feasibility-export.ts"
   ],
   "expectedSummary": {
-    "prepareCallCount": 241,
-    "literalCallCount": 227,
+    "prepareCallCount": 242,
+    "literalCallCount": 228,
     "nonLiteralCallCount": 14,
     "multiRowLiteralWithoutLimitCount": 9
   },

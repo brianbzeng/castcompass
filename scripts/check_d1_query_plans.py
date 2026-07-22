@@ -92,6 +92,64 @@ CHECKS = (
         ),
     ),
     PlanCheck(
+        "exact account creation receipt",
+        """SELECT
+             (SELECT COUNT(*) FROM users
+               WHERE id = ? AND email = ? AND password_salt = ? AND password_hash = ?
+                 AND age_eligibility_confirmed_at = ? AND terms_accepted_at = ?
+                 AND terms_version = ? AND privacy_accepted_at = ? AND privacy_version = ?
+                 AND created_at = ? AND updated_at = ?) AS exact_user_count,
+             (SELECT COUNT(*) FROM users WHERE id = ?) AS any_user_count,
+             (SELECT COUNT(*) FROM users WHERE email = ?) AS email_user_count,
+             (SELECT COUNT(*) FROM auth_sessions WHERE user_id = ?) AS session_count,
+             (SELECT COUNT(*) FROM email_challenges
+               WHERE id = ? AND kind = 'signup' AND email = ? AND code_hash = ?
+                 AND password_salt = ? AND password_hash = ?
+                 AND age_eligibility_confirmed_at = ? AND terms_version = ?
+                 AND privacy_version = ? AND created_at = ? AND attempts = ?
+                 AND resend_count = ? AND expires_at = ? AND expires_at > ?) AS exact_challenge_count,
+             (SELECT COUNT(*) FROM email_challenges WHERE id = ?) AS any_challenge_count,
+             (SELECT COUNT(*) FROM account_deletion_fences WHERE user_id = ?) AS fence_count""",
+        (
+            "new_user_fixture",
+            "new-angler@example.com",
+            "salt_fixture",
+            "password_hash_fixture",
+            "2026-07-17T00:00:00.000Z",
+            "2026-07-17T00:01:00.000Z",
+            "2026-07-16",
+            "2026-07-17T00:01:00.000Z",
+            "2026-07-16",
+            "2026-07-17T00:01:00.000Z",
+            "2026-07-17T00:01:00.000Z",
+            "new_user_fixture",
+            "new-angler@example.com",
+            "new_user_fixture",
+            "signup_challenge_fixture",
+            "new-angler@example.com",
+            "code_hash_fixture",
+            "salt_fixture",
+            "password_hash_fixture",
+            "2026-07-17T00:00:00.000Z",
+            "2026-07-16",
+            "2026-07-16",
+            "2026-07-17T00:00:00.000Z",
+            1,
+            0,
+            "2026-07-17T00:15:00.000Z",
+            "2026-07-17T00:01:00.000Z",
+            "signup_challenge_fixture",
+            "new_user_fixture",
+        ),
+        (
+            "sqlite_autoindex_users_1",
+            "users_email_unique",
+            "auth_sessions_user_idx",
+            "sqlite_autoindex_email_challenges_1",
+            "sqlite_autoindex_account_deletion_fences_1",
+        ),
+    ),
+    PlanCheck(
         "expired email challenges",
         """DELETE FROM email_challenges WHERE id IN (
              SELECT id FROM email_challenges WHERE expires_at <= ?

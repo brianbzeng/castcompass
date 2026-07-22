@@ -271,6 +271,34 @@ async function addPasswordResetChallenge(sqlite, user, code, now = new Date()) {
   return id;
 }
 
+async function addSignupChallenge(sqlite, suffix, code, now = new Date()) {
+  const id = `challenge_${crypto.randomUUID()}`;
+  const email = `signup-${suffix}@example.com`;
+  const password = `signup ${suffix} account passphrase`;
+  const saltByte = Number(String(suffix).replace(/\D/g, "")) % 255 || 1;
+  const salt = Buffer.alloc(18, saltByte).toString("base64url");
+  const credentialHash = await passwordHash(password, salt);
+  const createdAt = now.toISOString();
+  const expiresAt = new Date(now.getTime() + 15 * 60_000).toISOString();
+  sqlite.prepare(`INSERT INTO email_challenges
+      (id, kind, email, user_id, code_hash, password_salt, password_hash,
+        age_eligibility_confirmed_at, terms_version, privacy_version, expires_at,
+        attempts, resend_count, created_at)
+    VALUES (?, 'signup', ?, NULL, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`).run(
+    id,
+    email,
+    await sha256(`${id}:${code}`),
+    salt,
+    credentialHash,
+    createdAt,
+    LEGAL_VERSION,
+    LEGAL_VERSION,
+    expiresAt,
+    createdAt,
+  );
+  return { id, code, email, password, salt, credentialHash, createdAt, expiresAt };
+}
+
 test("existing ten-character passwords remain valid for sign-in", async () => {
   const { sqlite, d1 } = await database();
   const user = await addUser(sqlite, "10");
@@ -1221,7 +1249,7 @@ test("password reset rejects conflicting credential state or a newly active dele
   }
 });
 
-test("account verification never issues a session without a confirmed user insert", async () => {
+test("account verification follows exact account state when mutation metadata is absent", async () => {
   const { sqlite, d1 } = await database();
   const challengeId = `challenge_${crypto.randomUUID()}`;
   const code = "624812";
@@ -1247,25 +1275,164 @@ test("account verification never issues a session without a confirmed user inser
       now.toISOString(),
     );
 
-  d1.omitOnceMutationMetadataSubstring = "INSERT INTO users";
-  const verified = await handleAccountRequest(request("/api/auth/signup/verify", {
-    method: "POST",
-    body: { challengeId, code },
-  }), { DB: d1 }, []);
-  assert.equal(verified?.status, 503);
-  assert.equal((await verified.json()).error.code, "account_creation_unconfirmed");
-  assert.equal(sessionCookieFrom(verified), null);
-  const created = sqlite.prepare("SELECT id FROM users WHERE email = ?").get(email);
-  assert.equal(typeof created.id, "string");
-  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?").get(challengeId).count, 0);
-  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?").get(created.id).count, 0);
+  const originalFetch = globalThis.fetch;
+  let welcomeCalls = 0;
+  globalThis.fetch = async () => {
+    welcomeCalls += 1;
+    return Response.json({ id: "welcome-metadata-recovery" });
+  };
+  try {
+    d1.omitOnceMutationMetadataSubstring = "INSERT INTO users";
+    const verified = await handleAccountRequest(request("/api/auth/signup/verify", {
+      method: "POST",
+      body: { challengeId, code },
+    }), { DB: d1, RESEND_API_KEY: "test" }, []);
+    assert.equal(verified?.status, 201);
+    assert.match(sessionCookieFrom(verified) ?? "", /^__Host-cc_session=/u);
+    const created = sqlite.prepare("SELECT id FROM users WHERE email = ?").get(email);
+    assert.equal(typeof created.id, "string");
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?")
+      .get(challengeId).count, 0);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?")
+      .get(created.id).count, 1);
+    assert.equal(welcomeCalls, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
-  const login = await handleAccountRequest(request("/api/auth/login", {
-    method: "POST",
-    body: { email, password },
-  }), { DB: d1 }, []);
-  assert.equal(login?.status, 200);
-  assert.match(sessionCookieFrom(login) ?? "", /^__Host-cc_session=/u);
+test("account verification recovers exact state after the committed batch response is lost", async () => {
+  const { sqlite, d1 } = await database();
+  const challenge = await addSignupChallenge(sqlite, "lost-response-154", "624822");
+  d1.throwOnceAfterBatchMutationSubstring = "DELETE FROM email_challenges";
+  const originalFetch = globalThis.fetch;
+  let welcomeCalls = 0;
+  globalThis.fetch = async () => {
+    welcomeCalls += 1;
+    return Response.json({ id: "welcome-lost-response" });
+  };
+  try {
+    const verified = await handleAccountRequest(request("/api/auth/signup/verify", {
+      method: "POST",
+      body: { challengeId: challenge.id, code: challenge.code },
+    }), { DB: d1, RESEND_API_KEY: "test" }, []);
+    assert.equal(verified?.status, 201);
+    assert.match(sessionCookieFrom(verified) ?? "", /^__Host-cc_session=/u);
+    const created = sqlite.prepare("SELECT id FROM users WHERE email = ?").get(challenge.email);
+    assert.equal(typeof created.id, "string");
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?")
+      .get(created.id).count, 1);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?")
+      .get(challenge.id).count, 0);
+    assert.equal(welcomeCalls, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("account verification contains rollback and unreadable exact lifecycle state", async () => {
+  const originalFetch = globalThis.fetch;
+  let welcomeCalls = 0;
+  globalThis.fetch = async () => {
+    welcomeCalls += 1;
+    return Response.json({ id: "must-not-send" });
+  };
+  try {
+    const rolledBack = await database();
+    const rollbackChallenge = await addSignupChallenge(rolledBack.sqlite, "rollback-155", "624823");
+    rolledBack.d1.failOnceQuerySubstring = "DELETE FROM email_challenges";
+    const rollbackResponse = await handleAccountRequest(request("/api/auth/signup/verify", {
+      method: "POST",
+      body: { challengeId: rollbackChallenge.id, code: rollbackChallenge.code },
+    }), { DB: rolledBack.d1, RESEND_API_KEY: "test" }, []);
+    assert.equal(rollbackResponse?.status, 503);
+    assert.equal((await rollbackResponse.json()).error.code, "account_creation_unconfirmed");
+    assert.equal(sessionCookieFrom(rollbackResponse), null);
+    assert.equal(rolledBack.sqlite.prepare("SELECT COUNT(*) AS count FROM users WHERE email = ?")
+      .get(rollbackChallenge.email).count, 0);
+    assert.equal(rolledBack.sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?")
+      .get(rollbackChallenge.id).count, 1);
+
+    const unreadable = await database();
+    const unreadableChallenge = await addSignupChallenge(unreadable.sqlite, "unreadable-156", "624824");
+    unreadable.d1.failOnceQuerySubstring = "(SELECT COUNT(*) FROM users";
+    const unreadableResponse = await handleAccountRequest(request("/api/auth/signup/verify", {
+      method: "POST",
+      body: { challengeId: unreadableChallenge.id, code: unreadableChallenge.code },
+    }), { DB: unreadable.d1, RESEND_API_KEY: "test" }, []);
+    assert.equal(unreadableResponse?.status, 503);
+    assert.equal((await unreadableResponse.json()).error.code, "account_creation_unconfirmed");
+    assert.equal(sessionCookieFrom(unreadableResponse), null);
+    const unreadableUser = unreadable.sqlite.prepare("SELECT id FROM users WHERE email = ?")
+      .get(unreadableChallenge.email);
+    assert.equal(typeof unreadableUser.id, "string");
+    assert.equal(unreadable.sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?")
+      .get(unreadableUser.id).count, 0);
+    assert.equal(unreadable.sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?")
+      .get(unreadableChallenge.id).count, 0);
+    assert.equal(welcomeCalls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("account verification blocks conflicting account state and a deletion fence before side effects", async () => {
+  const originalFetch = globalThis.fetch;
+  let welcomeCalls = 0;
+  globalThis.fetch = async () => {
+    welcomeCalls += 1;
+    return Response.json({ id: "must-not-send" });
+  };
+  try {
+    const conflicting = await database();
+    const conflictChallenge = await addSignupChallenge(conflicting.sqlite, "conflict-157", "624825");
+    conflicting.d1.beforeOnceQuerySubstring = "(SELECT COUNT(*) FROM users";
+    conflicting.d1.beforeOnceQuery = () => conflicting.sqlite
+      .prepare("UPDATE users SET updated_at = '2026-07-22T06:00:00.000Z' WHERE email = ?")
+      .run(conflictChallenge.email);
+    const conflictResponse = await handleAccountRequest(request("/api/auth/signup/verify", {
+      method: "POST",
+      body: { challengeId: conflictChallenge.id, code: conflictChallenge.code },
+    }), { DB: conflicting.d1, RESEND_API_KEY: "test" }, []);
+    assert.equal(conflictResponse?.status, 503);
+    assert.equal((await conflictResponse.json()).error.code, "account_creation_unconfirmed");
+    assert.equal(sessionCookieFrom(conflictResponse), null);
+    const conflictingUser = conflicting.sqlite.prepare("SELECT id FROM users WHERE email = ?")
+      .get(conflictChallenge.email);
+    assert.equal(conflicting.sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?")
+      .get(conflictingUser.id).count, 0);
+
+    const fenced = await database();
+    const fenceChallenge = await addSignupChallenge(fenced.sqlite, "fence-158", "624826");
+    fenced.d1.beforeOnceQuerySubstring = "(SELECT COUNT(*) FROM users";
+    fenced.d1.beforeOnceQuery = () => {
+      const fencedUser = fenced.sqlite.prepare("SELECT id FROM users WHERE email = ?").get(fenceChallenge.email);
+      const fenceTimestamp = "2026-07-22T05:45:00.000Z";
+      fenced.sqlite.prepare(`INSERT INTO account_deletion_fences
+          (user_id, owner_subject_hash, lease_token, lease_expires_at, requested_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)`).run(
+        fencedUser.id,
+        "f".repeat(64),
+        "signup-fence-race-token-0000000000001",
+        "2026-07-22T05:50:00.000Z",
+        fenceTimestamp,
+        fenceTimestamp,
+      );
+    };
+    const fenceResponse = await handleAccountRequest(request("/api/auth/signup/verify", {
+      method: "POST",
+      body: { challengeId: fenceChallenge.id, code: fenceChallenge.code },
+    }), { DB: fenced.d1, RESEND_API_KEY: "test" }, []);
+    assert.equal(fenceResponse?.status, 503);
+    assert.equal((await fenceResponse.json()).error.code, "account_creation_unconfirmed");
+    assert.equal(sessionCookieFrom(fenceResponse), null);
+    const fencedUser = fenced.sqlite.prepare("SELECT id FROM users WHERE email = ?").get(fenceChallenge.email);
+    assert.equal(fenced.sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?")
+      .get(fencedUser.id).count, 0);
+    assert.equal(welcomeCalls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("a verified code cannot authorize signup or password reset after its challenge rotates", async () => {
@@ -1341,7 +1508,7 @@ test("a verified code cannot authorize signup or password reset after its challe
   }
 });
 
-test("signup remains metadata-bound while password reset confirms exact challenge absence", async () => {
+test("signup and password reset confirm exact challenge absence after metadata loss", async () => {
   const { sqlite, d1 } = await database();
   const signupChallengeId = `challenge_${crypto.randomUUID()}`;
   const signupCode = "624815";
@@ -1370,13 +1537,12 @@ test("signup remains metadata-bound while password reset confirms exact challeng
     method: "POST",
     body: { challengeId: signupChallengeId, code: signupCode },
   }), { DB: d1 }, []);
-  assert.equal(signup.status, 503);
-  assert.equal((await signup.json()).error.code, "account_creation_unconfirmed");
-  assert.equal(sessionCookieFrom(signup), null);
+  assert.equal(signup.status, 201);
+  assert.match(sessionCookieFrom(signup) ?? "", /^__Host-cc_session=/u);
   const created = sqlite.prepare("SELECT id FROM users WHERE email = ?").get(signupEmail);
   assert.equal(typeof created.id, "string");
   assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?").get(signupChallengeId).count, 0);
-  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?").get(created.id).count, 0);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?").get(created.id).count, 1);
 
   const { sqlite: resetSqlite, d1: resetD1 } = await database();
   const user = await addUser(resetSqlite, "challenge-consumption-receipt-147");
