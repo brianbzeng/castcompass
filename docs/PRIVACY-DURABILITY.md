@@ -19,6 +19,11 @@ access/correction/portability/deletion workflow are maintained in
   inventory is not fenced against a concurrent photo write, the Worker independently rejects
   every photo upload unless `TRIP_PHOTO_UPLOADS_ENABLED` is explicitly `true`; production and
   checked-in configuration keep it `false`.
+- Before any enabled path writes R2, it must first commit and exactly read back a
+  `trip_photo_upload_reservations` row containing the typed locator hash. Exact trip attachment
+  removes the reservation; ambiguous D1/R2 responses retain it for leased scheduled
+  reconciliation. The reconciler preserves an attached object, idempotently deletes an
+  unattached object, and fails closed without R2 on a locator-hash mismatch.
 - HTTP `200` means active rows and all known objects are gone. HTTP `202` means active rows are
   gone while object cleanup is processing or needs attention.
 - Completed tasks erase their plaintext object locator. Pseudonymous completed tombstones
@@ -41,7 +46,7 @@ access/correction/portability/deletion workflow are maintained in
 
 ## Migration sequence
 
-Migration `0010_privacy_durability.sql` is part of the authoritative
+Migrations `0010_privacy_durability.sql` and `0020_trip_photo_upload_reservations.sql` are part of the authoritative
 [integrated production release](INTEGRATED-RELEASE.md). Use its immutable release verifier,
 read-only aggregate preflight, Time Travel evidence, explicit `0007` reconciliation, and
 one-file migration wrapper. Do not run raw `wrangler d1 migrations apply`, and do not pass a
@@ -167,7 +172,10 @@ the evidence and second-person-review requirements in `docs/PRODUCTION-OPERATION
 Photo uploads remain disabled in the reviewed production build, including a server-side gate
 that defaults off. Do not enable them until the private bucket binding, object inventory,
 retry alert, export, deletion, orphan-upload cleanup, and R2 restore/deletion drill have all
-passed. Before the first enablement, account deletion must establish a D1-serialized write
+passed. Migration `0020` must be applied, its initial reservation count must be zero, and every
+aged `pending`, expired `leased`, or `needs_attention` row must be monitored without logging a
+locator. The reservation ledger does not replace the remaining account-deletion race control:
+before the first enablement, account deletion must establish a D1-serialized write
 fence before taking its photo inventory so an upload/attach request cannot commit a new R2
 locator between inventory and active-row removal. Cleanup must also be bounded below the
 deployed Cloudflare plan's D1-query and subrequest limits, or the release record must include

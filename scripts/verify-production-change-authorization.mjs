@@ -9,7 +9,7 @@ import { verifyReleaseCheckout } from "./verify-release-checkout.mjs";
 
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const POLICY_PATH = "security/production-change-authorization-policy.json";
-const LOCKED_POLICY_SHA256 = "6e2a405435d519bc4d47d3078e9a142883e112dc7cf383d676780cd489141f57";
+const LOCKED_POLICY_SHA256 = "b33af9d70a39a841459a1c453ebfe8916dfa28809ea2481c8af878f341746067";
 const MAX_AUTHORIZATION_BYTES = 64 * 1024;
 const CLOCK_SKEW_MS = 60 * 1000;
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
@@ -32,6 +32,7 @@ const EXPECTED_ACTIONS = Object.freeze([
   "migrate:0017_trip_idempotency.sql",
   "migrate:0018_ai_review_queue.sql",
   "migrate:0019_async_privacy_exports.sql",
+  "migrate:0020_trip_photo_upload_reservations.sql",
   "deploy:normal",
 ]);
 

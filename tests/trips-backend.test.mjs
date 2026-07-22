@@ -171,6 +171,7 @@ class MemoryTripStore {
   trips = new Map();
   validations = new Map();
   completionEvents = new Map();
+  photoReservations = new Map();
   rateLimited = false;
   initialized = false;
 
@@ -200,6 +201,20 @@ class MemoryTripStore {
 
   async isTripIdentityReserved(id) {
     return this.trips.has(id);
+  }
+
+  async reservePhotoUpload(reservation) {
+    if (this.photoReservations.has(reservation.objectKey)) return false;
+    this.photoReservations.set(reservation.objectKey, reservation);
+    return true;
+  }
+
+  async releasePhotoUploadReservation(tripId, objectKey, objectKeyHash) {
+    const reservation = this.photoReservations.get(objectKey);
+    if (reservation?.tripId === tripId && reservation.objectKeyHash === objectKeyHash) {
+      this.photoReservations.delete(objectKey);
+    }
+    return !this.photoReservations.has(objectKey);
   }
 
   async getValidationEnrollment(id, accountId) {
@@ -1356,6 +1371,7 @@ test("past reports re-encode photos and the summary exposes validation totals", 
   assert.equal(reported.hasPhoto, true);
   assert.equal(reported.scoreInfluencedChoice, false);
   assert.equal(storedObjects.size, 1);
+  assert.equal(store.photoReservations.size, 0);
   const storedPhoto = [...storedObjects.values()][0];
   assert.equal(storedPhoto.options.httpMetadata.contentType, "image/webp");
   assert.equal(storedPhoto.options.customMetadata.privacy, "exif-stripped");

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "castingcompass.d1-query-inventory/1.0.0",
   "generatedFrom": "TypeScript AST; no runtime or provider query executed",
-  "policySha256": "ff313eaf252572933be5596a48dbcd1c73f77c54038936c3de1f3b6dd910c243",
+  "policySha256": "5805898bf314282ddec6d18f1bbdf24968fb5713ca5991197ece5b2710257664",
   "sourceFiles": [
     {
       "file": "worker/auth.ts",
@@ -35,8 +35,8 @@
     },
     {
       "file": "worker/trips.ts",
-      "sha256": "4637b934bc9981e6684f2b52df6904064115a81f7b62e247495dae66bbf785f9",
-      "prepareCallCount": 27
+      "sha256": "313287c9396a0abbbdd76cc677e99e99e302c369af127f0516c510a0bf37dd8c",
+      "prepareCallCount": 44
     },
     {
       "file": "worker/validation-feasibility-export.ts",
@@ -45,9 +45,9 @@
     }
   ],
   "summary": {
-    "prepareCallCount": 244,
-    "literalCallCount": 218,
-    "nonLiteralCallCount": 26,
+    "prepareCallCount": 261,
+    "literalCallCount": 234,
+    "nonLiteralCallCount": 27,
     "multiRowLiteralWithoutLimitCount": 12
   },
   "queries": [
@@ -4765,7 +4765,7 @@
     {
       "callSiteId": "66c4551e6e6477b62fe71c53",
       "file": "worker/trips.ts",
-      "line": 1501,
+      "line": 1546,
       "containingFunction": "initialize",
       "occurrence": 1,
       "executionMode": "batch",
@@ -4774,7 +4774,7 @@
       "expressionSha256": "a30d43434bf332af4ac7a1121a25f2e8a539a880f8dd3e32719465d1da25f46c",
       "declarationReference": {
         "name": "CREATE_TRIPS_SQL",
-        "declarationLine": 614,
+        "declarationLine": 634,
         "initializerSha256": "64ca82831a7847f77b596831ae44ee8c768be4485ba95d280b24705d115eac41"
       },
       "statementClass": "UNRESOLVED",
@@ -4787,18 +4787,42 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "1dcb1a0d157d5082ea29ac24",
+      "callSiteId": "ba0982defc961501c773f561",
       "file": "worker/trips.ts",
-      "line": 1502,
+      "line": 1547,
       "containingFunction": "initialize",
       "occurrence": 2,
+      "executionMode": "batch",
+      "argumentKind": "reviewed-nonliteral",
+      "expression": "CREATE_TRIP_PHOTO_UPLOAD_RESERVATIONS_SQL",
+      "expressionSha256": "47d236de770bdf83ab62c8efa8eca6de193549035b8680e2c5aa75fb66734d97",
+      "declarationReference": {
+        "name": "CREATE_TRIP_PHOTO_UPLOAD_RESERVATIONS_SQL",
+        "declarationLine": 812,
+        "initializerSha256": "eedde32a782b61063979b198bdece0df20db1d654d6b0d1168c1f984189ba771"
+      },
+      "statementClass": "UNRESOLVED",
+      "sql": null,
+      "sqlSha256": null,
+      "tables": [],
+      "placeholderCount": null,
+      "hasWhere": null,
+      "hasOrderBy": null,
+      "hasLimit": null
+    },
+    {
+      "callSiteId": "f8948855ae2700e2cd7220dc",
+      "file": "worker/trips.ts",
+      "line": 1548,
+      "containingFunction": "initialize",
+      "occurrence": 3,
       "executionMode": "batch",
       "argumentKind": "reviewed-nonliteral",
       "expression": "CREATE_FORECAST_IMPRESSIONS_SQL",
       "expressionSha256": "b54adea780f2574650cbc99cf741678af37c3417c4734bb0138c3ed1a12c25af",
       "declarationReference": {
         "name": "CREATE_FORECAST_IMPRESSIONS_SQL",
-        "declarationLine": 792,
+        "declarationLine": 830,
         "initializerSha256": "a370a3d68d7fc6f1ae3ca466db2a26bbd464e6ea96e3539887396c31bee132c2"
       },
       "statementClass": "UNRESOLVED",
@@ -4811,18 +4835,18 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "07eb0899fbe3e17b6ae9033a",
+      "callSiteId": "3feb0461c6162b449ef174bb",
       "file": "worker/trips.ts",
-      "line": 1503,
+      "line": 1549,
       "containingFunction": "initialize",
-      "occurrence": 3,
+      "occurrence": 4,
       "executionMode": "batch",
       "argumentKind": "reviewed-nonliteral",
       "expression": "CREATE_TRIP_VALIDATION_PROVENANCE_SQL",
       "expressionSha256": "cfd1855de8f1e1f5c1702d15ab4a99ba89eae74f097d6efb1ed6f079c6ac8dcf",
       "declarationReference": {
         "name": "CREATE_TRIP_VALIDATION_PROVENANCE_SQL",
-        "declarationLine": 839,
+        "declarationLine": 877,
         "initializerSha256": "fc9ccbb6a78be3625961bab0d73e330e067cc2bd1d9c5d148a2518168a391f4c"
       },
       "statementClass": "UNRESOLVED",
@@ -4835,11 +4859,11 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "9280d6b7baa7b3c9abd1612d",
+      "callSiteId": "eff4ec4356d950b22894e2f1",
       "file": "worker/trips.ts",
-      "line": 1505,
+      "line": 1551,
       "containingFunction": "map-callback",
-      "occurrence": 4,
+      "occurrence": 5,
       "executionMode": "batch",
       "argumentKind": "reviewed-nonliteral",
       "expression": "statement",
@@ -4859,11 +4883,11 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "140feaacc9a03c20429ad221",
+      "callSiteId": "0ea028332ef038ad4e024861",
       "file": "worker/trips.ts",
-      "line": 1516,
+      "line": 1562,
       "containingFunction": "getTrip",
-      "occurrence": 5,
+      "occurrence": 6,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "\"SELECT * FROM trips WHERE id = ? AND user_id IS ? LIMIT 1\"",
@@ -4881,31 +4905,9 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "b1aff5ba9723a50230cb15eb",
-      "file": "worker/trips.ts",
-      "line": 1528,
-      "containingFunction": "assertSubmissionAllowed",
-      "occurrence": 6,
-      "executionMode": "first",
-      "argumentKind": "literal",
-      "expression": "\"SELECT COUNT(*) AS count FROM trips WHERE reporter_key_hash = ? AND created_at >= ?\"",
-      "expressionSha256": "5e8114dbb7eb5fb7dc01a63422d9ffc4b18ee27321d7df3cce2a8816dba3ac9d",
-      "declarationReference": null,
-      "statementClass": "SELECT",
-      "sql": "SELECT COUNT(*) AS count FROM trips WHERE reporter_key_hash = ? AND created_at >= ?",
-      "sqlSha256": "5255352344c426f738432a89184509f1d881071d089f34e4ddfdcc6e19edf463",
-      "tables": [
-        "trips"
-      ],
-      "placeholderCount": 2,
-      "hasWhere": true,
-      "hasOrderBy": false,
-      "hasLimit": false
-    },
-    {
       "callSiteId": "44d142e47be3a6cb2886d813",
       "file": "worker/trips.ts",
-      "line": 1532,
+      "line": 1574,
       "containingFunction": "assertSubmissionAllowed",
       "occurrence": 7,
       "executionMode": "first",
@@ -4925,11 +4927,33 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "d0305042278bab73dda9e750",
+      "callSiteId": "36e025982b068c064e1fc7d3",
       "file": "worker/trips.ts",
-      "line": 1536,
+      "line": 1578,
       "containingFunction": "assertSubmissionAllowed",
       "occurrence": 8,
+      "executionMode": "first",
+      "argumentKind": "literal",
+      "expression": "\"SELECT COUNT(*) AS count FROM trips WHERE reporter_key_hash = ? AND created_at >= ?\"",
+      "expressionSha256": "5e8114dbb7eb5fb7dc01a63422d9ffc4b18ee27321d7df3cce2a8816dba3ac9d",
+      "declarationReference": null,
+      "statementClass": "SELECT",
+      "sql": "SELECT COUNT(*) AS count FROM trips WHERE reporter_key_hash = ? AND created_at >= ?",
+      "sqlSha256": "5255352344c426f738432a89184509f1d881071d089f34e4ddfdcc6e19edf463",
+      "tables": [
+        "trips"
+      ],
+      "placeholderCount": 2,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": false
+    },
+    {
+      "callSiteId": "1bd6872b07b71142936c07c6",
+      "file": "worker/trips.ts",
+      "line": 1582,
+      "containingFunction": "assertSubmissionAllowed",
+      "occurrence": 9,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "\"SELECT COUNT(*) AS count FROM trips WHERE reporter_key_hash = ? AND status = 'active' AND created_at >= ?\"",
@@ -4947,19 +4971,19 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "19eecc024dc360f6e8ea0c94",
+      "callSiteId": "5b3fcf97687a92eb10079f18",
       "file": "worker/trips.ts",
-      "line": 1550,
+      "line": 1596,
       "containingFunction": "insertTrip",
-      "occurrence": 9,
+      "occurrence": 10,
       "executionMode": "prepared-statement",
       "argumentKind": "reviewed-nonliteral",
       "expression": "INSERT_TRIP_SQL",
       "expressionSha256": "19036a22fb241a794a5512e92b28132551cb2192ef0f0537c35f9f05b278e833",
       "declarationReference": {
         "name": "INSERT_TRIP_SQL",
-        "declarationLine": 1212,
-        "initializerSha256": "5a3d25a56c06665dc6f10e360e1b73fb2316bfcd35fd3614434a5e0f3909ada7"
+        "declarationLine": 1254,
+        "initializerSha256": "8f397661c074b88fd69c13992c9e972db7641c6e896a024d35f676750efc24a1"
       },
       "statementClass": "UNRESOLVED",
       "sql": null,
@@ -4971,11 +4995,34 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "1585e2f7e0e3113ea600b3ad",
+      "callSiteId": "c6025df5683d26658cd3a6e0",
       "file": "worker/trips.ts",
-      "line": 1626,
+      "line": 1659,
+      "containingFunction": "insertTrip",
+      "occurrence": 11,
+      "executionMode": "prepared-statement",
+      "argumentKind": "literal",
+      "expression": "`DELETE FROM trip_photo_upload_reservations\n          WHERE trip_id = ? AND object_key = ? AND object_key_hash = ? AND state = 'pending'\n            AND EXISTS (SELECT 1 FROM trips WHERE id = ? AND user_id IS ? AND photo_key = ?)`",
+      "expressionSha256": "15ab6d6344c20ebf67620bf35a90f97871ef8d9ca23a0f9f2e8fd5d77bb68f62",
+      "declarationReference": null,
+      "statementClass": "DELETE",
+      "sql": "DELETE FROM trip_photo_upload_reservations WHERE trip_id = ? AND object_key = ? AND object_key_hash = ? AND state = 'pending' AND EXISTS (SELECT 1 FROM trips WHERE id = ? AND user_id IS ? AND photo_key = ?)",
+      "sqlSha256": "e9d26e571c12f9f6d1ebfcd93c5a73a8c27651242ed3405313b56af9958afbb4",
+      "tables": [
+        "trip_photo_upload_reservations",
+        "trips"
+      ],
+      "placeholderCount": 6,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": false
+    },
+    {
+      "callSiteId": "62e146476c7ef695dcc516d6",
+      "file": "worker/trips.ts",
+      "line": 1689,
       "containingFunction": "isTripIdentityReserved",
-      "occurrence": 10,
+      "occurrence": 12,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "\"SELECT 1 AS reserved FROM trips WHERE id = ? LIMIT 1\"",
@@ -4993,11 +5040,99 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "c0b271172dca30b9ea96a961",
+      "callSiteId": "6c6cddb08eeb6538a8953135",
       "file": "worker/trips.ts",
-      "line": 1633,
+      "line": 1697,
+      "containingFunction": "reservePhotoUpload",
+      "occurrence": 13,
+      "executionMode": "run",
+      "argumentKind": "literal",
+      "expression": "`INSERT INTO trip_photo_upload_reservations (\n            id, trip_id, object_key, object_key_hash, state, attempts, available_at,\n            lease_expires_at, lease_token, last_error_code, created_at, updated_at)\n          VALUES (?, ?, ?, ?, 'pending', 0, ?, NULL, NULL, NULL, ?, ?)`",
+      "expressionSha256": "a233e633b1f86d7a9762de4b6532463dc79296265864ab609b5af5901c72508f",
+      "declarationReference": null,
+      "statementClass": "INSERT",
+      "sql": "INSERT INTO trip_photo_upload_reservations ( id, trip_id, object_key, object_key_hash, state, attempts, available_at, lease_expires_at, lease_token, last_error_code, created_at, updated_at) VALUES (?, ?, ?, ?, 'pending', 0, ?, NULL, NULL, NULL, ?, ?)",
+      "sqlSha256": "aa83fe8104125425ef366243c845dbb4cb4aa39f9ac48d592ad3b91298001475",
+      "tables": [
+        "trip_photo_upload_reservations"
+      ],
+      "placeholderCount": 7,
+      "hasWhere": false,
+      "hasOrderBy": false,
+      "hasLimit": false
+    },
+    {
+      "callSiteId": "58f3834a7e0b493291fa3cd8",
+      "file": "worker/trips.ts",
+      "line": 1714,
+      "containingFunction": "reservePhotoUpload",
+      "occurrence": 14,
+      "executionMode": "first",
+      "argumentKind": "literal",
+      "expression": "`SELECT id FROM trip_photo_upload_reservations\n        WHERE id = ? AND trip_id = ? AND object_key = ? AND object_key_hash = ?\n          AND state = 'pending' AND attempts = 0 AND available_at = ?\n          AND lease_expires_at IS NULL AND lease_token IS NULL AND last_error_code IS NULL\n          AND created_at = ? AND updated_at = ?\n        LIMIT 1`",
+      "expressionSha256": "4dae6f0caaca3f6df8a80a8d946250041bfa59e5f228a640241f12489e5d080c",
+      "declarationReference": null,
+      "statementClass": "SELECT",
+      "sql": "SELECT id FROM trip_photo_upload_reservations WHERE id = ? AND trip_id = ? AND object_key = ? AND object_key_hash = ? AND state = 'pending' AND attempts = 0 AND available_at = ? AND lease_expires_at IS NULL AND lease_token IS NULL AND last_error_code IS NULL AND created_at = ? AND updated_at = ? LIMIT 1",
+      "sqlSha256": "e5fbc76d9502a168e2309dfd4bb0fe2730d919f94d0eda33b74855934b2110db",
+      "tables": [
+        "trip_photo_upload_reservations"
+      ],
+      "placeholderCount": 7,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": true
+    },
+    {
+      "callSiteId": "df4e8355895b1a636534d06e",
+      "file": "worker/trips.ts",
+      "line": 1735,
+      "containingFunction": "releasePhotoUploadReservation",
+      "occurrence": 15,
+      "executionMode": "run",
+      "argumentKind": "literal",
+      "expression": "`DELETE FROM trip_photo_upload_reservations\n          WHERE trip_id = ? AND object_key = ? AND object_key_hash = ? AND state = 'pending'`",
+      "expressionSha256": "a5b2092ba35ac86bd87eca4e59d59ff91f0e48739b70df99239e130648d55d97",
+      "declarationReference": null,
+      "statementClass": "DELETE",
+      "sql": "DELETE FROM trip_photo_upload_reservations WHERE trip_id = ? AND object_key = ? AND object_key_hash = ? AND state = 'pending'",
+      "sqlSha256": "1cb2003deace96cacf779183ecb3c21c6a2d28a3e576e86d0e25c375e479d59d",
+      "tables": [
+        "trip_photo_upload_reservations"
+      ],
+      "placeholderCount": 3,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": false
+    },
+    {
+      "callSiteId": "e4edab2ce5c84fa38031aaee",
+      "file": "worker/trips.ts",
+      "line": 1742,
+      "containingFunction": "releasePhotoUploadReservation",
+      "occurrence": 16,
+      "executionMode": "first",
+      "argumentKind": "literal",
+      "expression": "`SELECT id FROM trip_photo_upload_reservations\n        WHERE trip_id = ? AND object_key = ? AND object_key_hash = ? LIMIT 1`",
+      "expressionSha256": "e14b29f5144f788d0a61b7a92b09bf87283927210dd7e382ab085c82b9eb778c",
+      "declarationReference": null,
+      "statementClass": "SELECT",
+      "sql": "SELECT id FROM trip_photo_upload_reservations WHERE trip_id = ? AND object_key = ? AND object_key_hash = ? LIMIT 1",
+      "sqlSha256": "d1791c87623499a4faac85ef3bfd31317a1db2482ec5efdafe348078d335ba14",
+      "tables": [
+        "trip_photo_upload_reservations"
+      ],
+      "placeholderCount": 3,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": true
+    },
+    {
+      "callSiteId": "252cf0cdb29b6884b0559973",
+      "file": "worker/trips.ts",
+      "line": 1750,
       "containingFunction": "getFeasibilityActivation",
-      "occurrence": 11,
+      "occurrence": 17,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "`SELECT id, protocol_id, protocol_version, protocol_sha256,\n          activation_commitment_sha256, activation_manifest_sha256, site_catalog_sha256,\n          scoring_system_kind, scoring_system_version, scoring_system_sha256,\n          worker_version_id, study_consent_version, start_at, end_at,\n          preregistered_at, receipt_verified_at, status\n        FROM validation_feasibility_activations WHERE id = ? LIMIT 1`",
@@ -5015,11 +5150,11 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "6234e92ab3184f6ea807eb98",
+      "callSiteId": "9f88613e76641c244d2af7af",
       "file": "worker/trips.ts",
-      "line": 1644,
+      "line": 1761,
       "containingFunction": "getFeasibilityRecruitment",
-      "occurrence": 12,
+      "occurrence": 18,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "`SELECT event_id, activation_id, user_id, participant_group_id,\n          event_contract_version, recruitment_frame_id, recruitment_source_id,\n          selection_method, recruited_at, campaign_id, invite_issued_at, invite_expires_at,\n          community_approval_sha256, event_sha256, created_at, snapshot_suppression_sha256\n        FROM validation_feasibility_recruitment_events\n        WHERE activation_id = ? AND participant_group_id = ? AND user_id IS ? LIMIT 1`",
@@ -5037,11 +5172,11 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "3df450444948c4b4090410ce",
+      "callSiteId": "aff6dc8ef8ad9a2b2327f027",
       "file": "worker/trips.ts",
-      "line": 1655,
+      "line": 1772,
       "containingFunction": "getFeasibilityRecruitmentCampaign",
-      "occurrence": 13,
+      "occurrence": 19,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "`SELECT activation_id, campaign_id, recruitment_source_id,\n          selection_method, invite_issued_at, invite_expires_at,\n          community_approval_sha256, token_payload_sha256, sealed_at\n        FROM validation_feasibility_recruitment_campaigns\n        WHERE activation_id = ? AND campaign_id = ? LIMIT 1`",
@@ -5059,11 +5194,11 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "8373aaea63a0eca1f1688b5f",
+      "callSiteId": "0368d32eac5f40664501c46d",
       "file": "worker/trips.ts",
-      "line": 1665,
+      "line": 1782,
       "containingFunction": "getFeasibilityStart",
-      "occurrence": 14,
+      "occurrence": 20,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "`SELECT activation_id, trip_id, event_sha256, source_record_sha256,\n          participant_group_id, recruitment_frame_id, recruitment_source_id, selection_method,\n          score_influenced_choice, study_consent_version, study_consented_at, target_taxon_id,\n          site_id, geographic_panel, mode, segment_start_at, angler_count,\n          scoring_system_kind, scoring_system_version, scoring_system_sha256,\n          opportunity_score, opportunity_window_id, snapshot_sha256, snapshot_suppression_sha256\n        FROM validation_feasibility_events AS event\n        WHERE event.trip_id = ? AND event.event_type = 'started'\n          AND EXISTS (\n            SELECT 1 FROM trips AS owner_trip\n            WHERE owner_trip.id = event.trip_id AND owner_trip.user_id IS ?\n          )\n        LIMIT 1`",
@@ -5082,11 +5217,11 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "ca54164468699e9ee3d23c8f",
+      "callSiteId": "0ca4be60ed85bbf12880f9f1",
       "file": "worker/trips.ts",
-      "line": 1683,
+      "line": 1800,
       "containingFunction": "getValidationEnrollment",
-      "occurrence": 15,
+      "occurrence": 21,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "`SELECT collection_contract_version, source_role, cohort_id,\n          validation_protocol_id, activation_manifest_sha256, activated_at,\n          activation_scoring_system_sha256, participant_group_id, recruitment_frame_id,\n          recruitment_source_id, recruitment_event_contract_version, recruitment_event_at,\n          recruitment_event_sha256, community_approval_sha256,\n          assignment_id, source_record_sha256, effort_segment_id, effort_unit,\n          attempt_count, target_taxon_id, segment_start_at, incentive_policy_id,\n          selection_method, target_intent, primary_target_confirmed,\n          complete_attempt_confirmed, mode_at_enrollment, consent_version,\n          consented_at, score_influenced_choice, forecast_impression_id,\n          attestation_status\n        FROM trip_validation_provenance AS provenance\n        WHERE provenance.trip_id = ? AND provenance.event_type = 'enrollment'\n          AND EXISTS (\n            SELECT 1 FROM trips AS owner_trip\n            WHERE owner_trip.id = provenance.trip_id AND owner_trip.user_id IS ?\n          )\n        ORDER BY provenance.created_at ASC LIMIT 1`",
@@ -5105,11 +5240,11 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "5d989a98e5b8014906682404",
+      "callSiteId": "007125776782f04ea6e5b661",
       "file": "worker/trips.ts",
-      "line": 1706,
+      "line": 1823,
       "containingFunction": "getRecruitmentEvent",
-      "occurrence": 16,
+      "occurrence": 22,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "`SELECT participant_group_id, recruitment_frame_id,\n          recruitment_source_id, recruitment_event_contract_version,\n          recruitment_event_at, recruitment_event_sha256, community_approval_sha256\n        FROM trip_validation_provenance AS provenance\n        WHERE provenance.participant_group_id = ?\n          AND provenance.event_type = 'enrollment'\n          AND provenance.source_role = 'prospective_secondary'\n          AND provenance.validation_protocol_id = ?\n          AND provenance.activation_manifest_sha256 = ?\n          AND provenance.activated_at = ?\n          AND provenance.activation_scoring_system_sha256 = ?\n          AND provenance.recruitment_frame_id = ?\n          AND provenance.recruitment_event_sha256 IS NOT NULL\n          AND EXISTS (\n            SELECT 1 FROM trips AS owner_trip\n            WHERE owner_trip.id = provenance.trip_id AND owner_trip.user_id IS ?\n          )\n        ORDER BY provenance.recruitment_event_at ASC, provenance.created_at ASC LIMIT 1`",
@@ -5128,11 +5263,11 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "a891cd755e304630bdecdb2a",
+      "callSiteId": "2b8d31e704ac50a363766936",
       "file": "worker/trips.ts",
-      "line": 1737,
+      "line": 1854,
       "containingFunction": "getForecastImpression",
-      "occurrence": 17,
+      "occurrence": 23,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "`SELECT id, window_start, window_end, site_id\n        FROM forecast_impressions AS impression\n        WHERE impression.trip_id = ?\n          AND EXISTS (\n            SELECT 1 FROM trips AS owner_trip\n            WHERE owner_trip.id = impression.trip_id AND owner_trip.user_id IS ?\n          )\n        LIMIT 1`",
@@ -5151,33 +5286,57 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "79c5ed1dc4b0c6ea567345a6",
+      "callSiteId": "8210d07869c7ea77eb508909",
       "file": "worker/trips.ts",
-      "line": 1750,
+      "line": 1867,
       "containingFunction": "completeTrip",
-      "occurrence": 18,
+      "occurrence": 24,
       "executionMode": "prepared-statement",
       "argumentKind": "literal",
-      "expression": "`UPDATE trips SET\n          status = 'completed',\n          opportunity_window_id = CASE WHEN mode = ? THEN opportunity_window_id ELSE NULL END,\n          opportunity_score = CASE WHEN mode = ? THEN opportunity_score ELSE NULL END,\n          habitat_score = CASE WHEN mode = ? THEN habitat_score ELSE NULL END,\n          seasonality_score = CASE WHEN mode = ? THEN seasonality_score ELSE NULL END,\n          conditions_score = CASE WHEN mode = ? THEN conditions_score ELSE NULL END,\n          fishability_score = CASE WHEN mode = ? THEN fishability_score ELSE NULL END,\n          model_version = CASE WHEN mode = ? THEN model_version ELSE NULL END,\n          prediction_metadata_json = CASE WHEN mode = ? THEN prediction_metadata_json ELSE NULL END,\n          ended_at = ?, mode = ?, fishing_method = ?, gear = ?,\n          gear_profile_id = ?, rod = ?, reel = ?, bait_lure = ?, rig = ?,\n          angler_count = ?, angler_hours = ?, keeper_count = ?, short_released_count = ?,\n          halibut_encounters = ?, no_catch = ?, other_catch_count = ?, other_species = ?, observations_json = ?,\n          observation_contract_version = ?, taxon_catalog_version = ?, target_taxon_id = ?,\n          contract_status = ?, taxon_observations_json = ?, outcome_class = ?,\n          target_encounter_count = ?, any_fish_encounter_count = ?, target_identification_confidence = ?,\n          notes = ?, consent = 1, consent_at = ?,\n          moderation_status = 'pending', photo_key = ?,\n          photo_content_type = ?, photo_size_bytes = ?, updated_at = ?, completed_at = ?, token_hash = NULL\n        WHERE id = ? AND user_id IS ? AND status = 'active' AND token_hash = ?`",
-      "expressionSha256": "85b2103828f8c8c1dcd44f7d934256afbb8787c33ce77371abe46394f1b91151",
+      "expression": "`UPDATE trips SET\n          status = 'completed',\n          opportunity_window_id = CASE WHEN mode = ? THEN opportunity_window_id ELSE NULL END,\n          opportunity_score = CASE WHEN mode = ? THEN opportunity_score ELSE NULL END,\n          habitat_score = CASE WHEN mode = ? THEN habitat_score ELSE NULL END,\n          seasonality_score = CASE WHEN mode = ? THEN seasonality_score ELSE NULL END,\n          conditions_score = CASE WHEN mode = ? THEN conditions_score ELSE NULL END,\n          fishability_score = CASE WHEN mode = ? THEN fishability_score ELSE NULL END,\n          model_version = CASE WHEN mode = ? THEN model_version ELSE NULL END,\n          prediction_metadata_json = CASE WHEN mode = ? THEN prediction_metadata_json ELSE NULL END,\n          ended_at = ?, mode = ?, fishing_method = ?, gear = ?,\n          gear_profile_id = ?, rod = ?, reel = ?, bait_lure = ?, rig = ?,\n          angler_count = ?, angler_hours = ?, keeper_count = ?, short_released_count = ?,\n          halibut_encounters = ?, no_catch = ?, other_catch_count = ?, other_species = ?, observations_json = ?,\n          observation_contract_version = ?, taxon_catalog_version = ?, target_taxon_id = ?,\n          contract_status = ?, taxon_observations_json = ?, outcome_class = ?,\n          target_encounter_count = ?, any_fish_encounter_count = ?, target_identification_confidence = ?,\n          notes = ?, consent = 1, consent_at = ?,\n          moderation_status = 'pending', photo_key = ?,\n          photo_content_type = ?, photo_size_bytes = ?, updated_at = ?, completed_at = ?, token_hash = NULL\n        WHERE id = ? AND user_id IS ? AND status = 'active' AND token_hash = ?\n          AND (? IS NULL OR EXISTS (\n            SELECT 1 FROM trip_photo_upload_reservations\n            WHERE trip_id = ? AND object_key = ? AND object_key_hash = ? AND state = 'pending'\n          ))`",
+      "expressionSha256": "8f60d0d7fe3d7083324fca5f3010b05be2662e38ba2602a9aaa06cf719ce6f5c",
       "declarationReference": null,
       "statementClass": "UPDATE",
-      "sql": "UPDATE trips SET status = 'completed', opportunity_window_id = CASE WHEN mode = ? THEN opportunity_window_id ELSE NULL END, opportunity_score = CASE WHEN mode = ? THEN opportunity_score ELSE NULL END, habitat_score = CASE WHEN mode = ? THEN habitat_score ELSE NULL END, seasonality_score = CASE WHEN mode = ? THEN seasonality_score ELSE NULL END, conditions_score = CASE WHEN mode = ? THEN conditions_score ELSE NULL END, fishability_score = CASE WHEN mode = ? THEN fishability_score ELSE NULL END, model_version = CASE WHEN mode = ? THEN model_version ELSE NULL END, prediction_metadata_json = CASE WHEN mode = ? THEN prediction_metadata_json ELSE NULL END, ended_at = ?, mode = ?, fishing_method = ?, gear = ?, gear_profile_id = ?, rod = ?, reel = ?, bait_lure = ?, rig = ?, angler_count = ?, angler_hours = ?, keeper_count = ?, short_released_count = ?, halibut_encounters = ?, no_catch = ?, other_catch_count = ?, other_species = ?, observations_json = ?, observation_contract_version = ?, taxon_catalog_version = ?, target_taxon_id = ?, contract_status = ?, taxon_observations_json = ?, outcome_class = ?, target_encounter_count = ?, any_fish_encounter_count = ?, target_identification_confidence = ?, notes = ?, consent = 1, consent_at = ?, moderation_status = 'pending', photo_key = ?, photo_content_type = ?, photo_size_bytes = ?, updated_at = ?, completed_at = ?, token_hash = NULL WHERE id = ? AND user_id IS ? AND status = 'active' AND token_hash = ?",
-      "sqlSha256": "cf95cb31d8f2540b1e90feb6b3220047265f2e98db87b5c4ac5116863ec7f899",
+      "sql": "UPDATE trips SET status = 'completed', opportunity_window_id = CASE WHEN mode = ? THEN opportunity_window_id ELSE NULL END, opportunity_score = CASE WHEN mode = ? THEN opportunity_score ELSE NULL END, habitat_score = CASE WHEN mode = ? THEN habitat_score ELSE NULL END, seasonality_score = CASE WHEN mode = ? THEN seasonality_score ELSE NULL END, conditions_score = CASE WHEN mode = ? THEN conditions_score ELSE NULL END, fishability_score = CASE WHEN mode = ? THEN fishability_score ELSE NULL END, model_version = CASE WHEN mode = ? THEN model_version ELSE NULL END, prediction_metadata_json = CASE WHEN mode = ? THEN prediction_metadata_json ELSE NULL END, ended_at = ?, mode = ?, fishing_method = ?, gear = ?, gear_profile_id = ?, rod = ?, reel = ?, bait_lure = ?, rig = ?, angler_count = ?, angler_hours = ?, keeper_count = ?, short_released_count = ?, halibut_encounters = ?, no_catch = ?, other_catch_count = ?, other_species = ?, observations_json = ?, observation_contract_version = ?, taxon_catalog_version = ?, target_taxon_id = ?, contract_status = ?, taxon_observations_json = ?, outcome_class = ?, target_encounter_count = ?, any_fish_encounter_count = ?, target_identification_confidence = ?, notes = ?, consent = 1, consent_at = ?, moderation_status = 'pending', photo_key = ?, photo_content_type = ?, photo_size_bytes = ?, updated_at = ?, completed_at = ?, token_hash = NULL WHERE id = ? AND user_id IS ? AND status = 'active' AND token_hash = ? AND (? IS NULL OR EXISTS ( SELECT 1 FROM trip_photo_upload_reservations WHERE trip_id = ? AND object_key = ? AND object_key_hash = ? AND state = 'pending' ))",
+      "sqlSha256": "1d24bde435e8115ffa01dcb7dfe67ef526d05fe90d639f84683eab558ed875ca",
       "tables": [
+        "trip_photo_upload_reservations",
         "trips"
       ],
-      "placeholderCount": 45,
+      "placeholderCount": 49,
       "hasWhere": true,
       "hasOrderBy": false,
       "hasLimit": false
     },
     {
-      "callSiteId": "fb07b112f51d88eb30db4995",
+      "callSiteId": "b66e88fd6adbcbf3e0ff3e90",
       "file": "worker/trips.ts",
-      "line": 1857,
+      "line": 1946,
+      "containingFunction": "completeTrip",
+      "occurrence": 25,
+      "executionMode": "prepared-statement",
+      "argumentKind": "literal",
+      "expression": "`DELETE FROM trip_photo_upload_reservations\n          WHERE trip_id = ? AND object_key = ? AND object_key_hash = ? AND state = 'pending'\n            AND EXISTS (SELECT 1 FROM trips\n              WHERE id = ? AND user_id IS ? AND status = 'completed' AND photo_key = ?\n                AND updated_at = ?)`",
+      "expressionSha256": "bfec92c005bc17ac982cfbcad18d96b841a0ede049fca1d1b2d462956988df58",
+      "declarationReference": null,
+      "statementClass": "DELETE",
+      "sql": "DELETE FROM trip_photo_upload_reservations WHERE trip_id = ? AND object_key = ? AND object_key_hash = ? AND state = 'pending' AND EXISTS (SELECT 1 FROM trips WHERE id = ? AND user_id IS ? AND status = 'completed' AND photo_key = ? AND updated_at = ?)",
+      "sqlSha256": "03e52434d2d27d0ece8d949d1c15df08b0e30111a17b503a2e68ae86aba791b6",
+      "tables": [
+        "trip_photo_upload_reservations",
+        "trips"
+      ],
+      "placeholderCount": 7,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": false
+    },
+    {
+      "callSiteId": "50116ec474dcf4a15890805d",
+      "file": "worker/trips.ts",
+      "line": 1998,
       "containingFunction": "cancelTrip",
-      "occurrence": 19,
+      "occurrence": 26,
       "executionMode": "prepared-statement",
       "argumentKind": "literal",
       "expression": "`UPDATE trips SET token_hash = NULL, updated_at = ?\n        WHERE id = ? AND user_id IS ? AND status = 'active' AND token_hash = ?`",
@@ -5195,11 +5354,11 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "b2a924f0ff40bdee789c0b05",
+      "callSiteId": "0b62d174b1c551cf26964f0e",
       "file": "worker/trips.ts",
-      "line": 1872,
+      "line": 2013,
       "containingFunction": "cancelTrip",
-      "occurrence": 20,
+      "occurrence": 27,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "`SELECT 1 AS confirmed FROM trips\n        WHERE id = ? AND user_id IS ? AND source = 'live' AND status = 'active'\n          AND idempotency_key_hash = ? AND token_hash IS NULL AND updated_at = ?\n        LIMIT 1`",
@@ -5217,11 +5376,11 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "6683c8037c1f11baf0bb3543",
+      "callSiteId": "ebe06d74d2cf86414317cc2e",
       "file": "worker/trips.ts",
-      "line": 1883,
+      "line": 2024,
       "containingFunction": "getSummary",
-      "occurrence": 21,
+      "occurrence": 28,
       "executionMode": "first",
       "argumentKind": "literal",
       "expression": "`SELECT\n          COUNT(*) AS completed_trips,\n          COALESCE(SUM(CASE WHEN no_catch = 1 THEN 1 ELSE 0 END), 0) AS no_catch_trips,\n          COALESCE(SUM(CASE WHEN halibut_encounters > 0 THEN 1 ELSE 0 END), 0) AS halibut_trips,\n          COALESCE(SUM(angler_hours), 0) AS angler_hours,\n          COALESCE(SUM(halibut_encounters), 0) AS halibut_encounters,\n          COUNT(DISTINCT site_id) AS sites_covered,\n          MAX(updated_at) AS last_updated,\n          COALESCE(SUM(CASE WHEN completed_at >= ? THEN 1 ELSE 0 END), 0) AS recent_completed_trips,\n          COALESCE(SUM(CASE WHEN completed_at >= ? THEN angler_hours ELSE 0 END), 0) AS recent_angler_hours,\n          COALESCE(SUM(CASE WHEN completed_at >= ? THEN halibut_encounters ELSE 0 END), 0) AS recent_halibut_encounters,\n          COUNT(DISTINCT CASE WHEN completed_at >= ? THEN site_id END) AS recent_sites_covered\n        FROM trips\n        WHERE status = 'completed' AND consent = 1 AND moderation_status != 'rejected'\n          AND contract_status = 'valid' AND observation_contract_version = ?\n          AND taxon_catalog_version = ? AND target_taxon_id = ?`",
@@ -5239,18 +5398,238 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "5d6482d01b5491782d1566b1",
+      "callSiteId": "a0f63758ec62083b28a1c934",
       "file": "worker/trips.ts",
-      "line": 1944,
+      "line": 2102,
+      "containingFunction": "processTripPhotoUploadReservations",
+      "occurrence": 29,
+      "executionMode": "all",
+      "argumentKind": "literal",
+      "expression": "`SELECT id, trip_id, object_key, object_key_hash, state,\n      attempts, available_at, lease_expires_at, lease_token, created_at\n    FROM trip_photo_upload_reservations\n    WHERE (state = 'pending' AND available_at <= ?)\n      OR (state = 'leased' AND (lease_expires_at IS NULL OR lease_expires_at <= ?))\n    ORDER BY available_at, created_at LIMIT 50`",
+      "expressionSha256": "3f10cd5e42064abdaadb21bbe9d96362a0890a5cfe6394398e781245e901de58",
+      "declarationReference": null,
+      "statementClass": "SELECT",
+      "sql": "SELECT id, trip_id, object_key, object_key_hash, state, attempts, available_at, lease_expires_at, lease_token, created_at FROM trip_photo_upload_reservations WHERE (state = 'pending' AND available_at <= ?) OR (state = 'leased' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)) ORDER BY available_at, created_at LIMIT 50",
+      "sqlSha256": "c7dbdfa53682faf17a9098089a87bea8cec21d00ed74331a21a2008e2ca135c4",
+      "tables": [
+        "trip_photo_upload_reservations"
+      ],
+      "placeholderCount": 2,
+      "hasWhere": true,
+      "hasOrderBy": true,
+      "hasLimit": true
+    },
+    {
+      "callSiteId": "f82ae6230b77ea4b2dc6d6bc",
+      "file": "worker/trips.ts",
+      "line": 2114,
+      "containingFunction": "processTripPhotoUploadReservations",
+      "occurrence": 30,
+      "executionMode": "run",
+      "argumentKind": "literal",
+      "expression": "`UPDATE trip_photo_upload_reservations\n        SET state = 'needs_attention', lease_expires_at = NULL, lease_token = NULL,\n          last_error_code = 'photo_cleanup_attempts_exhausted', updated_at = ?\n        WHERE id = ? AND state != 'needs_attention' AND attempts >= ?\n          AND (lease_expires_at IS NULL OR lease_expires_at <= ?)`",
+      "expressionSha256": "1c0fd6b475f69a939ec78ddbc85feec54d8eff0d5f26871b31005d9387064715",
+      "declarationReference": null,
+      "statementClass": "UPDATE",
+      "sql": "UPDATE trip_photo_upload_reservations SET state = 'needs_attention', lease_expires_at = NULL, lease_token = NULL, last_error_code = 'photo_cleanup_attempts_exhausted', updated_at = ? WHERE id = ? AND state != 'needs_attention' AND attempts >= ? AND (lease_expires_at IS NULL OR lease_expires_at <= ?)",
+      "sqlSha256": "5862d55261c07a2191352135740c40a0445cd1e1dca63895eeb0469c6af0f7be",
+      "tables": [
+        "trip_photo_upload_reservations"
+      ],
+      "placeholderCount": 4,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": false
+    },
+    {
+      "callSiteId": "836a7178f54621e8a5aafc3a",
+      "file": "worker/trips.ts",
+      "line": 2127,
+      "containingFunction": "processTripPhotoUploadReservations",
+      "occurrence": 31,
+      "executionMode": "run",
+      "argumentKind": "literal",
+      "expression": "`UPDATE trip_photo_upload_reservations\n        SET state = 'leased', attempts = attempts + 1, lease_expires_at = ?, lease_token = ?,\n          last_error_code = NULL, updated_at = ?\n        WHERE id = ? AND attempts = ?\n          AND ((state = 'pending' AND available_at <= ?)\n            OR (state = 'leased' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))`",
+      "expressionSha256": "bf3b040e3c2ec878901739246a4fc77913ac94924d2080d0b93da84c8c43d304",
+      "declarationReference": null,
+      "statementClass": "UPDATE",
+      "sql": "UPDATE trip_photo_upload_reservations SET state = 'leased', attempts = attempts + 1, lease_expires_at = ?, lease_token = ?, last_error_code = NULL, updated_at = ? WHERE id = ? AND attempts = ? AND ((state = 'pending' AND available_at <= ?) OR (state = 'leased' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))",
+      "sqlSha256": "d2cbb5f82b6228805d3e015b82a51520b9e3e04038c9e71c4853bc0774eed83f",
+      "tables": [
+        "trip_photo_upload_reservations"
+      ],
+      "placeholderCount": 7,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": false
+    },
+    {
+      "callSiteId": "76e1da26a46c2d1a74349c09",
+      "file": "worker/trips.ts",
+      "line": 2146,
+      "containingFunction": "processTripPhotoUploadReservations",
+      "occurrence": 32,
+      "executionMode": "first",
+      "argumentKind": "literal",
+      "expression": "`SELECT id, trip_id, object_key, object_key_hash, state,\n        attempts, available_at, lease_expires_at, lease_token, created_at\n      FROM trip_photo_upload_reservations\n      WHERE id = ? AND trip_id = ? AND object_key = ? AND object_key_hash = ?\n        AND state = 'leased' AND attempts = ? AND lease_expires_at = ? AND lease_token = ?\n      LIMIT 1`",
+      "expressionSha256": "baf06c485e53ad2b551a4e0410747b3dfc3d94222954fc180214261cae93f8bb",
+      "declarationReference": null,
+      "statementClass": "SELECT",
+      "sql": "SELECT id, trip_id, object_key, object_key_hash, state, attempts, available_at, lease_expires_at, lease_token, created_at FROM trip_photo_upload_reservations WHERE id = ? AND trip_id = ? AND object_key = ? AND object_key_hash = ? AND state = 'leased' AND attempts = ? AND lease_expires_at = ? AND lease_token = ? LIMIT 1",
+      "sqlSha256": "1817cba253f3244a842641dbc03bb6100acae8cfb929a7ce86e15121cb8fdc78",
+      "tables": [
+        "trip_photo_upload_reservations"
+      ],
+      "placeholderCount": 7,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": true
+    },
+    {
+      "callSiteId": "43d1a3c7b74a8427b0fe03f1",
+      "file": "worker/trips.ts",
+      "line": 2167,
+      "containingFunction": "processTripPhotoUploadReservations",
+      "occurrence": 33,
+      "executionMode": "run",
+      "argumentKind": "literal",
+      "expression": "`UPDATE trip_photo_upload_reservations\n          SET state = 'needs_attention', lease_expires_at = NULL, lease_token = NULL,\n            last_error_code = 'photo_locator_hash_mismatch', updated_at = ?\n          WHERE id = ? AND state = 'leased' AND lease_token = ?`",
+      "expressionSha256": "5fa326d3716a71e955230185daf3332a00b5aba73e34af626c6bed635a20ccee",
+      "declarationReference": null,
+      "statementClass": "UPDATE",
+      "sql": "UPDATE trip_photo_upload_reservations SET state = 'needs_attention', lease_expires_at = NULL, lease_token = NULL, last_error_code = 'photo_locator_hash_mismatch', updated_at = ? WHERE id = ? AND state = 'leased' AND lease_token = ?",
+      "sqlSha256": "df9239dad3da2056e5d9c09de5c9bbb3cf385579d6446fb5c76e1071f40c271c",
+      "tables": [
+        "trip_photo_upload_reservations"
+      ],
+      "placeholderCount": 3,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": false
+    },
+    {
+      "callSiteId": "b5376a2a5ce887b39964fa14",
+      "file": "worker/trips.ts",
+      "line": 2176,
+      "containingFunction": "processTripPhotoUploadReservations",
+      "occurrence": 34,
+      "executionMode": "first",
+      "argumentKind": "literal",
+      "expression": "`SELECT 1 AS attached FROM trips\n        WHERE id = ? AND photo_key = ? LIMIT 1`",
+      "expressionSha256": "ff96825475f9cdb2d9a9a14cc629be6b9be5bc9b3c0b15ad5ecb5276c203bce8",
+      "declarationReference": null,
+      "statementClass": "SELECT",
+      "sql": "SELECT 1 AS attached FROM trips WHERE id = ? AND photo_key = ? LIMIT 1",
+      "sqlSha256": "5e4c30634c92aff05cf9637844bcddd964093b3fcf2794ee3a9db8067dbfab71",
+      "tables": [
+        "trips"
+      ],
+      "placeholderCount": 2,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": true
+    },
+    {
+      "callSiteId": "ed98aa2a4dbc2c29644ec9a3",
+      "file": "worker/trips.ts",
+      "line": 2182,
+      "containingFunction": "processTripPhotoUploadReservations",
+      "occurrence": 35,
+      "executionMode": "run",
+      "argumentKind": "literal",
+      "expression": "`UPDATE trip_photo_upload_reservations\n            SET state = 'needs_attention', lease_expires_at = NULL, lease_token = NULL,\n              last_error_code = 'photo_storage_unavailable', updated_at = ?\n            WHERE id = ? AND state = 'leased' AND lease_token = ?`",
+      "expressionSha256": "6ed4a23d6e849a9023704673d31221608cc72e39eee00f811c9819e1f6dd1e6b",
+      "declarationReference": null,
+      "statementClass": "UPDATE",
+      "sql": "UPDATE trip_photo_upload_reservations SET state = 'needs_attention', lease_expires_at = NULL, lease_token = NULL, last_error_code = 'photo_storage_unavailable', updated_at = ? WHERE id = ? AND state = 'leased' AND lease_token = ?",
+      "sqlSha256": "d569fdba98dabb6a317571725dce693f6e8f078e86db4d9e165f0bb3734129fc",
+      "tables": [
+        "trip_photo_upload_reservations"
+      ],
+      "placeholderCount": 3,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": false
+    },
+    {
+      "callSiteId": "5d35e27b8d2ea0490afa7540",
+      "file": "worker/trips.ts",
+      "line": 2194,
+      "containingFunction": "processTripPhotoUploadReservations",
+      "occurrence": 36,
+      "executionMode": "run",
+      "argumentKind": "literal",
+      "expression": "`DELETE FROM trip_photo_upload_reservations\n          WHERE id = ? AND trip_id = ? AND object_key = ? AND object_key_hash = ?\n            AND state = 'leased' AND attempts = ? AND lease_expires_at = ? AND lease_token = ?`",
+      "expressionSha256": "e5fa54ead636642d44b4b5126ecbd706c391672fff09408f39dd273f7edaa002",
+      "declarationReference": null,
+      "statementClass": "DELETE",
+      "sql": "DELETE FROM trip_photo_upload_reservations WHERE id = ? AND trip_id = ? AND object_key = ? AND object_key_hash = ? AND state = 'leased' AND attempts = ? AND lease_expires_at = ? AND lease_token = ?",
+      "sqlSha256": "7069821f340cc954c8e8d4474b0df2873dc6cab89c9452e978149be47549b52c",
+      "tables": [
+        "trip_photo_upload_reservations"
+      ],
+      "placeholderCount": 7,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": false
+    },
+    {
+      "callSiteId": "7e67fd8581cde888aefb77ad",
+      "file": "worker/trips.ts",
+      "line": 2210,
+      "containingFunction": "processTripPhotoUploadReservations",
+      "occurrence": 37,
+      "executionMode": "first",
+      "argumentKind": "literal",
+      "expression": "`SELECT id FROM trip_photo_upload_reservations\n        WHERE id = ? AND trip_id = ? AND object_key = ? AND object_key_hash = ? LIMIT 1`",
+      "expressionSha256": "d9d9569274453c66f8329f61e6056e28110de6d9d8f9413985dc29675f117300",
+      "declarationReference": null,
+      "statementClass": "SELECT",
+      "sql": "SELECT id FROM trip_photo_upload_reservations WHERE id = ? AND trip_id = ? AND object_key = ? AND object_key_hash = ? LIMIT 1",
+      "sqlSha256": "1190244ff3e536250defd4bd6880245bf01b8b787fb2f0b6edade6c38cf582bb",
+      "tables": [
+        "trip_photo_upload_reservations"
+      ],
+      "placeholderCount": 4,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": true
+    },
+    {
+      "callSiteId": "d35b6e1952981b4c9a333c68",
+      "file": "worker/trips.ts",
+      "line": 2221,
+      "containingFunction": "processTripPhotoUploadReservations",
+      "occurrence": 38,
+      "executionMode": "run",
+      "argumentKind": "literal",
+      "expression": "`UPDATE trip_photo_upload_reservations\n        SET state = CASE WHEN attempts >= ? THEN 'needs_attention' ELSE 'pending' END,\n          available_at = ?, lease_expires_at = NULL, lease_token = NULL,\n          last_error_code = 'photo_cleanup_failed', updated_at = ?\n        WHERE id = ? AND state = 'leased' AND lease_token = ?`",
+      "expressionSha256": "8d2a19be76bf8588533489fc0386092b013b5d05d4bc0b804046de7345c9402b",
+      "declarationReference": null,
+      "statementClass": "UPDATE",
+      "sql": "UPDATE trip_photo_upload_reservations SET state = CASE WHEN attempts >= ? THEN 'needs_attention' ELSE 'pending' END, available_at = ?, lease_expires_at = NULL, lease_token = NULL, last_error_code = 'photo_cleanup_failed', updated_at = ? WHERE id = ? AND state = 'leased' AND lease_token = ?",
+      "sqlSha256": "87f737b632fa39099290ceba3018461be98d08a9bfe54a4e0e836e0a8ed0ad5b",
+      "tables": [
+        "trip_photo_upload_reservations"
+      ],
+      "placeholderCount": 5,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": false
+    },
+    {
+      "callSiteId": "c6e0825e5973610ed3f2a510",
+      "file": "worker/trips.ts",
+      "line": 2234,
       "containingFunction": "prepareForecastImpressionInsert",
-      "occurrence": 22,
+      "occurrence": 39,
       "executionMode": "returned-statement",
       "argumentKind": "reviewed-nonliteral",
       "expression": "INSERT_FORECAST_IMPRESSION_SQL",
       "expressionSha256": "6a41d4d7c954377901e9fdca7500c2a3f4f86cf5dd3c001467a54098aae4264e",
       "declarationReference": {
         "name": "INSERT_FORECAST_IMPRESSION_SQL",
-        "declarationLine": 1233,
+        "declarationLine": 1278,
         "initializerSha256": "a3fe715a5989a64a0462ad049204c82ab28758a04c2308661e79266b08034716"
       },
       "statementClass": "UNRESOLVED",
@@ -5263,18 +5642,18 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "cc9e0e196a924acfe833490a",
+      "callSiteId": "945a5549ffb85a8406b17b1d",
       "file": "worker/trips.ts",
-      "line": 2032,
+      "line": 2322,
       "containingFunction": "prepareValidationProvenanceInsert",
-      "occurrence": 23,
+      "occurrence": 40,
       "executionMode": "returned-statement",
       "argumentKind": "reviewed-nonliteral",
       "expression": "INSERT_VALIDATION_PROVENANCE_SQL",
       "expressionSha256": "f3104c843d944b95799af1a8c17b1898764478361956507abd1b6f5d09830162",
       "declarationReference": {
         "name": "INSERT_VALIDATION_PROVENANCE_SQL",
-        "declarationLine": 1260,
+        "declarationLine": 1305,
         "initializerSha256": "adefb9aaf915ce64a3884e057ae34fa209bd1f672c9a858582b03eb98cb93b84"
       },
       "statementClass": "UNRESOLVED",
@@ -5287,18 +5666,18 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "1905dec3d2728775ea1435be",
+      "callSiteId": "06db3e987dc216622c025dde",
       "file": "worker/trips.ts",
-      "line": 2078,
+      "line": 2368,
       "containingFunction": "prepareFeasibilityEventInsert",
-      "occurrence": 24,
+      "occurrence": 41,
       "executionMode": "returned-statement",
       "argumentKind": "reviewed-nonliteral",
       "expression": "INSERT_FEASIBILITY_EVENT_SQL",
       "expressionSha256": "9fc9d0e4184ac21095ecef76483c6b724485615bd624ed0bf9499811a03316a5",
       "declarationReference": {
         "name": "INSERT_FEASIBILITY_EVENT_SQL",
-        "declarationLine": 1277,
+        "declarationLine": 1322,
         "initializerSha256": "996c8c189db04bfec574b19433a9a5f75cb9fbe53d6af6ed91e31af7192aabce"
       },
       "statementClass": "UNRESOLVED",
@@ -5311,18 +5690,18 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "d05421f36bd49d78dd1b2a6c",
+      "callSiteId": "e6c28ddd4a6be59f84f2e6ee",
       "file": "worker/trips.ts",
-      "line": 2085,
+      "line": 2375,
       "containingFunction": "prepareFeasibilityRecruitmentInsert",
-      "occurrence": 25,
+      "occurrence": 42,
       "executionMode": "returned-statement",
       "argumentKind": "reviewed-nonliteral",
       "expression": "INSERT_FEASIBILITY_RECRUITMENT_SQL",
       "expressionSha256": "1f8b71cbc1d3dd64fabcedc99fb6d2089a62bc9346314ebb8b6fd356425e175a",
       "declarationReference": {
         "name": "INSERT_FEASIBILITY_RECRUITMENT_SQL",
-        "declarationLine": 1288,
+        "declarationLine": 1333,
         "initializerSha256": "baebc33411d1e71fde44c4e25b4fb900bc4d11c4336f3ecdb0ff2201633eeae0"
       },
       "statementClass": "UNRESOLVED",
@@ -5335,11 +5714,11 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "57885fee5b616015bc677b78",
+      "callSiteId": "b292d0770fe9d65b7f9f30ce",
       "file": "worker/trips.ts",
-      "line": 2115,
+      "line": 2405,
       "containingFunction": "prepareConditionalFeasibilityEventInsert",
-      "occurrence": 26,
+      "occurrence": 43,
       "executionMode": "returned-statement",
       "argumentKind": "reviewed-nonliteral",
       "expression": "`INSERT INTO validation_feasibility_events (\n      ${FEASIBILITY_EVENT_COLUMNS.join(\", \")}\n    ) SELECT ${bindings.map(() => \"?\").join(\", \")}\n    WHERE EXISTS (\n      SELECT 1 FROM trips WHERE id = ? AND token_hash IS NULL AND ${completedCondition}\n    )`",
@@ -5355,11 +5734,11 @@
       "hasLimit": null
     },
     {
-      "callSiteId": "bf20f173d30abf8495e0af9f",
+      "callSiteId": "4b2931a62bc4a75c5b2512e2",
       "file": "worker/trips.ts",
-      "line": 2129,
+      "line": 2419,
       "containingFunction": "prepareConditionalCompletionProvenanceInsert",
-      "occurrence": 27,
+      "occurrence": 44,
       "executionMode": "returned-statement",
       "argumentKind": "reviewed-nonliteral",
       "expression": "`INSERT INTO trip_validation_provenance (\n      ${VALIDATION_PROVENANCE_COLUMNS.join(\", \")}\n    ) SELECT ${placeholders}\n    WHERE EXISTS (\n      SELECT 1 FROM trips WHERE id = ? AND status = 'completed'\n        AND token_hash IS NULL AND completed_at = ?\n    )`",

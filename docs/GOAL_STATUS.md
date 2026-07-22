@@ -40,6 +40,35 @@ by that discovery.
       commit. Their branches, comments, commits, and hosted evidence remain preserved for audit
       and rollback reference; `#146` is now the repository's only open PR and remains a draft.
 
+## Active checkpoint — durable trip-photo pre-upload reservations
+
+- [x] Continue the database-authority audit through the dormant private photo path. A processed
+      image was written to R2 before D1 attachment, but a failed attachment-reconciliation read
+      retained the object without persisting its candidate locator anywhere. Production was not
+      exposed because the server-side upload gate remains off.
+- [x] Add additive migration `0020_trip_photo_upload_reservations.sql` and make its D1 row an
+      exact prerequisite for every future R2 write. The ledger stores a typed locator hash and
+      bounded retry/lease state; a failed reservation read performs no object-store call.
+- [x] Add scheduled, lease-owned reconciliation. An exact trip/photo match preserves the object
+      and removes only the reservation; an unattached object is deleted idempotently before the
+      reservation can disappear. Locator-hash mismatch and unavailable storage fail closed to
+      `needs_attention`, while retryable failure retains the locator. Trip attachment and cleanup
+      claim repeat the same pending-state predicate in atomic D1 batches, so whichever commits
+      first owns the object and the other path cannot cross that decision.
+- [x] Force a lost committed reservation response, a lost terminal D1 response for an attached
+      object, a transient R2 deletion failure, and a tampered locator hash. Exact receipts resolve
+      both lost responses, attached bytes remain, the orphan is later deleted, and the tampered
+      case makes zero R2 calls. The source-bound inventory now covers 261 prepare sites: 234
+      literal, 27 reviewed nonliteral, and 12 reviewed multi-row reads.
+- [x] Pass the pinned Cloudflare build, ESLint, TypeScript, all 597/597 repository Node tests,
+      the complete offline security/SBOM/source-integrity chain, both zero-vulnerability npm
+      audits, Ruff, 29/29 API tests, 82 passed pipeline tests with one documented optional-`rasterio`
+      skip, the deterministic synthetic smoke, 20 migrations / 24 critical indexed D1 plans,
+      and the full 200/200 Chromium/WebKit phone matrix. The separate serialized account-deletion
+      fence, production migration/bindings/alerts/drills, and explicit upload activation remain
+      open; no push, PR, merge, deployment, provider query, D1/R2 production mutation, model
+      change, UI change, or upload enablement belongs to this checkpoint.
+
 ## Active checkpoint — lease-owned direct advisory review
 
 - [x] Continue the database-authority audit through the default-off direct advisory-review path.

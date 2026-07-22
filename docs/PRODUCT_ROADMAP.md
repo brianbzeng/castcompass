@@ -221,6 +221,14 @@ after its acceptance checks pass in the intended environment.
       bounded output schema without type coercion or prose wrapping, redacts failure logs, and
       still cannot create a public post. Production edge evidence and authorized staging
       penetration testing remain open.
+    - [x] Make every future private trip-photo object discoverable before R2. The default-off
+      upload path commits and exactly reads back a typed locator reservation before the object
+      write; exact attachment removes it, while ambiguous provider/database outcomes remain in a
+      leased, bounded scheduled reconciler. Atomic pending-state predicates serialize attachment
+      against cleanup ownership. Reconciliation preserves an attached object, deletes only an
+      unattached object, and makes zero R2 calls on a locator-hash mismatch. Migration
+      `0020`, production alerts/drills, and the separate serialized account-deletion fence remain
+      required before enabling uploads.
   - [ ] Verify endpoint-specific rate limits and abuse ceilings for login, recovery, signup,
     uploads, exports, deletion, reports, and AI routes. Adopt length-based password rules that
     allow password managers/passphrases, block breached/common passwords using a privacy-safe

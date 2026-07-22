@@ -2,7 +2,7 @@
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 import sites from "../public/data/sites.json";
-import { handleTripRequest, type TripApiEnv } from "./trips";
+import { handleTripRequest, processTripPhotoUploadReservations, type TripApiEnv } from "./trips";
 import { cleanupAuthData, getAuthenticatedUser, handleAccountRequest, legalAcceptanceRequiredResponse, unauthorizedResponse } from "./auth";
 import {
   AI_REVIEW_QUEUE_MESSAGE_VERSION,
@@ -91,6 +91,7 @@ const worker = {
   async scheduled(_controller: unknown, env: Env, ctx: ExecutionContext) {
     if (releaseMaintenanceEnabled(env)) return;
     ctx.waitUntil(observeScheduledTask(env, "trip_review_backlog", () => dispatchAiReviewBacklog(env, sites)));
+    ctx.waitUntil(observeScheduledTask(env, "trip_photo_reservations", () => processTripPhotoUploadReservations(env)));
     ctx.waitUntil(observeScheduledTask(env, "privacy_export_backlog", () => dispatchPrivacyExportBacklog(env)));
     ctx.waitUntil(observeScheduledTask(env, "auth_data_cleanup", () => cleanupAuthData(env)));
   },

@@ -56,13 +56,13 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
   validatePolicy(policy, inventory);
   assert.deepEqual(JSON.parse(committed), inventory);
   assert.deepEqual(inventory.summary, {
-    prepareCallCount: 244,
-    literalCallCount: 218,
-    nonLiteralCallCount: 26,
+    prepareCallCount: 261,
+    literalCallCount: 234,
+    nonLiteralCallCount: 27,
     multiRowLiteralWithoutLimitCount: 12,
   });
   assert.equal(inventory.sourceFiles.length, 8);
-  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 244);
+  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 261);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "open-account-cardinality").length, 0);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "complete-rights-export").length, 9);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "owner-lifecycle-cleanup").length, 3);
@@ -143,9 +143,11 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
     executionMode === "prepared-statement"
       && statementClass === "UPDATE"
       && /UPDATE trips SET/u.test(sql ?? "")
-      && /WHERE id = \? AND user_id IS \? AND status = 'active' AND token_hash = \?$/u.test(sql ?? ""));
+      && /WHERE id = \? AND user_id IS \? AND status = 'active' AND token_hash = \?/u.test(sql ?? ""));
   assert.equal(terminalTripWrites.length, 2);
-  assert.ok(terminalTripWrites.some(({ sql }) => /status = 'completed'/u.test(sql ?? "")));
+  assert.ok(terminalTripWrites.some(({ sql }) => /status = 'completed'/u.test(sql ?? "")
+    && /EXISTS \( SELECT 1 FROM trip_photo_upload_reservations/u.test(sql ?? "")
+    && /object_key_hash = \? AND state = 'pending'/u.test(sql ?? "")));
   assert.ok(terminalTripWrites.some(({ sql }) =>
     sql === "UPDATE trips SET token_hash = NULL, updated_at = ? WHERE id = ? AND user_id IS ? AND status = 'active' AND token_hash = ?"));
 

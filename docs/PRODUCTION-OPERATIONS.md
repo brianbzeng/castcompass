@@ -284,6 +284,9 @@ prove that the object is either attached to a live trip or durably queued for cl
       private R2 binding; postflight verified its empty ledger, five indexes, and deletion-task
       storage class. The production flag and bindings remain off until the separate export
       activation drill passes.
+- [ ] Migration `0020_trip_photo_upload_reservations.sql` completed before trip-photo uploads are
+      activated; postflight verified the empty reservation table and four indexes. Alert on every
+      `needs_attention` row before the upload gate can be enabled.
 - [ ] Privacy pre/postflight counts match; the missing-age and legal-reacceptance cohorts have
       an explicit support decision, while export and account deletion remain available.
 - [ ] Canonical, redirect-alias, and `workers.dev` smoke checks passed.

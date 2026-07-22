@@ -502,6 +502,7 @@ export function verifyReleaseArtifacts({ outputDirectory, commitSha, repository 
     `${RELEASE_PREFIX}/dist/client/sitemap.xml`,
     `${RELEASE_PREFIX}/drizzle/0018_ai_review_queue.sql`,
     `${RELEASE_PREFIX}/drizzle/0019_async_privacy_exports.sql`,
+    `${RELEASE_PREFIX}/drizzle/0020_trip_photo_upload_reservations.sql`,
     `${RELEASE_PREFIX}/contracts/ai-review-queue-message.schema.json`,
     `${RELEASE_PREFIX}/contracts/key-custody-evidence-manifest.schema.json`,
     `${RELEASE_PREFIX}/contracts/key-custody-independent-review.schema.json`,

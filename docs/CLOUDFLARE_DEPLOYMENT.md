@@ -144,18 +144,21 @@ Photo uploads are blocked by the Worker even if a client submits a multipart `ph
 storage bindings exist. Keep that fail-closed gate in place until all of these release blockers
 are complete:
 
-1. Implement and test a database deletion fence or equivalent stable-inventory protocol so a
+1. Apply `0020_trip_photo_upload_reservations.sql`, verify its empty postflight state and four
+   indexes, and monitor aged `pending`, expired `leased`, and every `needs_attention` row without
+   logging locators. The checked-in fault-injection tests must stay green.
+2. Implement and test a database deletion fence or equivalent stable-inventory protocol so a
    photo write cannot commit after account deletion inventories object locators. The current
    pre-inventory flow is safe only because uploads are disabled.
-2. Bound each cleanup invocation below the deployed Cloudflare plan's D1-query and subrequest
+3. Bound each cleanup invocation below the deployed Cloudflare plan's D1-query and subrequest
    budgets, or capture reviewed evidence that the selected plan safely covers the worst case.
-3. Enable R2 and Cloudflare Images in the Cloudflare dashboard and create a private bucket such
+4. Enable R2 and Cloudflare Images in the Cloudflare dashboard and create a private bucket such
    as `contourcast-trip-photos`.
-4. Add the private bucket to `wrangler.jsonc` with binding `TRIP_PHOTOS`, add the Cloudflare
+5. Add the private bucket to `wrangler.jsonc` with binding `TRIP_PHOTOS`, add the Cloudflare
    Images binding expected by `worker/index.ts`, and verify the exact bucket identity.
-5. Pass the object-inventory, retry-alerting, export, deletion, orphan-upload cleanup, and R2
+6. Pass the object-inventory, retry-alerting, export, deletion, orphan-upload cleanup, and R2
    restore/deletion drills in [Privacy durability](PRIVACY-DURABILITY.md).
-6. In one reviewed release, set `TRIP_PHOTO_UPLOADS_ENABLED=true` and change
+7. In one reviewed release, set `TRIP_PHOTO_UPLOADS_ENABLED=true` and change
    `build:cloudflare` to set `NEXT_PUBLIC_PHOTO_UPLOADS=true`; rebuild, test, and deploy.
 
 Raw notes and photos have no public read endpoint. Trip summaries expose totals

@@ -76,6 +76,7 @@ test("locked production change policy is canonical and covers every release phas
     "migrate:0017_trip_idempotency.sql",
     "migrate:0018_ai_review_queue.sql",
     "migrate:0019_async_privacy_exports.sql",
+    "migrate:0020_trip_photo_upload_reservations.sql",
     "deploy:normal",
   ]);
   const weakened = structuredClone(policy);

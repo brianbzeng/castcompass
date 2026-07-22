@@ -211,6 +211,16 @@ CHECKS = (
         ("privacy_deletion_tasks_store_retry_idx",),
     ),
     PlanCheck(
+        "trip photo reservation reconciliation",
+        """SELECT id FROM trip_photo_upload_reservations
+           WHERE (state = 'pending' AND available_at <= ?)
+              OR (state = 'leased' AND (lease_expires_at IS NULL OR lease_expires_at <= ?))
+           ORDER BY available_at, created_at LIMIT ?""",
+        ("2026-07-17T00:00:00.000Z", "2026-07-17T00:00:00.000Z", 50),
+        ("trip_photo_upload_reservations_retry_idx",),
+        reject_temporary_sort=False,
+    ),
+    PlanCheck(
         "active-trip abuse ceiling",
         """SELECT COUNT(*) FROM trips
            WHERE reporter_key_hash = ? AND status = 'active' AND created_at >= ?""",
@@ -258,8 +268,8 @@ CHECKS = (
 
 def apply_migrations(connection: sqlite3.Connection) -> list[Path]:
     migrations = sorted(MIGRATIONS.glob("*.sql"))
-    if not migrations or migrations[-1].name != "0019_async_privacy_exports.sql":
-        raise AssertionError("0019_async_privacy_exports.sql must be the latest D1 migration")
+    if not migrations or migrations[-1].name != "0020_trip_photo_upload_reservations.sql":
+        raise AssertionError("0020_trip_photo_upload_reservations.sql must be the latest D1 migration")
     connection.execute("PRAGMA foreign_keys = ON")
     for path in migrations:
         sql = path.read_text(encoding="utf-8").replace("--> statement-breakpoint", "")

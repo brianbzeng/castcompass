@@ -110,6 +110,18 @@ SELECT
     )
   ) AS privacy_export_queue_indexes,
   (SELECT COUNT(*) FROM privacy_export_jobs) AS privacy_export_queue_rows,
+  (SELECT COUNT(*) FROM sqlite_master
+    WHERE type = 'table' AND name = 'trip_photo_upload_reservations'
+  ) AS trip_photo_reservation_tables,
+  (SELECT COUNT(*) FROM sqlite_master
+    WHERE type = 'index' AND name IN (
+      'trip_photo_upload_reservations_object_key_unique',
+      'trip_photo_upload_reservations_object_key_hash_unique',
+      'trip_photo_upload_reservations_retry_idx',
+      'trip_photo_upload_reservations_trip_idx'
+    )
+  ) AS trip_photo_reservation_indexes,
+  (SELECT COUNT(*) FROM trip_photo_upload_reservations) AS trip_photo_reservation_rows,
   (SELECT COUNT(*) FROM users) AS users,
   (SELECT COUNT(*) FROM users WHERE age_eligibility_confirmed_at IS NULL) AS users_missing_age_eligibility,
   (SELECT COUNT(*) FROM users

@@ -32,6 +32,7 @@ const MIGRATIONS = [
   "0017_trip_idempotency.sql",
   "0018_ai_review_queue.sql",
   "0019_async_privacy_exports.sql",
+  "0020_trip_photo_upload_reservations.sql",
 ];
 
 let tripRequestSequence = 0;

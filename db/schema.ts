@@ -224,6 +224,51 @@ export const privacyExportJobs = sqliteTable(
   ],
 );
 
+export const tripPhotoUploadReservations = sqliteTable(
+  "trip_photo_upload_reservations",
+  {
+    id: text("id").primaryKey(),
+    tripId: text("trip_id").notNull(),
+    objectKey: text("object_key").notNull(),
+    objectKeyHash: text("object_key_hash").notNull(),
+    state: text("state").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    availableAt: text("available_at").notNull(),
+    leaseExpiresAt: text("lease_expires_at"),
+    leaseToken: text("lease_token"),
+    lastErrorCode: text("last_error_code"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("trip_photo_upload_reservations_object_key_unique").on(table.objectKey),
+    uniqueIndex("trip_photo_upload_reservations_object_key_hash_unique").on(table.objectKeyHash),
+    index("trip_photo_upload_reservations_retry_idx").on(
+      table.state,
+      table.availableAt,
+      table.leaseExpiresAt,
+    ),
+    index("trip_photo_upload_reservations_trip_idx").on(table.tripId, table.createdAt),
+    check(
+      "trip_photo_upload_reservations_state_check",
+      sql`${table.state} in ('pending', 'leased', 'needs_attention')`,
+    ),
+    check(
+      "trip_photo_upload_reservations_attempts_check",
+      sql`${table.attempts} >= 0 and ${table.attempts} <= 8`,
+    ),
+    check(
+      "trip_photo_upload_reservations_hash_check",
+      sql`length(${table.objectKeyHash}) = 64 and ${table.objectKeyHash} not glob '*[^a-f0-9]*'`,
+    ),
+    check(
+      "trip_photo_upload_reservations_lease_check",
+      sql`(${table.state} = 'leased' and ${table.leaseExpiresAt} is not null and ${table.leaseToken} is not null)
+        or (${table.state} != 'leased' and ${table.leaseExpiresAt} is null and ${table.leaseToken} is null)`,
+    ),
+  ],
+);
+
 export const gearProfiles = sqliteTable(
   "gear_profiles",
   {

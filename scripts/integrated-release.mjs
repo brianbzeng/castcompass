@@ -34,6 +34,7 @@ export const STAGED_MIGRATIONS = Object.freeze([
   "0017_trip_idempotency.sql",
   "0018_ai_review_queue.sql",
   "0019_async_privacy_exports.sql",
+  "0020_trip_photo_upload_reservations.sql",
 ]);
 export const ALL_RELEASE_MIGRATIONS = Object.freeze([
   ...BASE_APPLIED_MIGRATIONS,
@@ -138,6 +139,17 @@ const STAGE_ABSENCE_QUERIES = Object.freeze({
           'privacy_export_jobs_expiry_idx',
           'privacy_export_jobs_owner_idx',
           'privacy_deletion_tasks_store_retry_idx'
+        )) AS target_artifacts_found`,
+  "0020_trip_photo_upload_reservations.sql": `
+    SELECT
+      (SELECT COUNT(*) FROM sqlite_master
+        WHERE type = 'table' AND name = 'trip_photo_upload_reservations')
+      + (SELECT COUNT(*) FROM sqlite_master
+        WHERE type = 'index' AND name IN (
+          'trip_photo_upload_reservations_object_key_unique',
+          'trip_photo_upload_reservations_object_key_hash_unique',
+          'trip_photo_upload_reservations_retry_idx',
+          'trip_photo_upload_reservations_trip_idx'
         )) AS target_artifacts_found`,
 });
 
@@ -283,6 +295,9 @@ export function verifyFinalPostflight(payload) {
     privacy_export_queue_tables: 1,
     privacy_export_queue_indexes: 5,
     privacy_export_queue_rows: 0,
+    trip_photo_reservation_tables: 1,
+    trip_photo_reservation_indexes: 4,
+    trip_photo_reservation_rows: 0,
     non_legacy_trip_rows: 0,
     trip_photo_locators: 0,
     discussion_rows_with_approval_metadata: 0,

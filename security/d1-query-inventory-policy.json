@@ -11,9 +11,9 @@
     "worker/validation-feasibility-export.ts"
   ],
   "expectedSummary": {
-    "prepareCallCount": 244,
-    "literalCallCount": 218,
-    "nonLiteralCallCount": 26,
+    "prepareCallCount": 261,
+    "literalCallCount": 234,
+    "nonLiteralCallCount": 27,
     "multiRowLiteralWithoutLimitCount": 12
   },
   "allowedNonLiteralExpressions": [
@@ -114,6 +114,13 @@
       "staticAuthority": "module-level CREATE_TRIPS_SQL constant",
       "executionContract": "schema bootstrap batch",
       "rationale": "The runtime fallback schema uses one reviewed constant and no request input."
+    },
+    {
+      "file": "worker/trips.ts",
+      "expressionSha256": "47d236de770bdf83ab62c8efa8eca6de193549035b8680e2c5aa75fb66734d97",
+      "staticAuthority": "module-level CREATE_TRIP_PHOTO_UPLOAD_RESERVATIONS_SQL constant",
+      "executionContract": "schema bootstrap batch",
+      "rationale": "The default-off runtime fallback creates the reviewed durable pre-upload locator ledger without request-controlled SQL."
     },
     {
       "file": "worker/trips.ts",
