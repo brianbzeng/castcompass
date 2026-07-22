@@ -13,6 +13,34 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — accessible keyboard, dialog, motion, and non-map boundary
+
+- [x] Reconcile the home surface against the actual interaction model rather than restyling it.
+      The header and footer now sit outside one named main landmark, the first focusable control
+      is a visible skip link, forecast-period and map/list choices expose grouped pressed state
+      instead of incomplete tab semantics, and location updates use a polite status announcement.
+- [x] Replace competing one-off focus traps with one nested-dialog stack shared by location
+      reports, account and trip surfaces, profile trip editing, methodology, comparison, the
+      location pre-prompt, and the required water reminder. Only the top dialog consumes Tab,
+      focus, or Escape; focus returns to its connected opener or the surviving parent dialog,
+      and the required reminder deliberately cannot be bypassed with Escape.
+- [x] Preserve a complete non-map path. Every mapped forecast remains in the keyboard-accessible
+      ranked list, the list-only control removes the interactive map without removing locations,
+      and the map region explicitly points assistive technology to that alternative.
+- [x] Honor reduced motion in JavaScript as well as CSS. Map cluster expansion and automatic or
+      manual fit operations now use zero-duration transitions when the browser requests reduced
+      motion; existing scrolling and CSS animation controls remain in force.
+- [x] Attack-test the bounded slice without adding an accessibility vendor or dependency: four
+      static contract tests and twenty Chromium/WebKit phone cases cover skip navigation,
+      selected-state semantics, nested focus containment/restoration, the non-dismissible
+      reminder, the list-only alternative, and 320 px reflow. The focused slice passes 24/24;
+      the complete repository suite passes 684/684 and the full mobile matrix passes 228/228
+      across phone Chromium and WebKit. Build, lint, TypeScript, security/SBOM policy checks, and
+      both dependency audits pass under the pinned runtime with zero reported vulnerabilities.
+- [ ] Complete independent manual screen-reader, keyboard-only desktop, browser text-zoom,
+      contrast, reduced-motion, and physical-device review. Automated checks and repository code
+      do not establish full WCAG conformance, production acceptance, or deployment authority.
+
 ## Active checkpoint — Santa Barbara structure/depth independent review handoff
 
 - [x] Reconcile the map goal against the current artifact before adding more claims. All 61 launch
@@ -3403,7 +3431,9 @@ supersedes this mutation-metadata authority while preserving its fail-closed beh
 ## P3 — Experience and brand (intentionally last)
 
 - [ ] Complete accessibility and interaction review: keyboard/screen reader, zoom/reflow,
-      contrast, reduced motion, and a non-map path.
+      contrast, reduced motion, and a non-map path. **Local keyboard/dialog/motion/non-map slice
+      complete;** independent assistive-technology, contrast, text-zoom, and physical-device
+      acceptance remain open.
 - [x] Add the branded accessible, noindex, non-cacheable `404` page and home action.
 - [ ] Finish truthful operation-specific loading/progress/retry/cancel/reconnection states.
       **Route, profile, trip, deletion, edit, gear, sign-out, and saved-location safety states are

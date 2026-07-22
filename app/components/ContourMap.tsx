@@ -156,6 +156,10 @@ function boundsForSites(sites: FishingSite[]): [[number, number], [number, numbe
   return [[west, south], [east, north]];
 }
 
+function mapMotionDuration(duration: number) {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : duration;
+}
+
 function addFishingSiteLayers(map: MapLibreMap) {
   map.addSource(SITE_SOURCE_ID, {
     type: "geojson",
@@ -363,7 +367,7 @@ export function ContourMap({
             map.easeTo({
               center: [longitude, latitude],
               zoom: Math.min(zoom, map.getMaxZoom()),
-              duration: 450,
+              duration: mapMotionDuration(450),
             });
           });
         });
@@ -407,7 +411,7 @@ export function ContourMap({
     map.stop();
     map.resize();
     map.setPadding({ top: 0, right: 0, bottom: 0, left: 0 });
-    map.fitBounds(bounds, { ...SITE_FIT_OPTIONS, duration: 450 });
+    map.fitBounds(bounds, { ...SITE_FIT_OPTIONS, duration: mapMotionDuration(450) });
     fittedGeometryKeyRef.current = siteGeometryKey;
   }, [mapReady, siteGeometryKey, sites]);
 
@@ -425,12 +429,21 @@ export function ContourMap({
     map.stop();
     map.resize();
     map.setPadding({ top: 0, right: 0, bottom: 0, left: 0 });
-    map.fitBounds(bounds, { ...SITE_FIT_OPTIONS, duration: 650 });
+    map.fitBounds(bounds, { ...SITE_FIT_OPTIONS, duration: mapMotionDuration(650) });
   };
 
   return (
     <div className="contour-map-shell">
-      <div ref={containerRef} className="contour-map" aria-label="Map of fishing access locations" />
+      <p id="map-alternative-description" className="sr-only">
+        Every location and forecast shown here is also available in the keyboard-accessible ranked list after the map.
+      </p>
+      <div
+        ref={containerRef}
+        className="contour-map"
+        role="region"
+        aria-label="Interactive map of fishing access locations"
+        aria-describedby="map-alternative-description"
+      />
       <button className="map-center-button" type="button" onClick={fitSites}>
         <LocateIcon /> Fit sites
       </button>

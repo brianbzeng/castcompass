@@ -15,6 +15,7 @@ import { ArrowIcon, ClockIcon, CloseIcon } from "./icons";
 import { GearCatalogFields } from "./GearCatalogFields";
 import { SiteCombobox } from "./SiteCombobox";
 import { useClientNetworkState } from "../lib/use-client-network-state";
+import { useModalDialog } from "../lib/use-modal-dialog";
 import {
   ACTIVE_TRIP_KEY,
   LEGACY_ACTIVE_TRIP_KEY,
@@ -509,7 +510,6 @@ function elapsedLabel(startedAt: string) {
 }
 
 export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequireLogin }: TripReportFeatureProps) {
-  const dialogRef = useRef<HTMLElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const lastRequestKeyRef = useRef<number | null>(null);
   const handledInitialQueryRef = useRef(false);
@@ -617,6 +617,12 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
     }
   }, [resetFeedback]);
 
+  const dialogRef = useModalDialog<HTMLElement>({
+    open: Boolean(panel),
+    onClose: closePanel,
+    openerRef,
+  });
+
   useEffect(() => {
     if (restoredClientStateRef.current) return;
     restoredClientStateRef.current = true;
@@ -668,47 +674,6 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
       .catch(() => undefined);
     return () => { active = false; };
   }, [canSubmit, panel]);
-
-  useEffect(() => {
-    if (!panel || !dialogRef.current) return;
-    const dialog = dialogRef.current;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const focusFrame = window.requestAnimationFrame(() => dialog.focus({ preventScroll: true }));
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closePanel();
-        return;
-      }
-      if (event.key !== "Tab") return;
-      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      ));
-      if (focusable.length === 0) {
-        event.preventDefault();
-        dialog.focus();
-        return;
-      }
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.cancelAnimationFrame(focusFrame);
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      window.requestAnimationFrame(() => openerRef.current?.focus({ preventScroll: true }));
-    };
-  }, [closePanel, panel]);
 
   useEffect(() => {
     if (!panel) return;

@@ -44,6 +44,7 @@ import {
   sourceStatusTone,
 } from "../lib/forecast-freshness";
 import { applyCurrentWaterQualityFreshness } from "../lib/water-quality-freshness";
+import { useModalDialog } from "../lib/use-modal-dialog";
 import structureImages from "../data/structure-images.json";
 
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
@@ -1075,7 +1076,6 @@ function SourceStatus({ source }: { source: SourceFreshness }) {
 
 export function OpportunityApp() {
   const account = useAccount();
-  const detailDialogRef = useRef<HTMLElement>(null);
   const detailTriggerRef = useRef<HTMLElement | null>(null);
   const detailTriggerSiteIdRef = useRef<string | null>(null);
   const mapWrapRef = useRef<HTMLDivElement>(null);
@@ -1111,6 +1111,43 @@ export function OpportunityApp() {
   const tripReportRequestKey = useRef(0);
   const initialSiteHandledRef = useRef(false);
   const discussionPosts = discussionFeed?.siteId === selectedSiteId ? discussionFeed.posts : [];
+
+  const closeSiteDetail = useCallback(() => {
+    setSelectedSiteId(null);
+    setSelectedDetailWindowId(null);
+    setDetailExpanded(false);
+  }, []);
+
+  const restoreDetailFocus = useCallback(() => {
+    const trigger = detailTriggerRef.current;
+    if (trigger?.isConnected) return trigger;
+    const triggerSiteId = detailTriggerSiteIdRef.current;
+    return triggerSiteId
+      ? document.querySelector<HTMLElement>(`[data-detail-trigger-for="${triggerSiteId}"]`)
+      : null;
+  }, []);
+
+  const respectDialogRef = useModalDialog<HTMLElement>({
+    open: showRespectNotice,
+    closeOnEscape: false,
+  });
+  const locationDialogRef = useModalDialog<HTMLElement>({
+    open: showLocationDisclosure,
+    onClose: () => setShowLocationDisclosure(false),
+  });
+  const detailDialogRef = useModalDialog<HTMLElement>({
+    open: Boolean(selectedSiteId),
+    onClose: closeSiteDetail,
+    restoreFocus: restoreDetailFocus,
+  });
+  const methodDialogRef = useModalDialog<HTMLElement>({
+    open: showMethod,
+    onClose: () => setShowMethod(false),
+  });
+  const compareDialogRef = useModalDialog<HTMLElement>({
+    open: showCompare,
+    onClose: () => setShowCompare(false),
+  });
 
   useEffect(() => {
     let active = true;
@@ -1165,15 +1202,6 @@ export function OpportunityApp() {
   }, []);
 
   useEffect(() => {
-    if (!showRespectNotice) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [showRespectNotice]);
-
-  useEffect(() => {
     if (mapEnabled || view !== "map" || !mapWrapRef.current) return;
     if (typeof IntersectionObserver === "undefined") return;
 
@@ -1194,72 +1222,6 @@ export function OpportunityApp() {
     observer.observe(mapWrapRef.current);
     return () => observer.disconnect();
   }, [mapEnabled, view]);
-
-  useEffect(() => {
-    if (!selectedSiteId || !detailDialogRef.current) return;
-
-    const dialog = detailDialogRef.current;
-    const previousBodyOverflow = document.body.style.overflow;
-    const focusFrame = window.requestAnimationFrame(() => dialog.focus({ preventScroll: true }));
-
-    document.body.style.overflow = "hidden";
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setSelectedSiteId(null);
-        return;
-      }
-
-      if (event.key !== "Tab") return;
-
-      const focusable = Array.from(
-        dialog.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ),
-      ).filter((element) => element.getAttribute("aria-hidden") !== "true");
-
-      if (focusable.length === 0) {
-        event.preventDefault();
-        dialog.focus({ preventScroll: true });
-        return;
-      }
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const activeElement = document.activeElement;
-
-      if (event.shiftKey && (activeElement === first || !dialog.contains(activeElement))) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && (activeElement === last || !dialog.contains(activeElement))) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.cancelAnimationFrame(focusFrame);
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousBodyOverflow;
-
-      const trigger = detailTriggerRef.current;
-      const triggerSiteId = detailTriggerSiteIdRef.current;
-      window.requestAnimationFrame(() => {
-        if (trigger?.isConnected) {
-          trigger.focus({ preventScroll: true });
-          return;
-        }
-
-        if (!triggerSiteId) return;
-        document
-          .querySelector<HTMLElement>(`[data-detail-trigger-for="${triggerSiteId}"]`)
-          ?.focus({ preventScroll: true });
-      });
-    };
-  }, [selectedSiteId]);
 
   const windowsBySite = useMemo(
     () => latestPerSite(
@@ -1441,12 +1403,6 @@ export function OpportunityApp() {
     return () => window.cancelAnimationFrame(frame);
   }, [dataState, openSiteDetail, sites]);
 
-  const closeSiteDetail = useCallback(() => {
-    setSelectedSiteId(null);
-    setSelectedDetailWindowId(null);
-    setDetailExpanded(false);
-  }, []);
-
   const openTripReport = useCallback((mode: "start" | "past", siteId?: string, window?: OpportunityWindow) => {
     if (!account.user) {
       account.openAccount("Sign in before submitting a trip report. Complete trips and skunks are tied to an account so reports can be reviewed privately before any separate decision about model evidence.");
@@ -1480,7 +1436,8 @@ export function OpportunityApp() {
   }, []);
 
   return (
-    <main className="app-shell">
+    <div className="app-shell">
+      <a className="skip-link" href="#main-content">Skip to forecast content</a>
       <header className="topbar">
         <a className="brand" href="#top" aria-label="CastingCompass home">
           <span className="brand-icon" aria-hidden="true" />
@@ -1516,6 +1473,7 @@ export function OpportunityApp() {
         </div>
       </header>
 
+      <main id="main-content" tabIndex={-1}>
       <section className="forecast-intro" id="top">
         <div className="eyebrow-row">
           <span className="eyebrow"><span /> California halibut</span>
@@ -1553,7 +1511,7 @@ export function OpportunityApp() {
 
       <section className="control-deck" id="forecast">
         <div className="forecast-time-controls">
-          <div className="time-tabs" role="tablist" aria-label="Forecast period">
+          <div className="time-tabs" role="group" aria-label="Forecast period">
             {([
               ["today", "Today"],
               ["tomorrow", "Tomorrow"],
@@ -1561,8 +1519,7 @@ export function OpportunityApp() {
             ] as [TimeFilter, string][]).map(([value, label]) => (
               <button
                 key={value}
-                role="tab"
-                aria-selected={timeFilter === value}
+                aria-pressed={timeFilter === value}
                 className={timeFilter === value ? "active" : ""}
                 type="button"
                 onClick={() => setTimeFilter(value)}
@@ -1685,12 +1642,12 @@ export function OpportunityApp() {
           <button type="button" className="location-button" onClick={requestLocation}>
             <LocateIcon /> Near me
           </button>
-          <div className="view-toggle" aria-label="View">
-            <button type="button" className={view === "map" ? "active" : ""} onClick={() => setView("map")} aria-label="Map view"><MapIcon /></button>
-            <button type="button" className={view === "list" ? "active" : ""} onClick={() => setView("list")} aria-label="List view"><ListIcon /></button>
+          <div className="view-toggle" role="group" aria-label="Forecast presentation">
+            <button type="button" className={view === "map" ? "active" : ""} onClick={() => setView("map")} aria-label="Map and list view" aria-pressed={view === "map"}><MapIcon /></button>
+            <button type="button" className={view === "list" ? "active" : ""} onClick={() => setView("list")} aria-label="List-only view" aria-pressed={view === "list"}><ListIcon /></button>
           </div>
         </div>
-        {locationStatusMessage ? <p className="location-message">{locationStatusMessage}</p> : null}
+        {locationStatusMessage ? <p className="location-message" role="status" aria-live="polite">{locationStatusMessage}</p> : null}
         {closedSites.length > 0 ? (
           <p className="closure-notice">
             {closedSites.length} temporarily closed access point{closedSites.length === 1 ? " is" : "s are"} excluded from ranking.
@@ -1818,6 +1775,7 @@ export function OpportunityApp() {
           {snapshot.sources.map((source) => <SourceStatus key={source.name} source={source} />)}
         </div>
       </section>
+      </main>
 
       <footer>
         <a className="brand footer-brand" href="#top"><span className="brand-icon" aria-hidden="true" /><span>CastingCompass</span></a>
@@ -1844,7 +1802,7 @@ export function OpportunityApp() {
 
       {showRespectNotice ? (
         <div className="respect-modal-layer" role="presentation">
-          <section className="respect-modal" role="dialog" aria-modal="true" aria-labelledby="respect-title">
+          <section ref={respectDialogRef} className="respect-modal" role="dialog" aria-modal="true" aria-labelledby="respect-title" tabIndex={-1}>
             <span className="eyebrow"><span /> Before you fish</span>
             <h2 id="respect-title">Respect the water.</h2>
             <p>
@@ -1867,7 +1825,7 @@ export function OpportunityApp() {
 
       {showLocationDisclosure ? (
         <div className="respect-modal-layer" role="presentation">
-          <section className="respect-modal location-disclosure-modal" role="dialog" aria-modal="true" aria-labelledby="location-disclosure-title">
+          <section ref={locationDialogRef} className="respect-modal location-disclosure-modal" role="dialog" aria-modal="true" aria-labelledby="location-disclosure-title" tabIndex={-1}>
             <span className="eyebrow"><span /> Optional location</span>
             <h2 id="location-disclosure-title">Find nearby fishing access.</h2>
             <p>CastingCompass uses your current location once to sort nearby public spots and apply your selected distance radius. The location stays in this browser tab, is not saved to your account, and is not added to trip reports.</p>
@@ -2259,7 +2217,7 @@ export function OpportunityApp() {
         <div className="modal-layer" role="presentation" onClick={(event) => {
           if (event.target === event.currentTarget) setShowMethod(false);
         }}>
-          <section className="method-modal" role="dialog" aria-modal="true" aria-labelledby="method-title">
+          <section ref={methodDialogRef} className="method-modal" role="dialog" aria-modal="true" aria-labelledby="method-title" tabIndex={-1}>
             <button className="sheet-close" type="button" onClick={() => setShowMethod(false)} aria-label="Close methodology"><CloseIcon /></button>
             <span className="eyebrow"><span /> Model note</span>
             <h2 id="method-title">A ranking, not a promise.</h2>
@@ -2334,7 +2292,7 @@ export function OpportunityApp() {
         <div className="modal-layer" role="presentation" onClick={(event) => {
           if (event.target === event.currentTarget) setShowCompare(false);
         }}>
-          <section className="compare-modal" role="dialog" aria-modal="true" aria-labelledby="compare-title">
+          <section ref={compareDialogRef} className="compare-modal" role="dialog" aria-modal="true" aria-labelledby="compare-title" tabIndex={-1}>
             <button className="sheet-close" type="button" onClick={() => setShowCompare(false)} aria-label="Close comparison"><CloseIcon /></button>
             <span className="eyebrow"><span /> Side by side</span>
             <h2 id="compare-title">Compare your<br />best options.</h2>
@@ -2365,6 +2323,6 @@ export function OpportunityApp() {
           </section>
         </div>
       ) : null}
-    </main>
+    </div>
   );
 }

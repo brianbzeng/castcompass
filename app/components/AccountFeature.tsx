@@ -16,6 +16,7 @@ import {
   PROFILE_TRIP_DRAFT_PREFIX,
 } from "../lib/account-browser-storage";
 import { useClientNetworkState } from "../lib/use-client-network-state";
+import { useModalDialog } from "../lib/use-modal-dialog";
 
 // A privileged write may commit before its response is lost. Never abort or replay it
 // client-side; keep the in-flight state explicitly unconfirmed until the server answers.
@@ -998,6 +999,23 @@ export function AccountModal({
     resetResendTurnstile();
     account.closeAccount();
   }, [account, resetResendTurnstile, resetTurnstile]);
+  const closeTripEdit = useCallback(() => {
+    setEditingTrip(null);
+    setEditFields(null);
+    setProfileActionError("");
+    setTripEditRequest((current) => current?.state === "ambiguous" ? current : null);
+  }, []);
+  const closeTripEditFromKeyboard = useCallback(() => {
+    if (!profileActionBusy) closeTripEdit();
+  }, [closeTripEdit, profileActionBusy]);
+  const accountDialogRef = useModalDialog<HTMLElement>({
+    open: account.modalOpen && !standalone,
+    onClose: closeAccount,
+  });
+  const tripEditDialogRef = useModalDialog<HTMLFormElement>({
+    open: Boolean(editingTrip && editFields),
+    onClose: closeTripEditFromKeyboard,
+  });
   const turnstileCanSubmit = turnstileState === "disabled" ||
     (turnstileState === "verified" && Boolean(turnstileToken));
   const resendTurnstileCanSubmit = resendTurnstileState === "disabled" ||
@@ -1352,13 +1370,6 @@ export function AccountModal({
     setEditFields(nextFields);
   };
 
-  const closeTripEdit = () => {
-    setEditingTrip(null);
-    setEditFields(null);
-    setProfileActionError("");
-    setTripEditRequest((current) => current?.state === "ambiguous" ? current : null);
-  };
-
   const saveTripEdit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!editingTrip || !editFields) return;
@@ -1650,7 +1661,14 @@ export function AccountModal({
     <div className={standalone ? "profile-page-shell" : "account-modal-layer"} role="presentation" onClick={(event) => {
       if (!standalone && event.target === event.currentTarget) closeAccount();
     }}>
-      <section className={`account-modal${standalone ? " account-profile-page" : ""}`} role={standalone ? "main" : "dialog"} aria-modal={standalone ? undefined : "true"} aria-labelledby="account-title">
+      <section
+        ref={accountDialogRef}
+        className={`account-modal${standalone ? " account-profile-page" : ""}`}
+        role={standalone ? "main" : "dialog"}
+        aria-modal={standalone ? undefined : "true"}
+        aria-labelledby="account-title"
+        tabIndex={standalone ? undefined : -1}
+      >
         {standalone ? (
           <Link className="sheet-close" href="/" aria-label="Back to forecast"><CloseIcon /></Link>
         ) : (
@@ -1916,11 +1934,13 @@ export function AccountModal({
                 if (event.target === event.currentTarget && !profileActionBusy) closeTripEdit();
               }}>
               <form
+                ref={tripEditDialogRef}
                 className="profile-trip-editor profile-trip-editor-modal"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="profile-trip-editor-title"
                 aria-busy={activeTripEditRequest?.state === "submitting"}
+                tabIndex={-1}
                 onSubmit={saveTripEdit}
               >
                 <div className="profile-trip-editor-heading">

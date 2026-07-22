@@ -1043,6 +1043,24 @@ after its acceptance checks pass in the intended environment.
 
 - [ ] Improve accessibility and interaction quality after core risks are controlled, including
   keyboard/screen-reader review, zoom/reflow, contrast, reduced motion, and a non-map path.
+  - [x] Establish one clean banner/main/footer landmark structure, add a first-focusable visible
+    skip link, replace incomplete tab semantics with grouped pressed-state controls, and announce
+    location-state changes without interrupting the user.
+  - [x] Share one stack-aware modal focus boundary across forecast details, account, trip report,
+    trip edit, methodology, comparison, location disclosure, and the required water reminder.
+    Only the top dialog traps focus or consumes Escape; nested close restores its opener or the
+    surviving parent, while the required reminder cannot be bypassed with Escape.
+  - [x] Preserve the ranked list as the complete keyboard-accessible alternative to the map,
+    expose an explicit list-only choice, connect the map region to that alternative, and make all
+    MapLibre fit/cluster transitions honor the browser's reduced-motion setting.
+  - [x] Add focused source and Chromium/WebKit phone coverage for skip navigation, selected state,
+    nested focus, reminder behavior, list-only use, and 320 px reflow. The bounded slice passes
+    24/24, the complete repository suite passes 684/684, and the full mobile matrix passes 228/228
+    plus build, lint, TypeScript, security/SBOM, and zero-vulnerability dependency audits under
+    the pinned runtime without adding a new dependency.
+  - [ ] Complete independent manual screen-reader, keyboard-only desktop, text-zoom, contrast,
+    reduced-motion, and physical-device review. Automated coverage does not establish full WCAG
+    conformance or production acceptance.
 - [x] Add a branded, accessible `404` page with a clear return-to-home action, useful navigation,
   correct `404` status, noindex behavior, and service-worker-safe non-caching.
 - [ ] Add honest loading and recovery states after the underlying operations are bounded:

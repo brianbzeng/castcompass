@@ -594,7 +594,9 @@ test.beforeEach(async ({ page }, testInfo) => {
     body: JSON.stringify({ completedTrips: 0, anglerHours: 0, halibutEncounters: 0, sitesCovered: 0, past24Hours: {} }),
   }));
   await page.addInitScript(() => {
-    window.localStorage.setItem("contourcast.respect-water.v1", "dismissed");
+    if (!new URL(window.location.href).searchParams.has("showRespectReminder")) {
+      window.localStorage.setItem("contourcast.respect-water.v1", "dismissed");
+    }
   });
   await page.goto("/");
   await expect(page.locator(".availability-filter")).toBeVisible();
@@ -607,6 +609,105 @@ test("primary controls stay inside common phone viewports", async ({ page }) => 
   for (const selector of [".topbar", ".topbar-actions", ".availability-filter", ".availability-filter input"]) {
     await expectSelectorInsideViewport(page, selector);
   }
+});
+
+test("keyboard users can skip repeated navigation to the main forecast", async ({ page }, testInfo) => {
+  const skipLink = page.getByRole("link", { name: "Skip to forecast content" });
+  if (testInfo.project.name.startsWith("webkit")) {
+    await skipLink.focus();
+  } else {
+    await page.keyboard.press("Tab");
+  }
+  await expect(skipLink).toBeFocused();
+  await expect(skipLink).toBeVisible();
+  await page.keyboard.press("Enter");
+
+  const main = page.locator("main#main-content");
+  await expect(main).toBeFocused();
+  await expect(page.locator("body > div header.topbar")).toHaveCount(1);
+  await expect(page.locator("main#main-content header.topbar")).toHaveCount(0);
+  await expect(page.locator("main#main-content footer")).toHaveCount(0);
+});
+
+test("forecast and presentation choices announce their selected state", async ({ page }) => {
+  const today = page.getByRole("button", { name: "Today", exact: true });
+  const tomorrow = page.getByRole("button", { name: "Tomorrow", exact: true });
+  await expect(today).toHaveAttribute("aria-pressed", "true");
+  await expect(tomorrow).toHaveAttribute("aria-pressed", "false");
+  await tomorrow.click();
+  await expect(today).toHaveAttribute("aria-pressed", "false");
+  await expect(tomorrow).toHaveAttribute("aria-pressed", "true");
+  await today.click();
+  await expect(today).toHaveAttribute("aria-pressed", "true");
+
+  const mapAndList = page.getByRole("button", { name: "Map and list view" });
+  const listOnly = page.getByRole("button", { name: "List-only view" });
+  await expect(mapAndList).toHaveAttribute("aria-pressed", "true");
+  await listOnly.click();
+  await expect(listOnly).toHaveAttribute("aria-pressed", "true");
+  await expect(mapAndList).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator(".map-wrap")).toBeHidden();
+  await expect(page.locator(".site-list .site-card").first()).toBeVisible();
+});
+
+test("modal focus is trapped and restored through a nested account surface", async ({ page }, testInfo) => {
+  const siteCard = page.locator(".site-card").first();
+  await siteCard.click();
+  const detail = page.locator(".detail-sheet");
+  await expect(detail).toBeFocused();
+
+  const saveLocation = detail.getByRole("button", { name: "Save location" });
+  await saveLocation.click();
+  const accountDialog = page.locator(".account-modal");
+  await expect(accountDialog).toBeFocused();
+
+  await page.evaluate(() => document.querySelector<HTMLElement>(".location-button")?.focus());
+  await expect(accountDialog).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(accountDialog).toHaveCount(0);
+  await expect(detail).toBeVisible();
+  expect(await detail.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+
+  await page.keyboard.press("Escape");
+  await expect(detail).toHaveCount(0);
+  if (testInfo.project.name.startsWith("webkit")) {
+    await expect(siteCard).toBeVisible();
+  } else {
+    await expect(siteCard).toBeFocused();
+  }
+});
+
+test("the required water reminder traps focus and cannot be dismissed with Escape", async ({ page }) => {
+  await page.evaluate(() => {
+    window.localStorage.removeItem("castingcompass.respect-water.v1");
+    window.localStorage.removeItem("contourcast.respect-water.v1");
+  });
+  await page.goto("/?showRespectReminder=1");
+
+  const reminder = page.getByRole("dialog", { name: "Respect the water." });
+  await expect(reminder).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(reminder).toBeVisible();
+  await page.evaluate(() => document.querySelector<HTMLElement>(".account-button")?.focus());
+  await expect(reminder).toBeFocused();
+  await reminder.getByRole("button", { name: /continue to castingcompass/i }).click();
+  await expect(reminder).toHaveCount(0);
+});
+
+test("the complete forecast reflows without horizontal document scrolling at 320px", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await expect(page.locator(".availability-filter")).toBeVisible();
+  const geometry = await page.evaluate(() => ({
+    overflow: document.documentElement.scrollWidth - window.innerWidth,
+    viewportWidth: window.innerWidth,
+    main: (() => {
+      const box = document.querySelector<HTMLElement>("main#main-content")!.getBoundingClientRect();
+      return { left: box.left, right: box.right };
+    })(),
+  }));
+  expect(geometry.overflow).toBeLessThanOrEqual(1);
+  expect(geometry.main.left).toBeGreaterThanOrEqual(-1);
+  expect(geometry.main.right).toBeLessThanOrEqual(geometry.viewportWidth + 1);
 });
 
 test("official water-quality status suppresses recommendations and keeps neutral status explicit", async ({ page }) => {
