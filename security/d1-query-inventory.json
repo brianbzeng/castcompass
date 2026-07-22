@@ -1,12 +1,12 @@
 {
   "schemaVersion": "castingcompass.d1-query-inventory/1.0.0",
   "generatedFrom": "TypeScript AST; no runtime or provider query executed",
-  "policySha256": "94d6eef174ed653d45a08b1cbe7e7ff830387416224c6b0b82dda45f8bbf71e8",
+  "policySha256": "8c4624598b688d6879641dc600f5202ff3a3a75248d368997bb4497759169971",
   "sourceFiles": [
     {
       "file": "worker/auth.ts",
-      "sha256": "7da39c94882ae6b745c867f2e7443ed75ba5751bd55df06ea22e9080a9bea995",
-      "prepareCallCount": 121
+      "sha256": "1635e3919ea5ccb4de0f3312e707dca0fa7c58c538be346fd8176d0dcdd2af9a",
+      "prepareCallCount": 122
     },
     {
       "file": "worker/discussions.ts",
@@ -45,8 +45,8 @@
     }
   ],
   "summary": {
-    "prepareCallCount": 242,
-    "literalCallCount": 228,
+    "prepareCallCount": 243,
+    "literalCallCount": 229,
     "nonLiteralCallCount": 14,
     "multiRowLiteralWithoutLimitCount": 9
   },
@@ -2690,7 +2690,7 @@
     {
       "callSiteId": "dba341fcacfbd062567a1afa",
       "file": "worker/auth.ts",
-      "line": 3626,
+      "line": 3632,
       "containingFunction": "assertEmailChallengeAllowed",
       "occurrence": 117,
       "executionMode": "first",
@@ -2712,7 +2712,7 @@
     {
       "callSiteId": "60b69ebe3b63ab3650ac6677",
       "file": "worker/auth.ts",
-      "line": 3645,
+      "line": 3651,
       "containingFunction": "verifyEmailChallenge",
       "occurrence": 118,
       "executionMode": "first",
@@ -2732,33 +2732,55 @@
       "hasLimit": true
     },
     {
-      "callSiteId": "5cc69b67736abeb114da2e9c",
+      "callSiteId": "70b5c46a1bfaa23e8d5db5c1",
       "file": "worker/auth.ts",
-      "line": 3662,
+      "line": 3686,
       "containingFunction": "verifyEmailChallenge",
       "occurrence": 119,
       "executionMode": "run",
       "argumentKind": "literal",
-      "expression": "`UPDATE email_challenges SET attempts = ?\n    WHERE id = ? AND kind = ? AND code_hash = ? AND created_at = ?\n      AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?`",
-      "expressionSha256": "bd5b8e0bd4d1648d71532cca6c273d80732194fd146755c214d228e42826eb8c",
+      "expression": "`UPDATE email_challenges SET attempts = ?\n      WHERE id = ? AND kind = ? AND email = ? AND user_id IS ? AND code_hash = ?\n        AND password_salt IS ? AND password_hash IS ? AND age_eligibility_confirmed_at IS ?\n        AND terms_version IS ? AND privacy_version IS ? AND created_at = ?\n        AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?`",
+      "expressionSha256": "97743dd7895acf30ff4925b1ff925aac0d948e195afb002c97f3a591de72cb8d",
       "declarationReference": null,
       "statementClass": "UPDATE",
-      "sql": "UPDATE email_challenges SET attempts = ? WHERE id = ? AND kind = ? AND code_hash = ? AND created_at = ? AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?",
-      "sqlSha256": "2274f94b07b10fb392ad5858c56e096de947f86e0b65a915b4b080732d469f3c",
+      "sql": "UPDATE email_challenges SET attempts = ? WHERE id = ? AND kind = ? AND email = ? AND user_id IS ? AND code_hash = ? AND password_salt IS ? AND password_hash IS ? AND age_eligibility_confirmed_at IS ? AND terms_version IS ? AND privacy_version IS ? AND created_at = ? AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?",
+      "sqlSha256": "9b15145ef64b830b935b043451a9ec2f79a66fc23feaa1cd5772b8fe7cd8d37f",
       "tables": [
         "email_challenges"
       ],
-      "placeholderCount": 9,
+      "placeholderCount": 16,
       "hasWhere": true,
       "hasOrderBy": false,
       "hasLimit": false
     },
     {
-      "callSiteId": "c3b6cc39ae89b4fd3b6e1d25",
+      "callSiteId": "90340d09ee6c85eaf5c9acc9",
       "file": "worker/auth.ts",
-      "line": 3870,
-      "containingFunction": "cleanupSignupAgeProofCandidate",
+      "line": 3699,
+      "containingFunction": "verifyEmailChallenge",
       "occurrence": 120,
+      "executionMode": "first",
+      "argumentKind": "literal",
+      "expression": "`SELECT\n        (SELECT COUNT(*) FROM email_challenges\n          WHERE id = ? AND kind = ? AND email = ? AND user_id IS ? AND code_hash = ?\n            AND password_salt IS ? AND password_hash IS ? AND age_eligibility_confirmed_at IS ?\n            AND terms_version IS ? AND privacy_version IS ? AND created_at = ?\n            AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?) AS claimed_count,\n        (SELECT COUNT(*) FROM email_challenges\n          WHERE id = ? AND kind = ? AND email = ? AND user_id IS ? AND code_hash = ?\n            AND password_salt IS ? AND password_hash IS ? AND age_eligibility_confirmed_at IS ?\n            AND terms_version IS ? AND privacy_version IS ? AND created_at = ?\n            AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?) AS prior_count,\n        (SELECT COUNT(*) FROM email_challenges WHERE id = ? AND kind = ?) AS any_count`",
+      "expressionSha256": "041f08b4a21c251cc92cd01f0ff64fa17b826c8a6ea00c4d7b20fd202ebccc13",
+      "declarationReference": null,
+      "statementClass": "SELECT",
+      "sql": "SELECT (SELECT COUNT(*) FROM email_challenges WHERE id = ? AND kind = ? AND email = ? AND user_id IS ? AND code_hash = ? AND password_salt IS ? AND password_hash IS ? AND age_eligibility_confirmed_at IS ? AND terms_version IS ? AND privacy_version IS ? AND created_at = ? AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?) AS claimed_count, (SELECT COUNT(*) FROM email_challenges WHERE id = ? AND kind = ? AND email = ? AND user_id IS ? AND code_hash = ? AND password_salt IS ? AND password_hash IS ? AND age_eligibility_confirmed_at IS ? AND terms_version IS ? AND privacy_version IS ? AND created_at = ? AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?) AS prior_count, (SELECT COUNT(*) FROM email_challenges WHERE id = ? AND kind = ?) AS any_count",
+      "sqlSha256": "430e003fdc8192c22c20d77ecdb7458497db128ba2d523bbd3cb2572ffde2f27",
+      "tables": [
+        "email_challenges"
+      ],
+      "placeholderCount": 32,
+      "hasWhere": true,
+      "hasOrderBy": false,
+      "hasLimit": false
+    },
+    {
+      "callSiteId": "fba087c792c6b5552b648721",
+      "file": "worker/auth.ts",
+      "line": 3920,
+      "containingFunction": "cleanupSignupAgeProofCandidate",
+      "occurrence": 121,
       "executionMode": "run",
       "argumentKind": "literal",
       "expression": "\"DELETE FROM signup_age_proofs WHERE token_hash = ?\"",
@@ -2776,11 +2798,11 @@
       "hasLimit": false
     },
     {
-      "callSiteId": "1e6c59ad5997a61fb6bf063b",
+      "callSiteId": "ff7d5a08a5d80dea331f6782",
       "file": "worker/auth.ts",
-      "line": 3883,
+      "line": 3933,
       "containingFunction": "cleanupEmailChallengeCandidate",
-      "occurrence": 121,
+      "occurrence": 122,
       "executionMode": "run",
       "argumentKind": "literal",
       "expression": "\"DELETE FROM email_challenges WHERE id = ? AND code_hash = ? AND created_at = ?\"",

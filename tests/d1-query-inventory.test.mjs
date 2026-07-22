@@ -56,13 +56,13 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
   validatePolicy(policy, inventory);
   assert.deepEqual(JSON.parse(committed), inventory);
   assert.deepEqual(inventory.summary, {
-    prepareCallCount: 242,
-    literalCallCount: 228,
+    prepareCallCount: 243,
+    literalCallCount: 229,
     nonLiteralCallCount: 14,
     multiRowLiteralWithoutLimitCount: 9,
   });
   assert.equal(inventory.sourceFiles.length, 8);
-  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 242);
+  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 243);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "open-account-cardinality").length, 0);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "complete-rights-export").length, 9);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "owner-lifecycle-cleanup").length, 0);
@@ -166,7 +166,11 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
   assert.ok(inventory.queries.some(({ executionMode, statementClass, sql }) =>
     executionMode === "run"
       && statementClass === "UPDATE"
-      && sql === "UPDATE email_challenges SET attempts = ? WHERE id = ? AND kind = ? AND code_hash = ? AND created_at = ? AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?"));
+      && sql === "UPDATE email_challenges SET attempts = ? WHERE id = ? AND kind = ? AND email = ? AND user_id IS ? AND code_hash = ? AND password_salt IS ? AND password_hash IS ? AND age_eligibility_confirmed_at IS ? AND terms_version IS ? AND privacy_version IS ? AND created_at = ? AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?"));
+  assert.ok(inventory.queries.some(({ executionMode, statementClass, sql }) =>
+    executionMode === "first"
+      && statementClass === "SELECT"
+      && sql === "SELECT (SELECT COUNT(*) FROM email_challenges WHERE id = ? AND kind = ? AND email = ? AND user_id IS ? AND code_hash = ? AND password_salt IS ? AND password_hash IS ? AND age_eligibility_confirmed_at IS ? AND terms_version IS ? AND privacy_version IS ? AND created_at = ? AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?) AS claimed_count, (SELECT COUNT(*) FROM email_challenges WHERE id = ? AND kind = ? AND email = ? AND user_id IS ? AND code_hash = ? AND password_salt IS ? AND password_hash IS ? AND age_eligibility_confirmed_at IS ? AND terms_version IS ? AND privacy_version IS ? AND created_at = ? AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?) AS prior_count, (SELECT COUNT(*) FROM email_challenges WHERE id = ? AND kind = ?) AS any_count"));
 
   const terminalTripWrites = inventory.queries.filter(({ executionMode, statementClass, sql }) =>
     executionMode === "prepared-statement"

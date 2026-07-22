@@ -13,6 +13,34 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — exact email-code attempt receipts
+
+- [x] Continue the credential-boundary audit through the shared verification-code attempt claim.
+      Signup and password reset atomically compare-and-set the next bounded attempt before checking
+      the code, but still treated UPDATE metadata as authority and could not recover after a
+      committed claim lost its response.
+- [x] Make the complete challenge version authoritative. The claim repeats ID, kind, email/user
+      binding, code and optional credential material, age/legal fields, creation time, prior attempt
+      count, resend count, and exact live expiry. Success requires exact read-back at the claimed
+      attempt with the prior snapshot absent; mutation metadata and transport success grant nothing.
+- [x] Force omitted metadata, a lost committed mutation response, an actual failed update, a receipt-
+      read failure, mutation of credential material after the claim, and a code rotation before the
+      claim. Exact committed state proceeds without replay; rollback and unreadable state authorize
+      no account/session change; changed signup state remains `409`; password-reset failures remain
+      the same generic `401`. The source ledger covers 243 prepare sites: 229 literal, 14 reviewed
+      nonliteral, and nine reviewed complete-rights multi-row reads; 38 critical D1 plans cover the
+      exact claim and receipt.
+- [x] Seal the checkpoint with the pinned Cloudflare build, lint, TypeScript, 631/631 Node tests,
+      complete security/source-integrity chain, two zero-vulnerability npm audits, 29/29 API
+      tests, Ruff, 83 pipeline tests with one documented optional-rasterio skip, deterministic
+      smoke, all 20 migrations and 38 critical query plans, and an isolated 200/200
+      Chromium/WebKit phone matrix. Preserve one clean local commit and its deterministic release
+      bundle. No push, PR, merge, deployment, provider query, production database mutation,
+      feature activation, UI change, or model claim belongs to this checkpoint.
+- [ ] Exercise simultaneous attempts/resends, lost responses, expiry boundaries, latency, and rows-
+      read/written behavior with production-shaped synthetic data in isolated staging before
+      treating local receipt proof as deployed evidence.
+
 ## Active checkpoint — exact account-creation receipts
 
 - [x] Continue the database-authority audit through verified signup. User insertion and one-use

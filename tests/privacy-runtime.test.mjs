@@ -737,7 +737,7 @@ test("email-code attempts are snapshot-bound before credential authorization", a
   assert.equal(preserved.attempts, 0);
 });
 
-test("email-code success waits for a confirmed atomic attempt claim", async () => {
+test("email-code success follows exact claimed state when mutation metadata is absent", async () => {
   const { sqlite, d1 } = await database();
   const challengeId = `challenge_${crypto.randomUUID()}`;
   const code = "624818";
@@ -763,23 +763,84 @@ test("email-code success waits for a confirmed atomic attempt claim", async () =
   );
   d1.omitOnceMutationMetadataSubstring = "UPDATE email_challenges SET attempts = ?";
 
-  const ambiguous = await handleAccountRequest(request("/api/auth/signup/verify", {
+  const recovered = await handleAccountRequest(request("/api/auth/signup/verify", {
     method: "POST",
     body: { challengeId, code },
   }), { DB: d1 }, []);
 
-  assert.equal(ambiguous?.status, 503);
-  assert.equal((await ambiguous.json()).error.code, "challenge_attempt_unconfirmed");
-  assert.equal(sessionCookieFrom(ambiguous), null);
-  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM users WHERE email = ?").get(email).count, 0);
-  assert.equal(sqlite.prepare("SELECT attempts FROM email_challenges WHERE id = ?").get(challengeId).attempts, 1);
+  assert.equal(recovered?.status, 201);
+  assert.match(sessionCookieFrom(recovered) ?? "", /^__Host-cc_session=/u);
+  const created = sqlite.prepare("SELECT id FROM users WHERE email = ?").get(email);
+  assert.equal(typeof created.id, "string");
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?")
+    .get(created.id).count, 1);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?")
+    .get(challengeId).count, 0);
+});
 
-  const retry = await handleAccountRequest(request("/api/auth/signup/verify", {
+test("email-code success recovers after the committed attempt response is lost", async () => {
+  const { sqlite, d1 } = await database();
+  const challenge = await addSignupChallenge(sqlite, "attempt-lost-response-159", "624827");
+  d1.throwOnceAfterMutationSubstring = "UPDATE email_challenges SET attempts = ?";
+
+  const recovered = await handleAccountRequest(request("/api/auth/signup/verify", {
     method: "POST",
-    body: { challengeId, code },
+    body: { challengeId: challenge.id, code: challenge.code },
   }), { DB: d1 }, []);
-  assert.equal(retry?.status, 201);
-  assert.match(sessionCookieFrom(retry) ?? "", /^__Host-cc_session=/u);
+
+  assert.equal(recovered?.status, 201);
+  assert.match(sessionCookieFrom(recovered) ?? "", /^__Host-cc_session=/u);
+  const created = sqlite.prepare("SELECT id FROM users WHERE email = ?").get(challenge.email);
+  assert.equal(typeof created.id, "string");
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?")
+    .get(created.id).count, 1);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?")
+    .get(challenge.id).count, 0);
+});
+
+test("email-code authorization rejects rollback, unreadable receipts, and changed claimed snapshots", async () => {
+  const rolledBack = await database();
+  const rollbackChallenge = await addSignupChallenge(rolledBack.sqlite, "attempt-rollback-160", "624828");
+  rolledBack.d1.failOnceQuerySubstring = "UPDATE email_challenges SET attempts = ?";
+  const rollbackResponse = await handleAccountRequest(request("/api/auth/signup/verify", {
+    method: "POST",
+    body: { challengeId: rollbackChallenge.id, code: rollbackChallenge.code },
+  }), { DB: rolledBack.d1 }, []);
+  assert.equal(rollbackResponse?.status, 503);
+  assert.equal((await rollbackResponse.json()).error.code, "challenge_attempt_unconfirmed");
+  assert.equal(rolledBack.sqlite.prepare("SELECT attempts FROM email_challenges WHERE id = ?")
+    .get(rollbackChallenge.id).attempts, 0);
+  assert.equal(rolledBack.sqlite.prepare("SELECT COUNT(*) AS count FROM users WHERE email = ?")
+    .get(rollbackChallenge.email).count, 0);
+
+  const unreadable = await database();
+  const unreadableChallenge = await addSignupChallenge(unreadable.sqlite, "attempt-unreadable-161", "624829");
+  unreadable.d1.failOnceQuerySubstring = "(SELECT COUNT(*) FROM email_challenges";
+  const unreadableResponse = await handleAccountRequest(request("/api/auth/signup/verify", {
+    method: "POST",
+    body: { challengeId: unreadableChallenge.id, code: unreadableChallenge.code },
+  }), { DB: unreadable.d1 }, []);
+  assert.equal(unreadableResponse?.status, 503);
+  assert.equal((await unreadableResponse.json()).error.code, "challenge_attempt_unconfirmed");
+  assert.equal(unreadable.sqlite.prepare("SELECT attempts FROM email_challenges WHERE id = ?")
+    .get(unreadableChallenge.id).attempts, 1);
+  assert.equal(unreadable.sqlite.prepare("SELECT COUNT(*) AS count FROM users WHERE email = ?")
+    .get(unreadableChallenge.email).count, 0);
+
+  const changed = await database();
+  const changedChallenge = await addSignupChallenge(changed.sqlite, "attempt-changed-162", "624830");
+  changed.d1.beforeOnceQuerySubstring = "(SELECT COUNT(*) FROM email_challenges";
+  changed.d1.beforeOnceQuery = () => changed.sqlite
+    .prepare("UPDATE email_challenges SET password_hash = ? WHERE id = ?")
+    .run("b".repeat(43), changedChallenge.id);
+  const changedResponse = await handleAccountRequest(request("/api/auth/signup/verify", {
+    method: "POST",
+    body: { challengeId: changedChallenge.id, code: changedChallenge.code },
+  }), { DB: changed.d1 }, []);
+  assert.equal(changedResponse?.status, 409);
+  assert.equal((await changedResponse.json()).error.code, "challenge_changed");
+  assert.equal(changed.sqlite.prepare("SELECT COUNT(*) AS count FROM users WHERE email = ?")
+    .get(changedChallenge.email).count, 0);
 });
 
 test("email-code ceilings remain bounded and fail closed after the sixth claim", async () => {
@@ -816,7 +877,7 @@ test("email-code ceilings remain bounded and fail closed after the sixth claim",
   assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM users WHERE email = ?").get(email).count, 0);
 });
 
-test("password reset keeps an unconfirmed attempt claim generic and changes no credential", async () => {
+test("password reset recovers an exact attempt claim after metadata loss", async () => {
   const { sqlite, d1 } = await database();
   const user = await addUser(sqlite, "reset-attempt-receipt-154");
   const originalPasswordHash = sqlite.prepare("SELECT password_hash FROM users WHERE id = ?").get(user.id).password_hash;
@@ -835,18 +896,51 @@ test("password reset keeps an unconfirmed attempt claim generic and changes no c
   );
   d1.omitOnceMutationMetadataSubstring = "UPDATE email_challenges SET attempts = ?";
 
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(`${"0".repeat(35)}:0`);
+  try {
+    const response = await handleAccountRequest(request("/api/auth/password/reset", {
+      method: "POST",
+      cookie: user.cookie,
+      body: { challengeId, code, password: "unconfirmed attempt replacement passphrase" },
+    }), { DB: d1 }, []);
+
+    assert.equal(response?.status, 200);
+    assert.match(sessionCookieFrom(response) ?? "", /^__Host-cc_session=/u);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?")
+      .get(challengeId).count, 0);
+    assert.notEqual(sqlite.prepare("SELECT password_hash FROM users WHERE id = ?")
+      .get(user.id).password_hash, originalPasswordHash);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?")
+      .get(user.id).count, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("password reset keeps an unreadable attempt receipt generic and changes no credential", async () => {
+  const { sqlite, d1 } = await database();
+  const user = await addUser(sqlite, "reset-attempt-unreadable-163");
+  const originalPasswordHash = sqlite.prepare("SELECT password_hash FROM users WHERE id = ?")
+    .get(user.id).password_hash;
+  const code = "624831";
+  const challengeId = await addPasswordResetChallenge(sqlite, user, code);
+  d1.failOnceQuerySubstring = "(SELECT COUNT(*) FROM email_challenges";
+
   const response = await handleAccountRequest(request("/api/auth/password/reset", {
     method: "POST",
     cookie: user.cookie,
-    body: { challengeId, code, password: "unconfirmed attempt replacement passphrase" },
+    body: { challengeId, code, password: "unreadable attempt replacement passphrase" },
   }), { DB: d1 }, []);
 
   assert.equal(response?.status, 401);
   assert.equal((await response.json()).error.code, "invalid_code");
   assert.equal(sessionCookieFrom(response), null);
   assert.equal(sqlite.prepare("SELECT attempts FROM email_challenges WHERE id = ?").get(challengeId).attempts, 1);
-  assert.equal(sqlite.prepare("SELECT password_hash FROM users WHERE id = ?").get(user.id).password_hash, originalPasswordHash);
-  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?").get(user.id).count, 1);
+  assert.equal(sqlite.prepare("SELECT password_hash FROM users WHERE id = ?")
+    .get(user.id).password_hash, originalPasswordHash);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?")
+    .get(user.id).count, 1);
 });
 
 test("email challenge issuance ceilings are claimed atomically before provider delivery", async () => {

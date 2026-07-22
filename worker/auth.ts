@@ -3621,6 +3621,12 @@ interface AccountCreationReceiptRow {
   fence_count: number;
 }
 
+interface ChallengeAttemptReceiptRow {
+  claimed_count: number;
+  prior_count: number;
+  any_count: number;
+}
+
 async function assertEmailChallengeAllowed(db: D1DatabaseLike, email: string) {
   const cutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const row = await db.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE email = ? AND created_at >= ?")
@@ -3659,27 +3665,71 @@ async function verifyEmailChallenge(
     throw new AuthError(429, "too_many_code_attempts", "Too many code attempts. Request a new code.");
   }
   const claimedAttempts = Number(row.attempts) + 1;
-  const attemptResult = await db.prepare(`UPDATE email_challenges SET attempts = ?
-    WHERE id = ? AND kind = ? AND code_hash = ? AND created_at = ?
-      AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?`)
-    .bind(
-      claimedAttempts,
-      row.id,
-      row.kind,
-      row.code_hash,
-      row.created_at,
-      Number(row.attempts),
-      Number(row.resend_count ?? 0),
-      row.expires_at,
-      verifiedAt,
-    )
-    .run();
-  const attemptChanges = confirmedMutationChanges(attemptResult);
-  if (attemptChanges !== 1) {
+  const snapshotParameters = (attempts: number) => [
+    row.id,
+    row.kind,
+    row.email,
+    row.user_id,
+    row.code_hash,
+    row.password_salt,
+    row.password_hash,
+    row.age_eligibility_confirmed_at,
+    row.terms_version,
+    row.privacy_version,
+    row.created_at,
+    attempts,
+    Number(row.resend_count ?? 0),
+    row.expires_at,
+    verifiedAt,
+  ];
+  try {
+    await db.prepare(`UPDATE email_challenges SET attempts = ?
+      WHERE id = ? AND kind = ? AND email = ? AND user_id IS ? AND code_hash = ?
+        AND password_salt IS ? AND password_hash IS ? AND age_eligibility_confirmed_at IS ?
+        AND terms_version IS ? AND privacy_version IS ? AND created_at = ?
+        AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?`)
+      .bind(claimedAttempts, ...snapshotParameters(Number(row.attempts)))
+      .run();
+  } catch {
+    // The claim can commit and lose its response. Only the exact challenge version decides.
+  }
+  let receipt: ChallengeAttemptReceiptRow | null = null;
+  let receiptReadSucceeded = false;
+  try {
+    receipt = await db.prepare(`SELECT
+        (SELECT COUNT(*) FROM email_challenges
+          WHERE id = ? AND kind = ? AND email = ? AND user_id IS ? AND code_hash = ?
+            AND password_salt IS ? AND password_hash IS ? AND age_eligibility_confirmed_at IS ?
+            AND terms_version IS ? AND privacy_version IS ? AND created_at = ?
+            AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?) AS claimed_count,
+        (SELECT COUNT(*) FROM email_challenges
+          WHERE id = ? AND kind = ? AND email = ? AND user_id IS ? AND code_hash = ?
+            AND password_salt IS ? AND password_hash IS ? AND age_eligibility_confirmed_at IS ?
+            AND terms_version IS ? AND privacy_version IS ? AND created_at = ?
+            AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?) AS prior_count,
+        (SELECT COUNT(*) FROM email_challenges WHERE id = ? AND kind = ?) AS any_count`)
+      .bind(
+        ...snapshotParameters(claimedAttempts),
+        ...snapshotParameters(Number(row.attempts)),
+        row.id,
+        row.kind,
+      )
+      .first<ChallengeAttemptReceiptRow>();
+    receiptReadSucceeded = true;
+  } catch {
+    // Never let an unreadable claim authorize a credential transition.
+  }
+  const claimedCount = Number(receipt?.claimed_count);
+  const priorCount = Number(receipt?.prior_count);
+  const anyCount = Number(receipt?.any_count);
+  const countsValid = [claimedCount, priorCount, anyCount]
+    .every((count) => Number.isSafeInteger(count) && count >= 0 && count <= 1)
+    && claimedCount + priorCount <= anyCount;
+  if (!receiptReadSucceeded || !countsValid || claimedCount !== 1 || anyCount !== 1) {
     if (kind === "password_reset") {
       throw new AuthError(401, "invalid_code", "That code is invalid or expired. Request a new one.");
     }
-    if (attemptChanges === 0) {
+    if (receiptReadSucceeded && countsValid && priorCount === 0) {
       throw new AuthError(409, "challenge_changed", "That verification request changed. Use its latest code or start again.");
     }
     throw new AuthError(503, "challenge_attempt_unconfirmed", "That code attempt could not be confirmed. Try again.");

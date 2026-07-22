@@ -211,18 +211,77 @@ CHECKS = (
     PlanCheck(
         "atomic email challenge attempt claim",
         """UPDATE email_challenges SET attempts = ?
-           WHERE id = ? AND kind = ? AND code_hash = ? AND created_at = ?
+           WHERE id = ? AND kind = ? AND email = ? AND user_id IS ? AND code_hash = ?
+             AND password_salt IS ? AND password_hash IS ? AND age_eligibility_confirmed_at IS ?
+             AND terms_version IS ? AND privacy_version IS ? AND created_at = ?
              AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?""",
         (
             1,
             "challenge_fixture",
             "signup",
+            "new-angler@example.com",
+            None,
             "code_hash_fixture",
+            "salt_fixture",
+            "password_hash_fixture",
+            "2026-07-17T00:00:00.000Z",
+            "2026-07-16",
+            "2026-07-16",
             "2026-07-17T00:00:00.000Z",
             0,
             0,
             "2026-07-17T00:15:00.000Z",
             "2026-07-17T00:00:00.000Z",
+        ),
+        ("sqlite_autoindex_email_challenges_1",),
+    ),
+    PlanCheck(
+        "exact email challenge attempt receipt",
+        """SELECT
+             (SELECT COUNT(*) FROM email_challenges
+               WHERE id = ? AND kind = ? AND email = ? AND user_id IS ? AND code_hash = ?
+                 AND password_salt IS ? AND password_hash IS ? AND age_eligibility_confirmed_at IS ?
+                 AND terms_version IS ? AND privacy_version IS ? AND created_at = ?
+                 AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?) AS claimed_count,
+             (SELECT COUNT(*) FROM email_challenges
+               WHERE id = ? AND kind = ? AND email = ? AND user_id IS ? AND code_hash = ?
+                 AND password_salt IS ? AND password_hash IS ? AND age_eligibility_confirmed_at IS ?
+                 AND terms_version IS ? AND privacy_version IS ? AND created_at = ?
+                 AND attempts = ? AND resend_count = ? AND expires_at = ? AND expires_at > ?) AS prior_count,
+             (SELECT COUNT(*) FROM email_challenges WHERE id = ? AND kind = ?) AS any_count""",
+        (
+            "challenge_fixture",
+            "signup",
+            "new-angler@example.com",
+            None,
+            "code_hash_fixture",
+            "salt_fixture",
+            "password_hash_fixture",
+            "2026-07-17T00:00:00.000Z",
+            "2026-07-16",
+            "2026-07-16",
+            "2026-07-17T00:00:00.000Z",
+            1,
+            0,
+            "2026-07-17T00:15:00.000Z",
+            "2026-07-17T00:01:00.000Z",
+            "challenge_fixture",
+            "signup",
+            "new-angler@example.com",
+            None,
+            "code_hash_fixture",
+            "salt_fixture",
+            "password_hash_fixture",
+            "2026-07-17T00:00:00.000Z",
+            "2026-07-16",
+            "2026-07-16",
+            "2026-07-17T00:00:00.000Z",
+            0,
+            0,
+            "2026-07-17T00:15:00.000Z",
+            "2026-07-17T00:01:00.000Z",
+            "challenge_fixture",
+            "signup",
         ),
         ("sqlite_autoindex_email_challenges_1",),
     ),

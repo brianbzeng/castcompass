@@ -273,9 +273,12 @@ after its acceptance checks pass in the intended environment.
       claims one of ten rolling failure slots before credential work and issues no session until
       the exact claim is confirmed successful. Signup and recovery challenge creation recheck the
       five-per-hour ceiling inside their INSERT, before provider delivery. Every verification or
-      reset code submission compare-and-sets the exact challenge version to its next attempt count,
-      caps at six, and cannot increment or authorize a concurrently resent code. Missing mutation
-      receipts fail closed without weakening password-recovery enumeration resistance.
+      reset code submission compare-and-sets the complete challenge snapshot to its next attempt
+      count, then requires exact read-back of that claimed version with the prior state absent.
+      Missing metadata and lost committed responses recover without replay; rollback, unreadable
+      or changed state authorizes no credential transition, concurrent signup changes remain
+      `409`, and password recovery retains its generic anti-enumeration response. Six claims remain
+      the hard ceiling.
   - [ ] Verify encryption in transit and at rest, key separation/rotation/recovery, least
     privilege, secret scanning, dependency/runtime/action version locks, reproducible builds,
     an SBOM, vulnerability-response ownership, and restore-tested backups. Pinning must include
