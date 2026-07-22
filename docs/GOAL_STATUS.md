@@ -54,10 +54,21 @@ by that discovery.
       exact clean model identities and artifact hashes. Best held-out hybrid losses were 1.621
       for bathymetry, 1.526 for backscatter, and 1.575 for fused; these differently targeted
       optimization losses do not rank representation quality or authorize promotion.
-- [ ] Run the same independent seafloor/habitat probe for all three frozen encoders plus the
-      declared classical and random baselines, then run a separate rare-structure probe. Do not
-      promote or connect any encoder to the live score unless the existing model-governance and
-      confirmatory-validation gates independently pass.
+- [x] Run the same source-separated downstream probe for all three frozen encoders plus declared
+      input-matched classical and architecture-matched random baselines, then a separate
+      rare-structure probe. The common probe exactly reused pretraining holdout `3`; fused deep
+      features reached macro F1 `0.7020` and reliably exceeded both single-modality encoders, but
+      remained reliably below fused classical summaries at `0.7574`. The 192-row balanced rare
+      case-control corpus retained 82 connected components, held out 37 with zero overlap after a
+      512 m buffer, and reproduced byte-for-byte. Fused deep features reached macro F1 `0.7259`,
+      reliably beat their random encoder and backscatter pretraining, but did not reliably beat
+      bathymetry pretraining or fused classical summaries. Two executions reproduced exact common
+      and rare metrics/prediction bytes; the minimized
+      [probe receipt](../pipeline/evidence/hybrid-seafloor-probes-v1.receipt.json) binds the clean
+      source and official artifacts. The USGS target was itself interpreted from bathymetry,
+      backscatter, and video, and the rare set is not prevalence-representative. No encoder was
+      promoted or connected to the live score; model-governance and confirmatory-validation gates
+      remain independently open.
 
 This checkpoint changes no browser behavior, API, Worker, D1/R2/Queue state, production provider,
 live score, public model claim, or deployment authority.

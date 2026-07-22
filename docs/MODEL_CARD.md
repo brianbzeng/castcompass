@@ -1,11 +1,12 @@
 # CastingCompass model card
 
 **Status:** multiscale encoder and exactly reproduced official bathymetry,
-backscatter, and fused self-supervised pretraining implemented; independent
-representation probes remain open, catch heads remain untrained, and no catch
-performance has been measured.
+backscatter, and fused self-supervised pretraining plus common-substrate and
+rare-structure transfer probes implemented; no encoder passed the frozen
+classical baselines, catch heads remain untrained, and no catch performance has
+been measured.
 
-**Version:** 0.5.0
+**Version:** 0.6.0
 
 ## Live regional-ranking boundary
 
@@ -283,7 +284,9 @@ channel order, source version, or coverage contract fails.
 | Self-supervised pretraining | [Pilot completed on official USGS 2 m bathymetry](experiments/2026-07-11-usgs-sf-2m-ssl-pilot.md) | Best geographically held-out NT-Xent 2.6161 at epoch 1; optimization/provenance validation only, not catch accuracy |
 | Full-survey self-supervised pretraining | [Completed and exactly reproduced on 4,096 USGS 2 m locations](experiments/2026-07-11-usgs-sf-2m-full-ssl-v1.md) | Best geographically held-out NT-Xent 1.4683 at epoch 20; eligible for habitat probing, not live scoring |
 | Frozen seafloor-character probe | [Completed and exactly reproduced on a strict unseen region](experiments/2026-07-11-usgs-sf-2m-seafloor-probe-v1.md) | Pretrained macro F1 0.3914; beats depth-only but is reliably worse than classical structure summaries, so it is not promoted |
-| Hybrid bathymetry/backscatter foundation | Implemented; official three-way run not yet completed | Aligned-layer provenance, binary missingness, masked reconstruction, spatial contrastive loss, modality contracts, target-agnostic receipts, and synthetic end-to-end checkpoint path are implemented; no official-data result |
+| Hybrid bathymetry/backscatter pretraining | [Completed and exactly reproduced on one 4,096-location corpus](../pipeline/evidence/hybrid-seafloor-v1.receipt.json) | All three target-agnostic encoders reproduced exactly; differently targeted optimization losses do not rank representation quality |
+| Hybrid common-substrate probe | [Completed and exactly reproduced on pretraining holdout 3](experiments/2026-07-22-usgs-sf-hybrid-seafloor-probes-v1.md) | Fused deep macro F1 0.7020 reliably exceeds both single-modality encoders but remains reliably below fused classical summaries at 0.7574 |
+| Rare mapped-structure case-control probe | [Completed and exactly reproduced with whole-component holdout](experiments/2026-07-22-usgs-sf-hybrid-seafloor-probes-v1.md) | Fused deep macro F1 0.7259 beats fused random initialization, but does not reliably beat fused classical summaries; balanced sampling cannot estimate prevalence |
 | Two-head fine-tuning | Unrun | No checkpoint |
 | Geographic generalization | Unrun | No result |
 | Calibration / ablations | Unrun on official data | No result |

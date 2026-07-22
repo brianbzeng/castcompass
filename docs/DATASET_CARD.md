@@ -2,11 +2,11 @@
 
 **Status:** species-aware contract assets, multiscale structure pipeline, and
 exactly reproduced official bathymetry/backscatter/fused self-supervised
-pretraining implemented. The production species migration, independent
-representation probes, and any supervised catch-training dataset remain
-unapproved. Official rasters and weights are not bundled.
+pretraining and target-agnostic transfer probes implemented. The production
+species migration and any supervised catch-training dataset remain unapproved.
+Official rasters, probe corpora, and weights are not bundled.
 
-**Version:** 0.4.0
+**Version:** 0.5.0
 
 ## Intended dataset
 
@@ -313,3 +313,15 @@ transformation. Composite depth/slope digits are removed from the target. The
 map was itself derived from bathymetry, acoustic backscatter, and
 interpreter/video evidence, so the result measures transferable character
 signal rather than an independent biological endpoint.
+
+The frozen three-encoder follow-up uses the same official seafloor-character
+map and exactly reuses the pretraining holdout. Its common substrate target has
+3,183 training rows and 903 test rows. A separate label-guided rare probe
+retains 64 smooth anthropogenic, 64 rugged anthropogenic, and 64 nearby natural
+control centers. Every rare center must span at least three native cells; whole
+connected components remain in one geographic fold; and a 512 m buffer excludes
+nearby training rows. Two builds reproduced the rare corpus exactly at SHA-256
+`9ea0b540e18760bb3ac9a144dcba4df5d88f05c1491f1bceb341482731072741`.
+The balanced case-control design cannot estimate natural prevalence or
+population accuracy. Exact results and source identities are recorded in the
+[hybrid probe receipt](../pipeline/evidence/hybrid-seafloor-probes-v1.receipt.json).

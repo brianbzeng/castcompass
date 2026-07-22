@@ -1,0 +1,186 @@
+{
+  "schema_version": "castingcompass.hybrid-seafloor-probe-receipt/1.0.0",
+  "created_at": "2026-07-22T11:44:14Z",
+  "source_commit": "a0720cd565bde9382695b6c4af8e6c380828edf7",
+  "source_manifest": {
+    "path": "pipeline/sources/usgs_sf_state_waters.json",
+    "sha256": "4617cb08d56a2e858766f2e3e8d24e7706b6475011820cee0ec17ef2f58c034c"
+  },
+  "official_inputs": {
+    "pretraining_corpus_sha256": "dd88342209522d12726208259640fe7ac9379a61fa79cd9e606475945dd9af4a",
+    "seafloor_character_url": "https://pubs.usgs.gov/ds/781/OffshoreSanFrancisco/data/SeafloorCharacter_OffshoreSanFrancisco.zip",
+    "seafloor_character_archive_sha256": "a826cca8611ff4b5445ae398f1ad419813435876db2aa5810e76a73c83225c3b",
+    "seafloor_character_geotiff_sha256": "224ea4ed70c02769e08b3b971b9adae6c5853f2af7130587604e8f49ba6d035e",
+    "checkpoint_sha256": {
+      "bathymetry": "3261b5328290d5e9992c6ae19d3670eff5ad4d0b47027442bcd04bfaa36edbce",
+      "backscatter": "edb8e6579bac3f76b74b11b3ba91d7bb363605172fa6d5abc52edf4bc0b8d5e2",
+      "fused": "7ccff84da4ea0799cc4f87b0d63b39ccb6e943d95ca082da6b38e6aa8a6f7156"
+    }
+  },
+  "common_substrate_probe": {
+    "experiment_version": "exp-target-agnostic-2cb5250bc9506691dd19fc4e182202553cadc3f1e2bf251e8892404c76fc9fc3",
+    "model_version": "model-target-agnostic-c9601e920c1b239fb2ad693612f057c889f1ad2cb511107465780593b2bc3008",
+    "design": {
+      "validation_fold": 3,
+      "split_regions": 5,
+      "seed": 42,
+      "train_rows": 3183,
+      "test_rows": 903,
+      "test_class_counts": {
+        "smooth_fine_medium_sediment": 804,
+        "mixed_or_rugose_rock": 67,
+        "mobile_coarse_sediment": 32
+      },
+      "pretraining_holdout_exactly_reused": true,
+      "bootstrap_samples": 1000,
+      "bootstrap_resampling_unit": "held-out-row-within-class"
+    },
+    "macro_f1": {
+      "bathymetry_pretrained": 0.6461996807291497,
+      "bathymetry_random": 0.38450034551399076,
+      "bathymetry_classical": 0.5864533320984633,
+      "backscatter_pretrained": 0.6348325777459636,
+      "backscatter_random": 0.6389287273315655,
+      "backscatter_classical": 0.45414688979204637,
+      "fused_pretrained": 0.7019840679613137,
+      "fused_random": 0.5325359319094894,
+      "fused_classical": 0.7573938432882782,
+      "depth_only": 0.31400117164616287
+    },
+    "frozen_comparisons": {
+      "fused_pretrained_minus_bathymetry_pretrained": {
+        "median_macro_f1_delta": 0.05327772236042111,
+        "ci_95": [
+          0.00483866953796647,
+          0.11117055674249274
+        ]
+      },
+      "fused_pretrained_minus_backscatter_pretrained": {
+        "median_macro_f1_delta": 0.06455647149051746,
+        "ci_95": [
+          0.01327052889116033,
+          0.11344936164083026
+        ]
+      },
+      "fused_pretrained_minus_fused_classical": {
+        "median_macro_f1_delta": -0.055494558233306734,
+        "ci_95": [
+          -0.10876631166142593,
+          -0.008745506162786906
+        ]
+      },
+      "backscatter_pretrained_minus_backscatter_random": {
+        "median_macro_f1_delta": -0.003199315033546146,
+        "ci_95": [
+          -0.03905427841156787,
+          0.03165367676558394
+        ]
+      }
+    },
+    "artifact_sha256": {
+      "metrics": "0cd1eb5d3b7331b31ec53121cd3eaa1ea04f5efb7cefb826b61e6270d3f69160",
+      "predictions": "76646552c91ba2a916b993f4c1e94a7c35cb527c6a6dee62a052b67b001e09c0",
+      "run_metadata": "2e3bfd6fdc6342b9660a573356e629c53b2770402cd509ba09296c0295692762"
+    }
+  },
+  "rare_structure_probe": {
+    "experiment_version": "exp-target-agnostic-fb20ecf13cea78a22c1f4da599f7751bbb71809cffca0ad36f8e3877da036548",
+    "model_version": "model-target-agnostic-b87b38d0a17c727d1ff3e9b914d6ad793f06a104d4e550d14cb72b3d38cb9ecc",
+    "probe_corpus_sha256": "9ea0b540e18760bb3ac9a144dcba4df5d88f05c1491f1bceb341482731072741",
+    "design": {
+      "class_counts": {
+        "natural_control": 64,
+        "smooth_anthropogenic": 64,
+        "rugged_anthropogenic": 64
+      },
+      "retained_connected_components": 82,
+      "minimum_mapped_width_m": 6,
+      "nearby_natural_control_annulus_m": [
+        16,
+        128
+      ],
+      "validation_fold": 0,
+      "split_regions": 3,
+      "seed": 42,
+      "buffer_m": 512,
+      "train_rows": 72,
+      "test_rows": 92,
+      "buffer_excluded_rows": 28,
+      "train_connected_components": 34,
+      "test_connected_components": 37,
+      "component_overlap": 0,
+      "test_class_counts": {
+        "natural_control": 30,
+        "smooth_anthropogenic": 26,
+        "rugged_anthropogenic": 36
+      },
+      "bootstrap_samples": 1000,
+      "bootstrap_resampling_unit": "held-out-connected-component-within-rare-class",
+      "case_control_prevalence_metrics_prohibited": true
+    },
+    "macro_f1": {
+      "bathymetry_pretrained": 0.665097926908819,
+      "bathymetry_random": 0.6380329909741674,
+      "bathymetry_classical": 0.7794612794612794,
+      "backscatter_pretrained": 0.45316308341518424,
+      "backscatter_random": 0.42401500938086306,
+      "backscatter_classical": 0.5059521059521059,
+      "fused_pretrained": 0.7259209100758396,
+      "fused_random": 0.5792372951157235,
+      "fused_classical": 0.753524120915972,
+      "depth_only": 0.6047780537085993
+    },
+    "frozen_comparisons": {
+      "fused_pretrained_minus_bathymetry_pretrained": {
+        "median_macro_f1_delta": 0.061602466324262195,
+        "ci_95": [
+          -0.016331726714399548,
+          0.1423458020056587
+        ]
+      },
+      "fused_pretrained_minus_backscatter_pretrained": {
+        "median_macro_f1_delta": 0.2773657949356688,
+        "ci_95": [
+          0.1514671221454259,
+          0.402066414192962
+        ]
+      },
+      "fused_pretrained_minus_fused_classical": {
+        "median_macro_f1_delta": -0.02862014540482677,
+        "ci_95": [
+          -0.12077297482063208,
+          0.06846834686023318
+        ]
+      },
+      "fused_pretrained_minus_fused_random": {
+        "median_macro_f1_delta": 0.15139435448194777,
+        "ci_95": [
+          0.04671926051655611,
+          0.2647042986786612
+        ]
+      }
+    },
+    "artifact_sha256": {
+      "metrics": "82d21dd0b2d551075ea9a7b3a4c29140db25aa7c8d6ab50579b83a68f8f826ee",
+      "predictions": "2cde1cb026fa8a88604d1868f3ad10bd3b5f9e8cf329d1fd370c6c02aca74b9e",
+      "run_metadata": "297ba3753d9a89c289aab2abb0d6d6b7ce4fdadea5edc92abf22a9f69cd1c1a3"
+    }
+  },
+  "reproduction": {
+    "rare_corpus_builds": 2,
+    "rare_corpus_bytes_exact": true,
+    "common_probe_executions": 2,
+    "common_metrics_bytes_exact": true,
+    "common_predictions_bytes_exact": true,
+    "rare_probe_executions": 2,
+    "rare_metrics_bytes_exact": true,
+    "rare_predictions_bytes_exact": true
+  },
+  "decision": {
+    "best_deep_representation": "fused",
+    "encoder_promoted": false,
+    "serving_or_score_changed": false,
+    "reason": "The fused encoder reliably exceeded both single-modality encoders on the common substrate probe and exceeded its random baseline on the rare-structure probe, but it remained reliably below the fused classical baseline on common substrate and did not reliably beat fused classical summaries on rare structure. The historical target is not an independent biological endpoint and the rare probe is case-control rather than prevalence-representative."
+  },
+  "claim_boundary": "These probes measure reproducible transfer to historical USGS seafloor-character labels. The label map was interpreted from bathymetry, backscatter, and video. Results do not validate current structure presence, habitat quality, fish presence, fishing skill, catch probability, calibration, or the live Opportunity Score, and they do not authorize model promotion or deployment."
+}
