@@ -8,7 +8,7 @@ accounts, or production data.
 ## D1 query inventory
 
 `scripts/generate-d1-query-inventory.mjs` parses every Worker TypeScript source file and records
-all 240 direct `.prepare()` sites: 226 literal statements and 14 separately reviewed nonliteral
+all 241 direct `.prepare()` sites: 227 literal statements and 14 separately reviewed nonliteral
 expressions across eight source files. The committed policy and generated inventory are
 source-hash and call-site bound. CI rejects source-file/count drift, computed or aliased
 `prepare` access, a nonliteral expression without its exact static-authority review, an unscoped
@@ -72,7 +72,7 @@ latency, or alerting; those remain isolated-staging gates. The complete contract
 [SCHEDULED-WORKER-BUDGET.md](SCHEDULED-WORKER-BUDGET.md).
 
 `scripts/check_d1_query_plans.py` separately applies every migration to an in-memory SQLite
-database, runs 35 representative `EXPLAIN QUERY PLAN` checks, and rejects missing leftmost
+database, runs 36 representative `EXPLAIN QUERY PLAN` checks, and rejects missing leftmost
 indexes for every foreign-key child path. The checked plans cover the highest-frequency or
 growth-sensitive access patterns:
 
@@ -80,6 +80,7 @@ growth-sensitive access patterns:
 | --- | --- | --- |
 | Session, email-challenge, auth-attempt, and age-proof retention | Scheduled deletion by time; each table selects at most 100 eligible primary keys per invocation | Dedicated leading time indexes; the two age-proof predicates use SQLite's multi-index OR plan |
 | Session issuance receipt | One random token hash, authenticated owner, exact timestamps, live user, and absent account-deletion fence, `LIMIT 1` | Session, user, and deletion-fence primary keys; exact state decides whether the plaintext token may be disclosed |
+| Password-reset receipt | One exact credential row plus scalar counts for prior sessions, the one-use challenge, and deletion fence | User/challenge/fence primary keys and the `(user_id, expires_at)` session index; complete post-state decides whether replacement-session creation may begin |
 | Login and email abuse ceilings | One email pseudonym/address plus a fixed time window | Existing `(email_hash, attempted_at)` and `(email, created_at)` indexes |
 | Saved sites and gear profiles | One authenticated user; exact 100-item ceilings, `LIMIT 101` overflow detection, fail-closed legacy overflow, and atomic count-guarded creates | `(user_id, created_at)` and `(user_id, updated_at)` ordering indexes |
 | Gear update/delete receipts | One server-generated timestamp and authenticated owner after PATCH; exact owner/global cardinality after DELETE | Gear-profile primary key; normalized update state or global absence decides success |

@@ -668,16 +668,75 @@ export async function handleAccountRequest(
       if (!challenge.user_id) throw new AuthError(400, "invalid_challenge", "Request a new reset code.");
       await assertNewPasswordAllowed(password, challenge.email);
       const salt = randomSecret(18);
+      const passwordHash = await hashPassword(password, salt);
       const timestamp = new Date().toISOString();
-      const [passwordResult, sessionResult, challengeResult] = await db.batch([
-        db.prepare(`UPDATE users SET password_salt = ?, password_hash = ?, updated_at = ?
-          WHERE id = ? AND EXISTS (SELECT 1 FROM email_challenges
+      try {
+        await db.batch([
+          db.prepare(`UPDATE users SET password_salt = ?, password_hash = ?, updated_at = ?
+            WHERE id = ? AND EXISTS (SELECT 1 FROM email_challenges
+              WHERE id = ? AND kind = 'password_reset' AND user_id = ? AND code_hash = ?
+                AND created_at = ? AND attempts = ? AND expires_at > ?)`)
+            .bind(
+              salt,
+              passwordHash,
+              timestamp,
+              challenge.user_id,
+              challenge.id,
+              challenge.user_id,
+              challenge.code_hash,
+              challenge.created_at,
+              Number(challenge.attempts),
+              timestamp,
+            ),
+          db.prepare(`DELETE FROM auth_sessions WHERE user_id = ?
+            AND EXISTS (SELECT 1 FROM email_challenges
+              WHERE id = ? AND kind = 'password_reset' AND user_id = ? AND code_hash = ?
+                AND created_at = ? AND attempts = ? AND expires_at > ?)`)
+            .bind(
+              challenge.user_id,
+              challenge.id,
+              challenge.user_id,
+              challenge.code_hash,
+              challenge.created_at,
+              Number(challenge.attempts),
+              timestamp,
+            ),
+          db.prepare(`DELETE FROM email_challenges
             WHERE id = ? AND kind = 'password_reset' AND user_id = ? AND code_hash = ?
-              AND created_at = ? AND attempts = ? AND expires_at > ?)`)
+              AND created_at = ? AND attempts = ? AND expires_at > ?`)
+            .bind(
+              challenge.id,
+              challenge.user_id,
+              challenge.code_hash,
+              challenge.created_at,
+              Number(challenge.attempts),
+              timestamp,
+            ),
+        ]);
+      } catch {
+        // A committed atomic reset can lose its batch response. Only the complete post-state decides.
+      }
+      let receipt: PasswordResetReceiptRow | null = null;
+      let receiptReadSucceeded = false;
+      try {
+        receipt = await db.prepare(`SELECT
+            (SELECT COUNT(*) FROM users
+              WHERE id = ? AND email = ? AND password_salt = ? AND password_hash = ?
+                AND updated_at = ?) AS exact_user_count,
+            (SELECT COUNT(*) FROM users WHERE id = ?) AS any_user_count,
+            (SELECT COUNT(*) FROM auth_sessions WHERE user_id = ?) AS session_count,
+            (SELECT COUNT(*) FROM email_challenges
+              WHERE id = ? AND kind = 'password_reset' AND user_id = ? AND code_hash = ?
+                AND created_at = ? AND attempts = ? AND expires_at > ?) AS exact_challenge_count,
+            (SELECT COUNT(*) FROM email_challenges WHERE id = ?) AS any_challenge_count,
+            (SELECT COUNT(*) FROM account_deletion_fences WHERE user_id = ?) AS fence_count`)
           .bind(
+            challenge.user_id,
+            challenge.email,
             salt,
-            await hashPassword(password, salt),
+            passwordHash,
             timestamp,
+            challenge.user_id,
             challenge.user_id,
             challenge.id,
             challenge.user_id,
@@ -685,36 +744,32 @@ export async function handleAccountRequest(
             challenge.created_at,
             Number(challenge.attempts),
             timestamp,
-          ),
-        db.prepare(`DELETE FROM auth_sessions WHERE user_id = ?
-          AND EXISTS (SELECT 1 FROM email_challenges
-            WHERE id = ? AND kind = 'password_reset' AND user_id = ? AND code_hash = ?
-              AND created_at = ? AND attempts = ? AND expires_at > ?)`)
-          .bind(
-            challenge.user_id,
             challenge.id,
             challenge.user_id,
-            challenge.code_hash,
-            challenge.created_at,
-            Number(challenge.attempts),
-            timestamp,
-          ),
-        db.prepare(`DELETE FROM email_challenges
-          WHERE id = ? AND kind = 'password_reset' AND user_id = ? AND code_hash = ?
-            AND created_at = ? AND attempts = ? AND expires_at > ?`)
-          .bind(
-            challenge.id,
-            challenge.user_id,
-            challenge.code_hash,
-            challenge.created_at,
-            Number(challenge.attempts),
-            timestamp,
-          ),
-      ]);
-      const passwordChanges = confirmedMutationChanges(passwordResult);
-      const sessionChanges = confirmedMutationChanges(sessionResult);
-      const challengeChanges = confirmedMutationChanges(challengeResult);
-      if (passwordChanges === null || sessionChanges === null || challengeChanges === null) {
+          )
+          .first<PasswordResetReceiptRow>();
+        receiptReadSucceeded = true;
+      } catch {
+        // Never create a replacement session when the credential lifecycle is unreadable.
+      }
+      const exactUserCount = Number(receipt?.exact_user_count);
+      const anyUserCount = Number(receipt?.any_user_count);
+      const sessionCount = Number(receipt?.session_count);
+      const exactChallengeCount = Number(receipt?.exact_challenge_count);
+      const anyChallengeCount = Number(receipt?.any_challenge_count);
+      const fenceCount = Number(receipt?.fence_count);
+      const counts = [
+        exactUserCount,
+        anyUserCount,
+        sessionCount,
+        exactChallengeCount,
+        anyChallengeCount,
+        fenceCount,
+      ];
+      if (!receiptReadSucceeded || counts.some((count) => !Number.isSafeInteger(count) || count < 0)
+        || exactUserCount > 1 || anyUserCount > 1 || exactChallengeCount > 1
+        || anyChallengeCount > 1 || fenceCount > 1 || exactUserCount > anyUserCount
+        || exactChallengeCount > anyChallengeCount) {
         return errorResponse(
           503,
           "password_reset_unconfirmed",
@@ -722,14 +777,7 @@ export async function handleAccountRequest(
           clearSessionCookies(request),
         );
       }
-      if (passwordChanges === 0) {
-        if (challengeChanges === 0) {
-          return errorResponse(
-            409,
-            "password_reset_challenge_changed",
-            "That reset request changed. Use its latest code or request another one.",
-          );
-        }
+      if (anyUserCount === 0) {
         return errorResponse(
           404,
           "account_not_found",
@@ -737,7 +785,14 @@ export async function handleAccountRequest(
           clearSessionCookies(request),
         );
       }
-      if (passwordChanges !== 1 || challengeChanges !== 1) {
+      if (exactUserCount !== 1 || sessionCount !== 0 || anyChallengeCount !== 0 || fenceCount !== 0) {
+        if (anyChallengeCount === 1 && exactChallengeCount === 0) {
+          return errorResponse(
+            409,
+            "password_reset_challenge_changed",
+            "That reset request changed. Use its latest code or request another one.",
+          );
+        }
         return errorResponse(
           503,
           "password_reset_unconfirmed",
@@ -3465,6 +3520,15 @@ interface EmailChallengeRow {
   attempts: number;
   resend_count: number;
   created_at: string;
+}
+
+interface PasswordResetReceiptRow {
+  exact_user_count: number;
+  any_user_count: number;
+  session_count: number;
+  exact_challenge_count: number;
+  any_challenge_count: number;
+  fence_count: number;
 }
 
 async function assertEmailChallengeAllowed(db: D1DatabaseLike, email: string) {

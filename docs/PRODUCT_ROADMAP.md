@@ -181,10 +181,12 @@ after its acceptance checks pass in the intended environment.
       versions are returned as accepted only after exactly one confirmed owner-row change; a
       deleted-account race clears stale session cookies, while missing D1 metadata returns `503`
       instead of a false compliance receipt. Prior age eligibility remains untouched.
-    - [x] Require a database-confirmed credential change before completing password reset. The
-      password update, all-session revocation, and challenge consumption remain one atomic batch,
-      but an unconfirmed D1 receipt returns `503`, clears stale cookies, and creates no replacement
-      session. Direct runtime proof confirms the submitted password works without replaying code.
+    - [x] Require an exact credential-lifecycle receipt before completing password reset. Password
+      update, all-session revocation, and one-use challenge consumption remain one atomic batch;
+      success requires the exact new salt/hash/timestamp row, zero prior sessions, zero challenge
+      rows, and no deletion fence. Missing metadata and a lost committed response recover without
+      replay; rollback, unreadable or conflicting state, and fence races return `503` and create no
+      replacement session. A rotated challenge remains the same safe `409`.
     - [x] Require a database-confirmed user insert before completing verified signup. User creation
       and one-use challenge deletion remain atomic, while welcome delivery and the first session
       now wait for exactly one D1 change. Missing metadata returns `503`; direct proof signs in to

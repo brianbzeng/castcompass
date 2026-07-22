@@ -255,6 +255,22 @@ async function addUser(sqlite, suffix = "1") {
   return { id, email, password, token, cookie: `cc_session=${token}` };
 }
 
+async function addPasswordResetChallenge(sqlite, user, code, now = new Date()) {
+  const id = `challenge_${crypto.randomUUID()}`;
+  sqlite.prepare(`INSERT INTO email_challenges
+      (id, kind, email, user_id, code_hash, expires_at, attempts, resend_count, created_at)
+    VALUES (?, 'password_reset', ?, ?, ?, ?, 0, 0, ?)`)
+    .run(
+      id,
+      user.email,
+      user.id,
+      await sha256(`${id}:${code}`),
+      new Date(now.getTime() + 15 * 60_000).toISOString(),
+      now.toISOString(),
+    );
+  return id;
+}
+
 test("existing ten-character passwords remain valid for sign-in", async () => {
   const { sqlite, d1 } = await database();
   const user = await addUser(sqlite, "10");
@@ -1031,9 +1047,11 @@ test("password reset revokes every prior session before issuing a fresh one", as
   }
 });
 
-test("password reset never issues a fresh session without a confirmed credential mutation", async () => {
+test("password reset follows exact credential state when mutation metadata is absent", async () => {
   const { sqlite, d1 } = await database();
   const user = await addUser(sqlite, "password-receipt-141");
+  const originalPasswordHash = sqlite.prepare("SELECT password_hash FROM users WHERE id = ?")
+    .get(user.id).password_hash;
   const challengeId = `challenge_${crypto.randomUUID()}`;
   const code = "624811";
   const now = new Date();
@@ -1058,19 +1076,146 @@ test("password reset never issues a fresh session without a confirmed credential
       cookie: user.cookie,
       body: { challengeId, code, password: "another unique replacement passphrase" },
     }), { DB: d1 }, []);
-    assert.equal(reset?.status, 503);
-    assert.equal((await reset.json()).error.code, "password_reset_unconfirmed");
-    assert.equal(sessionCookieFrom(reset), null);
-    assert.match(reset.headers.get("Set-Cookie") ?? "", /cc_session=;.*Max-Age=0/u);
-    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?").get(user.id).count, 0);
+    assert.equal(reset?.status, 200);
+    assert.match(sessionCookieFrom(reset) ?? "", /^__Host-cc_session=/u);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?").get(user.id).count, 1);
     assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?").get(challengeId).count, 0);
+    assert.notEqual(sqlite.prepare("SELECT password_hash FROM users WHERE id = ?").get(user.id).password_hash,
+      originalPasswordHash);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
-    const login = await handleAccountRequest(request("/api/auth/login", {
+test("password reset recovers exact state after the committed batch response is lost", async () => {
+  const { sqlite, d1 } = await database();
+  const user = await addUser(sqlite, "password-lost-response-149");
+  const originalPasswordHash = sqlite.prepare("SELECT password_hash FROM users WHERE id = ?").get(user.id).password_hash;
+  const code = "624817";
+  const challengeId = await addPasswordResetChallenge(sqlite, user, code);
+  d1.throwOnceAfterBatchMutationSubstring = "DELETE FROM email_challenges";
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(`${"0".repeat(35)}:0`);
+  try {
+    const reset = await handleAccountRequest(request("/api/auth/password/reset", {
       method: "POST",
-      body: { email: user.email, password: "another unique replacement passphrase" },
+      cookie: user.cookie,
+      body: { challengeId, code, password: "lost response replacement passphrase" },
     }), { DB: d1 }, []);
-    assert.equal(login?.status, 200);
-    assert.match(sessionCookieFrom(login) ?? "", /^__Host-cc_session=/u);
+    assert.equal(reset?.status, 200);
+    assert.match(sessionCookieFrom(reset) ?? "", /^__Host-cc_session=/u);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?")
+      .get(user.id).count, 1);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?")
+      .get(challengeId).count, 0);
+    assert.notEqual(sqlite.prepare("SELECT password_hash FROM users WHERE id = ?").get(user.id).password_hash,
+      originalPasswordHash);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("password reset rejects rollback and unreadable exact lifecycle state", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(`${"0".repeat(35)}:0`);
+  try {
+    const rolledBack = await database();
+    const rolledBackUser = await addUser(rolledBack.sqlite, "password-rollback-150");
+    const rolledBackHash = rolledBack.sqlite.prepare("SELECT password_hash FROM users WHERE id = ?")
+      .get(rolledBackUser.id).password_hash;
+    const rollbackCode = "624818";
+    const rollbackChallenge = await addPasswordResetChallenge(rolledBack.sqlite, rolledBackUser, rollbackCode);
+    rolledBack.d1.failOnceQuerySubstring = "DELETE FROM auth_sessions WHERE user_id = ?";
+    const rollbackResponse = await handleAccountRequest(request("/api/auth/password/reset", {
+      method: "POST",
+      cookie: rolledBackUser.cookie,
+      body: { challengeId: rollbackChallenge, code: rollbackCode, password: "rolled back replacement passphrase" },
+    }), { DB: rolledBack.d1 }, []);
+    assert.equal(rollbackResponse?.status, 503);
+    assert.equal((await rollbackResponse.json()).error.code, "password_reset_unconfirmed");
+    assert.equal(sessionCookieFrom(rollbackResponse), null);
+    assert.equal(rolledBack.sqlite.prepare("SELECT password_hash FROM users WHERE id = ?")
+      .get(rolledBackUser.id).password_hash, rolledBackHash);
+    assert.equal(rolledBack.sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?")
+      .get(rolledBackUser.id).count, 1);
+    assert.equal(rolledBack.sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?")
+      .get(rollbackChallenge).count, 1);
+
+    const unreadable = await database();
+    const unreadableUser = await addUser(unreadable.sqlite, "password-unreadable-151");
+    const unreadableHash = unreadable.sqlite.prepare("SELECT password_hash FROM users WHERE id = ?")
+      .get(unreadableUser.id).password_hash;
+    const unreadableCode = "624819";
+    const unreadableChallenge = await addPasswordResetChallenge(unreadable.sqlite, unreadableUser, unreadableCode);
+    unreadable.d1.failOnceQuerySubstring = "(SELECT COUNT(*) FROM users";
+    const unreadableResponse = await handleAccountRequest(request("/api/auth/password/reset", {
+      method: "POST",
+      cookie: unreadableUser.cookie,
+      body: { challengeId: unreadableChallenge, code: unreadableCode, password: "unreadable receipt passphrase" },
+    }), { DB: unreadable.d1 }, []);
+    assert.equal(unreadableResponse?.status, 503);
+    assert.equal((await unreadableResponse.json()).error.code, "password_reset_unconfirmed");
+    assert.equal(sessionCookieFrom(unreadableResponse), null);
+    assert.equal(unreadable.sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?")
+      .get(unreadableUser.id).count, 0);
+    assert.equal(unreadable.sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?")
+      .get(unreadableChallenge).count, 0);
+    assert.notEqual(unreadable.sqlite.prepare("SELECT password_hash FROM users WHERE id = ?")
+      .get(unreadableUser.id).password_hash, unreadableHash);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("password reset rejects conflicting credential state or a newly active deletion fence", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(`${"0".repeat(35)}:0`);
+  try {
+    const conflicting = await database();
+    const conflictingUser = await addUser(conflicting.sqlite, "password-conflict-152");
+    const conflictCode = "624820";
+    const conflictChallenge = await addPasswordResetChallenge(conflicting.sqlite, conflictingUser, conflictCode);
+    conflicting.d1.beforeOnceQuerySubstring = "(SELECT COUNT(*) FROM users";
+    conflicting.d1.beforeOnceQuery = () => conflicting.sqlite
+      .prepare("UPDATE users SET updated_at = '2026-07-22T05:00:00.000Z' WHERE id = ?")
+      .run(conflictingUser.id);
+    const conflictResponse = await handleAccountRequest(request("/api/auth/password/reset", {
+      method: "POST",
+      cookie: conflictingUser.cookie,
+      body: { challengeId: conflictChallenge, code: conflictCode, password: "conflicting reset passphrase" },
+    }), { DB: conflicting.d1 }, []);
+    assert.equal(conflictResponse?.status, 503);
+    assert.equal((await conflictResponse.json()).error.code, "password_reset_unconfirmed");
+    assert.equal(sessionCookieFrom(conflictResponse), null);
+
+    const fenced = await database();
+    const fencedUser = await addUser(fenced.sqlite, "password-fence-race-153");
+    const fenceCode = "624821";
+    const fenceChallenge = await addPasswordResetChallenge(fenced.sqlite, fencedUser, fenceCode);
+    const fenceTimestamp = "2026-07-22T04:45:00.000Z";
+    fenced.d1.beforeOnceQuerySubstring = "(SELECT COUNT(*) FROM users";
+    fenced.d1.beforeOnceQuery = () => fenced.sqlite.prepare(`INSERT INTO account_deletion_fences
+        (user_id, owner_subject_hash, lease_token, lease_expires_at, requested_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)`)
+      .run(
+        fencedUser.id,
+        "e".repeat(64),
+        "password-reset-fence-race-token-0000000001",
+        "2026-07-22T04:50:00.000Z",
+        fenceTimestamp,
+        fenceTimestamp,
+      );
+    const fenceResponse = await handleAccountRequest(request("/api/auth/password/reset", {
+      method: "POST",
+      cookie: fencedUser.cookie,
+      body: { challengeId: fenceChallenge, code: fenceCode, password: "fenced reset passphrase" },
+    }), { DB: fenced.d1 }, []);
+    assert.equal(fenceResponse?.status, 503);
+    assert.equal((await fenceResponse.json()).error.code, "password_reset_unconfirmed");
+    assert.equal(sessionCookieFrom(fenceResponse), null);
+    assert.equal(fenced.sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?")
+      .get(fencedUser.id).count, 0);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -1196,7 +1341,7 @@ test("a verified code cannot authorize signup or password reset after its challe
   }
 });
 
-test("credential success waits for confirmed one-use challenge consumption", async () => {
+test("signup remains metadata-bound while password reset confirms exact challenge absence", async () => {
   const { sqlite, d1 } = await database();
   const signupChallengeId = `challenge_${crypto.randomUUID()}`;
   const signupCode = "624815";
@@ -1257,11 +1402,9 @@ test("credential success waits for confirmed one-use challenge consumption", asy
       cookie: user.cookie,
       body: { challengeId: resetChallengeId, code: resetCode, password: "challenge receipt replacement passphrase" },
     }), { DB: resetD1 }, []);
-    assert.equal(reset.status, 503);
-    assert.equal((await reset.json()).error.code, "password_reset_unconfirmed");
-    assert.equal(sessionCookieFrom(reset), null);
-    assert.match(reset.headers.get("Set-Cookie") ?? "", /cc_session=;.*Max-Age=0/u);
-    assert.equal(resetSqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?").get(user.id).count, 0);
+    assert.equal(reset.status, 200);
+    assert.match(sessionCookieFrom(reset) ?? "", /^__Host-cc_session=/u);
+    assert.equal(resetSqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ?").get(user.id).count, 1);
     assert.equal(resetSqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = ?").get(resetChallengeId).count, 0);
     assert.notEqual(resetSqlite.prepare("SELECT password_hash FROM users WHERE id = ?").get(user.id).password_hash, originalPasswordHash);
   } finally {
