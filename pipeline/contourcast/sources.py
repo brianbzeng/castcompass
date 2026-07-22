@@ -95,7 +95,11 @@ EXPECTED_MANIFEST_SOURCES = {
     ),
     "usgs_santa_barbara_south_coast_2m": (
         "official-bathymetry",
-        ("bathymetry-ingest", "terrain-pretraining"),
+        (
+            "bathymetry-ingest",
+            "terrain-pretraining",
+            "endpoint-support-footprint",
+        ),
     ),
 }
 EXPECTED_SYNTHETIC_SOURCES = {
