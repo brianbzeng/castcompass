@@ -11,7 +11,7 @@ import {
 } from "../worker/route-policy.ts";
 
 const origin = "https://castingcompass.com";
-const request = (path, method = "GET") => new Request(`${origin}${path}`, { method });
+const request = (path, method = "GET", headers) => new Request(`${origin}${path}`, { method, headers });
 
 test("every declared API route example resolves to its exact executable policy", () => {
   assert.equal(new Set(API_ROUTE_POLICIES.map((policy) => policy.id)).size, API_ROUTE_POLICIES.length);
@@ -133,7 +133,8 @@ test("every unclassified method on a known API path has an exact central Allow c
       const policy = apiRoutePolicyForRequest(request(path, method));
       if (declared.includes("*") || declared.includes(method)) {
         assert.ok(policy, `${method} ${path} should resolve`);
-        assert.equal(apiRouteRejectionForRequest(request(path, method)), null, `${method} ${path}`);
+        const admitted = request(path, method, policy.sameOriginRequired ? { Origin: origin } : undefined);
+        assert.equal(apiRouteRejectionForRequest(admitted), null, `${method} ${path}`);
       } else {
         assert.equal(policy, null, `${method} ${path} must remain unclassified`);
         assert.deepEqual(apiRouteRejectionForRequest(request(path, method)), {
@@ -153,6 +154,56 @@ test("every unclassified method on a known API path has an exact central Allow c
     allowedMethods: [],
   });
   assert.equal(apiRouteRejectionForRequest(request("/privacy", "POST")), null);
+});
+
+test("every same-origin policy rejects missing, opaque, malformed, noncanonical, and cross-site origins", () => {
+  const rejection = {
+    status: 403,
+    code: "invalid_origin",
+    message: "State-changing requests must come from CastingCompass.",
+    allowedMethods: [],
+  };
+  let protectedPolicies = 0;
+
+  for (const policy of API_ROUTE_POLICIES) {
+    const method = policy.methods[0] === "*" ? "OPTIONS" : policy.methods[0];
+    if (!policy.sameOriginRequired) {
+      assert.equal(apiRouteRejectionForRequest(request(policy.examplePath, method)), null, policy.id);
+      continue;
+    }
+    protectedPolicies += 1;
+    for (const suppliedOrigin of [
+      undefined,
+      "null",
+      "://invalid",
+      `${origin}/path`,
+      "https://attacker.example",
+      "http://castingcompass.com",
+      "https://castingcompass.com.evil.example",
+    ]) {
+      const headers = suppliedOrigin === undefined ? undefined : { Origin: suppliedOrigin };
+      assert.deepEqual(
+        apiRouteRejectionForRequest(request(policy.examplePath, method, headers)),
+        rejection,
+        `${policy.id}: ${suppliedOrigin ?? "missing"}`,
+      );
+    }
+    assert.equal(
+      apiRouteRejectionForRequest(request(policy.examplePath, method, { Origin: origin })),
+      null,
+      policy.id,
+    );
+  }
+
+  assert.ok(protectedPolicies > 0);
+  assert.deepEqual(apiRouteRejectionForRequest(request("/api/unclassified", "POST", {
+    Origin: "https://attacker.example",
+  })), {
+    status: 404,
+    code: "not_found",
+    message: "API route not found.",
+    allowedMethods: [],
+  });
 });
 
 test("overlapping policies fail closed instead of granting first-match precedence", () => {

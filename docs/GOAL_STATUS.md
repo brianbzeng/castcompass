@@ -13,6 +13,32 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — registry-enforced same-origin mutation boundary
+
+- [x] Reconcile the executable `sameOriginRequired` classification against request dispatch. Every
+      state-changing route was classified and each current account/trip handler retained a local
+      origin assertion, but the central entry point did not enforce the registry field; a future
+      handler could therefore forget its duplicate check and still receive an untrusted body.
+- [x] Make the singleton route policy enforce an exact canonical `Origin` after the generic abuse
+      ceiling and before body parsing or handler dispatch. Missing, opaque, malformed,
+      noncanonical, downgraded, lookalike, and cross-site origins now receive a generic
+      non-cacheable `403` without exposing a route-specific handler response. Existing handler
+      assertions remain as defense in depth and direct-call protection.
+- [x] Preserve fail-closed precedence: multiple matching policies return `503` before origin
+      evaluation, an unknown API path remains `404`, an unclassified method remains `405`, and a
+      public/read policy does not acquire a browser-only origin requirement.
+- [x] Enumerate every policy example and attack every same-origin row across the invalid-origin
+      classes above while proving the exact canonical origin succeeds. The focused route suite
+      passes 8/8 under pinned Node 22.23.1/npm 10.9.8; ESLint and TypeScript pass.
+- [x] Complete local exact-tree acceptance. The production-off Cloudflare build and all 691/691
+      Node tests pass; the explicit feature-on photo build and 8/8 Chromium/WebKit cases pass; the
+      production-off phone matrix passes 228/228 across four Chromium/WebKit profiles; and the
+      complete security/SBOM/query-policy chain plus both npm audits pass with zero reported
+      vulnerabilities.
+- [ ] Obtain exact-head hosted CI and CodeQL evidence and independent human review. This
+      repository boundary does not authorize merge, deployment, provider mutation, migration,
+      feature activation, staging exercise, or production acceptance.
+
 ## Active checkpoint — fail-closed API policy conflict resolution
 
 - [x] Reconcile route-policy precedence against the deny-by-default access-control promise. The
@@ -34,9 +60,14 @@ by that discovery.
       production-off phone matrix passes 228/228 across four Chromium/WebKit profiles; and the
       complete security/SBOM/query-policy chain plus both npm audits pass with zero reported
       vulnerabilities.
-- [ ] Obtain exact-head hosted CI and CodeQL evidence and independent human review. This
-      repository boundary does not authorize merge, deployment, provider mutation, migration,
-      feature activation, staging exercise, or production acceptance.
+- [x] Obtain exact-head hosted evidence through consolidated head
+      `c0fde83a89274445f049ab7f580c867aaff4fbd4`: CI run `29960729970`, CodeQL run
+      `29960727115`, optional research-stack run `29960729870`, native API-image run
+      `29960729918`, and release-provenance run `29960729927` all passed. This is automation
+      evidence, not review.
+- [ ] Obtain independent human review. This repository boundary does not authorize merge,
+      deployment, provider mutation, migration, feature activation, staging exercise, or
+      production acceptance.
 
 ## Active checkpoint — fail-closed API path-and-method inventory
 
@@ -3352,7 +3383,9 @@ supersedes this mutation-metadata authority while preserving its fail-closed beh
       **Most repository controls complete; the 13-layer owner reference mapping and zero-execution
       npm install-script boundary are locally complete.** The executable route registry also
       rejects unclassified methods on known paths before body reads or handler dispatch, and
-      refuses overlapping same-request policies instead of granting first-match precedence.
+      refuses overlapping same-request policies instead of granting first-match precedence. Its
+      `sameOriginRequired` rows now reject noncanonical or cross-site mutation requests centrally
+      before body parsing while handler checks remain in place.
       Production/provider/staging gates remain, including isolated DAST, active edge filtering,
       live detection/alerting, key custody, and independent review.
 - [ ] Complete the privacy lifecycle: data inventory, cascade map, deletion semantics,

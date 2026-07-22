@@ -149,6 +149,13 @@ after its acceptance checks pass in the intended environment.
       allowing array order to choose an actor, handler, same-origin, legal, or abuse-control
       contract. Rejected conflicts retain the union of stronger abuse-limit tags, and synthetic
       owner/public plus wildcard/specific-method collisions prove the boundary fails closed.
+    - [x] Make the registry's same-origin field centrally enforceable rather than descriptive.
+      After the generic abuse ceiling but before body parsing or dispatch, every admitted policy
+      marked `sameOriginRequired` now requires the exact canonical request origin; missing,
+      opaque, malformed, noncanonical, downgraded, lookalike, and cross-site values receive a
+      generic non-cacheable `403`. Conflict, unknown-path, and wrong-method rejection retain
+      precedence, public/read routes stay origin-independent, and handler-local assertions remain
+      as defense in depth.
     - [x] Bind active-trip completion and cancellation to the authenticated account in both
       the handler precheck and the final D1 update. The write now requires the same trip ID,
       account ID, active state, and token hash atomically; exact-token cross-account and

@@ -3,9 +3,10 @@
  *
  * A Worker API route does not exist until it is classified here. The entry
  * point returns a generic 404 for unclassified API paths, a registry-derived
- * 405 for unclassified methods, and a generic 503 when more than one policy
- * claims the same request. Adding or overlapping a handler branch without one
- * unambiguous security policy therefore fails closed.
+ * 405 for unclassified methods, a generic 503 when more than one policy claims
+ * the same request, and a generic 403 when an admitted same-origin route lacks
+ * an exact Origin. Adding or overlapping a handler branch without one
+ * unambiguous security policy therefore fails closed before body parsing.
  */
 
 export type ApiAuthorization = "public" | "optional_session" | "receipt" | "owner";
@@ -28,8 +29,8 @@ export interface ApiRoutePolicy {
 }
 
 export interface ApiRouteRejection {
-  status: 404 | 405 | 503;
-  code: "not_found" | "method_not_allowed" | "route_unavailable";
+  status: 403 | 404 | 405 | 503;
+  code: "invalid_origin" | "not_found" | "method_not_allowed" | "route_unavailable";
   message: string;
   allowedMethods: readonly ApiMethod[];
 }
@@ -374,6 +375,17 @@ function apiRoutePoliciesForRequest(
   );
 }
 
+function requestHasSameOrigin(request: Request): boolean {
+  const origin = request.headers.get("Origin");
+  if (!origin) return false;
+  try {
+    const parsedOrigin = new URL(origin).origin;
+    return origin === parsedOrigin && parsedOrigin === new URL(request.url).origin;
+  } catch {
+    return false;
+  }
+}
+
 /** Admit a request only when exactly one executable policy claims it. */
 export function apiRoutePolicyForRequest(
   request: Request,
@@ -410,7 +422,7 @@ export function allowedApiMethodsForPath(
   return API_METHOD_ORDER.filter((method) => allowed.has(method));
 }
 
-/** Reject API requests that have zero or multiple executable policy matches. */
+/** Reject API requests that have zero, multiple, or origin-invalid policy matches. */
 export function apiRouteRejectionForRequest(
   request: Request,
   policies: readonly ApiRoutePolicy[] = API_ROUTE_POLICIES,
@@ -418,7 +430,6 @@ export function apiRouteRejectionForRequest(
   const { pathname } = new URL(request.url);
   if (!pathname.startsWith("/api/")) return null;
   const matches = apiRoutePoliciesForRequest(request, policies);
-  if (matches.length === 1) return null;
   if (matches.length > 1) {
     return {
       status: 503,
@@ -426,6 +437,17 @@ export function apiRouteRejectionForRequest(
       message: "This API route is temporarily unavailable.",
       allowedMethods: [],
     };
+  }
+  if (matches.length === 1) {
+    if (matches[0].sameOriginRequired && !requestHasSameOrigin(request)) {
+      return {
+        status: 403,
+        code: "invalid_origin",
+        message: "State-changing requests must come from CastingCompass.",
+        allowedMethods: [],
+      };
+    }
+    return null;
   }
   const allowedMethods = allowedApiMethodsForPath(pathname, policies);
   if (allowedMethods.length > 0) {
