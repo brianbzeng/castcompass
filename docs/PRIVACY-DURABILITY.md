@@ -23,6 +23,15 @@ access/correction/portability/deletion workflow are maintained in
   gone while object cleanup is processing or needs attention.
 - Completed tasks erase their plaintext object locator. Pseudonymous completed tombstones
   outlive the permitted backup window; unresolved tasks remain until resolved.
+- An object delete requires an exact read-back of the worker's high-entropy lease plus the
+  expected task, store, locator, locator hash, attempt, and expiry. Immediately before R2, the
+  Worker recomputes `SHA-256(object_store + NUL + object_key)` and fails closed to
+  `object_locator_hash_mismatch` without an object-store call if D1 no longer matches.
+- Task completion is accepted only after exact terminal read-back. For privacy-export objects,
+  clearing the export locator and completing the deletion task share one D1 batch, so a lost
+  response is resolved from the complete atomic state rather than mutation metadata. An
+  ambiguous object delete remains safe to retry because R2 deletion is idempotent; a stale
+  worker cannot complete a newer lease.
 - Authenticated account deletion automatically requeues that account's earlier
   `needs_attention` photo tasks, preserving cumulative attempts, so the account job and prior
   trip job can each perform an idempotent, lease-owned delete. This is the bounded exception
@@ -108,6 +117,11 @@ account identifier into a ticket, terminal transcript, or alert.
 4. Correct the binding or transient storage incident first. Then requeue only unresolved
    tasks belonging to that one still-open job. Run this through the reviewed D1 operations
    path and have a second operator verify the job ID and affected-row count before execution:
+
+   `object_locator_hash_mismatch` is not a transient incident. Stop and independently reconcile
+   the ledger against the original source record and intended private bucket. Do not edit either
+   the plaintext locator or its hash merely to make them agree, and do not requeue that task until
+   the correct pair has been re-established through a reviewed recovery procedure.
 
    ```sql
    UPDATE privacy_deletion_tasks

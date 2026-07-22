@@ -70,6 +70,11 @@ class D1StatementAdapter {
   async run() {
     this.owner.assertQueryAllowed(this.query);
     const result = this.statement.run(...this.values);
+    if (this.owner.throwOnceAfterMutationSubstring
+      && this.query.includes(this.owner.throwOnceAfterMutationSubstring)) {
+      this.owner.throwOnceAfterMutationSubstring = null;
+      throw new Error("injected one-time post-mutation response failure");
+    }
     if (this.owner.omitOnceMutationMetadataSubstring
       && this.query.includes(this.owner.omitOnceMutationMetadataSubstring)) {
       this.owner.omitOnceMutationMetadataSubstring = null;
@@ -89,6 +94,8 @@ class TransactionalD1Adapter {
     this.beforeOnceQuerySubstring = null;
     this.beforeOnceQuery = null;
     this.omitOnceMutationMetadataSubstring = null;
+    this.throwOnceAfterMutationSubstring = null;
+    this.throwOnceAfterBatchMutationSubstring = null;
   }
 
   prepare(query) {
@@ -114,18 +121,24 @@ class TransactionalD1Adapter {
 
   async batch(statements) {
     this.sqlite.exec("BEGIN IMMEDIATE");
+    let results;
     try {
-      const results = [];
+      results = [];
       for (const statement of statements) results.push(await statement.run());
       this.sqlite.exec("COMMIT");
-      if (this.failAfterAccountDeletion && statements.some((statement) => statement.query.includes("DELETE FROM users"))) {
-        this.postCommitFailureActive = true;
-      }
-      return results;
     } catch (error) {
       this.sqlite.exec("ROLLBACK");
       throw error;
     }
+    if (this.failAfterAccountDeletion && statements.some((statement) => statement.query.includes("DELETE FROM users"))) {
+      this.postCommitFailureActive = true;
+    }
+    if (this.throwOnceAfterBatchMutationSubstring
+      && statements.some((statement) => statement.query.includes(this.throwOnceAfterBatchMutationSubstring))) {
+      this.throwOnceAfterBatchMutationSubstring = null;
+      throw new Error("injected one-time post-batch response failure");
+    }
+    return results;
   }
 }
 
@@ -2526,6 +2539,112 @@ test("account deletion atomically adopts a completed privacy export and purges b
     { ...sqlite.prepare("SELECT state, user_id, object_key FROM privacy_export_jobs WHERE id = ?").get(cleanupOnlyId) },
     { state: "expired", user_id: null, object_key: null },
   );
+});
+
+test("an exact lease receipt authorizes deletion after the claim response is lost", async () => {
+  const { sqlite, d1 } = await database();
+  const user = await addUser(sqlite, "deletion-claim-receipt");
+  addTrip(sqlite, user, { photoKey: "private/claim-receipt.jpg" });
+  await handleAccountRequest(request("/api/profile", {
+    method: "DELETE",
+    cookie: user.cookie,
+    body: { confirmation: "DELETE", password: user.password },
+  }), { DB: d1 }, []);
+  sqlite.prepare(`UPDATE privacy_deletion_tasks SET state = 'pending', available_at = '2000-01-01',
+    lease_expires_at = NULL, lease_token = NULL, last_error_code = NULL`).run();
+  d1.throwOnceAfterMutationSubstring = "SET state = 'leased', attempts = attempts + 1";
+  const deleted = [];
+
+  const completed = await processPrivacyDeletionTasks({
+    DB: d1,
+    TRIP_PHOTOS: { delete: async (key) => deleted.push(key) },
+  });
+
+  assert.equal(completed, 1);
+  assert.deepEqual(deleted, ["private/claim-receipt.jpg"]);
+  assert.deepEqual(
+    { ...sqlite.prepare("SELECT state, attempts, object_key, lease_token FROM privacy_deletion_tasks").get() },
+    { state: "completed", attempts: 1, object_key: null, lease_token: null },
+  );
+  assert.equal(sqlite.prepare("SELECT state FROM privacy_deletion_jobs").get().state, "completed");
+});
+
+test("an exact atomic receipt resolves a lost privacy-export finalization response", async () => {
+  const { sqlite, d1 } = await database();
+  const timestamp = "2026-07-20T12:00:00.000Z";
+  const objectKey = "privacy-exports/deletion-receipt/export.json";
+  const objectKeyHash = await sha256(`privacy_exports\u0000${objectKey}`);
+  sqlite.prepare(`INSERT INTO privacy_export_jobs (
+      id, user_id, owner_subject_hash, state, attempts, available_at,
+      lease_expires_at, lease_token, object_key, object_key_hash, content_sha256,
+      size_bytes, record_count, last_error_code, requested_at, updated_at,
+      completed_at, expires_at)
+    VALUES ('pexj_deletion_receipt', NULL, 'owner-deletion-receipt', 'needs_attention', 5, ?,
+      NULL, NULL, ?, ?, ?, 12, 1, 'uncommitted_object_delete_failed', ?, ?, NULL, NULL)`)
+    .run(timestamp, objectKey, objectKeyHash, await sha256("export bytes"), timestamp, timestamp);
+  sqlite.prepare(`INSERT INTO privacy_deletion_jobs (
+      id, receipt_hash, scope, subject_hash, owner_subject_hash, state, objects_total,
+      objects_deleted, last_error_code, requested_at, active_data_removed_at, completed_at, updated_at)
+    VALUES ('deletion_export_receipt', 'receipt-export-receipt', 'account', 'subject-export-receipt',
+      'owner-deletion-receipt', 'active_data_removed', 1, 0, NULL, ?, ?, NULL, ?)`)
+    .run(timestamp, timestamp, timestamp);
+  sqlite.prepare(`INSERT INTO privacy_deletion_tasks (
+      id, job_id, object_key, object_key_hash, object_store, state, attempts, available_at,
+      lease_expires_at, lease_token, last_error_code, created_at, updated_at, completed_at)
+    VALUES ('deletion_task_export_receipt', 'deletion_export_receipt', ?, ?, 'privacy_exports',
+      'pending', 0, '2000-01-01T00:00:00.000Z', NULL, NULL, NULL, ?, ?, NULL)`)
+    .run(objectKey, objectKeyHash, timestamp, timestamp);
+  d1.throwOnceAfterBatchMutationSubstring = "UPDATE privacy_deletion_tasks SET state = 'completed'";
+  const deleted = [];
+
+  const completed = await processPrivacyDeletionTasks({
+    DB: d1,
+    PRIVACY_EXPORTS: { delete: async (key) => deleted.push(key) },
+  });
+
+  assert.equal(completed, 1);
+  assert.deepEqual(deleted, [objectKey]);
+  assert.deepEqual(
+    { ...sqlite.prepare("SELECT state, object_key, lease_token FROM privacy_deletion_tasks").get() },
+    { state: "completed", object_key: null, lease_token: null },
+  );
+  assert.deepEqual(
+    { ...sqlite.prepare("SELECT state, user_id, object_key, object_key_hash FROM privacy_export_jobs").get() },
+    { state: "expired", user_id: null, object_key: null, object_key_hash: null },
+  );
+  assert.equal(sqlite.prepare("SELECT state FROM privacy_deletion_jobs").get().state, "completed");
+});
+
+test("a corrupted object-locator binding fails closed before an object-store call", async () => {
+  const { sqlite, d1 } = await database();
+  const user = await addUser(sqlite, "deletion-locator-binding");
+  addTrip(sqlite, user, { photoKey: "private/locator-binding.jpg" });
+  await handleAccountRequest(request("/api/profile", {
+    method: "DELETE",
+    cookie: user.cookie,
+    body: { confirmation: "DELETE", password: user.password },
+  }), { DB: d1 }, []);
+  sqlite.prepare(`UPDATE privacy_deletion_tasks SET state = 'pending', available_at = '2000-01-01',
+    object_key_hash = ?, lease_expires_at = NULL, lease_token = NULL, last_error_code = NULL`).run("0".repeat(64));
+  let calls = 0;
+
+  const completed = await processPrivacyDeletionTasks({
+    DB: d1,
+    TRIP_PHOTOS: { delete: async () => { calls += 1; } },
+  });
+
+  assert.equal(completed, 0);
+  assert.equal(calls, 0);
+  assert.deepEqual(
+    { ...sqlite.prepare("SELECT state, attempts, object_key, last_error_code FROM privacy_deletion_tasks").get() },
+    {
+      state: "needs_attention",
+      attempts: 1,
+      object_key: "private/locator-binding.jpg",
+      last_error_code: "object_locator_hash_mismatch",
+    },
+  );
+  assert.equal(sqlite.prepare("SELECT state FROM privacy_deletion_jobs").get().state, "needs_attention");
 });
 
 test("object deletion retries are bounded and retain the locator for operator attention", async () => {

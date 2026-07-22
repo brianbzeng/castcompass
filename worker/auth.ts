@@ -2028,8 +2028,12 @@ interface PrivacyDeletionTaskRow {
   object_key: string | null;
   object_key_hash: string;
   object_store: PrivacyObjectStore;
-  state: "pending" | "leased";
+  state: "pending" | "leased" | "completed";
   attempts: number;
+  available_at: string;
+  lease_expires_at: string | null;
+  lease_token: string | null;
+  completed_at: string | null;
 }
 
 export async function processPrivacyDeletionTasks(env: AuthApiEnv, onlyJobId?: string) {
@@ -2039,12 +2043,14 @@ export async function processPrivacyDeletionTasks(env: AuthApiEnv, onlyJobId?: s
   const now = new Date();
   const nowIso = now.toISOString();
   const query = onlyJobId
-    ? `SELECT id, job_id, object_key, object_key_hash, object_store, state, attempts FROM privacy_deletion_tasks
+    ? `SELECT id, job_id, object_key, object_key_hash, object_store, state, attempts,
+         available_at, lease_expires_at, lease_token, completed_at FROM privacy_deletion_tasks
        WHERE job_id = ?
          AND ((state = 'pending' AND available_at <= ?)
            OR (state = 'leased' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))
        ORDER BY created_at LIMIT 50`
-    : `SELECT id, job_id, object_key, object_key_hash, object_store, state, attempts FROM privacy_deletion_tasks
+    : `SELECT id, job_id, object_key, object_key_hash, object_store, state, attempts,
+         available_at, lease_expires_at, lease_token, completed_at FROM privacy_deletion_tasks
        WHERE (state = 'pending' AND available_at <= ?)
          OR (state = 'leased' AND (lease_expires_at IS NULL OR lease_expires_at <= ?))
        ORDER BY available_at, created_at LIMIT 50`;
@@ -2102,38 +2108,102 @@ export async function processPrivacyDeletionTasks(env: AuthApiEnv, onlyJobId?: s
     }
     const leaseExpiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
     const leaseToken = randomSecret(24);
-    const claimed = await db.prepare(`UPDATE privacy_deletion_tasks
-      SET state = 'leased', attempts = attempts + 1, lease_expires_at = ?, lease_token = ?, updated_at = ?
-      WHERE id = ?
-        AND ((state = 'pending' AND available_at <= ?)
-          OR (state = 'leased' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))`)
-      .bind(leaseExpiresAt, leaseToken, nowIso, task.id, nowIso, nowIso)
-      .run();
-    if (Number(claimed.meta?.changes ?? 0) !== 1) continue;
-    await db.prepare("UPDATE privacy_deletion_jobs SET state = 'purging', last_error_code = NULL, updated_at = ? WHERE id = ? AND state != 'completed'")
-      .bind(nowIso, task.job_id).run();
     try {
-      await bucket.delete(task.object_key as string);
-      const finishedAt = new Date().toISOString();
-      const finalized = await db.prepare(`UPDATE privacy_deletion_tasks SET state = 'completed', object_key = NULL,
-        lease_expires_at = NULL, lease_token = NULL, last_error_code = NULL,
-        completed_at = ?, updated_at = ?
+      await db.prepare(`UPDATE privacy_deletion_tasks
+        SET state = 'leased', attempts = attempts + 1, lease_expires_at = ?, lease_token = ?, updated_at = ?
+        WHERE id = ?
+          AND ((state = 'pending' AND available_at <= ?)
+            OR (state = 'leased' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))`)
+        .bind(leaseExpiresAt, leaseToken, nowIso, task.id, nowIso, nowIso)
+        .run();
+    } catch {
+      // A transport failure can arrive after D1 committed the claim. The exact receipt below is authoritative.
+    }
+    const claimReceipt = await db.prepare(`SELECT id, job_id, object_key, object_key_hash, object_store,
+        state, attempts, available_at, lease_expires_at, lease_token, completed_at
+      FROM privacy_deletion_tasks
+      WHERE id = ? AND job_id = ? AND state = 'leased' AND attempts = ?
+        AND object_key = ? AND object_key_hash = ? AND object_store = ?
+        AND lease_expires_at = ? AND lease_token = ? AND completed_at IS NULL
+      LIMIT 1`)
+      .bind(
+        task.id,
+        task.job_id,
+        Number(task.attempts) + 1,
+        task.object_key,
+        task.object_key_hash,
+        task.object_store,
+        leaseExpiresAt,
+        leaseToken,
+      )
+      .first<PrivacyDeletionTaskRow>();
+    if (!claimReceipt?.object_key) continue;
+    const objectKey = claimReceipt.object_key;
+    const expectedObjectKeyHash = await sha256(`${claimReceipt.object_store}\0${objectKey}`);
+    if (expectedObjectKeyHash !== claimReceipt.object_key_hash) {
+      await db.prepare(`UPDATE privacy_deletion_tasks
+        SET state = 'needs_attention', lease_expires_at = NULL, lease_token = NULL,
+          last_error_code = 'object_locator_hash_mismatch', updated_at = ?
         WHERE id = ? AND state = 'leased' AND lease_token = ?`)
-        .bind(finishedAt, finishedAt, task.id, leaseToken).run();
-      if (Number(finalized.meta?.changes ?? 0) === 1) {
-        completed += 1;
-        if (task.object_store === "privacy_exports") {
-          await db.prepare(`UPDATE privacy_export_jobs
+        .bind(nowIso, claimReceipt.id, leaseToken)
+        .run();
+      continue;
+    }
+    try {
+      await db.prepare("UPDATE privacy_deletion_jobs SET state = 'purging', last_error_code = NULL, updated_at = ? WHERE id = ? AND state != 'completed'")
+        .bind(nowIso, claimReceipt.job_id).run();
+      await bucket.delete(objectKey);
+      const finishedAt = new Date().toISOString();
+      const terminalStatements = [];
+      if (claimReceipt.object_store === "privacy_exports") {
+        terminalStatements.push(db.prepare(`UPDATE privacy_export_jobs
             SET state = 'expired', user_id = NULL, object_key = NULL, object_key_hash = NULL,
               content_sha256 = NULL, size_bytes = NULL, record_count = NULL,
               lease_expires_at = NULL, lease_token = NULL, last_error_code = NULL, updated_at = ?
-            WHERE object_key_hash = ? AND user_id IS NULL AND state != 'completed'`)
-            .bind(finishedAt, task.object_key_hash)
-            .run();
+            WHERE object_key = ? AND object_key_hash = ?
+              AND user_id IS NULL AND state != 'completed'`)
+          .bind(finishedAt, objectKey, claimReceipt.object_key_hash));
+      }
+      terminalStatements.push(db.prepare(`UPDATE privacy_deletion_tasks SET state = 'completed', object_key = NULL,
+          lease_expires_at = NULL, lease_token = NULL, last_error_code = NULL,
+          completed_at = ?, updated_at = ?
+        WHERE id = ? AND state = 'leased' AND lease_token = ?`)
+        .bind(finishedAt, finishedAt, claimReceipt.id, leaseToken));
+      try {
+        await db.batch(terminalStatements);
+      } catch {
+        // A transport failure can arrive after the atomic batch committed. Exact receipts decide the outcome.
+      }
+      const completionReceipt = await db.prepare(`SELECT id, job_id, object_key, object_key_hash, object_store,
+          state, attempts, available_at, lease_expires_at, lease_token, completed_at
+        FROM privacy_deletion_tasks
+        WHERE id = ? AND job_id = ? AND state = 'completed' AND attempts = ?
+          AND object_key IS NULL AND object_key_hash = ? AND object_store = ?
+          AND lease_expires_at IS NULL AND lease_token IS NULL AND completed_at = ?
+        LIMIT 1`)
+        .bind(
+          claimReceipt.id,
+          claimReceipt.job_id,
+          Number(claimReceipt.attempts),
+          claimReceipt.object_key_hash,
+          claimReceipt.object_store,
+          finishedAt,
+        )
+        .first<PrivacyDeletionTaskRow>();
+      if (!completionReceipt) throw new Error("privacy deletion completion receipt missing");
+      if (claimReceipt.object_store === "privacy_exports") {
+        const remainingLocator = await db.prepare(`SELECT COUNT(*) AS count FROM privacy_export_jobs
+          WHERE user_id IS NULL AND state != 'completed'
+            AND (object_key = ? OR object_key_hash = ?)`)
+          .bind(objectKey, claimReceipt.object_key_hash)
+          .first<{ count: number }>();
+        if (Number(remainingLocator?.count ?? 0) !== 0) {
+          throw new Error("privacy export deletion linkage receipt missing");
         }
       }
+      completed += 1;
     } catch {
-      const attempts = Number(task.attempts) + 1;
+      const attempts = Number(claimReceipt.attempts);
       const backoffSeconds = Math.min(6 * 60 * 60, 30 * (2 ** Math.min(attempts - 1, 10)));
       const retryAt = new Date(Date.now() + backoffSeconds * 1000).toISOString();
       await db.prepare(`UPDATE privacy_deletion_tasks
@@ -2141,7 +2211,7 @@ export async function processPrivacyDeletionTasks(env: AuthApiEnv, onlyJobId?: s
         available_at = ?, lease_expires_at = NULL,
         lease_token = NULL, last_error_code = 'object_delete_failed', updated_at = ?
         WHERE id = ? AND state = 'leased' AND lease_token = ?`)
-        .bind(MAX_DELETION_ATTEMPTS, retryAt, new Date().toISOString(), task.id, leaseToken).run();
+        .bind(MAX_DELETION_ATTEMPTS, retryAt, new Date().toISOString(), claimReceipt.id, leaseToken).run();
     }
   }
 

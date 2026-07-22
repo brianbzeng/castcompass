@@ -1,6 +1,6 @@
 # CastingCompass goal status
 
-Last reconciled: **2026-07-21 UTC**
+Last reconciled: **2026-07-22 UTC**
 
 This is the owner-facing dashboard for the complete goal list. The detailed acceptance
 criteria and immutable receipts remain in [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md); provider
@@ -64,6 +64,31 @@ by that discovery.
       commit and deterministic release-bundle receipt. No push, pull request, merge, deployment,
       provider query, D1 mutation, public AI output, model change, UI change, or production
       authorization belongs to this work.
+
+## Active checkpoint — exact privacy-object deletion authority
+
+- [x] Continue the database-authority audit through the GDPR/account-deletion object ledger.
+      Task claims and completion still treated D1 mutation metadata as authority, and the stored
+      object-locator hash was not recomputed before the irreversible R2 call.
+- [x] Require an exact high-entropy lease receipt bound to the job, attempt, store, locator,
+      locator hash, expiry, and incomplete state before deletion. Recompute
+      `SHA-256(object_store + NUL + object_key)` immediately before R2; a mismatch moves the task
+      to explicit operator attention without calling either private bucket.
+- [x] Make privacy-export locator clearing and deletion-task completion one atomic D1 batch, then
+      require exact terminal and linkage read-backs. A committed claim or finalization with a
+      lost response resolves from database state, idempotent delete retry remains safe, and a
+      stale worker cannot settle a newer lease.
+- [x] Add regressions for a lost committed claim response, a lost committed privacy-export
+      terminal-batch response, and a corrupted locator binding. The focused privacy suite passes
+      65/65 cases, and the complete source-bound D1 inventory now covers 239 prepare sites: 213
+      literal, 26 reviewed nonliteral, and 12 reviewed multi-row reads.
+- [x] Pass the pinned Cloudflare build, ESLint, TypeScript, all 590/590 repository Node tests,
+      the complete offline security/SBOM/source-integrity chain, both zero-vulnerability npm
+      audits, Ruff, 29/29 API tests, 83 pipeline tests with one documented optional-`rasterio`
+      skip, the deterministic pipeline smoke test, 19 migrations / 23 critical D1 query plans,
+      and the full 200/200 Chromium/WebKit phone matrix. Preserve a clean local commit and
+      deterministic release-bundle receipt. No push, pull request, merge, deployment, provider
+      query, D1 mutation, R2 mutation, or production authorization belongs to this work.
 
 ## Active checkpoint — receipt-owned privacy export packaging
 

@@ -467,6 +467,12 @@ after its acceptance checks pass in the intended environment.
     drill. The aggregate receipt deliberately refuses production readiness while counsel,
     processor-retention review, an approved case provider, a witnessed production-shaped drill,
     and independent acceptance remain absent.
+  - [x] Require exact lease authority and recompute the store-bound locator hash immediately
+    before every private-object deletion. Corrupt bindings fail closed without an R2 call;
+    privacy-export locator clearing and task completion are atomic; and exact terminal read-back
+    resolves lost committed responses without trusting mutation metadata. This is local runtime
+    evidence only—the production binding, migration, alert, restore, and independent-review gates
+    remain open.
   - [ ] Decide with privacy/counsel review whether an ordinary account closure may offer a
     clearly disclosed 30-day recovery window. If adopted, revoke access immediately, isolate
     recovery data from active/public use, automatically hard-delete it at day 30, and let a
@@ -567,7 +573,7 @@ after its acceptance checks pass in the intended environment.
   - [ ] Inventory every production query, capture representative `EXPLAIN QUERY PLAN` evidence,
     add only workload-justified indexes, bound scans/pagination, eliminate N+1 patterns, verify
     cross-account predicates, and regression-test query latency and migration cost.
-    - [x] Add a deterministic AST-backed inventory for all 235 Worker `.prepare()` sites across
+    - [x] Add a deterministic AST-backed inventory for all 239 Worker `.prepare()` sites across
       eight files, including exact review contracts for 26 nonliteral expressions and 12 literal
       multi-row reads without `LIMIT`. CI and release provenance fail closed on inventory drift,
       computed/aliased prepare access, unreviewed dynamic SQL, unscoped literal writes, and
