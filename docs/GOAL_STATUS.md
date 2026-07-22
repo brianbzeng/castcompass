@@ -13,6 +13,40 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — exact manual advisory-review retry receipts
+
+- [x] Audit the last runtime use of the mutation-metadata helper after the legal boundary was
+      sealed. Owner-triggered advisory-review retry conservatively scheduled only a confirmed
+      one-row result, but could not recover a committed batch response loss and returned its
+      queued count from transport metadata rather than stored trip state.
+- [x] Make each selected owner/trip/AI version the transactional compare-and-set boundary. Every
+      write repeats opaque trip ID, authenticated owner, completed status, exact prior AI status,
+      payload, model and review time, plus the trip update version. One batch remains bounded to
+      ten rows and mutation metadata is now ignored entirely.
+- [x] Require per-trip primary-key read-back of exact queued, prior, owner, and global cardinality.
+      Exact queued state may schedule and count; an exact surviving prior state makes rollback
+      unconfirmed; ownership, deletion, input-version, or downstream claim changes schedule
+      nothing; unreadable or impossible state is `503`. Missing metadata and a lost committed
+      batch response recover without replay.
+- [x] Preserve single provider authority independently of request overlap. The immediate callback
+      only reaches the existing random-token direct-review claim or exact queue-job dispatch claim;
+      the scheduled backlog retains queued rows for durable recovery. Force ownership drift,
+      update-version drift, omitted metadata, post-commit batch response loss, rollback, unreadable
+      post-state, and bounded backlog recovery in direct D1 runtime tests. The source ledger now
+      covers 250 prepare sites: 236 literal, 14 reviewed nonliteral, and nine reviewed complete-
+      rights multi-row reads; all 20 migrations and 50 critical plans include both retry shapes.
+- [x] Seal the implementation with the pinned Cloudflare build; lint and type checks; all 645/645
+      Node tests; 29/29 API tests; Ruff; 83/83 pipeline tests with one documented optional-
+      `rasterio` skip; the complete offline security, SBOM, source-integrity, and two zero-
+      vulnerability audit chain; deterministic smoke; all 50 critical plans across 20 migrations;
+      and the 200/200 Chromium/WebKit phone matrix. Reproducible pre-commit and exact-commit
+      release bundles plus the clean local commit complete this checkpoint receipt. No push, PR,
+      merge, deployment, provider query, production database mutation, feature activation,
+      public AI output, UI change, or model claim belongs to this checkpoint.
+- [ ] Exercise ten-row overlap, queue-enabled and direct-provider dispatch, response loss, latency,
+      and D1 rows-read/written behavior with production-shaped synthetic data in isolated staging
+      before treating local receipt proof as deployed evidence.
+
 ## Active checkpoint — exact legal-acceptance receipts
 
 - [x] Continue the database-authority audit at the higher-risk of the two remaining mutation-
@@ -782,6 +816,9 @@ by that discovery.
       production authorization belongs to this work.
 
 ## Active checkpoint — recover ambiguous manual review retries
+
+Historical implementation receipt: the newer exact manual advisory-review retry checkpoint at
+the top supersedes this mutation-metadata authority while preserving its durable backlog recovery.
 
 - [x] Continue the database-receipt audit through manual advisory-review retry. Missing D1
       metadata was collapsed into an authoritative zero: a committed row could become `queued`

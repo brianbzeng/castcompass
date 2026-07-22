@@ -1292,16 +1292,31 @@ export async function handleAccountRequest(
         .all<TripRow>();
       const trips = rows.results ?? [];
       if (trips.length) {
-        const results = await db.batch(trips.map((trip) => db.prepare(
-          `UPDATE trips SET ai_review_status = 'queued', ai_review_json = NULL,
-              ai_review_model = NULL, ai_reviewed_at = NULL
-            WHERE id = ? AND user_id = ?
-              AND (ai_review_status IS NULL OR ai_review_status = 'retry')`,
-        ).bind(trip.id, user.id)));
-        const changes = trips.map((_, index) => confirmedMutationChanges(results[index]));
-        const queuedTrips = trips.filter((_, index) => changes[index] === 1);
+        try {
+          await db.batch(trips.map((trip) => db.prepare(
+            `UPDATE trips SET ai_review_status = 'queued', ai_review_json = NULL,
+                ai_review_model = NULL, ai_reviewed_at = NULL
+              WHERE id = ? AND user_id = ? AND status = 'completed'
+                AND ai_review_status IS ? AND ai_review_json IS ?
+                AND ai_review_model IS ? AND ai_reviewed_at IS ? AND updated_at = ?`,
+          ).bind(
+            trip.id,
+            user.id,
+            trip.ai_review_status,
+            trip.ai_review_json,
+            trip.ai_review_model,
+            trip.ai_reviewed_at,
+            trip.updated_at,
+          )));
+        } catch {
+          // Exact per-trip read-back below distinguishes rollback from a committed
+          // batch whose response was lost.
+        }
+        const receipts: ManualReviewRetryReceipt[] = [];
+        for (const trip of trips) receipts.push(await manualReviewRetryReceipt(db, trip, user.id));
+        const queuedTrips = trips.filter((_, index) => receipts[index] === "queued");
         if (queuedTrips.length) options.onTripsReviewRequested?.(queuedTrips);
-        if (changes.some((change) => change === null || change > 1)) {
+        if (receipts.includes("unconfirmed")) {
           return errorResponse(
             503,
             "review_retry_unconfirmed",
@@ -2504,12 +2519,67 @@ async function prepareDeletionJob(
   };
 }
 
-function confirmedMutationChanges(result: unknown) {
-  if (!result || typeof result !== "object") return null;
-  const changesValue = (result as { meta?: { changes?: unknown } }).meta?.changes;
-  if (changesValue === undefined || changesValue === null) return null;
-  const changes = Number(changesValue);
-  return Number.isSafeInteger(changes) && changes >= 0 ? changes : null;
+type ManualReviewRetryReceipt = "queued" | "changed" | "unconfirmed";
+
+interface ManualReviewRetryReceiptRow {
+  queued_count: number;
+  prior_count: number;
+  owner_count: number;
+  any_count: number;
+}
+
+async function manualReviewRetryReceipt(
+  db: D1DatabaseLike,
+  trip: TripRow,
+  userId: string,
+): Promise<ManualReviewRetryReceipt> {
+  if (trip.user_id !== userId || trip.status !== "completed"
+    || (trip.ai_review_status !== null && trip.ai_review_status !== "retry")) {
+    return "unconfirmed";
+  }
+  try {
+    const receipt = await db.prepare(`SELECT
+        (SELECT COUNT(*) FROM trips
+          WHERE id = ? AND user_id = ? AND status = 'completed'
+            AND ai_review_status = 'queued' AND ai_review_json IS NULL
+            AND ai_review_model IS NULL AND ai_reviewed_at IS NULL AND updated_at = ?) AS queued_count,
+        (SELECT COUNT(*) FROM trips
+          WHERE id = ? AND user_id = ? AND status = 'completed'
+            AND ai_review_status IS ? AND ai_review_json IS ?
+            AND ai_review_model IS ? AND ai_reviewed_at IS ? AND updated_at = ?) AS prior_count,
+        (SELECT COUNT(*) FROM trips
+          WHERE id = ? AND user_id = ? AND status = 'completed') AS owner_count,
+        (SELECT COUNT(*) FROM trips WHERE id = ?) AS any_count`)
+      .bind(
+        trip.id,
+        userId,
+        trip.updated_at,
+        trip.id,
+        userId,
+        trip.ai_review_status,
+        trip.ai_review_json,
+        trip.ai_review_model,
+        trip.ai_reviewed_at,
+        trip.updated_at,
+        trip.id,
+        userId,
+        trip.id,
+      )
+      .first<ManualReviewRetryReceiptRow>();
+    if (!exactReceiptCounts(receipt, ["queued_count", "prior_count", "owner_count", "any_count"])) {
+      return "unconfirmed";
+    }
+    const queuedCount = Number(receipt?.queued_count);
+    const priorCount = Number(receipt?.prior_count);
+    const ownerCount = Number(receipt?.owner_count);
+    const anyCount = Number(receipt?.any_count);
+    if (queuedCount === 1 && priorCount === 0 && ownerCount === 1 && anyCount === 1) return "queued";
+    if (queuedCount === 0 && priorCount === 1 && ownerCount === 1 && anyCount === 1) return "unconfirmed";
+    if (queuedCount === 0 && priorCount === 0) return "changed";
+    return "unconfirmed";
+  } catch {
+    return "unconfirmed";
+  }
 }
 
 function exactReceiptCounts(receipt: unknown, fields: string[]) {

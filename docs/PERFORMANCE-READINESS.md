@@ -8,7 +8,7 @@ accounts, or production data.
 ## D1 query inventory
 
 `scripts/generate-d1-query-inventory.mjs` parses every Worker TypeScript source file and records
-all 249 direct `.prepare()` sites: 235 literal statements and 14 separately reviewed nonliteral
+all 250 direct `.prepare()` sites: 236 literal statements and 14 separately reviewed nonliteral
 expressions across eight source files. The committed policy and generated inventory are
 source-hash and call-site bound. CI rejects source-file/count drift, computed or aliased
 `prepare` access, a nonliteral expression without its exact static-authority review, an unscoped
@@ -72,7 +72,7 @@ latency, or alerting; those remain isolated-staging gates. The complete contract
 [SCHEDULED-WORKER-BUDGET.md](SCHEDULED-WORKER-BUDGET.md).
 
 `scripts/check_d1_query_plans.py` separately applies every migration to an in-memory SQLite
-database, runs 48 representative `EXPLAIN QUERY PLAN` checks, and rejects missing leftmost
+database, runs 50 representative `EXPLAIN QUERY PLAN` checks, and rejects missing leftmost
 indexes for every foreign-key child path. The checked plans cover the highest-frequency or
 growth-sensitive access patterns:
 
@@ -91,6 +91,7 @@ growth-sensitive access patterns:
 | Login and email abuse ceilings | One email pseudonym/address plus a fixed time window | Existing `(email_hash, attempted_at)` and `(email, created_at)` indexes |
 | Saved sites and gear profiles | One authenticated user; exact 100-item ceilings, `LIMIT 101` overflow detection, fail-closed legacy overflow, and atomic count-guarded creates | `(user_id, created_at)` and `(user_id, updated_at)` ordering indexes |
 | Gear update/delete receipts | One server-generated timestamp and authenticated owner after PATCH; exact owner/global cardinality after DELETE | Gear-profile primary key; normalized update state or global absence decides success |
+| Manual advisory-review retry receipt | At most ten exact prior owner/trip/AI versions; exact queued/prior/owner/global cardinality after one transactional batch | Trip primary key; committed response loss can schedule only exact queued state, while rollback, ownership/version drift, and unreadable state cannot manufacture a receipt |
 | Profile trip history | One authenticated user, completed rows only, `LIMIT 100` | Partial expression index over user and effective completion time; no temporary sort |
 | Profile trip edit receipt | One server-generated evidence ID, owner/trip identity, and optional correction ID, `LIMIT 1` | Trip and evidence primary keys plus the unique correction-ID index; success separately requires exact normalized post-state |
 | Pending trip deletion receipt | One high-entropy receipt plus exact owner/trip/task state, `LIMIT 1`; scalar absence checks are exact-cardinality | Unique receipt, task job/object, trip primary-key, and discussion trip indexes; success requires the expected ledger and zero residual trip/discussion rows |

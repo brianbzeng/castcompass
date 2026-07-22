@@ -56,13 +56,13 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
   validatePolicy(policy, inventory);
   assert.deepEqual(JSON.parse(committed), inventory);
   assert.deepEqual(inventory.summary, {
-    prepareCallCount: 249,
-    literalCallCount: 235,
+    prepareCallCount: 250,
+    literalCallCount: 236,
     nonLiteralCallCount: 14,
     multiRowLiteralWithoutLimitCount: 9,
   });
   assert.equal(inventory.sourceFiles.length, 8);
-  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 249);
+  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 250);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "open-account-cardinality").length, 0);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "complete-rights-export").length, 9);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "owner-lifecycle-cleanup").length, 0);
@@ -221,8 +221,14 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
   assert.equal(manualReviewRetryWrites.length, 1);
   assert.equal(
     manualReviewRetryWrites[0].sql,
-    "UPDATE trips SET ai_review_status = 'queued', ai_review_json = NULL, ai_review_model = NULL, ai_reviewed_at = NULL WHERE id = ? AND user_id = ? AND (ai_review_status IS NULL OR ai_review_status = 'retry')",
+    "UPDATE trips SET ai_review_status = 'queued', ai_review_json = NULL, ai_review_model = NULL, ai_reviewed_at = NULL WHERE id = ? AND user_id = ? AND status = 'completed' AND ai_review_status IS ? AND ai_review_json IS ? AND ai_review_model IS ? AND ai_reviewed_at IS ? AND updated_at = ?",
   );
+  assert.ok(inventory.queries.some(({ file, containingFunction, executionMode, statementClass, sql }) =>
+    file === "worker/auth.ts"
+      && containingFunction === "manualReviewRetryReceipt"
+      && executionMode === "first"
+      && statementClass === "SELECT"
+      && sql === "SELECT (SELECT COUNT(*) FROM trips WHERE id = ? AND user_id = ? AND status = 'completed' AND ai_review_status = 'queued' AND ai_review_json IS NULL AND ai_review_model IS NULL AND ai_reviewed_at IS NULL AND updated_at = ?) AS queued_count, (SELECT COUNT(*) FROM trips WHERE id = ? AND user_id = ? AND status = 'completed' AND ai_review_status IS ? AND ai_review_json IS ? AND ai_review_model IS ? AND ai_reviewed_at IS ? AND updated_at = ?) AS prior_count, (SELECT COUNT(*) FROM trips WHERE id = ? AND user_id = ? AND status = 'completed') AS owner_count, (SELECT COUNT(*) FROM trips WHERE id = ?) AS any_count"));
   const legacyReviewBacklog = inventory.queries.find(({ containingFunction }) =>
     containingFunction === "reviewTripBacklog");
   assert.match(

@@ -688,6 +688,55 @@ CHECKS = (
         ("trips_user_created_idx",),
     ),
     PlanCheck(
+        "exact manual review retry compare-and-set",
+        """UPDATE trips SET ai_review_status = 'queued', ai_review_json = NULL,
+             ai_review_model = NULL, ai_reviewed_at = NULL
+           WHERE id = ? AND user_id = ? AND status = 'completed'
+             AND ai_review_status IS ? AND ai_review_json IS ?
+             AND ai_review_model IS ? AND ai_reviewed_at IS ? AND updated_at = ?""",
+        (
+            "trip_fixture",
+            "user_fixture",
+            "retry",
+            None,
+            None,
+            None,
+            "2026-07-22T06:00:00.000Z",
+        ),
+        ("sqlite_autoindex_trips_1",),
+    ),
+    PlanCheck(
+        "exact manual review retry receipt",
+        """SELECT
+             (SELECT COUNT(*) FROM trips
+               WHERE id = ? AND user_id = ? AND status = 'completed'
+                 AND ai_review_status = 'queued' AND ai_review_json IS NULL
+                 AND ai_review_model IS NULL AND ai_reviewed_at IS NULL AND updated_at = ?) AS queued_count,
+             (SELECT COUNT(*) FROM trips
+               WHERE id = ? AND user_id = ? AND status = 'completed'
+                 AND ai_review_status IS ? AND ai_review_json IS ?
+                 AND ai_review_model IS ? AND ai_reviewed_at IS ? AND updated_at = ?) AS prior_count,
+             (SELECT COUNT(*) FROM trips
+               WHERE id = ? AND user_id = ? AND status = 'completed') AS owner_count,
+             (SELECT COUNT(*) FROM trips WHERE id = ?) AS any_count""",
+        (
+            "trip_fixture",
+            "user_fixture",
+            "2026-07-22T06:00:00.000Z",
+            "trip_fixture",
+            "user_fixture",
+            "retry",
+            None,
+            None,
+            None,
+            "2026-07-22T06:00:00.000Z",
+            "trip_fixture",
+            "user_fixture",
+            "trip_fixture",
+        ),
+        ("sqlite_autoindex_trips_1",),
+    ),
+    PlanCheck(
         "AI review backlog",
         """SELECT id FROM trips INDEXED BY trips_ai_review_backlog_idx
            WHERE status = 'completed'

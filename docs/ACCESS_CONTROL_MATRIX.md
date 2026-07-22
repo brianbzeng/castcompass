@@ -37,7 +37,7 @@ output never grants authority.
 | Legal acceptance | Complete authenticated account/legal version plus the exact session token hash, owner, and expiry after an active server-side lookup | The compare-and-set repeats account ID/email, immutable creation and age timestamps, prior legal fields, update version, and the still-live session. Read-back must prove the request's exact accepted timestamps/versions, absence of its prior snapshot, unique account identity, and continuing session authority. Mutation metadata and transport success grant nothing: committed response loss recovers; rollback, unreadable, or changed state is `503`; account deletion or session revocation is `401` with stale-cookie clearing |
 | Saved site | `user_id = authenticated_user.id` | Owner may add/remove only their row. Creation and removal return their exact browser state receipt only after authoritative zero-or-one D1 change metadata; missing or impossible metadata is an ambiguous `503`, and an authoritative zero delete is safely idempotent |
 | Gear profile | `id = requested_id AND user_id = authenticated_user.id` | Owner may create, patch, or delete. Creation requires the exact owner-bound inserted row. PATCH requires the exact normalized owner row and server timestamp after the write. DELETE requires both the owner row and global opaque-ID row to be absent; another owner's row remains an enumeration-resistant `404`, while an unreadable or mismatched post-state fails closed |
-| Trip/profile record | `id = requested_id AND user_id = authenticated_user.id`; enrollment, forecast-impression, feasibility-start, and prior-recruitment sidecars repeat the owner predicate directly or through the parent trip | Owner may patch/delete only while `moderation_status = 'pending'`; success requires exactly one confirmed D1 change, a confirmed zero remains the generic reviewed-trip conflict, and an unconfirmable delete preserves an owner receipt for read-only recovery; active completion and cancellation bind `id`, `user_id`, `status = 'active'`, and `token_hash` together in the final D1 statement; manual advisory-review retry binds `id`, `user_id`, and retryable state in every final update, dispatches only D1-confirmed rows, returns `503` for ambiguous metadata, and lets the bounded scheduled backlog recover a committed `queued` row without replaying the owner request; server-controlled contract fields cannot be overridden |
+| Trip/profile record | `id = requested_id AND user_id = authenticated_user.id`; enrollment, forecast-impression, feasibility-start, and prior-recruitment sidecars repeat the owner predicate directly or through the parent trip | Owner may patch/delete only while `moderation_status = 'pending'`; success requires exactly one confirmed D1 change, a confirmed zero remains the generic reviewed-trip conflict, and an unconfirmable delete preserves an owner receipt for read-only recovery; active completion and cancellation bind `id`, `user_id`, `status = 'active'`, and `token_hash` together in the final D1 statement; manual advisory-review retry compare-and-sets the complete owner/trip/AI version and requires exact queued/prior/owner/global read-back before scheduling, while downstream high-entropy claims prevent duplicate provider authority; server-controlled contract fields cannot be overridden |
 | Stored trip photo | Trip predicate above before any R2 key is read | Owner-only authenticated download with `no-store`; object key is never accepted from the URL or request body |
 | Account export | Every account-linked query and status/download lookup binds `authenticated_user.id`; asynchronous Queue messages contain only an opaque job ID | Export is owner-only and omits internal object locators and moderator identity. The default-off package is private, expires after 24 hours, and is canceled/adopted atomically by account deletion |
 | Deletion receipt | Hash of a high-entropy, path-scoped `HttpOnly` receipt cookie | Exposes aggregate status only; receipt can be cleared and expires; it cannot restore content or authenticate an account |
@@ -94,11 +94,14 @@ same parent-owner predicate. The one intentionally global trip-ID query selects 
 `1` by primary key so a random client identity collision remains a generic `409`; it
 cannot project a trip field, account identity, or validation record.
 
-Manual advisory-review retry follows the same atomic rule. Its owner-scoped pre-read does
-not authorize a later ID-only mutation: every final state transition repeats the authenticated
-`user_id`, and only statements that D1 confirms changed exactly one row enter the internal
-review scheduler. A forced ownership change between selection and batch execution therefore
-queues and dispatches zero rows; the new owner can subsequently request the retry normally.
+Manual advisory-review retry follows the same exact-state rule. Its owner-scoped pre-read does
+not authorize a later ID-only mutation: every compare-and-set repeats the authenticated `user_id`,
+completed status, exact prior AI fields, and trip update version. Per-trip read-back proves queued,
+prior, owner, and global cardinality by primary key before the internal scheduler is called.
+Mutation metadata and transport success grant nothing, so a lost committed batch response
+recovers while rollback is unconfirmed and ownership/input drift queues nothing. If two explicit
+requests observe the same final queued state, the existing random direct-review or queue-dispatch
+claim still grants downstream provider authority to only one worker.
 
 Gear mutation receipts are equally database-authoritative. PATCH and DELETE retain the owner
 predicate in the write, but transport success and mutation metadata grant no receipt. PATCH

@@ -2946,26 +2946,74 @@ test("manual review retry repeats owner identity in the final write and dispatch
   assert.deepEqual(await confirmed?.json(), { queued: 1 });
   assert.deepEqual(dispatched, [tripId]);
   assert.equal(sqlite.prepare("SELECT ai_review_status FROM trips WHERE id = ?").get(tripId).ai_review_status, "queued");
+
+  const changedTripId = addTrip(sqlite, other);
+  sqlite.prepare("UPDATE trips SET ai_review_status = 'retry' WHERE id = ?").run(changedTripId);
+  d1.beforeOnceQuerySubstring = "UPDATE trips SET ai_review_status = 'queued'";
+  d1.beforeOnceQuery = () => sqlite.prepare(
+    "UPDATE trips SET updated_at = '2026-07-22T06:30:00.000Z' WHERE id = ?",
+  ).run(changedTripId);
+  const changed = await handleAccountRequest(request("/api/profile/reviews/retry", {
+    method: "POST",
+    cookie: other.cookie,
+  }), { DB: d1 }, [], {
+    onTripsReviewRequested: (trips) => dispatched.push(...trips.map(({ id }) => id)),
+  });
+  assert.equal(changed?.status, 202);
+  assert.deepEqual(await changed?.json(), { queued: 0 });
+  assert.deepEqual(dispatched, [tripId]);
+  assert.equal(sqlite.prepare("SELECT ai_review_status FROM trips WHERE id = ?").get(changedTripId).ai_review_status, "retry");
 });
 
-test("ambiguous manual review retry is recovered by the bounded legacy backlog", async () => {
+test("manual review retry uses exact stored state across missing, lost, rolled-back, and unreadable receipts", async () => {
   const { sqlite, d1 } = await database();
   const owner = await addUser(sqlite, "review-retry-receipt-owner-140");
-  const tripId = addTrip(sqlite, owner);
-  sqlite.prepare("UPDATE trips SET ai_review_status = 'retry' WHERE id = ?").run(tripId);
   const dispatched = [];
-
-  d1.omitOnceMutationMetadataSubstring = "UPDATE trips SET ai_review_status = 'queued'";
-  const ambiguous = await handleAccountRequest(request("/api/profile/reviews/retry", {
+  const retryTrip = () => {
+    const tripId = addTrip(sqlite, owner);
+    sqlite.prepare("UPDATE trips SET ai_review_status = 'retry' WHERE id = ?").run(tripId);
+    return tripId;
+  };
+  const retry = () => handleAccountRequest(request("/api/profile/reviews/retry", {
     method: "POST",
     cookie: owner.cookie,
   }), { DB: d1 }, [], {
     onTripsReviewRequested: (trips) => dispatched.push(...trips.map(({ id }) => id)),
   });
-  assert.equal(ambiguous?.status, 503);
-  assert.equal((await ambiguous?.json()).error.code, "review_retry_unconfirmed");
-  assert.deepEqual(dispatched, []);
-  assert.equal(sqlite.prepare("SELECT ai_review_status FROM trips WHERE id = ?").get(tripId).ai_review_status, "queued");
+
+  const missingMetadataTrip = retryTrip();
+  d1.omitOnceMutationMetadataSubstring = "UPDATE trips SET ai_review_status = 'queued'";
+  const missingMetadata = await retry();
+  assert.equal(missingMetadata?.status, 202);
+  assert.deepEqual(await missingMetadata?.json(), { queued: 1 });
+  assert.deepEqual(dispatched, [missingMetadataTrip]);
+
+  const lostResponseTrip = retryTrip();
+  d1.throwOnceAfterBatchMutationSubstring = "UPDATE trips SET ai_review_status = 'queued'";
+  const lostResponse = await retry();
+  assert.equal(lostResponse?.status, 202);
+  assert.deepEqual(await lostResponse?.json(), { queued: 1 });
+  assert.deepEqual(dispatched, [missingMetadataTrip, lostResponseTrip]);
+
+  const rolledBackTrip = retryTrip();
+  d1.failOnceQuerySubstring = "UPDATE trips SET ai_review_status = 'queued'";
+  const rolledBack = await retry();
+  assert.equal(rolledBack?.status, 503);
+  assert.equal((await rolledBack?.json()).error.code, "review_retry_unconfirmed");
+  assert.deepEqual(dispatched, [missingMetadataTrip, lostResponseTrip]);
+  assert.equal(sqlite.prepare("SELECT ai_review_status FROM trips WHERE id = ?").get(rolledBackTrip).ai_review_status, "retry");
+
+  sqlite.prepare("UPDATE trips SET ai_review_status = 'completed' WHERE id IN (?, ?)")
+    .run(missingMetadataTrip, lostResponseTrip);
+  sqlite.prepare("UPDATE trips SET ai_review_status = 'completed' WHERE id = ?").run(rolledBackTrip);
+
+  const unreadableTrip = retryTrip();
+  d1.failOnceQuerySubstring = "AS queued_count";
+  const unreadable = await retry();
+  assert.equal(unreadable?.status, 503);
+  assert.equal((await unreadable?.json()).error.code, "review_retry_unconfirmed");
+  assert.deepEqual(dispatched, [missingMetadataTrip, lostResponseTrip]);
+  assert.equal(sqlite.prepare("SELECT ai_review_status FROM trips WHERE id = ?").get(unreadableTrip).ai_review_status, "queued");
 
   let providerCalls = 0;
   const originalFetch = globalThis.fetch;
@@ -2984,7 +3032,7 @@ test("ambiguous manual review retry is recovered by the bounded legacy backlog",
     globalThis.fetch = originalFetch;
   }
   assert.equal(providerCalls, 1);
-  assert.equal(sqlite.prepare("SELECT ai_review_status FROM trips WHERE id = ?").get(tripId).ai_review_status, "retry");
+  assert.equal(sqlite.prepare("SELECT ai_review_status FROM trips WHERE id = ?").get(unreadableTrip).ai_review_status, "retry");
 });
 
 test("gear mutations fail closed when ownership or existence changes after the owner pre-read", async () => {

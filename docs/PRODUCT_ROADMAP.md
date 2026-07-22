@@ -146,18 +146,18 @@ after its acceptance checks pass in the intended environment.
       collision check returns only constant `1` by random client-trip ID so duplicate identities
       remain a generic `409` without projecting another account's row or sidecars. The complete
       D1 inventory machine-checks all nine owner reads and this narrow opaque exception.
-    - [x] Bind manual advisory-review retry to the authenticated account through the final D1
-      transition. The owner-scoped pre-read no longer authorizes an ID-only batch update: every
-      retry write repeats `id`, `user_id`, and retryable state, and only rows with one confirmed
-      D1 change reach the internal scheduler. An ownership-change race proves the prior owner
-      queues and dispatches nothing while the new owner can request the retry normally; the
-      generated D1 inventory rejects regression to the old unscoped statement.
-    - [x] Preserve manual advisory-review retry after an ambiguous committed D1 response. Missing,
-      truncated, malformed, or impossible per-row metadata now returns `503` instead of the exact
-      `queued` receipt and dispatches no unconfirmed row. The default-off legacy scheduled backlog
-      now includes `queued` alongside new and retry rows, so bounded reconciliation recovers a
-      committed transition without replaying the owner mutation; queue-enabled reconciliation
-      retains the same state coverage and all model output remains private and human-gated.
+    - [x] Bind manual advisory-review retry to the complete authenticated trip version. Every
+      transactional compare-and-set repeats `id`, `user_id`, completed state, the exact prior AI
+      status/payload/model/timestamp fields, and the trip update version. Read-back then proves
+      exact queued/prior/owner/global cardinality by primary key before scheduling or returning the
+      queued count. Ownership or input-version drift queues and dispatches nothing.
+    - [x] Recover manual advisory-review retry after missing metadata or a lost committed batch
+      response without trusting either. Exact queued state enters the internal scheduler; rollback
+      or an unreadable receipt returns `503`; changed/claimed/completed state is not rescheduled.
+      The default-off backlog still includes queued rows for durable recovery, while both direct
+      and queue-enabled downstream paths use separate high-entropy claim tokens so concurrent
+      callbacks cannot duplicate provider authority. All model output remains private and human-
+      gated.
     - [x] Make owner gear mutation receipts database-authoritative. PATCH and DELETE repeat `id`
       plus `user_id`, but mutation metadata and transport success no longer decide the receipt.
       PATCH requires the exact normalized owner row and server timestamp; DELETE requires zero
