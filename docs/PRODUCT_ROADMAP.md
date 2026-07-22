@@ -567,7 +567,7 @@ after its acceptance checks pass in the intended environment.
   - [ ] Inventory every production query, capture representative `EXPLAIN QUERY PLAN` evidence,
     add only workload-justified indexes, bound scans/pagination, eliminate N+1 patterns, verify
     cross-account predicates, and regression-test query latency and migration cost.
-    - [x] Add a deterministic AST-backed inventory for all 221 Worker `.prepare()` sites across
+    - [x] Add a deterministic AST-backed inventory for all 235 Worker `.prepare()` sites across
       eight files, including exact review contracts for 26 nonliteral expressions and 12 literal
       multi-row reads without `LIMIT`. CI and release provenance fail closed on inventory drift,
       computed/aliased prepare access, unreviewed dynamic SQL, unscoped literal writes, and
@@ -586,6 +586,10 @@ after its acceptance checks pass in the intended environment.
       progress/download UI, bounded retries/expiry, and account-deletion race adoption. Direct
       authenticated export remains the disabled-mode fallback, and rights rows are never
       truncated.
+    - [x] Bind export dispatch, consumer claims, object reservation, completion, and expiry
+      cleanup to exact private-token/state read-backs. Ambiguous D1 responses cannot authorize a
+      Queue send or R2 mutation, a committed completion cannot lose its valid object, cleanup
+      locators remain durable, and an abandoned fifth lease reaches explicit attention.
     - [ ] Apply `0019`, provision the private Queue/DLQ/R2 bindings, capture production-shaped
       latency, rows-read/written, child-cascade/migration cost and race/failure evidence in
       isolated staging, activate alerts/IAM, then enable only through the separate gate in

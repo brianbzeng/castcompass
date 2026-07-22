@@ -11,8 +11,8 @@
     "worker/validation-feasibility-export.ts"
   ],
   "expectedSummary": {
-    "prepareCallCount": 224,
-    "literalCallCount": 198,
+    "prepareCallCount": 235,
+    "literalCallCount": 209,
     "nonLiteralCallCount": 26,
     "multiRowLiteralWithoutLimitCount": 12
   },
@@ -202,7 +202,7 @@
   ],
   "multiRowReadContracts": [
     {
-      "callSiteId": "ede4481969504a5342786bde",
+      "callSiteId": "12e288b54a92ed234f68330f",
       "file": "worker/privacy-export.ts",
       "sqlSha256": "9d7b2607848728b06bea49e6bdb440f2cd69a1005935230de8b7218fcec22d3a",
       "scope": "complete owner export",
@@ -211,7 +211,7 @@
       "rationale": "Saved locations are included completely in the authenticated portability export."
     },
     {
-      "callSiteId": "12cda5350d4f0c599d064559",
+      "callSiteId": "85b8d73c7e60dcc4cd0ba10c",
       "file": "worker/privacy-export.ts",
       "sqlSha256": "2dd4aa49253ba9aa42392146197897fa41e7c01df92d776e7013ffab6a17f01e",
       "scope": "complete owner export",
@@ -220,7 +220,7 @@
       "rationale": "Gear profiles are included completely in the authenticated portability export."
     },
     {
-      "callSiteId": "10bc72fcf7a5178a067bff97",
+      "callSiteId": "4333dee6e402c1ef6c56e197",
       "file": "worker/privacy-export.ts",
       "sqlSha256": "edd22b8836ae5190e043f3d44818f5cea0395ff16e9492e5a952fc596aabac29",
       "scope": "complete owner export",
@@ -229,7 +229,7 @@
       "rationale": "Trips are intentionally complete for authenticated portability; the default-off asynchronous packager moves this complete read off the request path when activated."
     },
     {
-      "callSiteId": "05f1f6845a6b5fcb728994d3",
+      "callSiteId": "9bf9d6adc110e191fba10ef6",
       "file": "worker/privacy-export.ts",
       "sqlSha256": "11fbf502919e8f90a231c9fc165aadc763fd37634d1a5409303e525a1fa9db35",
       "scope": "complete owner export",
@@ -238,7 +238,7 @@
       "rationale": "Only public-copy rows derived from the authenticated owner's trips enter the portability export."
     },
     {
-      "callSiteId": "c6b2f36428fbc68ccd411a95",
+      "callSiteId": "2454dbee231d6661c9ee1457",
       "file": "worker/privacy-export.ts",
       "sqlSha256": "96f4c5994edaa17f2eeb06fd6bb271aca1e8a75febdf311d97cae4cc82c40924",
       "scope": "complete owner export",
@@ -247,7 +247,7 @@
       "rationale": "Forecast impression records are required for the authenticated owner's complete export."
     },
     {
-      "callSiteId": "623e192f595fda08eec5ee29",
+      "callSiteId": "c71e30fc533941d004a3012f",
       "file": "worker/privacy-export.ts",
       "sqlSha256": "ff670cba408cd096752e58b52a419fe1469ba49a1c74f2f9358ae96b979869f9",
       "scope": "complete owner export",
@@ -256,7 +256,7 @@
       "rationale": "Validation provenance is required for the authenticated owner's complete export."
     },
     {
-      "callSiteId": "6aaa23dc0d3b397f3deb7c9c",
+      "callSiteId": "782cdcc18fa9050a41592350",
       "file": "worker/privacy-export.ts",
       "sqlSha256": "a204c81a56022f6509ba5550c4c519898862d6413f44f5e1955d7dec340aba33",
       "scope": "complete owner export",
@@ -265,7 +265,7 @@
       "rationale": "Pilot events remain owner-bound and complete for authenticated portability."
     },
     {
-      "callSiteId": "fc514ef6283d281838ba5a79",
+      "callSiteId": "fda2eec1e4180b3b7aa43e67",
       "file": "worker/privacy-export.ts",
       "sqlSha256": "b677d5535e6ccdeab73a8511868b7de7e9b55c750efdf28aefe34db68dc0c890",
       "scope": "complete owner export",
@@ -274,7 +274,7 @@
       "rationale": "Recruitment records remain owner-bound and complete for authenticated portability."
     },
     {
-      "callSiteId": "d5a3056ecfcba3f58369d598",
+      "callSiteId": "247fb5e7599e7beb97b0b827",
       "file": "worker/privacy-export.ts",
       "sqlSha256": "cf733f072a900b16b9d702fa4ff27fe43c899d8b488397490bd742267f31f0c9",
       "scope": "complete owner export",

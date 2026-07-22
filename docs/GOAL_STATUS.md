@@ -65,6 +65,31 @@ by that discovery.
       provider query, D1 mutation, public AI output, model change, UI change, or production
       authorization belongs to this work.
 
+## Active checkpoint — receipt-owned privacy export packaging
+
+- [x] Continue the database-authority audit through the default-off privacy-export Queue and
+      private-object path. Queue dispatch, consumer claim, object reservation, completion, and
+      expiry cleanup still trusted mutation metadata; a lost committed completion response could
+      therefore delete the valid export object it had just authorized.
+- [x] Require an exact private-token read-back before every Queue send, complete rights-data read,
+      R2 write, or cleanup delete. Completion is authoritative only after the full D1 locator,
+      hash, size, count, timestamps, and cleared lease are read back exactly.
+- [x] Preserve a durable cleanup locator across failed, ambiguous, and stale object work. Never
+      delete an export while D1 completion is unknown, never let a stale worker affect a newer
+      object, and move an abandoned fifth packaging lease to explicit `needs_attention` instead
+      of redispatching forever.
+- [x] Force lost committed dispatch, claim, locator reservation, completion, cleanup claim, and
+      cleanup-finalization responses plus abandoned final-lease recovery. Each side effect follows
+      exact authority, a valid completed object remains downloadable, and expiry stays idempotent.
+- [x] Pass the pinned Cloudflare build, ESLint, TypeScript, all 587/587 repository Node tests,
+      the complete offline security/SBOM/source-integrity chain, both zero-vulnerability npm
+      audits, Ruff, 29/29 API tests, 82 pipeline tests with one documented optional-`rasterio`
+      skip, the deterministic pipeline smoke test, 19 migrations / 23 critical D1 query plans,
+      and the full 200/200 Chromium/WebKit phone matrix. Preserve a clean local commit and
+      deterministic release-bundle receipt. No push, pull request, merge, deployment, provider
+      query, D1 mutation, object-storage mutation, production rights-data read, UI change, or
+      activation belongs to this work.
+
 ## Active checkpoint — lease-owned advisory queue jobs
 
 - [x] Continue the database-authority audit through the default-off managed Queue path. Consumer

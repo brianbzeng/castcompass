@@ -6,6 +6,7 @@ import {
   PRIVACY_EXPORT_QUEUE_MESSAGE_VERSION,
   buildPrivacyExportPayload,
   consumePrivacyExportQueue,
+  dispatchPrivacyExportBacklog,
   downloadPrivacyExport,
   privacyExportJobForOwner,
   privacyExportQueueMode,
@@ -37,6 +38,11 @@ class D1StatementAdapter {
 
   async run() {
     const result = this.statement.run(...this.values);
+    if (this.owner.throwOnceAfterMutationSubstring
+      && this.query.includes(this.owner.throwOnceAfterMutationSubstring)) {
+      this.owner.throwOnceAfterMutationSubstring = null;
+      throw new Error("injected lost mutation response");
+    }
     return { success: true, meta: { changes: Number(result.changes) } };
   }
 }
@@ -44,6 +50,7 @@ class D1StatementAdapter {
 class TransactionalD1Adapter {
   constructor(sqlite) {
     this.sqlite = sqlite;
+    this.throwOnceAfterMutationSubstring = null;
   }
 
   prepare(query) {
@@ -175,6 +182,7 @@ test("requesting an export writes one durable job and sends only its opaque iden
   const { env, queue, job } = await scheduledExport(sqlite, d1, userId);
   assert.match(job.id, /^pexj_[a-f0-9]{32}$/);
   assert.equal(job.state, "queued");
+  assert.match(job.lease_token, /^[a-f0-9]{48}$/);
   assert.deepEqual(queue.sent[0].body, {
     version: PRIVACY_EXPORT_QUEUE_MESSAGE_VERSION,
     jobId: job.id,
@@ -184,6 +192,49 @@ test("requesting an export writes one durable job and sends only its opaque iden
   const repeated = await requestPrivacyExport(env, userId);
   assert.equal(repeated.job.id, job.id);
   assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM privacy_export_jobs").get().count, 1);
+});
+
+test("a committed dispatch whose response is lost is proven before one queue send", async () => {
+  const { sqlite, d1 } = await database();
+  const userId = addUser(sqlite, "dispatch-proof");
+  d1.throwOnceAfterMutationSubstring = "SET state = 'queued', available_at = ?";
+  const { queue, job } = await scheduledExport(sqlite, d1, userId);
+  assert.equal(queue.sent.length, 1);
+  assert.equal(job.state, "queued");
+  assert.match(job.lease_token, /^[a-f0-9]{48}$/);
+});
+
+test("lost committed claim and reservation responses do not duplicate packaging", async () => {
+  for (const mutation of [
+    "SET state = 'processing', attempts = attempts + 1",
+    "SET object_key = ?, object_key_hash = ?, content_sha256 = ?",
+  ]) {
+    const { sqlite, d1 } = await database();
+    const userId = addUser(sqlite, `authority-${crypto.randomUUID()}`);
+    const { env, queue, bucket, job } = await scheduledExport(sqlite, d1, userId);
+    d1.throwOnceAfterMutationSubstring = mutation;
+    const message = queueMessage(queue.sent[0].body);
+    await consumePrivacyExportQueue({ queue: "privacy-export", messages: [message] }, env);
+    assert.equal(message.acknowledgements, 1);
+    assert.deepEqual(message.retries, []);
+    assert.equal(bucket.objects.size, 1);
+    assert.equal(sqlite.prepare("SELECT state FROM privacy_export_jobs WHERE id = ?").get(job.id).state, "completed");
+  }
+});
+
+test("a lost committed completion response never deletes the valid export object", async () => {
+  const { sqlite, d1 } = await database();
+  const userId = addUser(sqlite, "completion-proof");
+  const { env, queue, bucket, job } = await scheduledExport(sqlite, d1, userId);
+  d1.throwOnceAfterMutationSubstring = "SET state = 'completed', object_key = ?";
+  const message = queueMessage(queue.sent[0].body);
+  await consumePrivacyExportQueue({ queue: "privacy-export", messages: [message] }, env);
+  assert.equal(message.acknowledgements, 1);
+  assert.deepEqual(message.retries, []);
+  const completed = await privacyExportJobForOwner(d1, userId, job.id);
+  assert.equal(completed.state, "completed");
+  assert.equal(bucket.objects.has(completed.object_key), true);
+  assert.equal((await downloadPrivacyExport(env, userId, job.id)).status, 200);
 });
 
 test("the consumer packages every legacy row, publishes a private owner-bound download, and handles duplicates", async () => {
@@ -442,6 +493,47 @@ test("completed files expire at the exact boundary and their tombstone no longer
   });
   assert.equal(bucket.objects.size, 0);
   assert.equal(await privacyExportJobForOwner(d1, userId, job.id), null);
+});
+
+test("lost cleanup claim and finalization responses preserve exact expiry progress", async () => {
+  for (const mutation of [
+    "SET state = 'canceled', user_id = NULL, lease_expires_at = ?",
+    "SET state = 'expired', object_key = NULL, object_key_hash = NULL",
+  ]) {
+    const { sqlite, d1 } = await database();
+    const userId = addUser(sqlite, `expiry-proof-${crypto.randomUUID()}`);
+    const { env, queue, bucket, job } = await scheduledExport(sqlite, d1, userId);
+    await consumePrivacyExportQueue(
+      { queue: "privacy-export", messages: [queueMessage(queue.sent[0].body)] },
+      env,
+    );
+    sqlite.prepare("UPDATE privacy_export_jobs SET expires_at = '2000-01-01T00:00:00.000Z' WHERE id = ?")
+      .run(job.id);
+    d1.throwOnceAfterMutationSubstring = mutation;
+    assert.equal(await processExpiredPrivacyExports(env), 1);
+    assert.equal(bucket.objects.size, 0);
+    assert.deepEqual(
+      { ...sqlite.prepare("SELECT state, user_id, object_key FROM privacy_export_jobs WHERE id = ?").get(job.id) },
+      { state: "expired", user_id: null, object_key: null },
+    );
+  }
+});
+
+test("an abandoned fifth packaging lease reaches attention without redispatch", async () => {
+  const { sqlite, d1 } = await database();
+  const userId = addUser(sqlite, "abandoned");
+  const { env, queue, job } = await scheduledExport(sqlite, d1, userId);
+  sqlite.prepare(`UPDATE privacy_export_jobs SET state = 'processing', attempts = 5,
+      available_at = '2000-01-01T00:00:00.000Z', lease_expires_at = '2000-01-01T00:01:00.000Z',
+      lease_token = ? WHERE id = ?`)
+    .run("a".repeat(48), job.id);
+  assert.equal(await dispatchPrivacyExportBacklog(env), 1);
+  assert.equal(queue.sent.length, 1);
+  assert.deepEqual(
+    { ...sqlite.prepare(`SELECT state, attempts, lease_token, last_error_code
+      FROM privacy_export_jobs WHERE id = ?`).get(job.id) },
+    { state: "needs_attention", attempts: 5, lease_token: null, last_error_code: "export_lease_abandoned" },
+  );
 });
 
 test("the reusable payload builder reports a complete record count without cardinality LIMIT clauses", async () => {

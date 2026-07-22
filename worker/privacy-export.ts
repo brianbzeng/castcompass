@@ -261,28 +261,47 @@ async function dispatchPrivacyExportJob(env: PrivacyExportEnv, job: PrivacyExpor
   if (!env.DB || !env.PRIVACY_EXPORT_QUEUE || !env.PRIVACY_EXPORTS) return;
   const now = new Date();
   const nowIso = now.toISOString();
-  if (!job.user_id || job.attempts >= MAX_ATTEMPTS || job.available_at > nowIso ||
+  if (!job.user_id || job.available_at > nowIso ||
       job.state === "completed" || job.state === "canceled" || job.state === "expired" || job.state === "needs_attention") return;
+  if (job.attempts >= MAX_ATTEMPTS) {
+    await settleAbandonedPrivacyExportJob(env.DB, job.id, job.user_id, nowIso);
+    return;
+  }
+  const dispatchToken = randomToken();
   const redispatchAt = new Date(now.getTime() + REDISPATCH_SECONDS * 1000).toISOString();
-  const staged = await env.DB.prepare(`UPDATE privacy_export_jobs
-    SET state = 'queued', available_at = ?, lease_expires_at = NULL, lease_token = NULL,
-      last_error_code = NULL, updated_at = ?
-    WHERE id = ? AND user_id IS NOT NULL AND attempts < ?
-      AND (((state = 'pending' OR state = 'retry' OR state = 'queued') AND available_at <= ?)
-        OR (state = 'processing' AND object_key IS NULL
-          AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))`)
-    .bind(redispatchAt, nowIso, job.id, MAX_ATTEMPTS, nowIso, nowIso)
-    .run();
-  if (mutationChanges(staged) !== 1) return;
+  try {
+    await env.DB.prepare(`UPDATE privacy_export_jobs
+      SET state = 'queued', available_at = ?, lease_expires_at = NULL, lease_token = ?,
+        last_error_code = NULL, updated_at = ?
+      WHERE id = ? AND user_id IS NOT NULL AND attempts < ?
+        AND (((state = 'pending' OR state = 'retry' OR state = 'queued') AND available_at <= ?)
+          OR (state = 'processing' AND object_key IS NULL
+            AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))`)
+      .bind(redispatchAt, dispatchToken, nowIso, job.id, MAX_ATTEMPTS, nowIso, nowIso)
+      .run();
+  } catch {
+    // Exact private-token read-back below resolves a lost committed response.
+  }
+  let staged: { id: string } | null;
+  try {
+    staged = await env.DB.prepare(`SELECT id FROM privacy_export_jobs
+      WHERE id = ? AND user_id IS NOT NULL AND state = 'queued'
+        AND lease_token = ? AND available_at = ? LIMIT 1`)
+      .bind(job.id, dispatchToken, redispatchAt)
+      .first<{ id: string }>();
+  } catch {
+    return;
+  }
+  if (!staged) return;
   const body: QueueMessageBody = { version: PRIVACY_EXPORT_QUEUE_MESSAGE_VERSION, jobId: job.id };
   try {
     await env.PRIVACY_EXPORT_QUEUE.send(body);
   } catch {
     const retryAt = new Date(Date.now() + RETRY_DELAYS_SECONDS[0] * 1000).toISOString();
     await env.DB.prepare(`UPDATE privacy_export_jobs SET state = 'pending', available_at = ?,
-        last_error_code = 'queue_publish_failed', updated_at = ?
-      WHERE id = ? AND state = 'queued'`)
-      .bind(retryAt, new Date().toISOString(), job.id)
+        lease_token = NULL, last_error_code = 'queue_publish_failed', updated_at = ?
+      WHERE id = ? AND state = 'queued' AND lease_token = ?`)
+      .bind(retryAt, new Date().toISOString(), job.id, dispatchToken)
       .run();
     logEvent("error", "privacy_export.queue.publish_failed", { error_code: "queue_publish_failed" });
   }
@@ -328,27 +347,35 @@ async function consumePrivacyExportMessage(
   const nowIso = now.toISOString();
   const leaseToken = randomToken();
   const leaseExpiresAt = new Date(now.getTime() + LEASE_SECONDS * 1000).toISOString();
-  const claimed = await db.prepare(`UPDATE privacy_export_jobs
-    SET state = 'processing', attempts = attempts + 1, lease_expires_at = ?, lease_token = ?, updated_at = ?
-    WHERE id = ? AND user_id IS NOT NULL AND attempts < ?
-      AND object_key IS NULL
-      AND (state = 'queued'
-        OR ((state = 'pending' OR state = 'retry') AND available_at <= ?)
-        OR (state = 'processing' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))`)
-    .bind(leaseExpiresAt, leaseToken, nowIso, body.jobId, MAX_ATTEMPTS, nowIso, nowIso)
-    .run();
-  if (mutationChanges(claimed) !== 1) {
-    await settleUnclaimedMessage(db, message, body.jobId);
+  try {
+    await db.prepare(`UPDATE privacy_export_jobs
+      SET state = 'processing', attempts = attempts + 1, lease_expires_at = ?, lease_token = ?, updated_at = ?
+      WHERE id = ? AND user_id IS NOT NULL AND attempts < ?
+        AND object_key IS NULL
+        AND (state = 'queued'
+          OR ((state = 'pending' OR state = 'retry') AND available_at <= ?)
+          OR (state = 'processing' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))`)
+      .bind(leaseExpiresAt, leaseToken, nowIso, body.jobId, MAX_ATTEMPTS, nowIso, nowIso)
+      .run();
+  } catch {
+    // Exact private-token read-back below resolves a lost committed response.
+  }
+  let job: PrivacyExportJobRow | null;
+  try {
+    job = await db.prepare(`SELECT id, user_id, owner_subject_hash, state, attempts, available_at,
+        lease_expires_at, lease_token, object_key, object_key_hash, content_sha256,
+        size_bytes, record_count, last_error_code, requested_at, updated_at, completed_at, expires_at
+      FROM privacy_export_jobs
+      WHERE id = ? AND user_id IS NOT NULL AND state = 'processing'
+        AND lease_token = ? AND object_key IS NULL LIMIT 1`)
+      .bind(body.jobId, leaseToken)
+      .first<PrivacyExportJobRow>();
+  } catch {
+    message.retry({ delaySeconds: RETRY_DELAYS_SECONDS[0] });
     return;
   }
-  const job = await db.prepare(`SELECT id, user_id, owner_subject_hash, state, attempts, available_at,
-      lease_expires_at, lease_token, object_key, object_key_hash, content_sha256,
-      size_bytes, record_count, last_error_code, requested_at, updated_at, completed_at, expires_at
-    FROM privacy_export_jobs WHERE id = ? LIMIT 1`)
-    .bind(body.jobId)
-    .first<PrivacyExportJobRow>();
   if (!job?.user_id) {
-    message.ack();
+    await settleUnclaimedMessage(db, message, body.jobId);
     return;
   }
 
@@ -364,25 +391,51 @@ async function consumePrivacyExportMessage(
     const objectKeyHash = await sha256Text(`privacy_exports\u0000${objectKey}`);
     objectMetadata = { objectKeyHash, contentSha256, sizeBytes: bytes.byteLength, recordCount: built.recordCount };
     const refreshedLeaseExpiresAt = new Date(Date.now() + LEASE_SECONDS * 1000).toISOString();
-    const reserved = await db.prepare(`UPDATE privacy_export_jobs
-      SET object_key = ?, object_key_hash = ?, content_sha256 = ?, size_bytes = ?, record_count = ?,
-        lease_expires_at = ?, updated_at = ?
-      WHERE id = ? AND user_id = ? AND state = 'processing' AND lease_token = ?
-        AND object_key IS NULL`)
-      .bind(
-        objectKey,
-        objectKeyHash,
-        contentSha256,
-        bytes.byteLength,
-        built.recordCount,
-        refreshedLeaseExpiresAt,
-        new Date().toISOString(),
-        job.id,
-        job.user_id,
-        leaseToken,
-      )
-      .run();
-    if (mutationChanges(reserved) !== 1) throw new Error("privacy_export_lease_lost_before_write");
+    try {
+      await db.prepare(`UPDATE privacy_export_jobs
+        SET object_key = ?, object_key_hash = ?, content_sha256 = ?, size_bytes = ?, record_count = ?,
+          lease_expires_at = ?, updated_at = ?
+        WHERE id = ? AND user_id = ? AND state = 'processing' AND lease_token = ?
+          AND object_key IS NULL`)
+        .bind(
+          objectKey,
+          objectKeyHash,
+          contentSha256,
+          bytes.byteLength,
+          built.recordCount,
+          refreshedLeaseExpiresAt,
+          new Date().toISOString(),
+          job.id,
+          job.user_id,
+          leaseToken,
+        )
+        .run();
+    } catch {
+      // Exact locator read-back below resolves a lost committed response.
+    }
+    let reservation: { id: string } | null;
+    try {
+      reservation = await db.prepare(`SELECT id FROM privacy_export_jobs
+        WHERE id = ? AND user_id = ? AND state = 'processing' AND lease_token = ?
+          AND lease_expires_at = ? AND object_key = ? AND object_key_hash = ?
+          AND content_sha256 = ? AND size_bytes = ? AND record_count = ? LIMIT 1`)
+        .bind(
+          job.id,
+          job.user_id,
+          leaseToken,
+          refreshedLeaseExpiresAt,
+          objectKey,
+          objectKeyHash,
+          contentSha256,
+          bytes.byteLength,
+          built.recordCount,
+        )
+        .first<{ id: string }>();
+    } catch {
+      message.retry({ delaySeconds: RETRY_DELAYS_SECONDS[0] });
+      return;
+    }
+    if (!reservation) throw new Error("privacy_export_lease_lost_before_write");
     objectReserved = true;
     await exportBucket.put(objectKey, bytes.buffer as ArrayBuffer, {
       httpMetadata: { contentType: "application/json; charset=utf-8" },
@@ -391,38 +444,69 @@ async function consumePrivacyExportMessage(
     const completedAt = new Date();
     const completedAtIso = completedAt.toISOString();
     const expiresAt = new Date(completedAt.getTime() + PRIVACY_EXPORT_RETENTION_SECONDS * 1000).toISOString();
-    const finalized = await db.prepare(`UPDATE privacy_export_jobs
-      SET state = 'completed', object_key = ?, object_key_hash = ?, content_sha256 = ?,
-        size_bytes = ?, record_count = ?, last_error_code = NULL, lease_expires_at = NULL,
-        lease_token = NULL, completed_at = ?, expires_at = ?, updated_at = ?
-      WHERE id = ? AND user_id = ? AND state = 'processing' AND lease_token = ?
-        AND object_key = ?`)
-      .bind(
-        objectKey,
-        objectKeyHash,
-        contentSha256,
-        bytes.byteLength,
-        built.recordCount,
-        completedAtIso,
-        expiresAt,
-        completedAtIso,
-        job.id,
-        job.user_id,
-        leaseToken,
-        objectKey,
-      )
-      .run();
-    if (mutationChanges(finalized) !== 1) {
-      await removeUncommittedObject(
-        { ...env, PRIVACY_EXPORTS: exportBucket },
-        db,
-        job.id,
-        job.owner_subject_hash,
-        objectKey,
-        objectMetadata,
-      );
+    try {
+      await db.prepare(`UPDATE privacy_export_jobs
+        SET state = 'completed', object_key = ?, object_key_hash = ?, content_sha256 = ?,
+          size_bytes = ?, record_count = ?, last_error_code = NULL, lease_expires_at = NULL,
+          lease_token = NULL, completed_at = ?, expires_at = ?, updated_at = ?
+        WHERE id = ? AND user_id = ? AND state = 'processing' AND lease_token = ?
+          AND object_key = ?`)
+        .bind(
+          objectKey,
+          objectKeyHash,
+          contentSha256,
+          bytes.byteLength,
+          built.recordCount,
+          completedAtIso,
+          expiresAt,
+          completedAtIso,
+          job.id,
+          job.user_id,
+          leaseToken,
+          objectKey,
+        )
+        .run();
+    } catch {
+      // Exact completion read-back below resolves a lost committed response.
     }
-    message.ack();
+    let completed: { id: string } | null;
+    try {
+      completed = await db.prepare(`SELECT id FROM privacy_export_jobs
+        WHERE id = ? AND user_id = ? AND state = 'completed' AND lease_token IS NULL
+          AND lease_expires_at IS NULL AND object_key = ? AND object_key_hash = ?
+          AND content_sha256 = ? AND size_bytes = ? AND record_count = ?
+          AND completed_at = ? AND expires_at = ? LIMIT 1`)
+        .bind(
+          job.id,
+          job.user_id,
+          objectKey,
+          objectKeyHash,
+          contentSha256,
+          bytes.byteLength,
+          built.recordCount,
+          completedAtIso,
+          expiresAt,
+        )
+        .first<{ id: string }>();
+    } catch {
+      // Do not delete an object while D1 completion authority is unknown.
+      message.retry({ delaySeconds: RETRY_DELAYS_SECONDS[0] });
+      return;
+    }
+    if (completed) {
+      message.ack();
+      return;
+    }
+    await removeUncommittedObject(
+      { ...env, PRIVACY_EXPORTS: exportBucket },
+      db,
+      job.id,
+      job.owner_subject_hash,
+      objectKey,
+      objectMetadata,
+    );
+    objectReserved = false;
+    throw new Error("privacy_export_completion_not_confirmed");
   } catch {
     if (objectReserved && objectMetadata) {
       await removeUncommittedObject(
@@ -433,29 +517,65 @@ async function consumePrivacyExportMessage(
         objectKey,
         objectMetadata,
       );
+      objectReserved = false;
     }
-    const current = await db.prepare("SELECT state, attempts FROM privacy_export_jobs WHERE id = ? LIMIT 1")
-      .bind(job.id)
-      .first<{ state: PrivacyExportJobState; attempts: number }>();
-    if (!current || current.state === "canceled" || current.state === "expired" ||
-        current.state === "completed" || current.state === "needs_attention") {
-      message.ack();
-      return;
-    }
-    const exhausted = Number(current.attempts) >= MAX_ATTEMPTS;
-    const delay = RETRY_DELAYS_SECONDS[Math.min(Math.max(Number(current.attempts) - 1, 0), RETRY_DELAYS_SECONDS.length - 1)];
-    const retryAt = new Date(Date.now() + delay * 1000).toISOString();
+    logEvent("error", "privacy_export.queue.packaging_failed", { error_code: "export_packaging_failed" });
+    await settleFailedPrivacyExportAttempt(db, message, job, leaseToken);
+  }
+}
+
+async function settleFailedPrivacyExportAttempt(
+  db: D1DatabaseLike,
+  message: QueueMessageLike,
+  job: PrivacyExportJobRow,
+  leaseToken: string,
+) {
+  const attempts = Number(job.attempts);
+  const exhausted = attempts >= MAX_ATTEMPTS;
+  const delaySeconds = RETRY_DELAYS_SECONDS[
+    Math.min(Math.max(attempts - 1, 0), RETRY_DELAYS_SECONDS.length - 1)
+  ];
+  const retryAt = new Date(Date.now() + delaySeconds * 1000).toISOString();
+  try {
     await db.prepare(`UPDATE privacy_export_jobs
       SET state = CASE WHEN attempts >= ? THEN 'needs_attention' ELSE 'retry' END,
         available_at = ?, lease_expires_at = NULL, lease_token = NULL,
         last_error_code = 'export_packaging_failed', updated_at = ?
-      WHERE id = ? AND state = 'processing' AND lease_token = ?`)
+      WHERE id = ? AND state = 'processing' AND lease_token = ? AND object_key IS NULL`)
       .bind(MAX_ATTEMPTS, retryAt, new Date().toISOString(), job.id, leaseToken)
       .run();
-    logEvent("error", "privacy_export.queue.packaging_failed", { error_code: "export_packaging_failed" });
-    if (exhausted) message.ack();
-    else message.retry({ delaySeconds: delay });
+  } catch {
+    // Exact state read-back below resolves a lost committed response.
   }
+  let current: Pick<PrivacyExportJobRow,
+    "state" | "available_at" | "lease_expires_at" | "lease_token" | "object_key" | "last_error_code"> | null;
+  try {
+    current = await db.prepare(`SELECT state, available_at, lease_expires_at, lease_token,
+        object_key, last_error_code
+      FROM privacy_export_jobs WHERE id = ? LIMIT 1`)
+      .bind(job.id)
+      .first<Pick<PrivacyExportJobRow,
+        "state" | "available_at" | "lease_expires_at" | "lease_token" | "object_key" | "last_error_code">>();
+  } catch {
+    message.retry({ delaySeconds: RETRY_DELAYS_SECONDS[0] });
+    return;
+  }
+  if (!current || current.state === "completed" || current.state === "canceled"
+      || current.state === "expired" || current.state === "needs_attention") {
+    message.ack();
+    return;
+  }
+  if (!exhausted && current.state === "retry" && current.available_at === retryAt
+      && current.lease_token === null && current.object_key === null
+      && current.last_error_code === "export_packaging_failed") {
+    message.retry({ delaySeconds });
+    return;
+  }
+  if (current.state === "processing" && current.lease_token === leaseToken) {
+    retryMessageAt(message, current.lease_expires_at);
+    return;
+  }
+  message.ack();
 }
 
 async function removeUncommittedObject(
@@ -466,20 +586,41 @@ async function removeUncommittedObject(
   objectKey: string,
   metadata: { objectKeyHash: string; contentSha256: string; sizeBytes: number; recordCount: number },
 ) {
+  let objectDeleted = false;
   try {
     await env.PRIVACY_EXPORTS.delete(objectKey);
-    await db.prepare(`UPDATE privacy_export_jobs
-      SET object_key = NULL, object_key_hash = NULL, content_sha256 = NULL,
-        size_bytes = NULL, record_count = NULL, updated_at = ?
-      WHERE id = ? AND object_key = ? AND state != 'completed'`)
-      .bind(new Date().toISOString(), jobId, objectKey)
-      .run();
+    objectDeleted = true;
   } catch {
-    // Account deletion can cancel a job after the object write but before the
-    // D1 completion commit. Preserve the locator so scheduled cleanup can
-    // prove and retry removal instead of losing track of the object.
-    const updatedAt = new Date().toISOString();
-    const retained = await db.prepare(`UPDATE privacy_export_jobs
+    // An ambiguous or failed object deletion must retain a durable locator.
+  }
+  if (objectDeleted) {
+    try {
+      await db.prepare(`UPDATE privacy_export_jobs
+        SET object_key = NULL, object_key_hash = NULL, content_sha256 = NULL,
+          size_bytes = NULL, record_count = NULL, updated_at = ?
+        WHERE id = ? AND object_key = ? AND state != 'completed'`)
+        .bind(new Date().toISOString(), jobId, objectKey)
+        .run();
+    } catch {
+      // Read-back below distinguishes a committed clear from a retained locator.
+    }
+    try {
+      const current = await db.prepare("SELECT state, object_key FROM privacy_export_jobs WHERE id = ? LIMIT 1")
+        .bind(jobId)
+        .first<{ state: PrivacyExportJobState; object_key: string | null }>();
+      if (!current || current.object_key !== objectKey) return;
+    } catch {
+      // The existing reservation remains durable when its clear cannot be proven.
+      return;
+    }
+  }
+
+  // Account deletion can cancel a job after the object write but before the
+  // D1 completion commit. Preserve the locator so scheduled cleanup can
+  // prove and retry removal instead of losing track of the object.
+  const updatedAt = new Date().toISOString();
+  try {
+    await db.prepare(`UPDATE privacy_export_jobs
       SET state = 'needs_attention', object_key = ?, object_key_hash = ?,
         content_sha256 = ?, size_bytes = ?, record_count = ?, lease_expires_at = NULL,
         lease_token = NULL, last_error_code = 'uncommitted_object_delete_failed', updated_at = ?
@@ -495,43 +636,64 @@ async function removeUncommittedObject(
         objectKey,
       )
       .run();
-    if (mutationChanges(retained) !== 1) {
-      const cleanupJobId = `pexj_${crypto.randomUUID().replaceAll("-", "")}`;
-      try {
-        await db.prepare(`INSERT INTO privacy_export_jobs (
-            id, user_id, owner_subject_hash, state, attempts, available_at,
-            lease_expires_at, lease_token, object_key, object_key_hash, content_sha256,
-            size_bytes, record_count, last_error_code, requested_at, updated_at,
-            completed_at, expires_at)
-          VALUES (?, NULL, ?, 'needs_attention', ?, ?, NULL, NULL, ?, ?, ?, ?, ?,
-            'uncommitted_object_delete_failed', ?, ?, NULL, NULL)`)
-          .bind(
-            cleanupJobId,
-            ownerSubjectHash,
-            MAX_ATTEMPTS,
-            updatedAt,
-            objectKey,
-            metadata.objectKeyHash,
-            metadata.contentSha256,
-            metadata.sizeBytes,
-            metadata.recordCount,
-            updatedAt,
-            updatedAt,
-          )
-          .run();
-      } catch {
-        logEvent("error", "privacy_export.object_cleanup_tracking_failed", {
-          error_code: "object_cleanup_tracking_failed",
-        });
-      }
-    }
+  } catch {
+    // Exact locator read-back below resolves a lost committed response.
   }
+  try {
+    const tracked = await db.prepare("SELECT id FROM privacy_export_jobs WHERE object_key = ? LIMIT 1")
+      .bind(objectKey)
+      .first<{ id: string }>();
+    if (tracked) return;
+  } catch {
+    return;
+  }
+
+  const cleanupJobId = `pexj_${crypto.randomUUID().replaceAll("-", "")}`;
+  try {
+    await db.prepare(`INSERT INTO privacy_export_jobs (
+        id, user_id, owner_subject_hash, state, attempts, available_at,
+        lease_expires_at, lease_token, object_key, object_key_hash, content_sha256,
+        size_bytes, record_count, last_error_code, requested_at, updated_at,
+        completed_at, expires_at)
+      VALUES (?, NULL, ?, 'needs_attention', ?, ?, NULL, NULL, ?, ?, ?, ?, ?,
+        'uncommitted_object_delete_failed', ?, ?, NULL, NULL)`)
+      .bind(
+        cleanupJobId,
+        ownerSubjectHash,
+        MAX_ATTEMPTS,
+        updatedAt,
+        objectKey,
+        metadata.objectKeyHash,
+        metadata.contentSha256,
+        metadata.sizeBytes,
+        metadata.recordCount,
+        updatedAt,
+        updatedAt,
+      )
+      .run();
+  } catch {
+    // A concurrent exact tracker may have won the unique object-key claim.
+  }
+  try {
+    const tracked = await db.prepare("SELECT id FROM privacy_export_jobs WHERE object_key = ? LIMIT 1")
+      .bind(objectKey)
+      .first<{ id: string }>();
+    if (tracked) return;
+  } catch {
+    return;
+  }
+  logEvent("error", "privacy_export.object_cleanup_tracking_failed", {
+    error_code: "object_cleanup_tracking_failed",
+  });
 }
 
 async function settleUnclaimedMessage(db: D1DatabaseLike, message: QueueMessageLike, jobId: string) {
-  const row = await db.prepare("SELECT state, attempts, available_at, object_key FROM privacy_export_jobs WHERE id = ? LIMIT 1")
+  let row = await db.prepare(`SELECT id, user_id, state, attempts, available_at,
+      lease_expires_at, lease_token, object_key
+    FROM privacy_export_jobs WHERE id = ? LIMIT 1`)
     .bind(jobId)
-    .first<{ state: PrivacyExportJobState; attempts: number; available_at: string; object_key: string | null }>();
+    .first<Pick<PrivacyExportJobRow,
+      "id" | "user_id" | "state" | "attempts" | "available_at" | "lease_expires_at" | "lease_token" | "object_key">>();
   if (!row || row.state === "completed" || row.state === "canceled" || row.state === "expired" || row.state === "needs_attention") {
     message.ack();
     return;
@@ -540,8 +702,54 @@ async function settleUnclaimedMessage(db: D1DatabaseLike, message: QueueMessageL
     message.ack();
     return;
   }
-  const delay = Math.max(1, Math.ceil((Date.parse(row.available_at) - Date.now()) / 1000));
-  message.retry({ delaySeconds: Math.min(REDISPATCH_SECONDS, delay) });
+  const nowIso = new Date().toISOString();
+  if (row.user_id && Number(row.attempts) >= MAX_ATTEMPTS
+      && (row.state !== "processing" || !row.lease_expires_at || row.lease_expires_at <= nowIso)) {
+    await settleAbandonedPrivacyExportJob(db, row.id, row.user_id, nowIso);
+    row = await db.prepare(`SELECT id, user_id, state, attempts, available_at,
+        lease_expires_at, lease_token, object_key
+      FROM privacy_export_jobs WHERE id = ? LIMIT 1`)
+      .bind(jobId)
+      .first<Pick<PrivacyExportJobRow,
+        "id" | "user_id" | "state" | "attempts" | "available_at" | "lease_expires_at" | "lease_token" | "object_key">>();
+    if (!row || row.state === "needs_attention") {
+      message.ack();
+      return;
+    }
+  }
+  if (row.state === "processing" && row.lease_expires_at && row.lease_expires_at > nowIso) {
+    message.ack();
+    return;
+  }
+  retryMessageAt(message, row.state === "processing" ? row.lease_expires_at : row.available_at);
+}
+
+async function settleAbandonedPrivacyExportJob(
+  db: D1DatabaseLike,
+  jobId: string,
+  userId: string,
+  nowIso: string,
+) {
+  try {
+    await db.prepare(`UPDATE privacy_export_jobs
+      SET state = 'needs_attention', available_at = ?, lease_expires_at = NULL,
+        lease_token = NULL, last_error_code = 'export_lease_abandoned', updated_at = ?
+      WHERE id = ? AND user_id = ? AND attempts >= ? AND object_key IS NULL
+        AND ((state = 'pending' OR state = 'queued' OR state = 'retry')
+          OR (state = 'processing' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))`)
+      .bind(nowIso, nowIso, jobId, userId, MAX_ATTEMPTS, nowIso)
+      .run();
+  } catch {
+    // A later dispatcher or duplicate delivery retries this reconciliation.
+  }
+}
+
+function retryMessageAt(message: QueueMessageLike, timestamp: string | null) {
+  const milliseconds = timestamp ? Date.parse(timestamp) - Date.now() : 1_000;
+  const delaySeconds = Number.isFinite(milliseconds)
+    ? Math.max(1, Math.min(REDISPATCH_SECONDS, Math.ceil(milliseconds / 1000)))
+    : RETRY_DELAYS_SECONDS[0];
+  message.retry({ delaySeconds });
 }
 
 export async function processExpiredPrivacyExports(env: PrivacyExportEnv) {
@@ -568,24 +776,47 @@ export async function processExpiredPrivacyExports(env: PrivacyExportEnv) {
     const leaseToken = randomToken();
     const leaseExpiresAt = new Date(Date.now() + LEASE_SECONDS * 1000).toISOString();
     const staleAttempt = job.state === "processing" && job.user_id !== null;
-    const claimed = staleAttempt
-      ? await db.prepare(`UPDATE privacy_export_jobs
-        SET state = 'needs_attention', lease_expires_at = ?, lease_token = ?,
-          last_error_code = 'stale_attempt_object_cleanup', updated_at = ?
-        WHERE id = ? AND user_id = ? AND state = 'processing' AND object_key = ?
-          AND (lease_expires_at IS NULL OR lease_expires_at <= ?)`)
-        .bind(leaseExpiresAt, leaseToken, nowIso, job.id, job.user_id, job.object_key, nowIso)
-        .run()
-      : await db.prepare(`UPDATE privacy_export_jobs
-        SET state = 'canceled', user_id = NULL, lease_expires_at = ?, lease_token = ?,
-          last_error_code = 'export_expired', updated_at = ?
-        WHERE id = ? AND object_key = ?
-          AND ((state = 'completed' AND expires_at <= ?)
-            OR (state IN ('canceled', 'needs_attention')
-              AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))`)
-        .bind(leaseExpiresAt, leaseToken, nowIso, job.id, job.object_key, nowIso, nowIso)
-        .run();
-    if (mutationChanges(claimed) !== 1) continue;
+    try {
+      if (staleAttempt) {
+        await db.prepare(`UPDATE privacy_export_jobs
+          SET state = 'needs_attention', lease_expires_at = ?, lease_token = ?,
+            last_error_code = 'stale_attempt_object_cleanup', updated_at = ?
+          WHERE id = ? AND user_id = ? AND state = 'processing' AND object_key = ?
+            AND (lease_expires_at IS NULL OR lease_expires_at <= ?)`)
+          .bind(leaseExpiresAt, leaseToken, nowIso, job.id, job.user_id, job.object_key, nowIso)
+          .run();
+      } else {
+        await db.prepare(`UPDATE privacy_export_jobs
+          SET state = 'canceled', user_id = NULL, lease_expires_at = ?, lease_token = ?,
+            last_error_code = 'export_expired', updated_at = ?
+          WHERE id = ? AND object_key = ?
+            AND ((state = 'completed' AND expires_at <= ?)
+              OR (state IN ('canceled', 'needs_attention')
+                AND (lease_expires_at IS NULL OR lease_expires_at <= ?)))`)
+          .bind(leaseExpiresAt, leaseToken, nowIso, job.id, job.object_key, nowIso, nowIso)
+          .run();
+      }
+    } catch {
+      // Exact cleanup-token read-back below resolves a lost committed response.
+    }
+    let claimed: { id: string } | null;
+    try {
+      claimed = await db.prepare(`SELECT id FROM privacy_export_jobs
+        WHERE id = ? AND state = ? AND lease_token = ? AND lease_expires_at = ?
+          AND object_key = ? AND user_id IS ? LIMIT 1`)
+        .bind(
+          job.id,
+          staleAttempt ? "needs_attention" : "canceled",
+          leaseToken,
+          leaseExpiresAt,
+          job.object_key,
+          staleAttempt ? job.user_id : null,
+        )
+        .first<{ id: string }>();
+    } catch {
+      continue;
+    }
+    if (!claimed) continue;
     if (!env.PRIVACY_EXPORTS) {
       await db.prepare(`UPDATE privacy_export_jobs SET state = 'needs_attention',
           lease_expires_at = NULL, lease_token = NULL,
@@ -598,26 +829,55 @@ export async function processExpiredPrivacyExports(env: PrivacyExportEnv) {
     try {
       await env.PRIVACY_EXPORTS.delete(job.object_key);
       const finishedAt = new Date().toISOString();
-      const finalized = staleAttempt
-        ? await db.prepare(`UPDATE privacy_export_jobs
-          SET state = CASE WHEN attempts >= ? THEN 'needs_attention' ELSE 'retry' END,
-            available_at = ?, object_key = NULL, object_key_hash = NULL,
-            content_sha256 = NULL, size_bytes = NULL, record_count = NULL,
-            lease_expires_at = NULL, lease_token = NULL,
-            last_error_code = CASE WHEN attempts >= ? THEN 'export_attempts_exhausted' ELSE NULL END,
-            updated_at = ?
-          WHERE id = ? AND state = 'needs_attention' AND lease_token = ? AND object_key = ?`)
-          .bind(MAX_ATTEMPTS, finishedAt, MAX_ATTEMPTS, finishedAt, job.id, leaseToken, job.object_key)
-          .run()
-        : await db.prepare(`UPDATE privacy_export_jobs
-          SET state = 'expired', object_key = NULL, object_key_hash = NULL,
-            content_sha256 = NULL, size_bytes = NULL, record_count = NULL,
-            lease_expires_at = NULL, lease_token = NULL, last_error_code = NULL,
-            updated_at = ?
-          WHERE id = ? AND state = 'canceled' AND lease_token = ? AND object_key = ?`)
-          .bind(finishedAt, job.id, leaseToken, job.object_key)
-          .run();
-      if (mutationChanges(finalized) === 1) deleted += 1;
+      try {
+        if (staleAttempt) {
+          await db.prepare(`UPDATE privacy_export_jobs
+            SET state = CASE WHEN attempts >= ? THEN 'needs_attention' ELSE 'retry' END,
+              available_at = ?, object_key = NULL, object_key_hash = NULL,
+              content_sha256 = NULL, size_bytes = NULL, record_count = NULL,
+              lease_expires_at = NULL, lease_token = NULL,
+              last_error_code = CASE WHEN attempts >= ? THEN 'export_attempts_exhausted' ELSE NULL END,
+              updated_at = ?
+            WHERE id = ? AND state = 'needs_attention' AND lease_token = ? AND object_key = ?`)
+            .bind(MAX_ATTEMPTS, finishedAt, MAX_ATTEMPTS, finishedAt, job.id, leaseToken, job.object_key)
+            .run();
+        } else {
+          await db.prepare(`UPDATE privacy_export_jobs
+            SET state = 'expired', object_key = NULL, object_key_hash = NULL,
+              content_sha256 = NULL, size_bytes = NULL, record_count = NULL,
+              lease_expires_at = NULL, lease_token = NULL, last_error_code = NULL,
+              updated_at = ?
+            WHERE id = ? AND state = 'canceled' AND lease_token = ? AND object_key = ?`)
+            .bind(finishedAt, job.id, leaseToken, job.object_key)
+            .run();
+        }
+      } catch {
+        // Exact terminal read-back below resolves a lost committed response.
+      }
+      let finalized: { id: string } | null;
+      try {
+        finalized = await db.prepare(`SELECT id FROM privacy_export_jobs
+          WHERE id = ? AND object_key IS NULL AND lease_expires_at IS NULL
+            AND lease_token IS NULL AND state = ? LIMIT 1`)
+          .bind(
+            job.id,
+            staleAttempt && Number(job.attempts) < MAX_ATTEMPTS ? "retry"
+              : staleAttempt ? "needs_attention" : "expired",
+          )
+          .first<{ id: string }>();
+      } catch {
+        finalized = null;
+      }
+      if (finalized) {
+        deleted += 1;
+        continue;
+      }
+      await db.prepare(`UPDATE privacy_export_jobs SET state = 'needs_attention',
+          lease_expires_at = NULL, lease_token = NULL,
+          last_error_code = 'export_cleanup_commit_failed', updated_at = ?
+        WHERE id = ? AND state IN ('canceled', 'needs_attention') AND lease_token = ?`)
+        .bind(new Date().toISOString(), job.id, leaseToken)
+        .run();
     } catch {
       await db.prepare(`UPDATE privacy_export_jobs SET state = 'needs_attention',
           lease_expires_at = NULL, lease_token = NULL,
@@ -825,12 +1085,6 @@ async function sha256Bytes(value: Uint8Array) {
   const bytes = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength) as ArrayBuffer;
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-function mutationChanges(result: unknown) {
-  if (!result || typeof result !== "object") return 0;
-  const changes = Number((result as { meta?: { changes?: unknown } }).meta?.changes ?? 0);
-  return Number.isFinite(changes) ? changes : 0;
 }
 
 function jsonError(status: number, code: string, message: string, retryAfter?: number) {

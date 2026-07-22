@@ -56,13 +56,13 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
   validatePolicy(policy, inventory);
   assert.deepEqual(JSON.parse(committed), inventory);
   assert.deepEqual(inventory.summary, {
-    prepareCallCount: 224,
-    literalCallCount: 198,
+    prepareCallCount: 235,
+    literalCallCount: 209,
     nonLiteralCallCount: 26,
     multiRowLiteralWithoutLimitCount: 12,
   });
   assert.equal(inventory.sourceFiles.length, 8);
-  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 224);
+  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 235);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "open-account-cardinality").length, 0);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "complete-rights-export").length, 9);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "owner-lifecycle-cleanup").length, 3);
@@ -191,6 +191,32 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
       && statementClass === "UPDATE"
       && /last_error_code = 'review_lease_abandoned'/u.test(sql ?? "")
       && /attempts >= \?/u.test(sql ?? "")));
+  assert.ok(inventory.queries.some(({ file, executionMode, statementClass, sql }) =>
+    file === "worker/privacy-export.ts"
+      && executionMode === "first"
+      && statementClass === "SELECT"
+      && sql === "SELECT id FROM privacy_export_jobs WHERE id = ? AND user_id IS NOT NULL AND state = 'queued' AND lease_token = ? AND available_at = ? LIMIT 1"));
+  assert.ok(inventory.queries.some(({ file, executionMode, statementClass, sql }) =>
+    file === "worker/privacy-export.ts"
+      && executionMode === "first"
+      && statementClass === "SELECT"
+      && /state = 'processing' AND lease_token = \? AND object_key IS NULL LIMIT 1$/u.test(sql ?? "")));
+  assert.ok(inventory.queries.some(({ file, executionMode, statementClass, sql }) =>
+    file === "worker/privacy-export.ts"
+      && executionMode === "first"
+      && statementClass === "SELECT"
+      && /state = 'completed' AND lease_token IS NULL/u.test(sql ?? "")
+      && /content_sha256 = \? AND size_bytes = \? AND record_count = \?/u.test(sql ?? "")));
+  assert.ok(inventory.queries.some(({ file, executionMode, statementClass, sql }) =>
+    file === "worker/privacy-export.ts"
+      && executionMode === "first"
+      && statementClass === "SELECT"
+      && sql === "SELECT id FROM privacy_export_jobs WHERE id = ? AND state = ? AND lease_token = ? AND lease_expires_at = ? AND object_key = ? AND user_id IS ? LIMIT 1"));
+  assert.ok(inventory.queries.some(({ file, statementClass, sql }) =>
+    file === "worker/privacy-export.ts"
+      && statementClass === "UPDATE"
+      && /last_error_code = 'export_lease_abandoned'/u.test(sql ?? "")
+      && /attempts >= \? AND object_key IS NULL/u.test(sql ?? "")));
 
   const exactOwnerTripRead = inventory.queries.find(({ sql }) =>
     sql === "SELECT * FROM trips WHERE id = ? AND user_id IS ? LIMIT 1");
