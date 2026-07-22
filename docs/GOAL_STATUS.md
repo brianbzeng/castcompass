@@ -133,13 +133,21 @@ by that discovery.
       member. No composition aggregate or partition was computed, no raster pixel was read, and no
       corpus, model, score, serving path, or production state changed. A new exploratory dBASE
       protocol must disclose this exposure and remains insufficient for confirmatory promotion.
+- [x] Audit the separately preregistered dBASE representation without repairing the failed text
+      result. The exact 16,485-record fixed-width table and same-position Point geometry pass all
+      structural checks, but only 136 distinct-sample records fall inside the exact San Francisco
+      raster footprint and zero satisfy every frozen endpoint rule. Two independent-download runs
+      reproduce byte-identical metrics. No source-quality or alignment review is authorized, no
+      raster pixel is read, and no corpus, model, score, serving path, production state, or
+      deployment authority changes.
 - [ ] Acquire a genuinely support-complete independent endpoint before the next representation
       comparison. Neither the San Francisco track groups, the Santa Barbara South Coast cruises,
-      nor the residual statewide catalog provide a schema-valid distribution of every frozen class
-      across separable groups. Additional direct-video tracks must distribute every class across
-      separable groups, a prospective independent survey must be designed, or a materially
-      different scientific question must be preregistered before its labels are read; post-outcome
-      class dropping, schema repair, and row-randomized adjacent observations remain prohibited.
+      the residual statewide catalog, nor the DS182 direct-sediment representations provide a
+      support-complete, source-separable endpoint inside the admitted imagery. Additional
+      direct-video tracks must distribute every class across separable groups, a prospective
+      independent survey must be designed, or a materially different scientific question must be
+      preregistered before its labels are read; post-outcome class dropping, schema repair, and
+      row-randomized adjacent observations remain prohibited.
 
 This checkpoint changes no browser behavior, API, Worker, D1/R2/Queue state, production provider,
 live score, public model claim, or deployment authority.

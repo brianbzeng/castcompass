@@ -389,3 +389,11 @@ the frozen source schema before any outcome aggregate: 14,950 of 16,485 rows hav
 the 32-field header. The audit does not pad the omitted field or switch source representations.
 Two independent downloads reproduce the same failure; no raster pixel, patch corpus, model, or
 serving path is involved.
+
+The separately frozen
+[dBASE representation audit](experiments/2026-07-22-usgs-ds182-sediment-dbf-support-v1.md)
+preserves that failure and remains exploratory rather than confirmatory. Its exact 16,485-record
+fixed-width schema and Point pairing validate, but only 136 distinct-sample records are inside the
+exact San Francisco reference footprint and zero satisfy all frozen surface, type, and composition
+rules. The endpoint therefore has no valid source group or partition, authorizes no source-quality
+or raster-alignment review, and changes no corpus, model, score, or serving path.

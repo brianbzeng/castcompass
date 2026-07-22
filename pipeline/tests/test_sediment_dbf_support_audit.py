@@ -24,6 +24,9 @@ from pipeline.contourcast.sediment_dbf_support_audit import (
 from pipeline.contourcast.sediment_endpoint_audit import SOURCE_HEADER
 
 
+ROOT = Path(__file__).resolve().parents[2]
+
+
 def _sha(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
@@ -127,6 +130,25 @@ def _outcome_row(
 
 
 class SedimentDbfSupportAuditTests(unittest.TestCase):
+    def test_receipt_binds_exact_negative_dbf_result(self) -> None:
+        receipt = json.loads(
+            (
+                ROOT
+                / "pipeline/evidence/usgs-ds182-sediment-dbf-support-v1.receipt.json"
+            ).read_text(encoding="utf-8")
+        )
+        for key in ("result", "protocol", "source_manifest"):
+            artifact = ROOT / receipt[key]["path"]
+            self.assertEqual(_sha(artifact.read_bytes()), receipt[key]["sha256"])
+        self.assertEqual(receipt["experiment_class"], "exploratory_same_release_representation")
+        self.assertTrue(receipt["audit"]["source_schema"]["valid"])
+        self.assertEqual(receipt["audit"]["row_flow"]["endpoint_valid_rows"], 0)
+        self.assertEqual(receipt["audit"]["partition_audit"]["candidate_whole_source_partitions"], 0)
+        self.assertFalse(receipt["decision"]["raw_endpoint_support_admissible"])
+        self.assertFalse(receipt["decision"]["confirmatory_claim_authorized"])
+        self.assertFalse(receipt["decision"]["model_training_run"])
+        self.assertFalse(receipt["official_inputs"]["reference_raster"]["pixels_read"])
+
     def test_exact_dbf_parser_requires_frozen_schema_and_decoding(self) -> None:
         data = _dbf(
             [

@@ -1,0 +1,131 @@
+{
+  "schema_version": "castingcompass.usgs-ds182-sediment-dbf-support-receipt/1.0.0",
+  "created_at": "2026-07-22T15:22:34Z",
+  "source_commit": "b6bb2df351eac12eabad8eb50d29b970c95e52b6",
+  "experiment_class": "exploratory_same_release_representation",
+  "result": {
+    "path": "docs/experiments/2026-07-22-usgs-ds182-sediment-dbf-support-v1.md",
+    "sha256": "d71b5072fcc3c7203ddd5ade996a17b96e065362cb20a91df407209360072e13"
+  },
+  "protocol": {
+    "path": "docs/experiments/2026-07-22-usgs-ds182-sediment-dbf-support-protocol-v1.md",
+    "sha256": "cf859fc632d28ba32f9100cc04bc7473038609642fb871259636531465c6c1f3",
+    "frozen_before_dbf_record_value_inspection": true,
+    "failed_text_representation_disclosed": true,
+    "prior_dbf_header_and_descriptor_exposure_disclosed": true,
+    "independent_confirmatory_evidence": false
+  },
+  "source_manifest": {
+    "path": "pipeline/sources/usgs_ds182_pacific_ext_sediment.json",
+    "sha256": "dedd43815362728e05be10de3fa2d787b3a964fad2734baf36d00c0722442af3"
+  },
+  "official_inputs": {
+    "independent_download_sets": 2,
+    "all_outcome_and_source_table_bytes_match": true,
+    "outcome_archive": {
+      "bytes": 1087605,
+      "sha256": "0643827168d4a91e8f2ed6df7962dee16ff39bdf203a263a833e7f3d7faa51ff",
+      "members": 14,
+      "member_inventory_verified": true,
+      "published_metadata_record_count": 16486,
+      "exact_archive_record_count": 16485
+    },
+    "dbf_member": {
+      "path": "pac_ext.dbf",
+      "bytes": 4369583,
+      "sha256": "0617c5e83a0bd4de5b423bc1cf8774bd753ffdb5ed87f9bc32699fb6292c8afa",
+      "records": 16485,
+      "header_length": 1057,
+      "record_length": 265,
+      "field_count": 32
+    },
+    "source_table": {
+      "bytes": 19495,
+      "sha256": "89bc35fd455f623cae5c3c7ab3942e9bd933bac7a56f447f7ec236f000af4a1e",
+      "records": 114
+    },
+    "reference_raster": {
+      "source_id": "usgs_sf_state_waters_2m",
+      "geotiff_sha256": "75629f6a8bc7e3ea78fb6b3b22c737ec75a8cba1621f2c0066a2343ab61a242a",
+      "crs": "EPSG:26910",
+      "transform": [2.0, 0.0, 533700.0, 0.0, -2.0, 4190050.0, 0.0, 0.0, 1.0],
+      "width": 8850,
+      "height": 8845,
+      "bounds": [533700.0, 4172360.0, 551400.0, 4190050.0],
+      "pixels_read": false
+    }
+  },
+  "audit": {
+    "experiment_version": "exp-target-agnostic-0e1fb4c5665964c1b44a8ce92803a1cb8039e2da2e5b5fd169ec94c105995687",
+    "model_version": "model-target-agnostic-eadffec1d717a077dd99fe052dcd60e7cc8394b0cb266f6acd75115b24b29a55",
+    "design": {
+      "endpoint": "direct bulk-surficial Gravel, Sand, and Mud percentages",
+      "outcome_member": "pac_ext.dbf",
+      "derived_dbseabed_classes_allowed": false,
+      "failed_text_representation_used_for_values": false,
+      "group_definition": "whole DataSetKey",
+      "minimum_rows_and_sites_per_side": 64,
+      "minimum_rows_and_sites_per_anchor_per_side": 16,
+      "minimum_train_source_groups": 3,
+      "maximum_exhaustive_source_groups": 14
+    },
+    "source_schema": {
+      "valid": true,
+      "active_records": 16485,
+      "deleted_records": 0,
+      "point_records": 16485,
+      "same_position_coordinate_pairing_verified": true,
+      "repair_or_imputation_performed": false
+    },
+    "row_flow": {
+      "official_records": 16485,
+      "exact_duplicate_rows_removed": 908,
+      "distinct_sample_keys": 15577,
+      "inside_reference_raster_footprint": 136,
+      "endpoint_valid_rows": 0,
+      "endpoint_valid_sites": 0,
+      "endpoint_valid_source_groups": 0
+    },
+    "exclusion_counts_nonexclusive": {
+      "composition_sum_outside_98_to_102": 75,
+      "composition_unreported": 2698,
+      "nonblank_sample_phase": 418,
+      "outside_reference_raster_footprint": 15441,
+      "sample_top_outside_0_to_0_1_m": 1296,
+      "unsupported_data_type": 8418
+    },
+    "partition_audit": {
+      "performed": true,
+      "candidate_whole_source_partitions": 0,
+      "eligible_whole_source_partitions": 0
+    },
+    "metrics_sha256": "2e36a23e6fa5261eaaddd588b9e3c7ae5df01bde1d2e70f893ccb56b7b0888a7"
+  },
+  "reproduction": {
+    "executions": 2,
+    "independent_outcome_and_source_table_download_sets": 2,
+    "metrics_bytes_exact": true,
+    "run_metadata_sha256": [
+      "f14275faf2b57d12ee69505b598dc6c05099813151d1f7dd7545c2409469c412",
+      "ac440cbed55954f91b4974a18f9be7ce16042520dc7ceb513015573fcd420897"
+    ],
+    "normalized_run_metadata_bytes_exact": true,
+    "normalized_run_metadata_sha256": "516deb6a17cd3aac2c432de7d2ccbfaf9b1a5d790d39e75233c89eb71310ba0a",
+    "normalization": "Remove created_at and run_id; replace every input path with its basename."
+  },
+  "decision": {
+    "source_schema_valid": true,
+    "raw_endpoint_support_admissible": false,
+    "source_accuracy_review_authorized": false,
+    "raster_alignment_authorized": false,
+    "independent_confirmation_required": true,
+    "confirmatory_claim_authorized": false,
+    "patch_corpus_built": false,
+    "model_training_run": false,
+    "encoder_promoted": false,
+    "serving_or_score_changed": false,
+    "production_or_provider_state_changed": false,
+    "reason": "Zero distinct-sample records satisfy every frozen endpoint rule inside the exact San Francisco reference-raster footprint. The audit does not widen geography, relax surface/type/composition rules, or repair either source representation."
+  },
+  "claim_boundary": "This exploratory result establishes only that the exact dBASE representation is structurally valid but provides no admissible direct-sediment endpoint inside the frozen local footprint. It does not establish source accuracy, raster alignment, current habitat, fish presence, catch skill, score calibration, model promotion, product readiness, or deployment authority."
+}

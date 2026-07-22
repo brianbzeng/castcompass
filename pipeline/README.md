@@ -566,6 +566,19 @@ raster metadata. Under v1, `PAC_EXT.txt` fails before outcome aggregation becaus
 rows have 31 fields under its 32-field header. The command does not pad the missing field, switch
 to dBASE, read raster pixels, build patches, train, promote, score, serve, or deploy.
 
+Run the separately preregistered exploratory dBASE representation audit with:
+
+```bash
+.venv/bin/python pipeline/scripts/run_usgs_ds182_sediment_dbf_support_audit.py
+```
+
+This runner preserves the text-schema failure, verifies the exact fixed-width dBASE schema and
+same-position Point geometry, and applies the unchanged endpoint and whole-source support rules.
+The frozen result has zero endpoint-valid records inside the exact reference footprint, so it
+authorizes no source-quality review, raster alignment, patch corpus, training, score, serving, or
+deployment change. Because it is another representation of the same release, it is exploratory
+and cannot serve as independent confirmation even under a passing result.
+
 Run the strict substrate-component probe with:
 
 ```bash
