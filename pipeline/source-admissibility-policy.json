@@ -117,6 +117,18 @@
         "The exact official asset, source metadata, checksum, CRS, datum, license, and access date must be receipted before use.",
         "Unlabeled terrain pretraining cannot measure or claim catch-prediction skill."
       ]
+    },
+    {
+      "source_id": "usgs_santa_barbara_south_coast_2m",
+      "source_class": "official-bathymetry",
+      "allowed_operations": ["bathymetry-ingest", "terrain-pretraining"],
+      "supervised_model_training_authorized": false,
+      "model_validation_authorized": false,
+      "production_scoring_authorized": false,
+      "conditions": [
+        "The exact official asset, source metadata, checksum, CRS, datum, license, and access date must be receipted before use.",
+        "Unlabeled terrain pretraining cannot measure or claim catch-prediction skill."
+      ]
     }
   ],
   "synthetic_sources": [

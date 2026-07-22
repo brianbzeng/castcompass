@@ -35,7 +35,10 @@ from .training import (
     run_bathymetry_pretraining,
     run_hybrid_seafloor_pretraining,
 )
-from .video_endpoint_audit import audit_usgs_sf_video_endpoint
+from .video_endpoint_audit import (
+    audit_usgs_sf_video_endpoint,
+    audit_usgs_south_coast_video_endpoint,
+)
 from .validation_protocol import (
     DEFAULT_PROTOCOL_PATH,
     seal_validation_finalization,
@@ -56,6 +59,20 @@ def _named_values(values: Sequence[str], *, paths: bool = False) -> dict[str, An
         if not separator or not name or not item or name in parsed:
             raise ValueError("named values must be unique NAME=VALUE pairs")
         parsed[name] = _path(item) if paths else item
+    return parsed
+
+
+def _region_named_paths(values: Sequence[str]) -> dict[str, dict[str, Path]]:
+    parsed: dict[str, dict[str, Path]] = {}
+    for value in values:
+        key, separator, item = value.partition("=")
+        region, region_separator, name = key.partition(":")
+        if not separator or not region_separator or not region or not name or not item:
+            raise ValueError("region layers must be REGION:NAME=PATH values")
+        region_layers = parsed.setdefault(region, {})
+        if name in region_layers:
+            raise ValueError("region-layer names must be unique within each region")
+        region_layers[name] = _path(item)
     return parsed
 
 
@@ -259,6 +276,52 @@ def build_parser() -> argparse.ArgumentParser:
     video_endpoint.add_argument("--horizontal-accuracy-m", type=float, default=2.0)
     video_endpoint.add_argument("--tile-size", type=int, default=1024)
     video_endpoint.add_argument("--min-group-class-rows", type=int, default=16)
+
+    south_coast_video = subcommands.add_parser(
+        "audit-usgs-south-coast-video-endpoint"
+    )
+    south_coast_video.add_argument(
+        "--region-bathymetry",
+        action="append",
+        default=[],
+        metavar="REGION=PATH",
+        help="Repeat for each frozen South Coast map block.",
+    )
+    south_coast_video.add_argument(
+        "--region-aligned-layer",
+        action="append",
+        default=[],
+        metavar="REGION:NAME=PATH",
+        help="Repeat for every region-specific source-manifest backscatter layer.",
+    )
+    south_coast_video.add_argument(
+        "--video-archive",
+        action="append",
+        default=[],
+        metavar="CRUISE_ID=PATH",
+        help="Repeat for each source-manifest video cruise archive.",
+    )
+    south_coast_video.add_argument("--output-dir", required=True, type=_path)
+    south_coast_video.add_argument(
+        "--source-id", default="usgs_santa_barbara_south_coast_2m"
+    )
+    south_coast_video.add_argument("--vertical-datum", default="NAVD88")
+    south_coast_video.add_argument(
+        "--radii-m", type=float, nargs="+", default=[32, 128, 512]
+    )
+    south_coast_video.add_argument("--output-size", type=int, default=33)
+    south_coast_video.add_argument("--min-valid-fraction", type=float, default=0.8)
+    south_coast_video.add_argument(
+        "--min-aligned-valid-fraction", type=float, default=0.5
+    )
+    south_coast_video.add_argument("--local-radius", type=int, default=4)
+    south_coast_video.add_argument("--broad-radius", type=int, default=24)
+    south_coast_video.add_argument("--relief-radius", type=int, default=8)
+    south_coast_video.add_argument(
+        "--horizontal-accuracy-m", type=float, default=2.0
+    )
+    south_coast_video.add_argument("--tile-size", type=int, default=1024)
+    south_coast_video.add_argument("--min-group-class-rows", type=int, default=16)
 
     rare_corpus = subcommands.add_parser("build-rare-structure-corpus")
     rare_corpus.add_argument("--input", required=True, type=_path)
@@ -667,6 +730,27 @@ def main(argv: Sequence[str] | None = None) -> int:
             audit_usgs_sf_video_endpoint(
                 args.bathymetry,
                 _named_values(args.aligned_layer, paths=True),
+                _named_values(args.video_archive, paths=True),
+                args.output_dir,
+                source_id=args.source_id,
+                vertical_datum=args.vertical_datum,
+                radii_m=args.radii_m,
+                output_size=args.output_size,
+                min_valid_fraction=args.min_valid_fraction,
+                min_aligned_valid_fraction=args.min_aligned_valid_fraction,
+                local_radius=args.local_radius,
+                broad_radius=args.broad_radius,
+                relief_radius=args.relief_radius,
+                horizontal_accuracy_m=args.horizontal_accuracy_m,
+                tile_size=args.tile_size,
+                min_group_class_rows=args.min_group_class_rows,
+            )
+        )
+    elif args.command == "audit-usgs-south-coast-video-endpoint":
+        _print(
+            audit_usgs_south_coast_video_endpoint(
+                _named_values(args.region_bathymetry, paths=True),
+                _region_named_paths(args.region_aligned_layer),
                 _named_values(args.video_archive, paths=True),
                 args.output_dir,
                 source_id=args.source_id,

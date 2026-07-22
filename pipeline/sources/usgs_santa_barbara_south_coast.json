@@ -1,0 +1,236 @@
+{
+  "manifest_version": "1.0",
+  "source_id": "usgs_santa_barbara_south_coast_2m",
+  "title": "USGS California State Waters Map Series — Santa Barbara South Coast",
+  "steward": "U.S. Geological Survey Pacific Coastal and Marine Science Center",
+  "official_landing_page": "https://pubs.usgs.gov/ds/781/",
+  "related_official_pages": [
+    "https://pubs.usgs.gov/ds/781/OffshoreRefugioBeach/data_catalog_OffshoreRefugioBeach.html",
+    "https://pubs.usgs.gov/ds/781/OffshoreCoalOilPoint/data_catalog_OffshoreCoalOilPoint.html",
+    "https://pubs.usgs.gov/ds/781/OffshoreSantaBarbara/data_catalog_OffshoreSantaBarbara.html",
+    "https://pubs.usgs.gov/ds/781/OffshoreCarpinteria/data_catalog_OffshoreCarpinteria.html"
+  ],
+  "access": {
+    "mode": "direct_official_download",
+    "region_priority": [
+      "offshore_refugio_beach",
+      "offshore_coal_oil_point",
+      "offshore_santa_barbara",
+      "offshore_carpinteria"
+    ],
+    "regions": {
+      "offshore_refugio_beach": {
+        "landing_page": "https://pubs.usgs.gov/ds/781/OffshoreRefugioBeach/data_catalog_OffshoreRefugioBeach.html",
+        "bathymetry": {
+          "url": "https://pubs.usgs.gov/ds/781/OffshoreRefugioBeach/data/Bathymetry_OffshoreRefugioBeach.zip",
+          "archive_sha256": "8aef9348230b1678c38d87ce3efd9b8d0835a229d9f02ca353a657cc03eb281b",
+          "geotiff_path": "Bathymetry_OffshoreRefugioBeach.tif",
+          "geotiff_sha256": "fba0b0fa9f3dd2c29890a8b1260b4a3d53a74fc3d909e7b98e2656439319259a"
+        },
+        "backscatter_assets": [
+          {
+            "survey": "refugio_mosaic",
+            "url": "https://pubs.usgs.gov/ds/781/OffshoreRefugioBeach/data/Backscatter_OffshoreRefugioBeach.zip",
+            "archive_sha256": "1e8342d826892aa40e7589dbaf0a239dd25c7879d38b07a1dfded9d5bf5abce4",
+            "geotiff_path": "Backscatter_OffshoreRefugioBeach.tif",
+            "geotiff_sha256": "8d14dffc752ad2cda47c50c7ff515d57464af23f3d447fe0a8f4e67042a102ca"
+          }
+        ],
+        "catalog_video_cruises": ["s1c08sc"]
+      },
+      "offshore_coal_oil_point": {
+        "landing_page": "https://pubs.usgs.gov/ds/781/OffshoreCoalOilPoint/data_catalog_OffshoreCoalOilPoint.html",
+        "bathymetry": {
+          "url": "https://pubs.usgs.gov/ds/781/OffshoreCoalOilPoint/data/Bathymetry_OffshoreCoalOilPoint.zip",
+          "archive_sha256": "f17e262e256d5eb33fa29ba0168f10991108c651a4bfe484c59edc9c008c297f",
+          "geotiff_path": "Bathymetry_2m_OffshoreCoalOilPoint.tif",
+          "geotiff_sha256": "c63ab37fbc9f64b838fabd8d3fcee4b4c9a4de21ecd3410109d9fd12d01c595f"
+        },
+        "backscatter_assets": [
+          {
+            "survey": "coal_oil_point_csumb",
+            "url": "https://pubs.usgs.gov/ds/781/OffshoreCoalOilPoint/data/BackscatterA_CSUMB_OffshoreCoalOilPoint.zip",
+            "archive_sha256": "50efb8262c34d7922ec78884ddfdad2af4937976c760a02ed6b2d17baffa809a",
+            "geotiff_path": "BackscatterA_CSUMB_OffshoreCoalOilPoint.tif",
+            "geotiff_sha256": "82328a0b5770fbb5ac5992207d174949189e48539b1c1fa813bde558e7ff6a0f"
+          },
+          {
+            "survey": "coal_oil_point_usgs_2007",
+            "url": "https://pubs.usgs.gov/ds/781/OffshoreCoalOilPoint/data/BackscatterB_USGS_OffshoreCoalOilPoint.zip",
+            "archive_sha256": "69138db1410d1068fd08b7c5f744381750c74557496367942f0e390280a041bd",
+            "geotiff_path": "BackscatterB_USGS07_OffshoreCoalOilPoint.tif",
+            "geotiff_sha256": "f7c91872d915cb6183edc8076a45f69c8ce71af11f5f5320fd396b5aa24d564f"
+          },
+          {
+            "survey": "coal_oil_point_usgs_2008",
+            "url": "https://pubs.usgs.gov/ds/781/OffshoreCoalOilPoint/data/BackscatterB_USGS_OffshoreCoalOilPoint.zip",
+            "archive_sha256": "69138db1410d1068fd08b7c5f744381750c74557496367942f0e390280a041bd",
+            "geotiff_path": "BackscatterB_USGS08_OffshoreCoalOilPoint.tif",
+            "geotiff_sha256": "0cc7c2e96966add9ff3aa0e6d2308611e1aeb778f3e61415021f313f00b6971a"
+          },
+          {
+            "survey": "coal_oil_point_fugro",
+            "url": "https://pubs.usgs.gov/ds/781/OffshoreCoalOilPoint/data/BackscatterC_Fugro_OffshoreCoalOilPoint.zip",
+            "archive_sha256": "964ca582b707f8fb988b86282f0cad42c992ba917742e71a54d7b89bcbaed893",
+            "geotiff_path": "BackscatterC_Fugro_OffshoreCoalOilPoint.tif",
+            "geotiff_sha256": "49f0a3f91e5103f19a5157c1812e6a3942f639f60789c5ce98f1c6f943ed66ca"
+          }
+        ],
+        "catalog_video_cruises": ["s1c08sc", "sw109sc", "z107sc", "z206sc"]
+      },
+      "offshore_santa_barbara": {
+        "landing_page": "https://pubs.usgs.gov/ds/781/OffshoreSantaBarbara/data_catalog_OffshoreSantaBarbara.html",
+        "bathymetry": {
+          "url": "https://pubs.usgs.gov/ds/781/OffshoreSantaBarbara/data/Bathymetry_OffshoreSantaBarbara.zip",
+          "archive_sha256": "9a45105bb31510a47997564e249530b40bf9a104097728cd327873746bbd8d21",
+          "geotiff_path": "Bathymetry_OffshoreSantaBarbara.tif",
+          "geotiff_sha256": "877a7ab310b60a5dbb263c47de640234a2254b3b44b4291960254c1a2d5eb408"
+        },
+        "backscatter_assets": [
+          {
+            "survey": "santa_barbara_csumb",
+            "url": "https://pubs.usgs.gov/ds/781/OffshoreSantaBarbara/data/BackscatterA_CSUMB_OffshoreSantaBarbara.zip",
+            "archive_sha256": "677c2c5c421e220efdeb81aacd8da23759bb99cd6b4b31c352f095d7fa0f3550",
+            "geotiff_path": "BackscatterA_CSUMB_OffshoreSantaBarbara.tif",
+            "geotiff_sha256": "237a613ee833f7f38e5fc1ce9839444661006b4095a1f2e7853928beb7600185"
+          },
+          {
+            "survey": "santa_barbara_usgs_2005",
+            "url": "https://pubs.usgs.gov/ds/781/OffshoreSantaBarbara/data/BackscatterB_USGS_OffshoreSantaBarbara.zip",
+            "archive_sha256": "996bd9163e668fe9a47628991659bf300fde54f67c3f9bf16833be548af44212",
+            "geotiff_path": "BackscatterB_USGS05_OffshoreSantaBarbara.tif",
+            "geotiff_sha256": "ca022f5f308e1689ec1d31e53be473e160898d4e61cab245b3938245482731ea"
+          },
+          {
+            "survey": "santa_barbara_usgs_2006",
+            "url": "https://pubs.usgs.gov/ds/781/OffshoreSantaBarbara/data/BackscatterB_USGS_OffshoreSantaBarbara.zip",
+            "archive_sha256": "996bd9163e668fe9a47628991659bf300fde54f67c3f9bf16833be548af44212",
+            "geotiff_path": "BackscatterB_USGS06_OffshoreSantaBarbara.tif",
+            "geotiff_sha256": "f641efaf23043d462b276ddc5665ca7fbb81f14458f91348b2c3112f896e2dbf"
+          }
+        ],
+        "catalog_video_cruises": ["s1c08sc", "z206sc"]
+      },
+      "offshore_carpinteria": {
+        "landing_page": "https://pubs.usgs.gov/ds/781/OffshoreCarpinteria/data_catalog_OffshoreCarpinteria.html",
+        "bathymetry": {
+          "url": "https://pubs.usgs.gov/ds/781/OffshoreCarpinteria/data/Bathymetry_OffshoreCarpinteria.zip",
+          "archive_sha256": "0c4573c60ad9812657f8e6d105f83e3f2c5179200b05ac5a61430cb5a096af49",
+          "geotiff_path": "Bathymetry_OffshoreCarpinteria.tif",
+          "geotiff_sha256": "eb687e6a5fefeedc094f51f1d23a08d92b2b2c81e7bba3c26d62446558c9abea"
+        },
+        "backscatter_assets": [
+          {
+            "survey": "carpinteria_csumb",
+            "url": "https://pubs.usgs.gov/ds/781/OffshoreCarpinteria/data/BackscatterA_CSUMB_OffshoreCarpinteria.zip",
+            "archive_sha256": "5e34c638b69b2478b14d7599e0606ca1a6f36a8448aaeccf78ae76951022b51a",
+            "geotiff_path": "BackscatterA_CSUMB_OffshoreCarpinteria.tif",
+            "geotiff_sha256": "688c26b6691bbb3a1e49e19a1c916e2729382f806b317d9096c9d2e65d084ae1"
+          },
+          {
+            "survey": "carpinteria_usgs_2005",
+            "url": "https://pubs.usgs.gov/ds/781/OffshoreCarpinteria/data/BackscatterB_USGS_OffshoreCarpinteria.zip",
+            "archive_sha256": "92958d2f881ec5303236ce2835a7f64630e5747e8e37bcafa62cb59ab4297146",
+            "geotiff_path": "BackscatterB_USGS05_OffshoreCarpinteria.tif",
+            "geotiff_sha256": "638e20128d68ef26a79f3384555f5b081317f9b5816bf82d9ed43c51672f169f"
+          },
+          {
+            "survey": "carpinteria_usgs_2006",
+            "url": "https://pubs.usgs.gov/ds/781/OffshoreCarpinteria/data/BackscatterB_USGS_OffshoreCarpinteria.zip",
+            "archive_sha256": "92958d2f881ec5303236ce2835a7f64630e5747e8e37bcafa62cb59ab4297146",
+            "geotiff_path": "BackscatterB_USGS06_OffshoreCarpinteria.tif",
+            "geotiff_sha256": "834e58ff61794e702bb74a111685e0bae45d9263c8b1e6716d1d54c92d5bcbea"
+          }
+        ],
+        "catalog_video_cruises": ["s1c08sc", "z206sc"]
+      }
+    },
+    "video_observation_assets": [
+      {
+        "cruise_id": "s1c08sc",
+        "dataset_stem": "S1C08SC_video_observations",
+        "url": "https://pubs.usgs.gov/ds/781/video_observations/data/s1c08sc_video_observations.zip",
+        "archive_sha256": "7ff0ba29a3d0b6cdae6052f40a0fd6217c435fa74c971b0ab808a97d947b8f37",
+        "record_count": 1722,
+        "members": [
+          {"path": "s1c08sc_video_observations_metadata.txt", "bytes": 112239, "sha256": "31bd4573bbb491c77a51a197da18e362cfe1eaa324a59d139abb5666c8550e8c"},
+          {"path": "S1C08SC_video_observations.dbf", "bytes": 6603474, "sha256": "c620dc29d9254ef2695382f8abb27408d8fcafc795f429c4430261863814a213"},
+          {"path": "S1C08SC_video_observations.prj", "bytes": 145, "sha256": "a02a27b1d1982c8516d83398e85a3c8b1aef1713c13ef4d84d7bde17430c07c4"},
+          {"path": "S1C08SC_video_observations.sbn", "bytes": 15964, "sha256": "b8e437bdf85b63682fda407bbca628f126cb09c86b106a4d439eadb830cebfa9"},
+          {"path": "S1C08SC_video_observations.sbx", "bytes": 468, "sha256": "5e688f91ae92b22f7c63542e965e5915d710e874d1a4431fb7a7210af2ab3d0d"},
+          {"path": "S1C08SC_video_observations.shp", "bytes": 48316, "sha256": "200dcf74503130356e6894e198fad4f6482f1919de39ec40352732a2197c8ba7"},
+          {"path": "S1C08SC_video_observations.shp.xml", "bytes": 97369, "sha256": "c39c47b3b2e9624b7868751481c9ab3f2fd4c34d4339d4df95acafb55f879945"},
+          {"path": "S1C08SC_video_observations.shx", "bytes": 13876, "sha256": "661b4902d6efae72b22490a201d66dfe97b7ab61a89e9b2f0bd9ad46c0fdd94d"}
+        ]
+      },
+      {
+        "cruise_id": "sw109sc",
+        "dataset_stem": "SW109SC_video_observations",
+        "url": "https://pubs.usgs.gov/ds/781/video_observations/data/sw109sc_video_observations.zip",
+        "archive_sha256": "58d202b3b8b74f2a1e12640a6293312fb7bf4f7431ad4094bccd5390f43724f7",
+        "record_count": 2380,
+        "members": [
+          {"path": "sw109sc_video_observations_metadata.txt", "bytes": 92544, "sha256": "a2c61d9f302af591cdc8531377c98a8acc491181f4f90f4f1d37a2b3a6813080"},
+          {"path": "SW109SC_video_observations.dbf", "bytes": 31065158, "sha256": "5261615d295d65c4054d3377790e4708c9713dbd07f0757295cf4f3c63c1ea28"},
+          {"path": "SW109SC_video_observations.prj", "bytes": 145, "sha256": "a02a27b1d1982c8516d83398e85a3c8b1aef1713c13ef4d84d7bde17430c07c4"},
+          {"path": "SW109SC_video_observations.sbn", "bytes": 22924, "sha256": "3fa5fc91d830b0dc42d21484eb5bfb30327d3f11fbce4fd3e4d69d5af546daeb"},
+          {"path": "SW109SC_video_observations.sbx", "bytes": 468, "sha256": "3cc751d3336e0fc90cfb37d7e25f572bb5066a7c120edbe6bee173a34c6c142d"},
+          {"path": "SW109SC_video_observations.shp", "bytes": 66740, "sha256": "90c367f276bdbcf0e8e9c54b3c9df63fa429964b0939bf516bfe3a1dd5ba2a12"},
+          {"path": "SW109SC_video_observations.shp.xml", "bytes": 81953, "sha256": "549d12a6398221096668f4186e7f4bd1e12a8a175caec318875a680b4b4d4d59"},
+          {"path": "SW109SC_video_observations.shx", "bytes": 19140, "sha256": "1e74e896fd47055687b88a42413b8b3e78fe89a3b1e0d29922f276f83d700aba"}
+        ]
+      },
+      {
+        "cruise_id": "z107sc",
+        "dataset_stem": "Z107SC_video_observations",
+        "url": "https://pubs.usgs.gov/ds/781/video_observations/data/z107sc_video_observations.zip",
+        "archive_sha256": "d7dd49f9a97183506111309a8f6ac957af3554c03d23ee56282a8b31470e54a7",
+        "record_count": 667,
+        "members": [
+          {"path": "z107sc_video_observations_metadata.txt", "bytes": 109137, "sha256": "57cfc423a5be85cfae5cafabc94adc914a3fedc431cfcd93990fa4ffafe59338"},
+          {"path": "Z107SC_video_observations.dbf", "bytes": 2850064, "sha256": "dd2a32c301a4e4554ef74573f6ac6b8bc74972b81402f9511482723bf6c49308"},
+          {"path": "Z107SC_video_observations.prj", "bytes": 145, "sha256": "a02a27b1d1982c8516d83398e85a3c8b1aef1713c13ef4d84d7bde17430c07c4"},
+          {"path": "Z107SC_video_observations.sbn", "bytes": 6388, "sha256": "adfd5e260301df1ebfc69588f3ef68b046549d0266e2f5e7bbba88353b435e55"},
+          {"path": "Z107SC_video_observations.sbx", "bytes": 204, "sha256": "2a7631d3d043c086cd2d54e5c0da22767f9636bda3db52fa1c3bc40461030ca9"},
+          {"path": "Z107SC_video_observations.shp", "bytes": 18776, "sha256": "d01b73d1b6d0121e1195e80fe09916e2806f4f0b786e31c72a09759e0040f839"},
+          {"path": "Z107SC_video_observations.shp.xml", "bytes": 95266, "sha256": "c5e327c94b0b60fe3bad2abade48105f65f904bf655f21e12d93e4f04df57021"},
+          {"path": "Z107SC_video_observations.shx", "bytes": 5436, "sha256": "7df3e764e807268dde94b17e4e377576e89b0b69b667fdcc60f08817c0486fbe"}
+        ]
+      },
+      {
+        "cruise_id": "z206sc",
+        "dataset_stem": "Z206SC_video_observations",
+        "url": "https://pubs.usgs.gov/ds/781/video_observations/data/z206sc_video_observations.zip",
+        "archive_sha256": "6cd03626573042381c678facbfe54058bf6e9aa3fe4344de3dfcd630cad5bcec",
+        "record_count": 603,
+        "members": [
+          {"path": "z206sc_video_observations_metadata.txt", "bytes": 51583, "sha256": "127e712404b06fc58ca2e9d20ae55f7bd61bed6085a05b15d7bc6845a5de86e0"},
+          {"path": "Z206SC_video_observations.dbf", "bytes": 1217378, "sha256": "3bf75e2a2c3623122e4843b9b05a42d4799f2b1771040a35b5c920bbabbc4ea1"},
+          {"path": "Z206SC_video_observations.prj", "bytes": 145, "sha256": "a02a27b1d1982c8516d83398e85a3c8b1aef1713c13ef4d84d7bde17430c07c4"},
+          {"path": "Z206SC_video_observations.sbn", "bytes": 5916, "sha256": "004b40bea0bdee1737f863d81dad63a35ad050df0eae68a8481e04960887b693"},
+          {"path": "Z206SC_video_observations.sbx", "bytes": 228, "sha256": "78c1f7ea7a7c5fc6a6fd5389782a1de2b3b22f0344279025bd87757cced9b04e"},
+          {"path": "Z206SC_video_observations.shp", "bytes": 16984, "sha256": "32b4e4311489290338781b7d7b2a4f1d5247a89b3881f3859c96c4a9126604a1"},
+          {"path": "Z206SC_video_observations.shp.xml", "bytes": 48124, "sha256": "653612dd51bb80ff9fffaf9b7b5d44f4a01edb698a66b0c2412c742320fbda8d"},
+          {"path": "Z206SC_video_observations.shx", "bytes": 4924, "sha256": "6bd18ec614b55961887551a8506dd636a3240b08d6728dc4eedd51247a33d009"}
+        ]
+      }
+    ]
+  },
+  "coverage": {
+    "region": "Contiguous official map blocks from Offshore Refugio Beach through Offshore Carpinteria"
+  },
+  "resolution": {
+    "bathymetry_pixel_m": 2.0,
+    "backscatter_pixel_m": 2.0,
+    "published_horizontal_accuracy_m": 2.0
+  },
+  "temporal_coverage": "Historical source surveys represented by USGS Data Series 781",
+  "limitations": [
+    "Not for navigation.",
+    "The exact audited evidence footprint begins at Offshore Refugio Beach and does not establish Gaviota coverage.",
+    "The source is high resolution but historical; structure may have changed since collection.",
+    "Backscatter mosaics are survey-specific relative-intensity layers and must retain separate channels and availability masks.",
+    "Video tracks were selected to support sonar interpretation, occur at adjacent one-minute intervals, and are not a uniform sample.",
+    "Direct visual class support does not validate fish presence, catch skill, score calibration, or production use."
+  ]
+}

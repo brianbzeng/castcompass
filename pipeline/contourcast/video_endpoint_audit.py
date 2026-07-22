@@ -12,6 +12,7 @@ import hashlib
 import math
 import struct
 from collections import Counter
+from decimal import Decimal, InvalidOperation
 from pathlib import Path, PurePosixPath
 from typing import Any, Dict, Mapping, Sequence, Tuple
 from zipfile import BadZipFile, ZipFile
@@ -37,6 +38,12 @@ VIDEO_CLASS_NAMES: Tuple[str, ...] = (
     "mobile_coarse_sediment",
 )
 VIDEO_CLASS_COLLAPSE = {"1": 0, "2": 1, "3": 1, "4": 2}
+SOUTH_COAST_REGION_PRIORITY: Tuple[str, ...] = (
+    "offshore_refugio_beach",
+    "offshore_coal_oil_point",
+    "offshore_santa_barbara",
+    "offshore_carpinteria",
+)
 
 
 def _sha256_bytes(value: bytes) -> str:
@@ -144,7 +151,7 @@ def _parse_dbf_required_fields(
     *,
     required_fields: Sequence[str] = ("CLASS", "LINE", "TAPE"),
 ) -> Mapping[str, list[str]]:
-    """Parse required character fields from a strict dBASE III table."""
+    """Parse required character or integral numeric fields from strict dBASE III."""
 
     if len(data) < 34 or data[0] != 0x03:
         raise ValueError("video DBF must be a dBASE III table")
@@ -184,8 +191,10 @@ def _parse_dbf_required_fields(
         raise ValueError(f"video DBF lacks required fields: {sorted(missing)}")
     by_name = {name: (field_type, offset, length) for name, field_type, offset, length in fields}
     for name in required_fields:
-        if by_name[name][0] != "C":
-            raise ValueError(f"video DBF field {name!r} must be character data")
+        if by_name[name][0] not in {"C", "F", "N"}:
+            raise ValueError(
+                f"video DBF field {name!r} must be character or numeric data"
+            )
 
     values = {name: [] for name in required_fields}
     for index in range(record_count):
@@ -194,11 +203,23 @@ def _parse_dbf_required_fields(
         if record[0] != 0x20:
             raise ValueError("video DBF contains a deleted or invalid record")
         for name in required_fields:
-            _, field_start, length = by_name[name]
+            field_type, field_start, length = by_name[name]
             try:
                 value = record[field_start : field_start + length].decode("cp1252").strip()
             except UnicodeDecodeError as error:
                 raise ValueError(f"video DBF field {name!r} is not decodable") from error
+            if field_type in {"F", "N"} and value:
+                try:
+                    numeric = Decimal(value)
+                except InvalidOperation as error:
+                    raise ValueError(
+                        f"video DBF field {name!r} contains malformed numeric data"
+                    ) from error
+                if not numeric.is_finite() or numeric != numeric.to_integral_value():
+                    raise ValueError(
+                        f"video DBF field {name!r} contains non-integral numeric data"
+                    )
+                value = str(int(numeric))
             values[name].append(value)
     return values
 
@@ -208,6 +229,7 @@ def _whole_group_partition_audit(
     groups: np.ndarray,
     *,
     min_rows_per_class: int,
+    group_definition: str = "exact cruise_id + LINE + TAPE",
 ) -> Mapping[str, Any]:
     """Enumerate every unique whole-group bipartition, once."""
 
@@ -247,7 +269,7 @@ def _whole_group_partition_audit(
             }
         )
     return {
-        "group_definition": "exact cruise_id + LINE + TAPE",
+        "group_definition": group_definition,
         "adjacent_row_split_allowed": False,
         "minimum_rows_per_class_in_train_and_test": min_rows_per_class,
         "unique_groups": list(unique_groups),
@@ -560,12 +582,413 @@ def audit_usgs_sf_video_endpoint(
     return {"metrics": metrics_path, "run_metadata": run_metadata_path}
 
 
+def audit_usgs_south_coast_video_endpoint(
+    region_bathymetry_paths: Mapping[str, Path],
+    region_aligned_layer_paths: Mapping[str, Mapping[str, Path]],
+    video_archive_paths: Mapping[str, Path],
+    output_dir: Path,
+    *,
+    source_id: str = "usgs_santa_barbara_south_coast_2m",
+    vertical_datum: str = "NAVD88",
+    radii_m: Sequence[float] = (32.0, 128.0, 512.0),
+    output_size: int = 33,
+    min_valid_fraction: float = 0.8,
+    min_aligned_valid_fraction: float = 0.5,
+    local_radius: int = 4,
+    broad_radius: int = 24,
+    relief_radius: int = 8,
+    horizontal_accuracy_m: float = 2.0,
+    tile_size: int = 1024,
+    min_group_class_rows: int = 16,
+) -> Mapping[str, Path]:
+    """Audit South Coast visual labels under a frozen whole-cruise gate.
+
+    The function deliberately does not fit, select, or promote a model.  Map
+    overlaps are resolved by ``SOUTH_COAST_REGION_PRIORITY`` before labels are
+    counted, so the assignment rule cannot adapt to the observed class mix.
+    """
+
+    manifest = get_source_manifest(source_id)
+    access = manifest.get("access")
+    if not isinstance(access, Mapping):
+        raise ValueError("South Coast source manifest has no access contract")
+    region_specs = access.get("regions")
+    if not isinstance(region_specs, Mapping):
+        raise ValueError("South Coast source manifest has no region inventory")
+    if tuple(region_specs) != SOUTH_COAST_REGION_PRIORITY:
+        raise ValueError("South Coast regions disagree with the frozen west-to-east priority")
+    if set(region_bathymetry_paths) != set(SOUTH_COAST_REGION_PRIORITY):
+        raise ValueError("region bathymetry arguments disagree with the locked inventory")
+    if set(region_aligned_layer_paths) != set(SOUTH_COAST_REGION_PRIORITY):
+        raise ValueError("region aligned-layer arguments disagree with the locked inventory")
+
+    ordered_region_layers: Dict[str, Dict[str, Path]] = {}
+    for region_id in SOUTH_COAST_REGION_PRIORITY:
+        raw_region_spec = region_specs[region_id]
+        if not isinstance(raw_region_spec, Mapping):
+            raise ValueError(f"South Coast region {region_id!r} is malformed")
+        bathymetry_spec = raw_region_spec.get("bathymetry")
+        if not isinstance(bathymetry_spec, Mapping):
+            raise ValueError(f"South Coast region {region_id!r} lacks bathymetry")
+        if sha256_file(region_bathymetry_paths[region_id]) != bathymetry_spec.get(
+            "geotiff_sha256"
+        ):
+            raise ValueError(f"bathymetry checksum mismatch: {region_id}")
+        backscatter_specs = raw_region_spec.get("backscatter_assets")
+        if not isinstance(backscatter_specs, list) or not backscatter_specs:
+            raise ValueError(f"South Coast region {region_id!r} lacks backscatter")
+        layer_specs = {
+            f"backscatter_intensity_{item['survey']}": item
+            for item in backscatter_specs
+            if isinstance(item, Mapping)
+        }
+        if len(layer_specs) != len(backscatter_specs):
+            raise ValueError(f"South Coast region {region_id!r} has malformed backscatter")
+        supplied_layers = region_aligned_layer_paths[region_id]
+        if set(supplied_layers) != set(layer_specs):
+            raise ValueError(
+                f"aligned layers disagree with the locked inventory: {region_id}"
+            )
+        ordered_region_layers[region_id] = {
+            name: supplied_layers[name] for name in layer_specs
+        }
+        for name, path in ordered_region_layers[region_id].items():
+            if sha256_file(path) != layer_specs[name].get("geotiff_sha256"):
+                raise ValueError(f"aligned layer checksum mismatch: {region_id}:{name}")
+
+    video_specs = access.get("video_observation_assets")
+    if not isinstance(video_specs, list) or not video_specs:
+        raise ValueError("South Coast source manifest has no video observation inventory")
+    expected_cruises = [str(spec["cruise_id"]) for spec in video_specs]
+    if set(video_archive_paths) != set(expected_cruises):
+        raise ValueError("video archive arguments disagree with the locked cruise inventory")
+
+    raw_rows: list[dict[str, Any]] = []
+    asset_summaries: Dict[str, Any] = {}
+    for spec in video_specs:
+        if not isinstance(spec, Mapping):
+            raise ValueError("video observation specification must be an object")
+        cruise_id = str(spec["cruise_id"])
+        members = _read_archive(video_archive_paths[cruise_id], spec)
+        stem = str(spec["dataset_stem"])
+        points = _parse_point_shapefile(members[f"{stem}.shp"])
+        fields = _parse_dbf_required_fields(members[f"{stem}.dbf"])
+        if len(points) != len(fields["CLASS"]) or len(points) != spec.get("record_count"):
+            raise ValueError(f"video geometry/table count mismatch for {cruise_id}")
+        nonblank = {value for value in fields["CLASS"] if value}
+        if not nonblank.issubset(VIDEO_CLASS_COLLAPSE):
+            raise ValueError(f"video archive {cruise_id} has an unknown CLASS value")
+        raw_class_counts = Counter(value for value in fields["CLASS"] if value)
+        for record_index, raw_class in enumerate(fields["CLASS"]):
+            if not raw_class:
+                continue
+            raw_rows.append(
+                {
+                    "cruise_id": cruise_id,
+                    "record_index": record_index,
+                    "line": fields["LINE"][record_index],
+                    "tape": fields["TAPE"][record_index],
+                    "longitude": float(points[record_index, 0]),
+                    "latitude": float(points[record_index, 1]),
+                    "raw_class": raw_class,
+                    "class_index": VIDEO_CLASS_COLLAPSE[raw_class],
+                }
+            )
+        asset_summaries[cruise_id] = {
+            "record_count": len(points),
+            "labeled_record_count": int(sum(raw_class_counts.values())),
+            "raw_class_counts": dict(sorted(raw_class_counts.items())),
+            "archive_sha256": spec["archive_sha256"],
+            "member_inventory_verified": True,
+        }
+    if len(raw_rows) < 2:
+        raise ValueError("video inventory has too few labeled observations")
+
+    try:
+        import rasterio
+        from rasterio.warp import transform as transform_coordinates
+    except ImportError as error:
+        raise RuntimeError("video endpoint audit requires rasterio") from error
+
+    selected: Dict[tuple[str, int], dict[str, Any]] = {}
+    region_summaries: Dict[str, Any] = {}
+    retained_before_dedup = 0
+    for region_id in SOUTH_COAST_REGION_PRIORITY:
+        bathymetry_path = region_bathymetry_paths[region_id]
+        ordered_layers = ordered_region_layers[region_id]
+        with rasterio.open(bathymetry_path) as dataset:
+            if not dataset.crs:
+                raise ValueError(f"bathymetry has no CRS: {region_id}")
+            transformed_x, transformed_y = transform_coordinates(
+                "EPSG:4326",
+                dataset.crs,
+                [row["longitude"] for row in raw_rows],
+                [row["latitude"] for row in raw_rows],
+            )
+            bounds = dataset.bounds
+            bathymetry_nodata = dataset.nodata
+            center_values = np.asarray(
+                [value[0] for value in dataset.sample(zip(transformed_x, transformed_y))],
+                dtype=float,
+            )
+        inside = np.asarray(
+            [
+                bounds.left <= x <= bounds.right and bounds.bottom <= y <= bounds.top
+                for x, y in zip(transformed_x, transformed_y)
+            ],
+            dtype=bool,
+        )
+        center_valid = inside & np.isfinite(center_values)
+        if bathymetry_nodata is not None and np.isfinite(bathymetry_nodata):
+            center_valid &= ~np.isclose(center_values, bathymetry_nodata)
+        candidate_indices = np.flatnonzero(center_valid)
+        retained_raw_indices = np.asarray([], dtype=np.int64)
+        channel_names: Tuple[str, ...] = ()
+        patch_design: Mapping[str, Any] = {}
+        source_patterns: Counter[str] = Counter()
+        if len(candidate_indices) >= 2:
+            candidate_x = np.asarray(transformed_x, dtype=float)[candidate_indices]
+            candidate_y = np.asarray(transformed_y, dtype=float)[candidate_indices]
+            try:
+                patches, retained_relative, channel_names, patch_metadata = (
+                    _extract_hybrid_patches_at_coordinates(
+                        bathymetry_path,
+                        candidate_x,
+                        candidate_y,
+                        source_id=source_id,
+                        vertical_datum=vertical_datum,
+                        aligned_layer_paths=ordered_layers,
+                        radii_m=radii_m,
+                        output_size=output_size,
+                        min_valid_fraction=min_valid_fraction,
+                        min_aligned_valid_fraction=min_aligned_valid_fraction,
+                        local_radius=local_radius,
+                        broad_radius=broad_radius,
+                        relief_radius=relief_radius,
+                        horizontal_accuracy_m=horizontal_accuracy_m,
+                        tile_size=tile_size,
+                    )
+                )
+            except ValueError as error:
+                if "no rare-structure patches passed the coverage contract" not in str(error):
+                    raise
+            else:
+                retained_raw_indices = candidate_indices[retained_relative]
+                patch_design = patch_metadata["patch_design"]
+                center = output_size // 2
+                availability_indices = [
+                    index
+                    for index, name in enumerate(channel_names)
+                    if name.endswith("__available")
+                ]
+                if len(availability_indices) != len(ordered_layers):
+                    raise ValueError(
+                        f"hybrid patch channels lack availability masks: {region_id}"
+                    )
+                center_availability = patches[:, 0, availability_indices, center, center]
+                source_patterns.update(
+                    "".join("1" if value >= 0.5 else "0" for value in row)
+                    for row in center_availability
+                )
+        retained_before_dedup += len(retained_raw_indices)
+        assigned = 0
+        for raw_index in retained_raw_indices:
+            row = raw_rows[int(raw_index)]
+            key = (str(row["cruise_id"]), int(row["record_index"]))
+            if key not in selected:
+                selected[key] = {**row, "region_id": region_id}
+                assigned += 1
+        retained_region_rows = [raw_rows[int(index)] for index in retained_raw_indices]
+        region_class_counts = np.bincount(
+            [row["class_index"] for row in retained_region_rows],
+            minlength=len(VIDEO_CLASS_NAMES),
+        )
+        region_summaries[region_id] = {
+            "labeled_rows_in_bathymetry_bounds": int(np.sum(inside)),
+            "labeled_rows_at_valid_bathymetry_centers": int(len(candidate_indices)),
+            "retained_full_hybrid_patch_rows_before_priority_dedup": int(
+                len(retained_raw_indices)
+            ),
+            "assigned_rows_after_priority_dedup": assigned,
+            "retained_class_counts_before_priority_dedup": {
+                name: int(count)
+                for name, count in zip(VIDEO_CLASS_NAMES, region_class_counts)
+            },
+            "center_backscatter_availability_patterns": dict(sorted(source_patterns.items())),
+            "patch_contract": {
+                "channel_names": list(channel_names),
+                **patch_design,
+            },
+        }
+
+    retained_rows = list(selected.values())
+    if len(retained_rows) < 2:
+        raise ValueError("fewer than two South Coast rows passed the hybrid patch contract")
+    labels = np.asarray([row["class_index"] for row in retained_rows], dtype=np.int64)
+    groups = np.asarray([row["cruise_id"] for row in retained_rows], dtype=str)
+    class_counts = np.bincount(labels, minlength=len(VIDEO_CLASS_NAMES))
+    partition_audit = _whole_group_partition_audit(
+        labels,
+        groups,
+        min_rows_per_class=min_group_class_rows,
+        group_definition="exact cruise_id; no LINE, TAPE, or adjacent-row split",
+    )
+    group_counts: Dict[str, Mapping[str, int]] = {}
+    for group in sorted(set(groups)):
+        counts = np.bincount(labels[groups == group], minlength=len(VIDEO_CLASS_NAMES))
+        group_counts[group] = {
+            name: int(count) for name, count in zip(VIDEO_CLASS_NAMES, counts)
+        }
+    assigned_region_counts = Counter(row["region_id"] for row in retained_rows)
+    for region_id in SOUTH_COAST_REGION_PRIORITY:
+        region_summaries[region_id]["assigned_rows_after_priority_dedup"] = int(
+            assigned_region_counts[region_id]
+        )
+
+    admissible = partition_audit["eligible_partition_count"] > 0
+    manifest_path = SOURCE_DIR / "usgs_santa_barbara_south_coast.json"
+    metrics = {
+        "schema_version": VIDEO_ENDPOINT_AUDIT_SCHEMA_VERSION,
+        "source_id": source_id,
+        "source_manifest_sha256": sha256_file(manifest_path),
+        "geographic_scope": {
+            "official_map_blocks_west_to_east": list(SOUTH_COAST_REGION_PRIORITY),
+            "scope_boundary": (
+                "Contiguous official USGS map blocks from Offshore Refugio Beach through "
+                "Offshore Carpinteria; this is not evidence for Gaviota or the full product catalog."
+            ),
+            "overlap_assignment": (
+                "First complete hybrid patch in the frozen west-to-east region priority; "
+                "labels do not influence region assignment."
+            ),
+        },
+        "endpoint": {
+            "measurement": "direct scientist-recorded camera-video seafloor class",
+            "observation_interval": "one 10-second observation per minute",
+            "horizontal_positional_accuracy": "highly variable, on the order of 10 meters",
+            "selection_design": "targeted sonar-interpretation validation tracks; not uniform",
+            "class_collapse": {
+                "1": VIDEO_CLASS_NAMES[0],
+                "2": VIDEO_CLASS_NAMES[1],
+                "3": VIDEO_CLASS_NAMES[1],
+                "4": VIDEO_CLASS_NAMES[2],
+            },
+        },
+        "label_visibility_protocol": {
+            "exploratory_archives_inspected_during_source_discovery": ["s1c08sc", "z206sc"],
+            "confirmatory_archives_held_unread_until_protocol_implementation_commit": [
+                "sw109sc",
+                "z107sc",
+            ],
+            "confirmatory_class_collapse_changed_after_label_read": False,
+            "confirmatory_support_gate_changed_after_label_read": False,
+            "confirmatory_grouping_rule_changed_after_label_read": False,
+        },
+        "assets": asset_summaries,
+        "regions": region_summaries,
+        "row_flow": {
+            "labeled_official_rows": len(raw_rows),
+            "retained_region_rows_before_priority_dedup": retained_before_dedup,
+            "deduplicated_overlap_rows": retained_before_dedup - len(retained_rows),
+            "retained_full_hybrid_patch_rows": len(retained_rows),
+        },
+        "retained_class_counts": {
+            name: int(count) for name, count in zip(VIDEO_CLASS_NAMES, class_counts)
+        },
+        "retained_cruise_class_counts": group_counts,
+        "leakage_gate": partition_audit,
+        "lineage_boundary": {
+            "video_endpoint_measurement_independent_of_sonar_interpretation": True,
+            "video_track_selection_independent_of_sonar_interpretation": False,
+            "published_habitat_polygons_accepted_as_independent_endpoint": False,
+            "habitat_rejection_reason": (
+                "Official metadata says bathymetry, backscatter, and hillshade were the "
+                "primary interpretation sources; video and samples were supporting data."
+            ),
+        },
+        "decision": {
+            "video_probe_admissible": admissible,
+            "model_training_run": False,
+            "encoder_promoted": False,
+            "serving_or_score_changed": False,
+            "reason": (
+                "No whole-cruise partition leaves at least "
+                f"{min_group_class_rows} rows of every collapsed class in both train and test; "
+                "a finer split would leak spatially adjacent track observations."
+                if not admissible
+                else "At least one whole-cruise partition passes the frozen support gate; this "
+                "audit still does not authorize training without a separately reviewed protocol."
+            ),
+        },
+        "claim_boundary": (
+            "This audit measures endpoint support and leakage risk for historical USGS visual "
+            "seafloor classes only. It does not validate current habitat, fish presence, catch "
+            "skill, probability calibration, the Opportunity Score, model promotion, or deployment."
+        ),
+    }
+    output_dir.mkdir(parents=True, exist_ok=True)
+    metrics_path = output_dir / "usgs_south_coast_video_endpoint_audit_metrics.json"
+    write_json(metrics_path, metrics)
+
+    config = {
+        "source_id": source_id,
+        "vertical_datum": vertical_datum,
+        "region_priority": list(SOUTH_COAST_REGION_PRIORITY),
+        "overlap_assignment": "first complete hybrid patch in frozen region priority",
+        "radii_m": list(map(float, radii_m)),
+        "output_size": output_size,
+        "min_valid_fraction": min_valid_fraction,
+        "min_aligned_valid_fraction": min_aligned_valid_fraction,
+        "local_radius": local_radius,
+        "broad_radius": broad_radius,
+        "relief_radius": relief_radius,
+        "horizontal_accuracy_m": horizontal_accuracy_m,
+        "tile_size": tile_size,
+        "min_group_class_rows": min_group_class_rows,
+        "group_definition": "exact cruise_id; no LINE, TAPE, or adjacent-row split",
+    }
+    input_paths = []
+    for region_id in SOUTH_COAST_REGION_PRIORITY:
+        input_paths.append(region_bathymetry_paths[region_id])
+        input_paths.extend(ordered_region_layers[region_id].values())
+    input_paths.extend(video_archive_paths[cruise] for cruise in expected_cruises)
+    run_record = build_run_record(
+        command="audit-usgs-south-coast-video-endpoint",
+        target_taxon_id=None,
+        config=config,
+        input_paths=input_paths,
+        dataset_kind="official_video_endpoint_admissibility_audit",
+        status="completed",
+        metrics={
+            "audit_metrics_sha256": sha256_file(metrics_path),
+            "video_probe_admissible": admissible,
+            "model_training_run": False,
+            "retained_rows": len(retained_rows),
+            "eligible_group_partitions": partition_audit["eligible_partition_count"],
+        },
+        notes=(
+            "Direct South Coast video observations were audited under a whole-cruise support "
+            "gate. No model was fit and no serving artifact was changed."
+        ),
+    )
+    verify_run_record_integrity(
+        run_record,
+        rehash_inputs=True,
+        artifact_paths={"audit_metrics_sha256": metrics_path},
+    )
+    run_metadata_path = output_dir / "usgs_south_coast_video_endpoint_audit_run_metadata.json"
+    write_json(run_metadata_path, run_record)
+    return {"metrics": metrics_path, "run_metadata": run_metadata_path}
+
+
 __all__ = [
     "VIDEO_CLASS_NAMES",
     "VIDEO_ENDPOINT_AUDIT_SCHEMA_VERSION",
+    "SOUTH_COAST_REGION_PRIORITY",
     "_parse_dbf_required_fields",
     "_parse_point_shapefile",
     "_read_archive",
     "_whole_group_partition_audit",
     "audit_usgs_sf_video_endpoint",
+    "audit_usgs_south_coast_video_endpoint",
 ]

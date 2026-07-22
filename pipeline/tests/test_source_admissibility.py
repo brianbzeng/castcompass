@@ -24,13 +24,16 @@ class SourceAdmissibilityPolicyTests(unittest.TestCase):
 
     def test_policy_is_deterministic_and_manifest_inventory_is_exact(self) -> None:
         digest = source_policy_sha256(self.policy)
-        self.assertEqual(digest, "54b245191ad8da6dac820e189a6a21834ccca7699e0ced7bcc29c7bf430cf817")
+        self.assertEqual(digest, "b84bbc263cc4d60524b4dddc3694950bacd0795922f8b3fc19c40cb4bf957189")
         self.assertEqual(digest, source_policy_sha256(load_source_admissibility_policy()))
         self.assertEqual(set(load_source_manifests()), set(EXPECTED_MANIFEST_SOURCES))
 
     def test_only_exact_source_operations_are_admitted(self) -> None:
         assert_source_operation("noaa_bluetopo", "bathymetry-ingest")
         assert_source_operation("noaa_bluetopo", "terrain-pretraining")
+        assert_source_operation(
+            "usgs_santa_barbara_south_coast_2m", "terrain-pretraining"
+        )
         assert_source_operation("synthetic_fixture", "terrain-pretraining")
         assert_source_operation("cdfw_crfs_ds3185", "descriptive-context")
         assert_source_operation("cdfw_crfs", "observation-normalization")

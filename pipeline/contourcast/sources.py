@@ -85,6 +85,10 @@ EXPECTED_MANIFEST_SOURCES = {
         "official-bathymetry",
         ("bathymetry-ingest", "terrain-pretraining"),
     ),
+    "usgs_santa_barbara_south_coast_2m": (
+        "official-bathymetry",
+        ("bathymetry-ingest", "terrain-pretraining"),
+    ),
 }
 EXPECTED_SYNTHETIC_SOURCES = {
     "synthetic_fixture": (
