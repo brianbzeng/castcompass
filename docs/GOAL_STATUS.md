@@ -13,6 +13,30 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — bounded privacy-tombstone retention
+
+- [x] Remove the remaining hidden child-cascade fan-out from scheduled retention. One oldest
+      eligible completed deletion job now contributes at most 100 completed, locator-free task
+      rows per pass; a separate delete removes at most 100 parent tombstones only after no child
+      row remains, so the foreign-key cascade writes zero children.
+- [x] Preserve privacy truth while draining the backlog. Incomplete, locator-bearing, leased,
+      pending, or attention-state tasks cannot be pruned, while a 101-task completed fixture
+      leaves exactly one child and its parent after the first pass and removes both on the next.
+- [x] Bind the candidate, exact parent compare-and-set, bounded child delete, claim clear, and
+      childless-parent delete to the existing completed-job, job/object, and primary-key indexes.
+      Drift after candidate selection deletes nothing; a simulated lost post-commit response
+      leaves the exact completed retention result and no partial claim. The current repository
+      ledger covers 254 Worker prepare sites (240 literal and 14 reviewed nonliteral), and the D1
+      contract now exercises 54 critical plans across all 20 migrations.
+- [x] Re-run the repository acceptance matrix after the bounded-retention change: project-source
+      lint, TypeScript, the complete security policy chain, release SBOM, Cloudflare build, 669
+      Worker/runtime tests, 200 mobile/browser tests, 29 API tests, Ruff, 128 pipeline tests, and
+      the seeded synthetic smoke workflow all pass. These are local deterministic controls; they
+      do not substitute for the isolated-staging measurements below.
+- [ ] Capture actual rows-read/written, latency, backlog-drain, and migration-cost evidence on
+      production-shaped synthetic data in isolated staging. This local checkpoint performs no
+      deployment, provider request, migration, production mutation, or load exercise.
+
 ## Active checkpoint — hybrid seafloor representation experiment
 
 - [x] Resume model work from the recorded negative result rather than from product intuition. The
@@ -3134,7 +3158,7 @@ supersedes this mutation-metadata authority while preserving its fail-closed beh
       remains deferred pending privacy review.
 - [ ] Make data and execution paths measurably scalable: query plans/indexes, bounded access,
       cache matrix, justified asynchronous work, D1-managed connections, optional API pooling,
-      and isolated load/soak/spike/failure tests. **A complete static inventory now covers all 221
+      and isolated load/soak/spike/failure tests. **A complete static inventory now covers all 254
       Worker prepare sites, and exact 100-item saved-location/gear-preset account ceilings now
       fail closed on overflow without truncating rights exports, while local query/index/cache/
       connection contracts, production-refusing harness, the default-off advisory Queue adapter,
@@ -3142,7 +3166,7 @@ supersedes this mutation-metadata authority while preserving its fail-closed beh
       lease ledger, private 24-hour object, progress UI, bounded expiry/retries, and account-delete
       race adoption are complete;** migrations, provider Queue/DLQ/R2 bindings, IAM/alerts,
       export activation, staging measurements,
-      child-cascade cost evidence, failure injection,
+      bounded-retention and migration cost evidence, failure injection,
       rollback evidence, and authorized penetration testing remain.
       Local acceptance for the default-off export adapter passed the Cloudflare build and
       456/456 Node tests, 140/140 Chromium/WebKit mobile cases, ESLint, TypeScript, the complete

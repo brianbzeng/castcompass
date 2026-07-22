@@ -3429,7 +3429,53 @@ export async function cleanupAuthRetentionData(env: AuthApiEnv) {
   const attemptCutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const proofCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const tombstoneCutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();
-  await env.DB.batch([
+  const pruneCandidate = await env.DB.prepare(`SELECT
+      job.id, job.completed_at, job.objects_total, job.objects_deleted,
+      (SELECT COUNT(*) FROM (
+        SELECT task.id
+        FROM privacy_deletion_tasks AS task
+          INDEXED BY privacy_deletion_tasks_job_object_unique
+        WHERE task.job_id = job.id
+          AND task.state = 'completed'
+          AND task.object_key IS NULL
+        ORDER BY task.object_key_hash LIMIT ?
+      )) AS prune_count
+    FROM privacy_deletion_jobs AS job
+      INDEXED BY privacy_deletion_jobs_state_completed_idx
+    WHERE job.state = 'completed' AND job.completed_at < ?
+      AND job.objects_deleted = job.objects_total
+      AND job.objects_total > 0
+      AND job.last_error_code IS NULL
+      AND EXISTS (
+        SELECT 1
+        FROM privacy_deletion_tasks AS eligible_task
+          INDEXED BY privacy_deletion_tasks_job_object_unique
+        WHERE eligible_task.job_id = job.id
+          AND eligible_task.state = 'completed'
+          AND eligible_task.object_key IS NULL
+        LIMIT 1
+      )
+      AND job.objects_total >= (
+        SELECT COUNT(*) FROM (
+          SELECT bounded_task.id
+          FROM privacy_deletion_tasks AS bounded_task
+            INDEXED BY privacy_deletion_tasks_job_object_unique
+          WHERE bounded_task.job_id = job.id
+            AND bounded_task.state = 'completed'
+            AND bounded_task.object_key IS NULL
+          ORDER BY bounded_task.object_key_hash LIMIT ?
+        )
+      )
+    ORDER BY job.completed_at LIMIT 1`)
+    .bind(AUTH_RETENTION_DELETE_BATCH, tombstoneCutoff, AUTH_RETENTION_DELETE_BATCH)
+    .first<{
+      id: string;
+      completed_at: string;
+      objects_total: number;
+      objects_deleted: number;
+      prune_count: number;
+    }>();
+  const retentionStatements = [
     env.DB.prepare(`DELETE FROM auth_sessions WHERE token_hash IN (
       SELECT token_hash FROM auth_sessions WHERE expires_at <= ?
       ORDER BY expires_at, token_hash LIMIT ?
@@ -3447,23 +3493,97 @@ export async function cleanupAuthRetentionData(env: AuthApiEnv) {
       WHERE expires_at < ? OR (consumed_at IS NOT NULL AND consumed_at < ?)
       LIMIT ?
     )`).bind(proofCutoff, proofCutoff, AUTH_RETENTION_DELETE_BATCH),
+  ];
+  const pruneCount = Number(pruneCandidate?.prune_count ?? 0);
+  const objectsTotal = Number(pruneCandidate?.objects_total ?? 0);
+  const objectsDeleted = Number(pruneCandidate?.objects_deleted ?? 0);
+  if (pruneCandidate) {
+    if (!pruneCandidate.id || !pruneCandidate.completed_at
+      || !Number.isSafeInteger(pruneCount) || pruneCount < 1
+      || pruneCount > AUTH_RETENTION_DELETE_BATCH
+      || !Number.isSafeInteger(objectsTotal) || objectsTotal < pruneCount
+      || !Number.isSafeInteger(objectsDeleted) || objectsDeleted !== objectsTotal) {
+      throw new Error("privacy_retention_prune_candidate_invalid");
+    }
+    const retentionPruneClaim = `retention_prune_${randomSecret(16)}`;
+    const nextObjectsTotal = objectsTotal - pruneCount;
+    const nextObjectsDeleted = objectsDeleted - pruneCount;
+    retentionStatements.push(
+      env.DB.prepare(`UPDATE privacy_deletion_jobs
+        SET objects_total = ?, objects_deleted = ?, last_error_code = ?
+        WHERE id = ? AND state = 'completed' AND completed_at = ?
+          AND objects_total = ? AND objects_deleted = ? AND last_error_code IS NULL`).bind(
+        nextObjectsTotal,
+        nextObjectsDeleted,
+        retentionPruneClaim,
+        pruneCandidate.id,
+        pruneCandidate.completed_at,
+        objectsTotal,
+        objectsDeleted,
+      ),
+      env.DB.prepare(`DELETE FROM privacy_deletion_tasks WHERE id IN (
+        SELECT task.id
+        FROM privacy_deletion_tasks AS task
+          INDEXED BY privacy_deletion_tasks_job_object_unique
+        WHERE task.job_id = ?
+          AND task.state = 'completed'
+          AND task.object_key IS NULL
+          AND EXISTS (
+            SELECT 1 FROM privacy_deletion_jobs AS job
+            WHERE job.id = ? AND job.state = 'completed' AND job.completed_at = ?
+              AND job.objects_total = ? AND job.objects_deleted = ?
+              AND job.last_error_code = ?
+            LIMIT 1
+          )
+        ORDER BY task.object_key_hash LIMIT ?
+      )`).bind(
+        pruneCandidate.id,
+        pruneCandidate.id,
+        pruneCandidate.completed_at,
+        nextObjectsTotal,
+        nextObjectsDeleted,
+        retentionPruneClaim,
+        pruneCount,
+      ),
+      env.DB.prepare(`UPDATE privacy_deletion_jobs
+        SET last_error_code = NULL
+        WHERE id = ? AND state = 'completed' AND completed_at = ?
+          AND objects_total = ? AND objects_deleted = ? AND last_error_code = ?`).bind(
+        pruneCandidate.id,
+        pruneCandidate.completed_at,
+        nextObjectsTotal,
+        nextObjectsDeleted,
+        retentionPruneClaim,
+      ),
+    );
+  }
+  retentionStatements.push(
     env.DB.prepare(`DELETE FROM privacy_deletion_jobs
       WHERE id IN (
-        SELECT id FROM privacy_deletion_jobs
-        WHERE state = 'completed' AND completed_at < ?
-          AND objects_deleted = objects_total
-          AND (SELECT COUNT(*) FROM privacy_deletion_tasks
-            WHERE job_id = privacy_deletion_jobs.id) = objects_total
-          AND NOT EXISTS (SELECT 1 FROM privacy_deletion_tasks
-            WHERE job_id = privacy_deletion_jobs.id AND state != 'completed')
-        ORDER BY completed_at, id LIMIT ?
+        SELECT job.id
+        FROM privacy_deletion_jobs AS job
+          INDEXED BY privacy_deletion_jobs_state_completed_idx
+        WHERE job.state = 'completed' AND job.completed_at < ?
+          AND job.objects_deleted = job.objects_total
+          AND job.objects_total = 0
+          AND job.objects_deleted = 0
+          AND job.last_error_code IS NULL
+          AND NOT EXISTS (
+            SELECT 1
+            FROM privacy_deletion_tasks AS task
+              INDEXED BY privacy_deletion_tasks_job_object_unique
+            WHERE task.job_id = job.id
+            LIMIT 1
+          )
+        ORDER BY job.completed_at LIMIT ?
       )`).bind(tombstoneCutoff, AUTH_RETENTION_DELETE_BATCH),
     env.DB.prepare(`DELETE FROM privacy_export_jobs WHERE id IN (
       SELECT id FROM privacy_export_jobs
       WHERE state = 'expired' AND updated_at < ? AND object_key IS NULL
       ORDER BY updated_at, id LIMIT ?
     )`).bind(tombstoneCutoff, AUTH_RETENTION_DELETE_BATCH),
-  ]);
+  );
+  await env.DB.batch(retentionStatements);
 }
 
 export async function cleanupAuthData(env: AuthApiEnv) {

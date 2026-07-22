@@ -8,7 +8,7 @@ accounts, or production data.
 ## D1 query inventory
 
 `scripts/generate-d1-query-inventory.mjs` parses every Worker TypeScript source file and records
-all 250 direct `.prepare()` sites: 236 literal statements and 14 separately reviewed nonliteral
+all 254 direct `.prepare()` sites: 240 literal statements and 14 separately reviewed nonliteral
 expressions across eight source files. The committed policy and generated inventory are
 source-hash and call-site bound. CI rejects source-file/count drift, computed or aliased
 `prepare` access, a nonliteral expression without its exact static-authority review, an unscoped
@@ -44,10 +44,12 @@ invocation before deleting sessions, challenges, attempts, age proofs, and compl
 jobs. Backlogs drain on later scheduled runs, and regression coverage proves the first invocation
 leaves exactly one row from a 101-row eligible fixture while preserving ineligible rows. Privacy
 object cleanup claims at most five tasks per invocation, and deletion-job reconciliation updates
-at most 100 jobs with one set-based statement rather than one statement per job. A
-completed deletion job can still cascade its already-finished child-task rows, so isolated
-production-shaped timing and rows-written evidence remains required before calling the cleanup
-capacity proven.
+at most 100 jobs with one set-based statement rather than one statement per job. Completed
+tombstones are removed child-first: one oldest eligible job contributes at most 100 completed,
+locator-free task rows per invocation, and up to 100 parent jobs are removed only after they have
+zero remaining children. Scheduled parent retention therefore cannot trigger a hidden,
+unbounded child cascade. Production-shaped timing, rows-read/written, and backlog-drain evidence
+still remains an isolated-staging gate.
 
 The current Cloudflare limits are 50 D1 queries per Worker invocation on Free, 1,000 on Paid,
 and 100 bound parameters per query. D1 `batch()` runs its statements sequentially and
@@ -64,7 +66,7 @@ longer starts four independent `waitUntil` pipelines concurrently. Instead, one 
 lane runs sequentially per tick and the four lanes repeat every 20 minutes: queue dispatch,
 trip-photo reservation cleanup, expired-export cleanup, and auth retention plus privacy
 deletion. Saturated local D1 adapters execute every lane below its conservative 50-query budget:
-32, 44, 36, and 40 respectively. The corresponding work caps are one advisory-review dispatch,
+32, 44, 36, and 44 respectively. The corresponding work caps are one advisory-review dispatch,
 five privacy-export dispatches, seven photo reservations, seven expired exports, and three
 privacy-deletion tasks. Backlogs remain durable and drain on later rotations. This source and
 fixture proof is not evidence of the deployed plan, cron delivery, provider subrequest behavior,
@@ -72,7 +74,7 @@ latency, or alerting; those remain isolated-staging gates. The complete contract
 [SCHEDULED-WORKER-BUDGET.md](SCHEDULED-WORKER-BUDGET.md).
 
 `scripts/check_d1_query_plans.py` separately applies every migration to an in-memory SQLite
-database, runs 50 representative `EXPLAIN QUERY PLAN` checks, and rejects missing leftmost
+database, runs 54 representative `EXPLAIN QUERY PLAN` checks, and rejects missing leftmost
 indexes for every foreign-key child path. The checked plans cover the highest-frequency or
 growth-sensitive access patterns:
 
@@ -101,7 +103,7 @@ growth-sensitive access patterns:
 | Advisory AI backlog | Completed new/queued/retry rows plus well-formed expired processing claims, oldest-first with `LIMIT 10` | Reviewed index hint over the completed-trip effective-time partial index; each provider dispatch requires an exact high-entropy read-back claim and stale terminal writes lose |
 | Advisory AI queue outbox | Due pending/retry/queued jobs and expired leases, bounded oldest-first | `(state, available_at, lease_expires_at)` dispatch index plus a unique trip index; D1 remains authoritative under at-least-once delivery |
 | Public discussions | One curated site, newest first, `LIMIT 12`, then a primary-key trip join | Existing `(site_id, observed_at)` index and trip primary key |
-| Privacy deletion receipts, tombstones, jobs, and tasks | Receipt lookup, subject/owner lookup, five-task worker claims, one set-based 100-job reconciliation, and 100-job top-level retention selection; child cascades still require staging cost evidence | Unique receipt, scope/subject, owner/state, state/completion, task retry, and job/object indexes |
+| Privacy deletion receipts, tombstones, jobs, and tasks | Receipt lookup, subject/owner lookup, five-task worker claims, one set-based 100-job reconciliation, one oldest-job/100-task retention prune, and a 100-job childless-parent retention delete | Unique receipt, scope/subject, owner/state, state/completion, task retry, job/object, and parent primary-key indexes; exact claim state makes an overlapping or stale pruner a no-op |
 | Account deletion fence and private-object inventory | Exact fence-lease receipt; four source-bound set inventories for prior deletion tasks, photo reservations, privacy exports, and attached trip photos; bounded due-reservation reconciliation | Unique owner fence identity, object-hash uniqueness, `(owner_subject_hash, created_at)`, export-owner/state, trip-owner, and retry indexes |
 | Validation exports and cascades | Activation, trip, or user predicates with append-only sequence order | Existing activation/trip indexes plus user recruitment, activation correction, and forecast/trip foreign-key indexes |
 

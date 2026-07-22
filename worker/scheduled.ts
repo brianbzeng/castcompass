@@ -41,7 +41,7 @@ export const SCHEDULED_LANE_D1_QUERY_BUDGET = Object.freeze({
   queue_dispatch: 32,
   trip_photo_reservations: 44,
   privacy_export_expiry: 36,
-  auth_retention_and_deletion: 40,
+  auth_retention_and_deletion: 44,
 } satisfies Record<ScheduledLane, number>);
 
 export function scheduledLaneFor(controller: ScheduledControllerLike | unknown, fallbackTime = Date.now()) {

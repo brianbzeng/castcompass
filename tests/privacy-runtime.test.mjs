@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
-import { cleanupAuthData, LEGAL_VERSION, evaluateAgeEligibility, handleAccountRequest, processPrivacyDeletionTasks } from "../worker/auth.ts";
+import { cleanupAuthData, cleanupAuthRetentionData, LEGAL_VERSION, evaluateAgeEligibility, handleAccountRequest, processPrivacyDeletionTasks } from "../worker/auth.ts";
 import { createTripStore, handleTripRequest } from "../worker/trips.ts";
 import { reviewTripBacklog, reviewTripWithMimo } from "../worker/trip-review.ts";
 import { scheduleTripReview } from "../worker/trip-review-queue.ts";
@@ -636,6 +636,10 @@ test("scheduled authentication retention deletes bounded batches and drains old 
       id, receipt_hash, scope, subject_hash, owner_subject_hash, state, objects_total,
       objects_deleted, requested_at, active_data_removed_at, completed_at, updated_at)
     VALUES (?, ?, 'account', ?, ?, 'completed', 0, 0, ?, ?, ?, ?)`);
+  const insertCompletedDeletionTask = sqlite.prepare(`INSERT INTO privacy_deletion_tasks (
+      id, job_id, object_key, object_key_hash, object_store, state, attempts,
+      available_at, created_at, updated_at, completed_at)
+    VALUES (?, ?, NULL, ?, 'trip_photos', 'completed', 1, ?, ?, ?, ?)`);
 
   for (let index = 0; index < 101; index += 1) {
     const suffix = index.toString().padStart(3, "0");
@@ -682,6 +686,31 @@ test("scheduled authentication retention deletes bounded batches and drains old 
     oldTimestamp,
   );
 
+  insertDeletionJob.run(
+    "task-heavy-deletion",
+    "task-heavy-receipt",
+    "task-heavy-subject",
+    "task-heavy-owner",
+    oldTimestamp,
+    oldTimestamp,
+    oldTimestamp,
+    oldTimestamp,
+  );
+  sqlite.prepare(`UPDATE privacy_deletion_jobs
+    SET objects_total = 101, objects_deleted = 101 WHERE id = 'task-heavy-deletion'`).run();
+  for (let index = 0; index < 101; index += 1) {
+    const suffix = index.toString().padStart(3, "0");
+    insertCompletedDeletionTask.run(
+      `task-heavy-child-${suffix}`,
+      "task-heavy-deletion",
+      `task-heavy-object-hash-${suffix}`,
+      oldTimestamp,
+      oldTimestamp,
+      oldTimestamp,
+      oldTimestamp,
+    );
+  }
+
   const oldRowCounts = () => ({
     sessions: sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE token_hash LIKE 'expired-session-%'").get().count,
     challenges: sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id LIKE 'expired-challenge-%'").get().count,
@@ -692,6 +721,8 @@ test("scheduled authentication retention deletes bounded batches and drains old 
 
   await cleanupAuthData({ DB: d1 });
   assert.deepEqual(oldRowCounts(), { sessions: 1, challenges: 1, attempts: 1, proofs: 1, deletions: 1 });
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM privacy_deletion_tasks WHERE job_id = 'task-heavy-deletion'").get().count, 1);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM privacy_deletion_jobs WHERE id = 'task-heavy-deletion'").get().count, 1);
   assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE token_hash = 'current-session'").get().count, 1);
   assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM email_challenges WHERE id = 'current-challenge'").get().count, 1);
   assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM auth_attempts WHERE id = 'current-attempt'").get().count, 1);
@@ -700,6 +731,67 @@ test("scheduled authentication retention deletes bounded batches and drains old 
 
   await cleanupAuthData({ DB: d1 });
   assert.deepEqual(oldRowCounts(), { sessions: 0, challenges: 0, attempts: 0, proofs: 0, deletions: 0 });
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM privacy_deletion_tasks WHERE job_id = 'task-heavy-deletion'").get().count, 0);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM privacy_deletion_jobs WHERE id = 'task-heavy-deletion'").get().count, 0);
+});
+
+test("tombstone retention requires its exact atomic parent claim and contains response loss", async () => {
+  const seed = async (suffix) => {
+    const { sqlite, d1 } = await database();
+    const timestamp = "2000-01-01T00:00:00.000Z";
+    const jobId = `retention-claim-${suffix}`;
+    sqlite.prepare(`INSERT INTO privacy_deletion_jobs (
+        id, receipt_hash, scope, subject_hash, owner_subject_hash, state, objects_total,
+        objects_deleted, requested_at, active_data_removed_at, completed_at, updated_at)
+      VALUES (?, ?, 'account', ?, ?, 'completed', 2, 2, ?, ?, ?, ?)`).run(
+      jobId,
+      `retention-receipt-${suffix}`,
+      `retention-subject-${suffix}`,
+      `retention-owner-${suffix}`,
+      timestamp,
+      timestamp,
+      timestamp,
+      timestamp,
+    );
+    const insertTask = sqlite.prepare(`INSERT INTO privacy_deletion_tasks (
+        id, job_id, object_key, object_key_hash, object_store, state, attempts,
+        available_at, created_at, updated_at, completed_at)
+      VALUES (?, ?, NULL, ?, 'trip_photos', 'completed', 1, ?, ?, ?, ?)`);
+    for (let index = 0; index < 2; index += 1) {
+      insertTask.run(
+        `retention-task-${suffix}-${index}`,
+        jobId,
+        `retention-hash-${suffix}-${index}`,
+        timestamp,
+        timestamp,
+        timestamp,
+        timestamp,
+      );
+    }
+    return { sqlite, d1, jobId };
+  };
+
+  const drifted = await seed("drifted");
+  drifted.d1.beforeOnceQuerySubstring = "SET objects_total = ?, objects_deleted = ?, last_error_code = ?";
+  drifted.d1.beforeOnceQuery = () => drifted.sqlite.prepare(`UPDATE privacy_deletion_jobs
+    SET objects_total = 3, objects_deleted = 3 WHERE id = ?`).run(drifted.jobId);
+  await cleanupAuthRetentionData({ DB: drifted.d1 });
+  assert.deepEqual({ ...drifted.sqlite.prepare(`SELECT objects_total, objects_deleted, last_error_code
+      FROM privacy_deletion_jobs WHERE id = ?`).get(drifted.jobId) }, {
+    objects_total: 3,
+    objects_deleted: 3,
+    last_error_code: null,
+  });
+  assert.equal(drifted.sqlite.prepare("SELECT COUNT(*) AS count FROM privacy_deletion_tasks WHERE job_id = ?")
+    .get(drifted.jobId).count, 2);
+
+  const responseLost = await seed("response-lost");
+  responseLost.d1.throwOnceAfterBatchMutationSubstring = "SET objects_total = ?, objects_deleted = ?, last_error_code = ?";
+  await assert.rejects(cleanupAuthRetentionData({ DB: responseLost.d1 }), /post-batch response failure/u);
+  assert.equal(responseLost.sqlite.prepare("SELECT COUNT(*) AS count FROM privacy_deletion_tasks WHERE job_id = ?")
+    .get(responseLost.jobId).count, 0);
+  assert.equal(responseLost.sqlite.prepare("SELECT COUNT(*) AS count FROM privacy_deletion_jobs WHERE id = ?")
+    .get(responseLost.jobId).count, 0);
 });
 
 test("known and unknown invalid logins perform password derivation and return the same response", async () => {

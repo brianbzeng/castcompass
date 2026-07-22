@@ -872,19 +872,113 @@ CHECKS = (
         ("privacy_deletion_jobs_scope_subject_idx",),
     ),
     PlanCheck(
+        "completed deletion-task retention candidate",
+        """SELECT job.id, job.completed_at, job.objects_total, job.objects_deleted,
+             (SELECT COUNT(*) FROM (
+               SELECT task.id
+               FROM privacy_deletion_tasks AS task
+                 INDEXED BY privacy_deletion_tasks_job_object_unique
+               WHERE task.job_id = job.id
+                 AND task.state = 'completed' AND task.object_key IS NULL
+               ORDER BY task.object_key_hash LIMIT ?
+             )) AS prune_count
+           FROM privacy_deletion_jobs AS job
+             INDEXED BY privacy_deletion_jobs_state_completed_idx
+           WHERE job.state = 'completed' AND job.completed_at < ?
+             AND job.objects_deleted = job.objects_total
+             AND job.objects_total > 0 AND job.last_error_code IS NULL
+             AND EXISTS (
+               SELECT 1
+               FROM privacy_deletion_tasks AS eligible_task
+                 INDEXED BY privacy_deletion_tasks_job_object_unique
+               WHERE eligible_task.job_id = job.id
+                 AND eligible_task.state = 'completed'
+                 AND eligible_task.object_key IS NULL LIMIT 1
+             )
+             AND job.objects_total >= (
+               SELECT COUNT(*) FROM (
+                 SELECT bounded_task.id
+                 FROM privacy_deletion_tasks AS bounded_task
+                   INDEXED BY privacy_deletion_tasks_job_object_unique
+                 WHERE bounded_task.job_id = job.id
+                   AND bounded_task.state = 'completed'
+                   AND bounded_task.object_key IS NULL
+                 ORDER BY bounded_task.object_key_hash LIMIT ?
+               )
+             )
+           ORDER BY job.completed_at LIMIT 1""",
+        (100, "2026-04-17T00:00:00.000Z", 100),
+        (
+            "privacy_deletion_jobs_state_completed_idx",
+            "privacy_deletion_tasks_job_object_unique",
+        ),
+    ),
+    PlanCheck(
+        "completed deletion-task retention claim",
+        """UPDATE privacy_deletion_jobs
+           SET objects_total = ?, objects_deleted = ?, last_error_code = ?
+           WHERE id = ? AND state = 'completed' AND completed_at = ?
+             AND objects_total = ? AND objects_deleted = ? AND last_error_code IS NULL""",
+        (1, 1, "retention_prune_fixture", "job_fixture", "2026-04-01T00:00:00.000Z", 101, 101),
+        ("sqlite_autoindex_privacy_deletion_jobs_1",),
+    ),
+    PlanCheck(
+        "completed deletion-task retention delete",
+        """DELETE FROM privacy_deletion_tasks WHERE id IN (
+             SELECT task.id
+             FROM privacy_deletion_tasks AS task
+               INDEXED BY privacy_deletion_tasks_job_object_unique
+             WHERE task.job_id = ?
+               AND task.state = 'completed' AND task.object_key IS NULL
+               AND EXISTS (
+                 SELECT 1 FROM privacy_deletion_jobs AS job
+                 WHERE job.id = ? AND job.state = 'completed' AND job.completed_at = ?
+                   AND job.objects_total = ? AND job.objects_deleted = ?
+                   AND job.last_error_code = ? LIMIT 1
+               )
+             ORDER BY task.object_key_hash LIMIT ?
+           )""",
+        (
+            "job_fixture", "job_fixture", "2026-04-01T00:00:00.000Z",
+            1, 1, "retention_prune_fixture", 100,
+        ),
+        (
+            "sqlite_autoindex_privacy_deletion_jobs_1",
+            "privacy_deletion_tasks_job_object_unique",
+        ),
+    ),
+    PlanCheck(
+        "completed deletion-task retention claim clear",
+        """UPDATE privacy_deletion_jobs SET last_error_code = NULL
+           WHERE id = ? AND state = 'completed' AND completed_at = ?
+             AND objects_total = ? AND objects_deleted = ? AND last_error_code = ?""",
+        ("job_fixture", "2026-04-01T00:00:00.000Z", 1, 1, "retention_prune_fixture"),
+        ("sqlite_autoindex_privacy_deletion_jobs_1",),
+    ),
+    PlanCheck(
         "completed deletion-job retention",
         """DELETE FROM privacy_deletion_jobs WHERE id IN (
-             SELECT id FROM privacy_deletion_jobs
-             WHERE state = 'completed' AND completed_at < ?
-               AND objects_deleted = objects_total
-               AND (SELECT COUNT(*) FROM privacy_deletion_tasks
-                 WHERE job_id = privacy_deletion_jobs.id) = objects_total
-               AND NOT EXISTS (SELECT 1 FROM privacy_deletion_tasks
-                 WHERE job_id = privacy_deletion_jobs.id AND state != 'completed')
-             ORDER BY completed_at, id LIMIT ?
+             SELECT job.id
+             FROM privacy_deletion_jobs AS job
+               INDEXED BY privacy_deletion_jobs_state_completed_idx
+             WHERE job.state = 'completed' AND job.completed_at < ?
+               AND job.objects_deleted = job.objects_total
+               AND job.objects_total = 0 AND job.objects_deleted = 0
+               AND job.last_error_code IS NULL
+               AND NOT EXISTS (
+                 SELECT 1
+                 FROM privacy_deletion_tasks AS task
+                   INDEXED BY privacy_deletion_tasks_job_object_unique
+                 WHERE task.job_id = job.id
+                 LIMIT 1
+               )
+             ORDER BY job.completed_at LIMIT ?
            )""",
         ("2026-04-17T00:00:00.000Z", 100),
-        ("privacy_deletion_jobs_state_completed_idx",),
+        (
+            "privacy_deletion_jobs_state_completed_idx",
+            "privacy_deletion_tasks_job_object_unique",
+        ),
     ),
     PlanCheck(
         "recruitment account export",

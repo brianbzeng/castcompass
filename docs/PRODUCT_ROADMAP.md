@@ -653,7 +653,7 @@ after its acceptance checks pass in the intended environment.
   - [ ] Inventory every production query, capture representative `EXPLAIN QUERY PLAN` evidence,
     add only workload-justified indexes, bound scans/pagination, eliminate N+1 patterns, verify
     cross-account predicates, and regression-test query latency and migration cost.
-    - [x] Add a deterministic AST-backed inventory for all 239 Worker `.prepare()` sites across
+    - [x] Add a deterministic AST-backed inventory for all 254 Worker `.prepare()` sites across
       eight files, including exact review contracts for 14 nonliteral expressions and nine literal
       multi-row reads without `LIMIT`. CI and release provenance fail closed on inventory drift,
       computed/aliased prepare access, unreviewed dynamic SQL, unscoped literal writes, and
@@ -662,16 +662,18 @@ after its acceptance checks pass in the intended environment.
       reads with exact 100-item resource ceilings, `LIMIT 101` overflow detection, atomic
       count-guarded creates, idempotent duplicate saves, and fail-closed legacy overflow.
       Complete privacy exports remain deliberately untruncated.
-    - [x] Batch-limit all five scheduled authentication/retention deletes to 100 selected primary
-      rows per table and invocation, preserve ineligible rows, drain backlogs on later runs, and
-      run the actual bounded statements through the query-plan contract. Privacy object work
-      claims at most five tasks and reconciles at most 100 jobs with one set-based statement;
-      child cascades still require isolated cost evidence.
+    - [x] Batch-limit scheduled authentication/retention deletes to 100 selected primary rows per
+      table and invocation, preserve ineligible rows, drain backlogs on later runs, and run the
+      actual bounded statements through the query-plan contract. Completed privacy tombstones now
+      prune at most 100 locator-free task rows from one oldest job before deleting up to 100
+      childless parents, so the parent foreign-key cascade has zero child rows rather than hidden
+      unbounded write fan-out. Privacy object work claims at most five tasks and reconciles at most
+      100 jobs with one set-based statement.
     - [x] Bound the cron as one aggregate Cloudflare invocation. A deterministic four-lane
       rotation runs exactly one sequential lane per five-minute tick, so every lane is serviced
       every 20 minutes without four concurrent `waitUntil` pipelines sharing the same quota.
       Saturation tests hold queue dispatch, trip-photo cleanup, expired-export cleanup, and auth
-      retention/deletion below conservative D1 query budgets of 32, 44, 36, and 40 against the
+      retention/deletion below conservative D1 query budgets of 32, 44, 36, and 44 against the
       stricter 50-query Free ceiling. Trip schema initialization is now one fail-closed read-only
       readiness probe instead of 35 runtime DDL statements. Enabled public discussions likewise
       use one fail-closed read-only readiness probe instead of runtime table/index DDL, while the
@@ -700,7 +702,7 @@ after its acceptance checks pass in the intended environment.
       Queue send or R2 mutation, a committed completion cannot lose its valid object, cleanup
       locators remain durable, and an abandoned fifth lease reaches explicit attention.
     - [ ] Apply `0019`, provision the private Queue/DLQ/R2 bindings, capture production-shaped
-      latency, rows-read/written, child-cascade/migration cost and race/failure evidence in
+      latency, rows-read/written, bounded-retention/migration cost and race/failure evidence in
       isolated staging, activate alerts/IAM, then enable only through the separate gate in
       `docs/ASYNC-PRIVACY-EXPORTS.md`.
   - [x] Publish a cache matrix by asset/data class with owner, privacy classification, cache key,

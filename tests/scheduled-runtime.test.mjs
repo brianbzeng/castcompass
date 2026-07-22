@@ -241,6 +241,30 @@ test("retention and deletion saturation processes three and stays below 50 D1 qu
   const { sqlite, d1 } = await database();
   const bucket = new MemoryBucket();
   const timestamp = "2026-07-20T12:00:00.000Z";
+  const expiredTimestamp = "2000-01-01T00:00:00.000Z";
+  sqlite.prepare(`INSERT INTO privacy_deletion_jobs (
+      id, receipt_hash, scope, subject_hash, owner_subject_hash, state,
+      objects_total, objects_deleted, requested_at, active_data_removed_at,
+      completed_at, updated_at)
+    VALUES ('deletion_job_retention_heavy', 'receipt-retention-heavy', 'account',
+      'subject-retention-heavy', 'owner-retention-heavy', 'completed', 101, 101,
+      ?, ?, ?, ?)`).run(expiredTimestamp, expiredTimestamp, expiredTimestamp, expiredTimestamp);
+  const insertCompletedTask = sqlite.prepare(`INSERT INTO privacy_deletion_tasks (
+      id, job_id, object_key, object_key_hash, object_store, state, attempts,
+      available_at, created_at, updated_at, completed_at)
+    VALUES (?, 'deletion_job_retention_heavy', NULL, ?, 'trip_photos',
+      'completed', 1, ?, ?, ?, ?)`);
+  for (let index = 0; index < 101; index += 1) {
+    const suffix = String(index).padStart(3, "0");
+    insertCompletedTask.run(
+      `deletion_task_retention_${suffix}`,
+      sha256(`retention-task-${suffix}`),
+      expiredTimestamp,
+      expiredTimestamp,
+      expiredTimestamp,
+      expiredTimestamp,
+    );
+  }
   for (let index = 0; index < 4; index += 1) {
     const jobId = `deletion_job_schedule_${index}`;
     const key = `trip-photos/deletion-${index}.webp`;
@@ -269,6 +293,14 @@ test("retention and deletion saturation processes three and stays below 50 D1 qu
 
   assert.equal(bucket.deleted.length, 3);
   assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM privacy_deletion_tasks WHERE state = 'pending'").get().count, 1);
+  assert.deepEqual({ ...sqlite.prepare(`SELECT objects_total, objects_deleted, last_error_code
+      FROM privacy_deletion_jobs WHERE id = 'deletion_job_retention_heavy'`).get() }, {
+    objects_total: 1,
+    objects_deleted: 1,
+    last_error_code: null,
+  });
+  assert.equal(sqlite.prepare(`SELECT COUNT(*) AS count FROM privacy_deletion_tasks
+    WHERE job_id = 'deletion_job_retention_heavy'`).get().count, 1);
   assert.ok(d1.queryExecutions <= SCHEDULED_LANE_D1_QUERY_BUDGET.auth_retention_and_deletion,
     `retention lane used ${d1.queryExecutions} D1 queries`);
 });
