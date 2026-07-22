@@ -1039,6 +1039,8 @@ def audit_usgs_residual_statewide_video_support(
     labels: list[int] = []
     groups: list[str] = []
     asset_summaries: Dict[str, Any] = {}
+    unexpected_class_rows = 0
+    unexpected_class_values: Dict[str, list[str]] = {}
     for spec in specs:
         if not isinstance(spec, Mapping):
             raise ValueError("video observation specification must be an object")
@@ -1050,8 +1052,9 @@ def audit_usgs_residual_statewide_video_support(
         if len(points) != len(fields["CLASS"]) or len(points) != spec.get("record_count"):
             raise ValueError(f"video geometry/table count mismatch for {cruise_id}")
         nonblank = {value for value in fields["CLASS"] if value}
-        if not nonblank.issubset(VIDEO_CLASS_COLLAPSE):
-            raise ValueError(f"video archive {cruise_id} has an unknown CLASS value")
+        unexpected = sorted(nonblank - set(VIDEO_CLASS_COLLAPSE))
+        if unexpected:
+            unexpected_class_values[cruise_id] = unexpected
         raw_class_counts = Counter(value for value in fields["CLASS"] if value)
         collapsed_counts = np.zeros(len(VIDEO_CLASS_NAMES), dtype=np.int64)
         for index, raw_class in enumerate(fields["CLASS"]):
@@ -1061,6 +1064,9 @@ def audit_usgs_residual_statewide_video_support(
                 raise ValueError(
                     f"labeled video observation lacks LINE or TAPE for {cruise_id}"
                 )
+            if raw_class not in VIDEO_CLASS_COLLAPSE:
+                unexpected_class_rows += 1
+                continue
             class_index = VIDEO_CLASS_COLLAPSE[raw_class]
             labels.append(class_index)
             groups.append(cruise_id)
@@ -1069,6 +1075,7 @@ def audit_usgs_residual_statewide_video_support(
             "record_count": len(points),
             "labeled_record_count": int(sum(raw_class_counts.values())),
             "raw_class_counts": dict(sorted(raw_class_counts.items())),
+            "unexpected_nonblank_class_values": unexpected,
             "collapsed_class_counts": {
                 name: int(count)
                 for name, count in zip(VIDEO_CLASS_NAMES, collapsed_counts)
@@ -1088,7 +1095,10 @@ def audit_usgs_residual_statewide_video_support(
         min_rows_per_class=min_group_class_rows,
         group_definition="exact cruise_id; no LINE, TAPE, date, coordinate, or adjacent-row split",
     )
-    admissible = partition_audit["eligible_partition_count"] > 0
+    source_schema_valid = not unexpected_class_values
+    admissible = (
+        source_schema_valid and partition_audit["eligible_partition_count"] > 0
+    )
     manifest_path = SOURCE_DIR / "usgs_ds781_residual_video_observations.json"
     protocol_path = (
         SOURCE_DIR.parents[1]
@@ -1121,12 +1131,25 @@ def audit_usgs_residual_statewide_video_support(
         "assets": asset_summaries,
         "row_flow": {
             "official_records": int(sum(item["record_count"] for item in asset_summaries.values())),
-            "labeled_official_rows": len(labels),
+            "nonblank_class_rows": int(
+                sum(item["labeled_record_count"] for item in asset_summaries.values())
+            ),
+            "recognized_class_rows": len(labels),
+            "unexpected_class_rows": unexpected_class_rows,
         },
         "collapsed_class_counts": {
             name: int(count) for name, count in zip(VIDEO_CLASS_NAMES, total_counts)
         },
-        "leakage_gate": partition_audit,
+        "source_schema_gate": {
+            "valid": source_schema_valid,
+            "unexpected_nonblank_class_values": unexpected_class_values,
+            "unexpected_class_rows": unexpected_class_rows,
+            "unknown_values_reinterpreted_or_dropped_for_admission": False,
+        },
+        "recognized_rows_partition_diagnostic": {
+            **partition_audit,
+            "authoritative_for_admission": source_schema_valid,
+        },
         "next_stage_requirements": {
             "source_specific_bathymetry_and_backscatter_required": True,
             "survey_bound_intensity_and_availability_masks_required": True,
@@ -1141,11 +1164,16 @@ def audit_usgs_residual_statewide_video_support(
             "encoder_promoted": False,
             "serving_or_score_changed": False,
             "reason": (
-                "No whole-cruise partition leaves at least "
-                f"{min_group_class_rows} rows of every collapsed class in both train and test."
-                if not admissible
-                else "At least one whole-cruise partition passes the frozen raw support floor; "
-                "a separately frozen raster, alignment, buffering, and training protocol is still required."
+                "At least one archive contains a nonblank CLASS value outside the frozen 1-4 "
+                "domain; the source schema fails closed without reinterpretation."
+                if not source_schema_valid
+                else (
+                    "No whole-cruise partition leaves at least "
+                    f"{min_group_class_rows} rows of every collapsed class in both train and test."
+                    if not admissible
+                    else "At least one whole-cruise partition passes the frozen raw support floor; "
+                    "a separately frozen raster, alignment, buffering, and training protocol is still required."
+                )
             ),
         },
         "claim_boundary": (
@@ -1180,8 +1208,9 @@ def audit_usgs_residual_statewide_video_support(
         metrics={
             "audit_metrics_sha256": sha256_file(metrics_path),
             "raw_endpoint_support_admissible": admissible,
+            "source_schema_valid": source_schema_valid,
             "model_training_run": False,
-            "labeled_rows": len(labels),
+            "recognized_class_rows": len(labels),
             "eligible_group_partitions": partition_audit["eligible_partition_count"],
         },
         notes=(

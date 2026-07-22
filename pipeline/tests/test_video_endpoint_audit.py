@@ -456,11 +456,60 @@ class VideoEndpointAuditTests(unittest.TestCase):
             self.assertTrue(metrics["decision"]["raw_endpoint_support_admissible"])
             self.assertFalse(metrics["decision"]["raster_acquisition_authorized"])
             self.assertFalse(metrics["decision"]["model_training_run"])
-            self.assertEqual(metrics["leakage_gate"]["candidate_partition_count"], 31)
-            self.assertEqual(metrics["leakage_gate"]["eligible_partition_count"], 31)
+            diagnostic = metrics["recognized_rows_partition_diagnostic"]
+            self.assertEqual(diagnostic["candidate_partition_count"], 31)
+            self.assertEqual(diagnostic["eligible_partition_count"], 31)
+            self.assertTrue(diagnostic["authoritative_for_admission"])
             self.assertEqual(metrics["row_flow"]["official_records"], 18)
             self.assertEqual(run["dataset_kind"], "official_video_endpoint_admissibility_audit")
             self.assertFalse(run["metrics"]["model_training_run"])
+
+    def test_residual_statewide_screen_rejects_unknown_nonblank_class(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            archives = {}
+            specs = []
+            for cruise in RESIDUAL_STATEWIDE_VIDEO_CRUISES:
+                archive = root / f"{cruise}.zip"
+                rows = [("1", "1", "1"), ("2", "1", "1"), ("4", "1", "1")]
+                if cruise == "s2210mb":
+                    rows.append(("0", "1", "1"))
+                specs.append(_archive(archive, cruise, rows))
+                archives[cruise] = archive
+            manifest = {
+                "access": {
+                    "prior_audit_cruises": [
+                        "f208nc",
+                        "f307nc",
+                        "s1c08sc",
+                        "sw109sc",
+                        "z107sc",
+                        "z206sc",
+                    ],
+                    "video_observation_assets": specs,
+                }
+            }
+            with patch(
+                "pipeline.contourcast.video_endpoint_audit.get_source_manifest",
+                return_value=manifest,
+            ):
+                result = audit_usgs_residual_statewide_video_support(
+                    archives,
+                    root / "output",
+                    min_group_class_rows=1,
+                )
+            metrics = json.loads(result["metrics"].read_text(encoding="utf-8"))
+            self.assertFalse(metrics["source_schema_gate"]["valid"])
+            self.assertEqual(
+                metrics["source_schema_gate"]["unexpected_nonblank_class_values"],
+                {"s2210mb": ["0"]},
+            )
+            self.assertFalse(metrics["decision"]["raw_endpoint_support_admissible"])
+            self.assertFalse(
+                metrics["recognized_rows_partition_diagnostic"][
+                    "authoritative_for_admission"
+                ]
+            )
 
 
 if __name__ == "__main__":
