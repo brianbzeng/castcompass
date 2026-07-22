@@ -503,6 +503,8 @@ than one survey domain. It then tests availability-only, coordinate-only,
 bathymetry, and fused features on that same held-out geography; stratifies
 interior and source-seam rows; and evaluates every leave-one-survey-domain-out
 split that meets the predeclared row and three-class support requirements.
+Each eligible train and held-out side must contain at least 32 total rows and 16
+rows per class; lower-support seam slices remain explicitly descriptive.
 Overlap, missing-source, and unsupported domains are reported rather than
 silently pooled. This is post-hoc shortcut evidence only: even a clean result
 cannot promote an encoder or validate habitat, fishing, or live-score skill.

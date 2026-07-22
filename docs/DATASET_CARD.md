@@ -2,11 +2,12 @@
 
 **Status:** species-aware contract assets, multiscale structure pipeline, and
 exactly reproduced official bathymetry/backscatter/fused self-supervised
-pretraining and target-agnostic transfer probes implemented. The production
+pretraining, target-agnostic transfer probes, and source-shortcut diagnostic
+implemented. The production
 species migration and any supervised catch-training dataset remain unapproved.
 Official rasters, probe corpora, and weights are not bundled.
 
-**Version:** 0.5.0
+**Version:** 0.6.0
 
 ## Intended dataset
 
@@ -255,6 +256,11 @@ selection-design mix are preserved for required stratified reporting.
 - Popular or accessible areas and commonly retained species can be
   overrepresented.
 - Bathymetry surveys have heterogeneous age, density, and uncertainty.
+- Backscatter availability is strongly source- and geography-dependent. The
+  frozen 903-row hybrid holdout contains only the 2004 survey at measured
+  centers; 2007 has only one labeled example in two substrate classes and 2006
+  has only one class. Those domains cannot support ordinary cross-survey model
+  claims and must not be pooled to manufacture class support.
 - Public survey geography may be much coarser than a DEM pixel.
 - CPUE values can be heavy-tailed and are not automatically comparable across
   modes or survey designs.
@@ -325,3 +331,11 @@ nearby training rows. Two builds reproduced the rare corpus exactly at SHA-256
 The balanced case-control design cannot estimate natural prevalence or
 population accuracy. Exact results and source identities are recorded in the
 [hybrid probe receipt](../pipeline/evidence/hybrid-seafloor-probes-v1.receipt.json).
+
+The follow-up [source-shortcut diagnostic](experiments/2026-07-22-usgs-sf-hybrid-shortcut-diagnostic-v1.md)
+shows that the fixed fold is source-degenerate and that availability features
+add reliable conditional signal within it. Only the 2004 and 2008 domains meet
+the frozen minimum of 32 total rows and 16 rows per class in train and test.
+Fused pretraining is reliably worse than bathymetry pretraining on both
+eligible unseen-survey tests. These results prohibit a cross-survey
+generalization claim and do not authorize model promotion.

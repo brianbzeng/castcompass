@@ -69,6 +69,20 @@ by that discovery.
       backscatter, and video, and the rare set is not prevalence-representative. No encoder was
       promoted or connected to the live score; model-governance and confirmatory-validation gates
       remain independently open.
+- [x] Add and exactly reproduce the post-hoc survey-footprint diagnostic before selecting another
+      downstream target. The runner audits exact availability patterns, coordinate context,
+      missingness-only and bathymetry-plus-missingness baselines, low-support seam slices, and
+      leave-one-survey-domain-out transfer. A domain now needs at least 32 total rows and 16 rows
+      per class on both sides; unsupported domains are recorded rather than pooled.
+- [x] Record the negative shortcut result without promotion. The fixed holdout contains only the
+      2004 survey at measured centers, and availability summaries add a reliable `+0.0968`
+      macro-F1 to bathymetry summaries inside that source-degenerate fold. On the two admissible
+      unseen-survey tests, fused pretraining is reliably worse than bathymetry pretraining by
+      `-0.1634` (2004) and `-0.0572` (2008) median macro F1. The sparse 2007 and single-class 2006
+      domains fail closed. Two executions reproduced exact metrics and predictions; the
+      [shortcut receipt](../pipeline/evidence/hybrid-seafloor-shortcut-diagnostic-v1.receipt.json)
+      preserves the complete boundary. Shortcut risk remains unresolved, and no encoder, score,
+      or serving path changes.
 
 This checkpoint changes no browser behavior, API, Worker, D1/R2/Queue state, production provider,
 live score, public model claim, or deployment authority.

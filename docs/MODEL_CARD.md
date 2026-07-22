@@ -2,11 +2,12 @@
 
 **Status:** multiscale encoder and exactly reproduced official bathymetry,
 backscatter, and fused self-supervised pretraining plus common-substrate and
-rare-structure transfer probes implemented; no encoder passed the frozen
+rare-structure transfer probes and a cross-survey shortcut diagnostic
+implemented; no encoder passed the frozen
 classical baselines, catch heads remain untrained, and no catch performance has
 been measured.
 
-**Version:** 0.6.0
+**Version:** 0.7.0
 
 ## Live regional-ranking boundary
 
@@ -257,6 +258,10 @@ feature work, or candidate configuration.
   than where fish live.
 - Spatial autocorrelation can make random validation look unrealistically good.
 - Self-supervised pretraining may encode survey seams or DEM artifacts.
+- The frozen hybrid geographic holdout is source-degenerate: measured centers
+  come from only the 2004 backscatter footprint. Availability/missingness adds
+  reliable apparent skill within that fold, while fused pretraining is reliably
+  worse than bathymetry pretraining on both support-eligible unseen surveys.
 - Conditional CPUE ignores zero catches by design and must always be interpreted
   alongside occurrence probability.
 - Calibration can drift across seasons, species, regulations, survey modes, and
@@ -287,6 +292,7 @@ channel order, source version, or coverage contract fails.
 | Hybrid bathymetry/backscatter pretraining | [Completed and exactly reproduced on one 4,096-location corpus](../pipeline/evidence/hybrid-seafloor-v1.receipt.json) | All three target-agnostic encoders reproduced exactly; differently targeted optimization losses do not rank representation quality |
 | Hybrid common-substrate probe | [Completed and exactly reproduced on pretraining holdout 3](experiments/2026-07-22-usgs-sf-hybrid-seafloor-probes-v1.md) | Fused deep macro F1 0.7020 reliably exceeds both single-modality encoders but remains reliably below fused classical summaries at 0.7574 |
 | Rare mapped-structure case-control probe | [Completed and exactly reproduced with whole-component holdout](experiments/2026-07-22-usgs-sf-hybrid-seafloor-probes-v1.md) | Fused deep macro F1 0.7259 beats fused random initialization, but does not reliably beat fused classical summaries; balanced sampling cannot estimate prevalence |
+| Hybrid source-shortcut diagnostic | [Completed and exactly reproduced with strict per-class survey support](experiments/2026-07-22-usgs-sf-hybrid-shortcut-diagnostic-v1.md) | Fixed fold contains only the 2004 measured source; fused deep is reliably worse than bathymetry deep on both eligible unseen-survey domains; shortcut risk remains unresolved |
 | Two-head fine-tuning | Unrun | No checkpoint |
 | Geographic generalization | Unrun | No result |
 | Calibration / ablations | Unrun on official data | No result |

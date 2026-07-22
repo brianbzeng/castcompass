@@ -1,0 +1,160 @@
+{
+  "schema_version": "castingcompass.hybrid-seafloor-shortcut-diagnostic-receipt/1.0.0",
+  "created_at": "2026-07-22T12:17:39Z",
+  "source_commit": "3b4307189e63d625ea0de048ab3f515da9e38144",
+  "source_manifest": {
+    "path": "pipeline/sources/usgs_sf_state_waters.json",
+    "sha256": "4617cb08d56a2e858766f2e3e8d24e7706b6475011820cee0ec17ef2f58c034c"
+  },
+  "official_inputs": {
+    "pretraining_corpus_sha256": "dd88342209522d12726208259640fe7ac9379a61fa79cd9e606475945dd9af4a",
+    "seafloor_character_url": "https://pubs.usgs.gov/ds/781/OffshoreSanFrancisco/data/SeafloorCharacter_OffshoreSanFrancisco.zip",
+    "seafloor_character_archive_sha256": "a826cca8611ff4b5445ae398f1ad419813435876db2aa5810e76a73c83225c3b",
+    "seafloor_character_geotiff_sha256": "224ea4ed70c02769e08b3b971b9adae6c5853f2af7130587604e8f49ba6d035e",
+    "checkpoint_sha256": {
+      "bathymetry": "3261b5328290d5e9992c6ae19d3670eff5ad4d0b47027442bcd04bfaa36edbce",
+      "backscatter": "edb8e6579bac3f76b74b11b3ba91d7bb363605172fa6d5abc52edf4bc0b8d5e2",
+      "fused": "7ccff84da4ea0799cc4f87b0d63b39ccb6e943d95ca082da6b38e6aa8a6f7156"
+    }
+  },
+  "diagnostic": {
+    "experiment_version": "exp-target-agnostic-c1ef91537eb06d0aa4a685ee00bad272fc5ce197bc8666f992e9949b36d0af12",
+    "model_version": "model-target-agnostic-3309d781b735e976106bff1290dde61798a8657c97a33932cbb80ae803027639",
+    "design": {
+      "validation_fold": 3,
+      "split_regions": 5,
+      "seed": 42,
+      "bootstrap_samples": 1000,
+      "bootstrap_resampling_unit": "held-out-row-within-class",
+      "minimum_source_domain_rows": 32,
+      "minimum_source_domain_rows_per_class": 16,
+      "source_domain_rule": "exactly one smallest-scale center availability channel",
+      "overlap_and_no_source_rows_excluded": true
+    },
+    "fixed_pretraining_holdout": {
+      "train_rows": 3183,
+      "test_rows": 903,
+      "single_source_domains": [
+        "backscatter_intensity_8101_2004"
+      ],
+      "source_degenerate": true,
+      "source_patterns": {
+        "1000": 901,
+        "0000": 2
+      },
+      "macro_f1": {
+        "availability_only": 0.261068090336383,
+        "coordinate_polynomial": 0.4474189862425156,
+        "bathymetry_classical": 0.5864533320984633,
+        "bathymetry_plus_availability": 0.6832609060572645,
+        "bathymetry_pretrained": 0.6461996807291497,
+        "backscatter_pretrained": 0.6348325777459636,
+        "fused_classical": 0.7573938432882782,
+        "fused_pretrained": 0.7019840679613137
+      },
+      "frozen_comparisons": {
+        "bathymetry_plus_availability_minus_bathymetry_classical": {
+          "median_macro_f1_delta": 0.09681545547299675,
+          "ci_95": [
+            0.058391924246658025,
+            0.1408521922044196
+          ]
+        },
+        "fused_pretrained_minus_bathymetry_pretrained": {
+          "median_macro_f1_delta": 0.05475049916701369,
+          "ci_95": [
+            0.002237835286509074,
+            0.10925975107703642
+          ]
+        },
+        "fused_pretrained_minus_fused_classical": {
+          "median_macro_f1_delta": -0.05528088119873942,
+          "ci_95": [
+            -0.10348025037927243,
+            -0.008408802806509418
+          ]
+        }
+      },
+      "seam_strata": {
+        "interior": {
+          "rows": 229,
+          "minimum_class_rows": 1,
+          "status": "descriptive_low_support"
+        },
+        "seam": {
+          "rows": 672,
+          "minimum_class_rows": 9,
+          "status": "descriptive_low_support"
+        },
+        "unavailable_center": {
+          "rows": 2,
+          "minimum_class_rows": 0,
+          "status": "not_evaluable"
+        }
+      }
+    },
+    "leave_one_source_domain_out": {
+      "backscatter_intensity_8101_2004": {
+        "status": "completed",
+        "train_rows": 892,
+        "test_rows": 3069,
+        "fused_pretrained_macro_f1": 0.45338697621256663,
+        "bathymetry_pretrained_macro_f1": 0.6170939737744677,
+        "fused_minus_bathymetry_median_macro_f1_delta": -0.16341651865358958,
+        "fused_minus_bathymetry_ci_95": [
+          -0.18833096905672222,
+          -0.13670538821342
+        ]
+      },
+      "backscatter_intensity_8101_2008": {
+        "status": "completed",
+        "train_rows": 3361,
+        "test_rows": 600,
+        "fused_pretrained_macro_f1": 0.2986819830774002,
+        "bathymetry_pretrained_macro_f1": 0.35478426118923395,
+        "fused_minus_bathymetry_median_macro_f1_delta": -0.057164380129607784,
+        "fused_minus_bathymetry_ci_95": [
+          -0.10273197519718669,
+          -0.014404037745531582
+        ]
+      },
+      "backscatter_intensity_8101_2007": {
+        "status": "not_evaluable",
+        "test_rows": 262,
+        "test_class_counts": {
+          "smooth_fine_medium_sediment": 260,
+          "mixed_or_rugose_rock": 1,
+          "mobile_coarse_sediment": 1
+        }
+      },
+      "backscatter_intensity_7125_2006": {
+        "status": "not_evaluable",
+        "test_rows": 30,
+        "test_class_counts": {
+          "smooth_fine_medium_sediment": 30,
+          "mixed_or_rugose_rock": 0,
+          "mobile_coarse_sediment": 0
+        }
+      }
+    },
+    "artifact_sha256": {
+      "metrics": "3eb59f04711061aab13aa3528e2a0d56f0f46f40bbbbb140f3461bd5433b5bb5",
+      "predictions": "dd47e6bc964ba12cc96d2b094b4e94ec46c5ebba6a8940a4e02876100fc06893",
+      "run_metadata": "7513e8887bd24ae3a254fc9e3dfa699e217d25fe60d62bc300b193f74b907b0a"
+    }
+  },
+  "reproduction": {
+    "executions": 2,
+    "metrics_bytes_exact": true,
+    "predictions_bytes_exact": true,
+    "run_metadata_bytes_exact": false,
+    "run_metadata_difference_expected": "Run ID, creation time, and absolute output paths are execution-specific."
+  },
+  "decision": {
+    "shortcut_risk_resolved": false,
+    "encoder_promoted": false,
+    "serving_or_score_changed": false,
+    "reason": "The fixed geographic holdout contains only one measured survey domain, availability features add reliable apparent skill within that source-degenerate fold, and the fused encoder is reliably worse than bathymetry pretraining on both eligible unseen-survey domains. Sparse 2007 and single-class 2006 domains are explicitly not evaluable rather than pooled."
+  },
+  "claim_boundary": "This post-hoc diagnostic measures survey-footprint and availability dependence in historical USGS seafloor-character transfer only. It does not validate current habitat, fish presence, fishing skill, catch probability, calibration, the live Opportunity Score, model promotion, or deployment."
+}
