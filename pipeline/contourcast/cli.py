@@ -11,8 +11,10 @@ from .deep_model import architecture_smoke_test
 from .first_party_validation import evaluate_site_window
 from .geo import validate_observation_extent, verify_projected_crs
 from .habitat_probe import run_frozen_seafloor_probe
+from .hybrid_probe import run_hybrid_seafloor_probe
 from .ingest import ingest_bathymetry, ingest_observations, load_grid, load_model_observations
 from .metadata import sha256_file, write_json
+from .rare_structure_probe import build_rare_structure_corpus, run_rare_structure_probe
 from .sources import summarize_sources
 from .structure import (
     append_aligned_layers,
@@ -191,6 +193,64 @@ def build_parser() -> argparse.ArgumentParser:
     probe.add_argument("--device", default="cpu")
     probe.add_argument("--bootstrap-samples", type=int, default=1000)
     probe.add_argument("--seed", type=int, default=42)
+
+    hybrid_probe = subcommands.add_parser("probe-hybrid-seafloor-character")
+    hybrid_probe.add_argument("--corpus", required=True, type=_path)
+    hybrid_probe.add_argument("--bathymetry-checkpoint", required=True, type=_path)
+    hybrid_probe.add_argument("--backscatter-checkpoint", required=True, type=_path)
+    hybrid_probe.add_argument("--fused-checkpoint", required=True, type=_path)
+    hybrid_probe.add_argument("--labels", required=True, type=_path)
+    hybrid_probe.add_argument("--output-dir", required=True, type=_path)
+    hybrid_probe.add_argument("--label-sha256")
+    hybrid_probe.add_argument("--validation-fold", type=int, default=3)
+    hybrid_probe.add_argument("--split-regions", type=int, default=5)
+    hybrid_probe.add_argument("--batch-size", type=int, default=64)
+    hybrid_probe.add_argument("--device", default="cpu")
+    hybrid_probe.add_argument("--bootstrap-samples", type=int, default=1000)
+    hybrid_probe.add_argument("--seed", type=int, default=42)
+
+    rare_corpus = subcommands.add_parser("build-rare-structure-corpus")
+    rare_corpus.add_argument("--input", required=True, type=_path)
+    rare_corpus.add_argument("--labels", required=True, type=_path)
+    rare_corpus.add_argument("--output", required=True, type=_path)
+    rare_corpus.add_argument("--source-id", required=True)
+    rare_corpus.add_argument("--vertical-datum", required=True)
+    rare_corpus.add_argument("--expected-sha256")
+    rare_corpus.add_argument("--label-sha256")
+    rare_corpus.add_argument("--aligned-layer", action="append", default=[])
+    rare_corpus.add_argument("--aligned-layer-sha256", action="append", default=[])
+    rare_corpus.add_argument("--samples-per-class", type=int, default=64)
+    rare_corpus.add_argument("--candidate-multiplier", type=float, default=1.75)
+    rare_corpus.add_argument("--spacing-m", type=float, default=8)
+    rare_corpus.add_argument("--minimum-resolvable-cells", type=int, default=3)
+    rare_corpus.add_argument("--control-min-distance-m", type=float, default=16)
+    rare_corpus.add_argument("--control-max-distance-m", type=float, default=128)
+    rare_corpus.add_argument("--radii-m", type=float, nargs="+", default=[32, 128, 512])
+    rare_corpus.add_argument("--output-size", type=int, default=33)
+    rare_corpus.add_argument("--min-valid-fraction", type=float, default=0.8)
+    rare_corpus.add_argument("--min-aligned-valid-fraction", type=float, default=0.5)
+    rare_corpus.add_argument("--local-radius", type=int, default=4)
+    rare_corpus.add_argument("--broad-radius", type=int, default=24)
+    rare_corpus.add_argument("--relief-radius", type=int, default=8)
+    rare_corpus.add_argument("--horizontal-accuracy-m", type=float, default=2)
+    rare_corpus.add_argument("--tile-size", type=int, default=1024)
+    rare_corpus.add_argument("--split-regions", type=int, default=3)
+    rare_corpus.add_argument("--seed", type=int, default=42)
+
+    rare_probe = subcommands.add_parser("probe-rare-seafloor-structure")
+    rare_probe.add_argument("--probe-corpus", required=True, type=_path)
+    rare_probe.add_argument("--pretraining-corpus", required=True, type=_path)
+    rare_probe.add_argument("--bathymetry-checkpoint", required=True, type=_path)
+    rare_probe.add_argument("--backscatter-checkpoint", required=True, type=_path)
+    rare_probe.add_argument("--fused-checkpoint", required=True, type=_path)
+    rare_probe.add_argument("--labels", required=True, type=_path)
+    rare_probe.add_argument("--output-dir", required=True, type=_path)
+    rare_probe.add_argument("--validation-fold", type=int)
+    rare_probe.add_argument("--buffer-m", type=float, default=512)
+    rare_probe.add_argument("--batch-size", type=int, default=64)
+    rare_probe.add_argument("--device", default="cpu")
+    rare_probe.add_argument("--bootstrap-samples", type=int, default=1000)
+    rare_probe.add_argument("--seed", type=int, default=42)
 
     validate = subcommands.add_parser("validate")
     validate.add_argument("--bathymetry", required=True, type=_path)
@@ -503,6 +563,79 @@ def main(argv: Sequence[str] | None = None) -> int:
                 label_raster_sha256=args.label_sha256,
                 validation_fold=args.validation_fold,
                 split_regions=args.split_regions,
+                batch_size=args.batch_size,
+                device=args.device,
+                bootstrap_samples=args.bootstrap_samples,
+                seed=args.seed,
+            )
+        )
+    elif args.command == "probe-hybrid-seafloor-character":
+        _print(
+            run_hybrid_seafloor_probe(
+                args.corpus,
+                {
+                    "bathymetry": args.bathymetry_checkpoint,
+                    "backscatter": args.backscatter_checkpoint,
+                    "fused": args.fused_checkpoint,
+                },
+                args.labels,
+                args.output_dir,
+                label_raster_sha256=args.label_sha256,
+                validation_fold=args.validation_fold,
+                split_regions=args.split_regions,
+                batch_size=args.batch_size,
+                device=args.device,
+                bootstrap_samples=args.bootstrap_samples,
+                seed=args.seed,
+            )
+        )
+    elif args.command == "build-rare-structure-corpus":
+        _print(
+            build_rare_structure_corpus(
+                args.input,
+                args.labels,
+                args.output,
+                source_id=args.source_id,
+                vertical_datum=args.vertical_datum,
+                aligned_layer_paths=_named_values(args.aligned_layer, paths=True),
+                expected_source_sha256=args.expected_sha256,
+                aligned_layer_expected_sha256=_named_values(
+                    args.aligned_layer_sha256
+                ),
+                label_raster_sha256=args.label_sha256,
+                samples_per_class=args.samples_per_class,
+                candidate_multiplier=args.candidate_multiplier,
+                spacing_m=args.spacing_m,
+                minimum_resolvable_cells=args.minimum_resolvable_cells,
+                control_min_distance_m=args.control_min_distance_m,
+                control_max_distance_m=args.control_max_distance_m,
+                radii_m=args.radii_m,
+                output_size=args.output_size,
+                min_valid_fraction=args.min_valid_fraction,
+                min_aligned_valid_fraction=args.min_aligned_valid_fraction,
+                local_radius=args.local_radius,
+                broad_radius=args.broad_radius,
+                relief_radius=args.relief_radius,
+                horizontal_accuracy_m=args.horizontal_accuracy_m,
+                tile_size=args.tile_size,
+                split_regions=args.split_regions,
+                seed=args.seed,
+            )
+        )
+    elif args.command == "probe-rare-seafloor-structure":
+        _print(
+            run_rare_structure_probe(
+                args.probe_corpus,
+                args.pretraining_corpus,
+                {
+                    "bathymetry": args.bathymetry_checkpoint,
+                    "backscatter": args.backscatter_checkpoint,
+                    "fused": args.fused_checkpoint,
+                },
+                args.labels,
+                args.output_dir,
+                validation_fold=args.validation_fold,
+                buffer_m=args.buffer_m,
                 batch_size=args.batch_size,
                 device=args.device,
                 bootstrap_samples=args.bootstrap_samples,

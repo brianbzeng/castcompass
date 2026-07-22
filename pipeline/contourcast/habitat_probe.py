@@ -260,7 +260,13 @@ def _fit_probe(
     test_indices: np.ndarray,
     *,
     seed: int,
+    class_names: Sequence[str] = PROBE_CLASS_NAMES,
 ) -> Tuple[Mapping[str, Any], np.ndarray, np.ndarray]:
+    if not class_names or len(set(class_names)) != len(class_names):
+        raise ValueError("probe class names must be unique and nonempty")
+    expected_classes = np.arange(len(class_names))
+    if not np.all(np.isin(labels, expected_classes)):
+        raise ValueError("probe labels fall outside the declared class contract")
     model = make_pipeline(
         StandardScaler(),
         LogisticRegression(
@@ -273,7 +279,7 @@ def _fit_probe(
     prediction = model.predict(features[test_indices]).astype(int)
     probability = model.predict_proba(features[test_indices])
     classes = model.named_steps["logisticregression"].classes_.astype(int)
-    aligned_probability = np.zeros((len(test_indices), len(PROBE_CLASS_NAMES)), dtype=float)
+    aligned_probability = np.zeros((len(test_indices), len(class_names)), dtype=float)
     aligned_probability[:, classes] = probability
     log_loss_probability = np.clip(aligned_probability, 1e-8, 1 - 1e-8)
     log_loss_probability /= log_loss_probability.sum(axis=1, keepdims=True)
@@ -281,8 +287,8 @@ def _fit_probe(
     report = classification_report(
         truth,
         prediction,
-        labels=np.arange(len(PROBE_CLASS_NAMES)),
-        target_names=PROBE_CLASS_NAMES,
+        labels=expected_classes,
+        target_names=class_names,
         output_dict=True,
         zero_division=0,
     )
@@ -291,15 +297,17 @@ def _fit_probe(
         "balanced_accuracy": float(balanced_accuracy_score(truth, prediction)),
         "macro_f1": float(f1_score(truth, prediction, average="macro")),
         "log_loss": float(
-            log_loss(truth, log_loss_probability, labels=[0, 1, 2])
+            log_loss(truth, log_loss_probability, labels=expected_classes)
         ),
-        "confusion_matrix": confusion_matrix(truth, prediction, labels=[0, 1, 2]).tolist(),
+        "confusion_matrix": confusion_matrix(
+            truth, prediction, labels=expected_classes
+        ).tolist(),
         "per_class": {
             name: {
                 key: float(value) if key != "support" else int(value)
                 for key, value in report[name].items()
             }
-            for name in PROBE_CLASS_NAMES
+            for name in class_names
         },
     }
     return metrics, prediction, aligned_probability

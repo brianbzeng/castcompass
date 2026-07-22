@@ -463,6 +463,32 @@ counts, and claim boundary. The differently targeted hybrid losses are not a
 representation leaderboard; use the frozen independent probes before drawing a
 modality conclusion.
 
+Run the frozen common downstream probe and the separately declared
+rare-structure probe with:
+
+```bash
+PYTHON_BIN=.venv-geo-deep/bin/python DEVICE=mps \
+  HYBRID_ROOT=work/usgs-sf-hybrid-v1 \
+  pipeline/scripts/run_usgs_sf_hybrid_probes.sh
+```
+
+The runner first rehashes the exact official pretraining corpus, all three
+checkpoints, bathymetry, four survey-specific backscatter rasters, and the USGS
+seafloor-character map. The common probe uses the exact pretraining holdout and
+compares every frozen encoder with its architecture-matched random encoder and
+input-matched classical summaries. Its row bootstrap is stratified by substrate
+class.
+
+The rare probe is intentionally separate. It samples mapped smooth and rugged
+anthropogenic codes plus nearby natural controls; requires a mapped center at
+least three native cells (approximately 6 m) across; holds out whole connected
+components in geographic regions; excludes training rows within 512 m of test
+rows; and resamples connected components rather than pixels for uncertainty.
+Its balanced case-control sample cannot estimate natural prevalence or
+population accuracy. Because the USGS target was interpreted using bathymetry,
+backscatter, and video, neither probe is independent of all source variables or
+evidence of fishing skill. Both are research-only and have no serving path.
+
 Run the strict substrate-component probe with:
 
 ```bash
