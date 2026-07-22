@@ -177,10 +177,13 @@ after its acceptance checks pass in the intended environment.
       DELETE keep the final `id` plus `user_id` plus pending-state predicate; an authoritative zero
       remains `409`, while malformed D1 metadata is now a replay-blocking `503` rather than a
       false reviewed-trip claim. Unconfirmed deletion preserves the opaque status receipt cookie.
-    - [x] Make legal reacceptance receipts database-authoritative. The current Terms/Privacy
-      versions are returned as accepted only after exactly one confirmed owner-row change; a
-      deleted-account race clears stale session cookies, while missing D1 metadata returns `503`
-      instead of a false compliance receipt. Prior age eligibility remains untouched.
+    - [x] Make legal reacceptance receipts database-authoritative. The compare-and-set repeats the
+      complete authenticated account/legal version and the exact still-live session. Read-back
+      must prove the request's current Terms/Privacy timestamps and versions, absence of the prior
+      snapshot, unique account identity, and continuing session authority. Missing metadata and a
+      lost committed response recover without replay; rollback, unreadable or changed state
+      returns `503`, while a deleted account or revoked session returns `401` and clears stale
+      cookies. Prior age eligibility remains untouched.
     - [x] Require an exact credential-lifecycle receipt before completing password reset. Password
       update, all-session revocation, and one-use challenge consumption remain one atomic batch;
       success requires the exact new salt/hash/timestamp row, zero prior sessions, zero challenge

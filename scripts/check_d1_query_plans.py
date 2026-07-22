@@ -61,6 +61,81 @@ CHECKS = (
         ("sqlite_autoindex_auth_sessions_1",),
     ),
     PlanCheck(
+        "exact legal acceptance compare-and-set",
+        """UPDATE users SET terms_accepted_at = ?, terms_version = ?,
+             privacy_accepted_at = ?, privacy_version = ?, updated_at = ?
+           WHERE id = ? AND email = ? AND age_eligibility_confirmed_at = ?
+             AND terms_accepted_at IS ? AND terms_version IS ?
+             AND privacy_accepted_at IS ? AND privacy_version IS ?
+             AND created_at = ? AND updated_at = ?
+             AND EXISTS (SELECT 1 FROM auth_sessions
+               WHERE token_hash = ? AND user_id = ? AND expires_at = ? AND expires_at > ?)""",
+        (
+            "2026-07-22T06:00:00.000Z",
+            "2026-07-16",
+            "2026-07-22T06:00:00.000Z",
+            "2026-07-16",
+            "2026-07-22T06:00:00.000Z",
+            "user_fixture",
+            "angler@example.com",
+            "2025-01-02T03:04:05.000Z",
+            "2025-01-01T00:00:00.000Z",
+            "old",
+            "2025-01-01T00:00:00.000Z",
+            "old",
+            "2026-07-01T00:00:00.000Z",
+            "2026-07-21T00:00:00.000Z",
+            "session_hash_fixture",
+            "user_fixture",
+            "2026-08-21T00:00:00.000Z",
+            "2026-07-22T06:00:00.000Z",
+        ),
+        ("users_email_unique", "sqlite_autoindex_auth_sessions_1"),
+    ),
+    PlanCheck(
+        "exact legal acceptance receipt",
+        """SELECT
+             (SELECT COUNT(*) FROM users
+               WHERE id = ? AND email = ? AND age_eligibility_confirmed_at = ?
+                 AND terms_accepted_at = ? AND terms_version = ?
+                 AND privacy_accepted_at = ? AND privacy_version = ?
+                 AND created_at = ? AND updated_at = ?) AS accepted_count,
+             (SELECT COUNT(*) FROM users
+               WHERE id = ? AND email = ? AND age_eligibility_confirmed_at = ?
+                 AND terms_accepted_at IS ? AND terms_version IS ?
+                 AND privacy_accepted_at IS ? AND privacy_version IS ?
+                 AND created_at = ? AND updated_at = ?) AS prior_count,
+             (SELECT COUNT(*) FROM users WHERE id = ?) AS account_count,
+             (SELECT COUNT(*) FROM auth_sessions
+               WHERE token_hash = ? AND user_id = ? AND expires_at = ? AND expires_at > ?) AS session_count""",
+        (
+            "user_fixture",
+            "angler@example.com",
+            "2025-01-02T03:04:05.000Z",
+            "2026-07-22T06:00:00.000Z",
+            "2026-07-16",
+            "2026-07-22T06:00:00.000Z",
+            "2026-07-16",
+            "2026-07-01T00:00:00.000Z",
+            "2026-07-22T06:00:00.000Z",
+            "user_fixture",
+            "angler@example.com",
+            "2025-01-02T03:04:05.000Z",
+            "2025-01-01T00:00:00.000Z",
+            "old",
+            "2025-01-01T00:00:00.000Z",
+            "old",
+            "2026-07-01T00:00:00.000Z",
+            "2026-07-21T00:00:00.000Z",
+            "user_fixture",
+            "session_hash_fixture",
+            "user_fixture",
+            "2026-08-21T00:00:00.000Z",
+            "2026-07-22T06:00:00.000Z",
+        ),
+        ("users_email_unique", "sqlite_autoindex_users_1", "sqlite_autoindex_auth_sessions_1"),
+    ),
+    PlanCheck(
         "exact password reset receipt",
         """SELECT
              (SELECT COUNT(*) FROM users

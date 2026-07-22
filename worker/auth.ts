@@ -152,8 +152,23 @@ async function initialize(db: D1DatabaseLike) {
 
 interface AuthenticatedSession {
   user: AuthUser;
+  accountVersion: AuthenticatedAccountVersion;
+  sessionTokenHash: string;
+  sessionExpiresAt: string;
   deletionFenced: boolean;
   cookieName: typeof SESSION_COOKIE | typeof LEGACY_SESSION_COOKIE;
+}
+
+interface AuthenticatedAccountVersion {
+  id: string;
+  email: string;
+  ageEligibilityConfirmedAt: string;
+  termsAcceptedAt: string | null;
+  termsVersion: string | null;
+  privacyAcceptedAt: string | null;
+  privacyVersion: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 async function getAuthenticatedSession(request: Request, env: AuthApiEnv): Promise<AuthenticatedSession | null> {
@@ -161,8 +176,12 @@ async function getAuthenticatedSession(request: Request, env: AuthApiEnv): Promi
   await initialize(env.DB);
   const now = new Date().toISOString();
   for (const presented of presentedSessionTokens(request)) {
+    const tokenHash = await sha256(presented.token);
     const row = await env.DB
       .prepare(`SELECT users.id, users.email,
+          users.age_eligibility_confirmed_at, users.terms_accepted_at, users.terms_version,
+          users.privacy_accepted_at, users.privacy_version, users.created_at, users.updated_at,
+          auth_sessions.expires_at AS session_expires_at,
           CASE WHEN users.age_eligibility_confirmed_at IS NOT NULL THEN 1 ELSE 0 END AS age_eligible,
           CASE WHEN users.age_eligibility_confirmed_at IS NOT NULL
             AND users.terms_version = ? AND users.privacy_version = ?
@@ -174,16 +193,37 @@ async function getAuthenticatedSession(request: Request, env: AuthApiEnv): Promi
         JOIN users ON users.id = auth_sessions.user_id
         WHERE auth_sessions.token_hash = ? AND auth_sessions.expires_at > ?
         LIMIT 1`)
-      .bind(LEGAL_VERSION, LEGAL_VERSION, await sha256(presented.token), now)
+      .bind(LEGAL_VERSION, LEGAL_VERSION, tokenHash, now)
       .first<{
         id: string;
         email: string;
+        age_eligibility_confirmed_at: string | null;
+        terms_accepted_at: string | null;
+        terms_version: string | null;
+        privacy_accepted_at: string | null;
+        privacy_version: string | null;
+        created_at: string;
+        updated_at: string;
+        session_expires_at: string;
         age_eligible: number;
         legal_accepted: number;
         deletion_fenced: number;
       }>();
     if (row) {
       return {
+        accountVersion: {
+          id: row.id,
+          email: row.email,
+          ageEligibilityConfirmedAt: row.age_eligibility_confirmed_at ?? "",
+          termsAcceptedAt: row.terms_accepted_at,
+          termsVersion: row.terms_version,
+          privacyAcceptedAt: row.privacy_accepted_at,
+          privacyVersion: row.privacy_version,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        },
+        sessionTokenHash: tokenHash,
+        sessionExpiresAt: row.session_expires_at,
         cookieName: presented.cookieName,
         deletionFenced: Boolean(row.deletion_fenced),
         user: {
@@ -941,13 +981,9 @@ export async function handleAccountRequest(
       if (!user.ageEligible) {
         throw new AuthError(428, "age_eligibility_unavailable", "Account features are paused. Contact privacy support or delete the account.");
       }
-      const timestamp = new Date().toISOString();
-      const result = await db.prepare(`UPDATE users SET terms_accepted_at = ?, terms_version = ?,
-        privacy_accepted_at = ?, privacy_version = ?, updated_at = ? WHERE id = ?`)
-        .bind(timestamp, LEGAL_VERSION, timestamp, LEGAL_VERSION, timestamp, user.id)
-        .run();
-      const changes = confirmedMutationChanges(result);
-      if (changes === 0) {
+      const timestamp = (options.now?.() ?? new Date()).toISOString();
+      const acceptance = await acceptCurrentLegalTerms(db, authenticatedSession, timestamp);
+      if (acceptance === "authentication_missing") {
         return errorResponse(
           401,
           "authentication_required",
@@ -955,7 +991,7 @@ export async function handleAccountRequest(
           clearSessionCookies(request),
         );
       }
-      if (changes !== 1) {
+      if (acceptance !== "accepted") {
         throw new AuthError(503, "legal_acceptance_unconfirmed", "Legal acceptance could not be confirmed.");
       }
       return jsonResponse({ user: { ...user, legalAccepted: true }, legalVersion: LEGAL_VERSION });
@@ -2482,6 +2518,113 @@ function exactReceiptCounts(receipt: unknown, fields: string[]) {
     const count = Number((receipt as Record<string, unknown>)[field]);
     return Number.isSafeInteger(count) && count >= 0 && count <= 1;
   });
+}
+
+type LegalAcceptanceReceipt = "accepted" | "authentication_missing" | "unconfirmed";
+
+interface LegalAcceptanceReceiptRow {
+  accepted_count: number;
+  prior_count: number;
+  account_count: number;
+  session_count: number;
+}
+
+function authenticatedAccountVersionBindings(version: AuthenticatedAccountVersion) {
+  return [
+    version.id,
+    version.email,
+    version.ageEligibilityConfirmedAt,
+    version.termsAcceptedAt,
+    version.termsVersion,
+    version.privacyAcceptedAt,
+    version.privacyVersion,
+    version.createdAt,
+    version.updatedAt,
+  ];
+}
+
+async function acceptCurrentLegalTerms(
+  db: D1DatabaseLike,
+  session: AuthenticatedSession,
+  acceptedAt: string,
+): Promise<LegalAcceptanceReceipt> {
+  const prior = session.accountVersion;
+  if (!prior.ageEligibilityConfirmedAt) return "unconfirmed";
+  try {
+    await db.prepare(`UPDATE users SET terms_accepted_at = ?, terms_version = ?,
+        privacy_accepted_at = ?, privacy_version = ?, updated_at = ?
+      WHERE id = ? AND email = ? AND age_eligibility_confirmed_at = ?
+        AND terms_accepted_at IS ? AND terms_version IS ?
+        AND privacy_accepted_at IS ? AND privacy_version IS ?
+        AND created_at = ? AND updated_at = ?
+        AND EXISTS (SELECT 1 FROM auth_sessions
+          WHERE token_hash = ? AND user_id = ? AND expires_at = ? AND expires_at > ?)`)
+      .bind(
+        acceptedAt,
+        LEGAL_VERSION,
+        acceptedAt,
+        LEGAL_VERSION,
+        acceptedAt,
+        ...authenticatedAccountVersionBindings(prior),
+        session.sessionTokenHash,
+        prior.id,
+        session.sessionExpiresAt,
+        acceptedAt,
+      )
+      .run();
+  } catch {
+    // A committed write can lose its response. The complete account and live-session
+    // receipt below is the only authority for a browser compliance response.
+  }
+
+  try {
+    const receipt = await db.prepare(`SELECT
+        (SELECT COUNT(*) FROM users
+          WHERE id = ? AND email = ? AND age_eligibility_confirmed_at = ?
+            AND terms_accepted_at = ? AND terms_version = ?
+            AND privacy_accepted_at = ? AND privacy_version = ?
+            AND created_at = ? AND updated_at = ?) AS accepted_count,
+        (SELECT COUNT(*) FROM users
+          WHERE id = ? AND email = ? AND age_eligibility_confirmed_at = ?
+            AND terms_accepted_at IS ? AND terms_version IS ?
+            AND privacy_accepted_at IS ? AND privacy_version IS ?
+            AND created_at = ? AND updated_at = ?) AS prior_count,
+        (SELECT COUNT(*) FROM users WHERE id = ?) AS account_count,
+        (SELECT COUNT(*) FROM auth_sessions
+          WHERE token_hash = ? AND user_id = ? AND expires_at = ? AND expires_at > ?) AS session_count`)
+      .bind(
+        prior.id,
+        prior.email,
+        prior.ageEligibilityConfirmedAt,
+        acceptedAt,
+        LEGAL_VERSION,
+        acceptedAt,
+        LEGAL_VERSION,
+        prior.createdAt,
+        acceptedAt,
+        ...authenticatedAccountVersionBindings(prior),
+        prior.id,
+        session.sessionTokenHash,
+        prior.id,
+        session.sessionExpiresAt,
+        acceptedAt,
+      )
+      .first<LegalAcceptanceReceiptRow>();
+    if (!exactReceiptCounts(receipt, ["accepted_count", "prior_count", "account_count", "session_count"])) {
+      return "unconfirmed";
+    }
+    const acceptedCount = Number(receipt?.accepted_count);
+    const priorCount = Number(receipt?.prior_count);
+    const accountCount = Number(receipt?.account_count);
+    const sessionCount = Number(receipt?.session_count);
+    if (acceptedCount === 1 && priorCount === 0 && accountCount === 1 && sessionCount === 1) {
+      return "accepted";
+    }
+    if (accountCount === 0 || sessionCount === 0) return "authentication_missing";
+    return "unconfirmed";
+  } catch {
+    return "unconfirmed";
+  }
 }
 
 type SignInAttemptClaim = "claimed" | "rate_limited" | "unconfirmed";

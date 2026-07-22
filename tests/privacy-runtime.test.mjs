@@ -2769,34 +2769,94 @@ test("legal reacceptance preserves prior age eligibility and legacy accounts fai
   assert.equal(legacyExport?.status, 200);
 });
 
-test("legal acceptance requires a confirmed live account mutation", async () => {
+test("legal acceptance requires an exact live account and session receipt", async () => {
   const { sqlite, d1 } = await database();
-  const deleted = await addUser(sqlite, "legal-race-139");
-  sqlite.prepare("UPDATE users SET terms_version = 'old', privacy_version = 'old' WHERE id = ?").run(deleted.id);
+  const accept = (user, options = {}) => handleAccountRequest(request("/api/auth/eligibility", {
+    method: "POST",
+    cookie: user.cookie,
+    body: { termsAccepted: true, privacyAccepted: true },
+  }), { DB: d1 }, [], {
+    now: () => new Date("2026-07-22T06:00:00.000Z"),
+    ...options,
+  });
+  const makeStale = async (suffix) => {
+    const user = await addUser(sqlite, suffix);
+    sqlite.prepare(`UPDATE users SET terms_accepted_at = '2025-01-01T00:00:00.000Z',
+      terms_version = 'old', privacy_accepted_at = '2025-01-01T00:00:00.000Z',
+      privacy_version = 'old' WHERE id = ?`).run(user.id);
+    return user;
+  };
+
+  const deleted = await makeStale("legal-race-139");
   d1.beforeOnceQuerySubstring = "UPDATE users SET terms_accepted_at";
   d1.beforeOnceQuery = () => sqlite.prepare("DELETE FROM users WHERE id = ?").run(deleted.id);
-  const deletedResponse = await handleAccountRequest(request("/api/auth/eligibility", {
-    method: "POST",
-    cookie: deleted.cookie,
-    body: { termsAccepted: true, privacyAccepted: true },
-  }), { DB: d1 }, []);
+  const deletedResponse = await accept(deleted);
   assert.equal(deletedResponse?.status, 401);
   assert.equal((await deletedResponse.json()).error.code, "authentication_required");
   assert.match(deletedResponse.headers.get("Set-Cookie") ?? "", /cc_session=;.*Max-Age=0/u);
   assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM users WHERE id = ?").get(deleted.id).count, 0);
 
-  const unconfirmed = await addUser(sqlite, "legal-receipt-140");
-  sqlite.prepare("UPDATE users SET terms_version = 'old', privacy_version = 'old' WHERE id = ?").run(unconfirmed.id);
+  const missingMetadata = await makeStale("legal-receipt-140");
   d1.omitOnceMutationMetadataSubstring = "UPDATE users SET terms_accepted_at";
-  const unconfirmedResponse = await handleAccountRequest(request("/api/auth/eligibility", {
-    method: "POST",
-    cookie: unconfirmed.cookie,
-    body: { termsAccepted: true, privacyAccepted: true },
-  }), { DB: d1 }, []);
-  assert.equal(unconfirmedResponse?.status, 503);
-  assert.equal((await unconfirmedResponse.json()).error.code, "legal_acceptance_unconfirmed");
+  const missingMetadataResponse = await accept(missingMetadata);
+  assert.equal(missingMetadataResponse?.status, 200);
+  assert.equal((await missingMetadataResponse.json()).user.legalAccepted, true);
+
+  const lostResponse = await makeStale("legal-response-loss-141");
+  d1.throwOnceAfterMutationSubstring = "UPDATE users SET terms_accepted_at";
+  const lostResponseReceipt = await accept(lostResponse);
+  assert.equal(lostResponseReceipt?.status, 200);
+  assert.equal((await lostResponseReceipt.json()).user.legalAccepted, true);
+
+  const rolledBack = await makeStale("legal-rollback-142");
+  d1.failOnceQuerySubstring = "UPDATE users SET terms_accepted_at";
+  const rolledBackResponse = await accept(rolledBack);
+  assert.equal(rolledBackResponse?.status, 503);
+  assert.equal((await rolledBackResponse.json()).error.code, "legal_acceptance_unconfirmed");
   assert.deepEqual(
-    { ...sqlite.prepare("SELECT terms_version, privacy_version FROM users WHERE id = ?").get(unconfirmed.id) },
+    { ...sqlite.prepare("SELECT terms_version, privacy_version FROM users WHERE id = ?").get(rolledBack.id) },
+    { terms_version: "old", privacy_version: "old" },
+  );
+
+  const unreadable = await makeStale("legal-unreadable-receipt-143");
+  d1.failOnceQuerySubstring = "AS accepted_count";
+  const unreadableResponse = await accept(unreadable);
+  assert.equal(unreadableResponse?.status, 503);
+  assert.equal((await unreadableResponse.json()).error.code, "legal_acceptance_unconfirmed");
+  assert.deepEqual(
+    { ...sqlite.prepare("SELECT terms_version, privacy_version FROM users WHERE id = ?").get(unreadable.id) },
+    { terms_version: LEGAL_VERSION, privacy_version: LEGAL_VERSION },
+  );
+
+  const changed = await makeStale("legal-changed-snapshot-144");
+  d1.beforeOnceQuerySubstring = "UPDATE users SET terms_accepted_at";
+  d1.beforeOnceQuery = () => sqlite.prepare("UPDATE users SET updated_at = '2026-07-22T05:59:59.000Z' WHERE id = ?")
+    .run(changed.id);
+  const changedResponse = await accept(changed);
+  assert.equal(changedResponse?.status, 503);
+  assert.equal((await changedResponse.json()).error.code, "legal_acceptance_unconfirmed");
+  assert.deepEqual(
+    { ...sqlite.prepare("SELECT terms_version, privacy_version FROM users WHERE id = ?").get(changed.id) },
+    { terms_version: "old", privacy_version: "old" },
+  );
+
+  const revoked = await makeStale("legal-revoked-session-145");
+  d1.beforeOnceQuerySubstring = "UPDATE users SET terms_accepted_at";
+  d1.beforeOnceQuery = () => sqlite.prepare("DELETE FROM auth_sessions WHERE user_id = ?").run(revoked.id);
+  const revokedResponse = await accept(revoked);
+  assert.equal(revokedResponse?.status, 401);
+  assert.equal((await revokedResponse.json()).error.code, "authentication_required");
+  assert.match(revokedResponse.headers.get("Set-Cookie") ?? "", /cc_session=;.*Max-Age=0/u);
+
+  const removedAfterCommit = await makeStale("legal-post-commit-delete-146");
+  d1.beforeOnceQuerySubstring = "AS accepted_count";
+  d1.beforeOnceQuery = () => sqlite.prepare("DELETE FROM users WHERE id = ?").run(removedAfterCommit.id);
+  const removedAfterCommitResponse = await accept(removedAfterCommit);
+  assert.equal(removedAfterCommitResponse?.status, 401);
+  assert.equal((await removedAfterCommitResponse.json()).error.code, "authentication_required");
+
+  assert.deepEqual(
+    { ...sqlite.prepare("SELECT terms_version, privacy_version FROM users WHERE id = ?").get(missingMetadata.id) },
     { terms_version: LEGAL_VERSION, privacy_version: LEGAL_VERSION },
   );
 });

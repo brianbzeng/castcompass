@@ -8,7 +8,7 @@ accounts, or production data.
 ## D1 query inventory
 
 `scripts/generate-d1-query-inventory.mjs` parses every Worker TypeScript source file and records
-all 248 direct `.prepare()` sites: 234 literal statements and 14 separately reviewed nonliteral
+all 249 direct `.prepare()` sites: 235 literal statements and 14 separately reviewed nonliteral
 expressions across eight source files. The committed policy and generated inventory are
 source-hash and call-site bound. CI rejects source-file/count drift, computed or aliased
 `prepare` access, a nonliteral expression without its exact static-authority review, an unscoped
@@ -72,7 +72,7 @@ latency, or alerting; those remain isolated-staging gates. The complete contract
 [SCHEDULED-WORKER-BUDGET.md](SCHEDULED-WORKER-BUDGET.md).
 
 `scripts/check_d1_query_plans.py` separately applies every migration to an in-memory SQLite
-database, runs 46 representative `EXPLAIN QUERY PLAN` checks, and rejects missing leftmost
+database, runs 48 representative `EXPLAIN QUERY PLAN` checks, and rejects missing leftmost
 indexes for every foreign-key child path. The checked plans cover the highest-frequency or
 growth-sensitive access patterns:
 
@@ -81,6 +81,7 @@ growth-sensitive access patterns:
 | Session, email-challenge, auth-attempt, and age-proof retention | Scheduled deletion by time; each table selects at most 100 eligible primary keys per invocation | Dedicated leading time indexes; the two age-proof predicates use SQLite's multi-index OR plan |
 | Session issuance receipt | One random token hash, authenticated owner, exact timestamps, live user, and absent account-deletion fence, `LIMIT 1` | Session, user, and deletion-fence primary keys; exact state decides whether the plaintext token may be disclosed |
 | Sign-out revocation receipt | One exact primary-key absence read for each distinct presented host or legacy session token after the transactional delete batch | Session primary key; only readable zero cardinality permits browser-cookie clearing and the exact sign-out response |
+| Legal-acceptance compare-and-set and receipt | Complete authenticated account/legal version plus the exact still-live session before write; exact accepted/prior/account/session cardinality after write | User email/ID and session primary-key indexes; only the request's complete stored account version with continuing session authority can produce the compliance response |
 | Age-proof lifecycle receipts | Exact random proof snapshot after creation; exact consumed/prior/cardinality state after one-use transition | Age-proof primary key; plaintext proof disclosure and downstream challenge creation recover committed response loss without accepting rollback or changed state |
 | Email-challenge issuance and resend receipts | Complete challenge snapshot plus rolling email ceiling after creation; complete next/prior snapshot and ID cardinality after resend compare-and-set | Challenge primary key and `(email, created_at)` index; only exact state can authorize code delivery while password recovery preserves its generic response |
 | Email-code attempt receipt | Claimed and prior counts for one complete challenge snapshot, plus current ID/kind cardinality | Challenge primary key; exact claimed state decides whether code verification may authorize a credential transition |

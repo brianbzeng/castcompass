@@ -13,6 +13,38 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — exact legal-acceptance receipts
+
+- [x] Continue the database-authority audit at the higher-risk of the two remaining mutation-
+      metadata call sites. Authenticated Terms/Privacy reacceptance could safely suppress a
+      receipt when metadata was missing, but it could not recover a committed response loss and
+      did not prove that the account version or browser session remained authoritative.
+- [x] Make one complete authenticated account version plus its exact live session the compare-and-
+      set boundary. The write repeats account ID/email, immutable creation and age timestamps,
+      every prior legal field, the update version, and the token hash/owner/exact expiry of the
+      still-live session. It never changes the prior age-eligibility proof.
+- [x] Make exact read-back the only browser compliance authority. Success proves the request's
+      accepted timestamps/current versions, absence of its prior snapshot, unique account ID, and
+      continuing exact session. Mutation metadata and transport success grant nothing: omitted
+      metadata and a lost committed response recover; rollback, unreadable or changed state is
+      `503`; account deletion or session revocation is `401` with stale-cookie clearing.
+- [x] Force each boundary in the direct D1 runtime, including account deletion before the write,
+      omitted metadata, post-commit response loss, failed write, failed receipt read after commit,
+      a changed account version, session revocation, and account deletion between commit and
+      receipt. The source ledger now covers 249 prepare sites: 235 literal, 14 reviewed nonliteral,
+      and nine reviewed complete-rights multi-row reads. All 20 migrations and 48 critical plans
+      include the full legal compare-and-set and receipt through user/session indexes.
+- [x] Seal the local checkpoint with the pinned Cloudflare build; lint and type checks; all
+      645/645 Node tests; 29/29 API tests; Ruff; 83/83 pipeline tests with one documented optional
+      rasterio skip; the complete offline security, SBOM, source-integrity, and two zero-
+      vulnerability audit chain; deterministic smoke; all 48 critical plans across 20 migrations;
+      the 200/200 Chromium/WebKit phone matrix; a reproducible release bundle; and a clean local
+      commit. No push, PR, merge, deployment, provider query, production database mutation,
+      feature activation, UI change, or model claim belongs to this checkpoint.
+- [ ] Exercise legal reacceptance overlap, session expiry/revocation, response loss, latency, and
+      D1 rows-read/written behavior with production-shaped synthetic data in isolated staging
+      before treating local receipt proof as deployed evidence.
+
 ## Active checkpoint — exact secret-bearing credential receipts
 
 - [x] Continue the credential audit upstream of code verification. Age-proof creation and
@@ -991,6 +1023,9 @@ top supersedes this mutation-metadata authority while preserving its fail-closed
       to this work.
 
 ## Active checkpoint — database-confirmed legal acceptance
+
+Historical implementation receipt: the newer exact legal-acceptance checkpoint at the top
+supersedes this mutation-metadata authority while preserving its fail-closed behavior.
 
 - [x] Continue the authenticated-receipt audit through current Terms and Privacy reacceptance.
       The route bound the server-derived account ID and preserved age eligibility, but returned

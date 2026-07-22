@@ -56,13 +56,13 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
   validatePolicy(policy, inventory);
   assert.deepEqual(JSON.parse(committed), inventory);
   assert.deepEqual(inventory.summary, {
-    prepareCallCount: 248,
-    literalCallCount: 234,
+    prepareCallCount: 249,
+    literalCallCount: 235,
     nonLiteralCallCount: 14,
     multiRowLiteralWithoutLimitCount: 9,
   });
   assert.equal(inventory.sourceFiles.length, 8);
-  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 248);
+  assert.equal(new Set(inventory.queries.map(({ callSiteId }) => callSiteId)).size, 249);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "open-account-cardinality").length, 0);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "complete-rights-export").length, 9);
   assert.equal(policy.multiRowReadContracts.filter(({ rowBoundStatus }) => rowBoundStatus === "owner-lifecycle-cleanup").length, 0);
@@ -114,7 +114,11 @@ test("the committed inventory covers every Worker prepare site and its reviewed 
   assert.ok(inventory.queries.some(({ executionMode, statementClass, sql }) =>
     executionMode === "run"
       && statementClass === "UPDATE"
-      && sql === "UPDATE users SET terms_accepted_at = ?, terms_version = ?, privacy_accepted_at = ?, privacy_version = ?, updated_at = ? WHERE id = ?"));
+      && sql === "UPDATE users SET terms_accepted_at = ?, terms_version = ?, privacy_accepted_at = ?, privacy_version = ?, updated_at = ? WHERE id = ? AND email = ? AND age_eligibility_confirmed_at = ? AND terms_accepted_at IS ? AND terms_version IS ? AND privacy_accepted_at IS ? AND privacy_version IS ? AND created_at = ? AND updated_at = ? AND EXISTS (SELECT 1 FROM auth_sessions WHERE token_hash = ? AND user_id = ? AND expires_at = ? AND expires_at > ?)"));
+  assert.ok(inventory.queries.some(({ executionMode, statementClass, sql }) =>
+    executionMode === "first"
+      && statementClass === "SELECT"
+      && sql === "SELECT (SELECT COUNT(*) FROM users WHERE id = ? AND email = ? AND age_eligibility_confirmed_at = ? AND terms_accepted_at = ? AND terms_version = ? AND privacy_accepted_at = ? AND privacy_version = ? AND created_at = ? AND updated_at = ?) AS accepted_count, (SELECT COUNT(*) FROM users WHERE id = ? AND email = ? AND age_eligibility_confirmed_at = ? AND terms_accepted_at IS ? AND terms_version IS ? AND privacy_accepted_at IS ? AND privacy_version IS ? AND created_at = ? AND updated_at = ?) AS prior_count, (SELECT COUNT(*) FROM users WHERE id = ?) AS account_count, (SELECT COUNT(*) FROM auth_sessions WHERE token_hash = ? AND user_id = ? AND expires_at = ? AND expires_at > ?) AS session_count"));
   assert.ok(inventory.queries.some(({ executionMode, statementClass, sql }) =>
     executionMode === "batch"
       && statementClass === "UPDATE"
