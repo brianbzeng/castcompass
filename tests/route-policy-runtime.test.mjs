@@ -60,6 +60,14 @@ test("every declared API route example resolves to its exact executable policy",
       "profile.delete",
     ],
   );
+  assert.deepEqual(
+    API_ROUTE_POLICIES.filter((policy) => policy.authorization === "receipt").map((policy) => policy.id),
+    ["privacy.deletion_status.read"],
+  );
+  assert.deepEqual(
+    API_ROUTE_POLICIES.filter((policy) => policy.authorization === "optional_session").map((policy) => policy.id),
+    ["auth.session", "auth.logout"],
+  );
 });
 
 test("route policy records actor, CSRF, legal, and abuse controls for representative boundaries", () => {
@@ -69,6 +77,7 @@ test("route policy records actor, CSRF, legal, and abuse controls for representa
     ["/api/auth/login", "POST", "auth.login", "public", true, false, ["auth"]],
     ["/api/auth/signup/request", "POST", "auth.signup_request", "public", true, false, ["auth", "email"]],
     ["/api/privacy/deletion-status", "GET", "privacy.deletion_status.read", "receipt", false, false, ["read"]],
+    ["/api/privacy/deletion-status", "DELETE", "privacy.deletion_status.clear", "public", true, false, ["write"]],
     ["/api/profile/export", "GET", "profile.export", "owner", false, false, ["read", "sensitive"]],
     ["/api/profile/export", "POST", "profile.export_request", "owner", true, false, ["sensitive", "write"]],
     [
@@ -293,14 +302,20 @@ test("the Worker entry point centrally denies unknown paths and unclassified met
   assert.match(source, /const protectedTripMutation = apiPolicy\.authorization === "owner"/);
   assert.match(source, /if \(apiPolicy\?\.authorization === "owner"\)/);
   assert.match(source, /authorizeOwnerRequest\(request, env/);
+  assert.match(source, /if \(apiPolicy\?\.authorization === "receipt"\)/);
+  assert.match(source, /apiPolicy\.id !== "privacy\.deletion_status\.read"/);
+  assert.match(source, /authorizeDeletionReceiptRequest\(request, env\)/);
   assert.doesNotMatch(source, /url\.pathname\.startsWith\("\/api\/trips\/"\)/);
 
   const rejection = source.indexOf("apiRouteRejectionForRequest(request)");
   const ownerAuthorization = source.indexOf("authorizeOwnerRequest(request, env");
+  const receiptAuthorization = source.indexOf("authorizeDeletionReceiptRequest(request, env");
   const bodyGuard = source.indexOf("guardRequestBody(request)");
   assert.ok(rejection >= 0);
   assert.ok(ownerAuthorization > rejection, "owner authorization must follow central route rejection");
+  assert.ok(receiptAuthorization > rejection, "receipt authorization must follow central route rejection");
   assert.ok(bodyGuard > ownerAuthorization, "body reads must follow owner authorization");
+  assert.ok(bodyGuard > receiptAuthorization, "body reads must follow receipt authorization");
   for (const dispatch of [
     "handleTurnstileConfigRequest(request, env)",
     "healthResponse(request, env)",
@@ -392,12 +407,20 @@ test("the production bundle dispatches representative API policies without stati
 
   for (const [path, expectedCode] of [
     ["/api/auth/session", "storage_unavailable"],
+    ["/api/privacy/deletion-status", "storage_unavailable"],
     ["/api/trips/summary", "storage_unavailable"],
   ]) {
     const response = await worker.fetch(request(path), baseEnv, ctx);
     assert.equal(response.status, 503, path);
     assert.equal((await response.json()).error.code, expectedCode, path);
   }
+
+  const clearReceipt = await worker.fetch(request("/api/privacy/deletion-status", "DELETE", {
+    Origin: origin,
+  }), baseEnv, ctx);
+  assert.equal(clearReceipt.status, 200);
+  assert.deepEqual(await clearReceipt.json(), { cleared: true });
+  assert.match(clearReceipt.headers.get("set-cookie") ?? "", /cc_deletion_receipt=;.*Max-Age=0/u);
 
   const protectedBody = request("/api/trips/start", "POST", {
     Origin: origin,

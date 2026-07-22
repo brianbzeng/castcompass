@@ -13,6 +13,37 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — registry-enforced deletion-receipt boundary
+
+- [x] Reconcile the remaining non-owner authorization classes against dispatch. The deletion-
+      status read required its high-entropy cookie only inside the account handler, while the
+      clear action was labeled `receipt` even though it intentionally required no valid token.
+      Optional-session routes correctly admit both authenticated and anonymous callers.
+- [x] Enforce the singleton deletion-receipt read centrally after route/method/conflict and
+      origin resolution but before body guarding. Missing storage is `503`; a missing, malformed,
+      expired, removed, or unknown receipt remains the same generic `404`; schema and query errors
+      fail closed through the account error boundary.
+- [x] Refuse future authorization drift. A policy marked `receipt` but not bound to the one
+      reviewed deletion-status preflight returns generic non-cacheable `503` instead of reaching
+      a handler. The exact receipt-policy and optional-session-policy sets are machine-checked.
+- [x] Preserve live resource-token authority. The account handler repeats the receipt lookup at
+      execution, so a row removed after preflight cannot expose cached status.
+- [x] Classify the same-origin deletion-receipt clear action truthfully as public. It only expires
+      this browser's path-scoped `HttpOnly` cookie, performs no D1/provider/content mutation,
+      grants no account authority, and remains available while D1 is unavailable.
+- [x] Complete local exact-tree acceptance. The production-off Cloudflare build and all 695/695
+      Node tests pass; the explicit feature-on photo build and 8/8 Chromium/WebKit cases pass;
+      the restored production-off phone matrix passes 228/228 across four Chromium/WebKit
+      profiles; and ESLint, TypeScript, the complete security/SBOM/query-policy chain, and both
+      npm audits pass with zero reported vulnerabilities. The same exact tree advances `next`
+      and its matching lint config from 16.2.10 to the security-fixed 16.2.11, refreshes both
+      deterministic SBOMs and the 254-site D1 inventory, and installs with zero lifecycle scripts.
+- [ ] Obtain exact-head hosted CI and CodeQL evidence. This automation gate does not replace
+      independent review or authorize a release.
+- [ ] Obtain independent human review. This repository boundary does not authorize merge,
+      deployment, provider mutation, migration, feature activation, staging exercise, or
+      production acceptance.
+
 ## Active checkpoint — registry-enforced owner and current-legal boundary
 
 - [x] Reconcile the executable actor/legal fields against Worker request flow. The registry

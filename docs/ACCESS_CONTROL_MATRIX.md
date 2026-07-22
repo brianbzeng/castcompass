@@ -40,7 +40,7 @@ output never grants authority.
 | Trip/profile record | `id = requested_id AND user_id = authenticated_user.id`; enrollment, forecast-impression, feasibility-start, and prior-recruitment sidecars repeat the owner predicate directly or through the parent trip | Owner may patch/delete only while `moderation_status = 'pending'`; success requires exactly one confirmed D1 change, a confirmed zero remains the generic reviewed-trip conflict, and an unconfirmable delete preserves an owner receipt for read-only recovery; active completion and cancellation bind `id`, `user_id`, `status = 'active'`, and `token_hash` together in the final D1 statement; manual advisory-review retry compare-and-sets the complete owner/trip/AI version and requires exact queued/prior/owner/global read-back before scheduling, while downstream high-entropy claims prevent duplicate provider authority; server-controlled contract fields cannot be overridden |
 | Stored trip photo | Trip predicate above before any R2 key is read | Owner-only authenticated download with `no-store`; object key is never accepted from the URL or request body |
 | Account export | Every account-linked query and status/download lookup binds `authenticated_user.id`; asynchronous Queue messages contain only an opaque job ID | Export is owner-only and omits internal object locators and moderator identity. The default-off package is private, expires after 24 hours, and is canceled/adopted atomically by account deletion |
-| Deletion receipt | Hash of a high-entropy, path-scoped `HttpOnly` receipt cookie | Exposes aggregate status only; receipt can be cleared and expires; it cannot restore content or authenticate an account |
+| Deletion receipt | Hash of a high-entropy, path-scoped `HttpOnly` receipt cookie | The singleton receipt-read policy validates the exact cookie shape and live D1 hash before body guarding, then the account handler repeats the lookup at execution and exposes aggregate status only. The same-origin clear action is accurately public because it only expires this browser's cookie, works while storage is unavailable, and grants no account or deletion authority. A receipt expires and cannot restore content or authenticate an account |
 | Public discussion | Approved post fields plus matching trip `moderation_status = 'approved'` | Read-only public projection; feature defaults off; sensitive/prompt-like text is rejected or minimized |
 | Validation evidence | Server-created activation/account/attestation identity and append-only database guards | No client-supplied evaluator/admin role; default-off activation; account export/deletion use separately minimized mappings |
 | Advisory AI queue job | Opaque job ID resolved server-side to one D1 trip foreign key | No browser route; no trip/account identity in the message; unique trip job, atomic lease, five-attempt attention state, and trip-delete cascade; replay plan accepts only an opaque attention-job ID |
@@ -87,18 +87,23 @@ is `401`, an account deletion fence is `409`, and stale legal acceptance is `428
 policy requires the current version. The only fence exceptions are the exact six existing
 privacy-rights rows: direct export, export photo/status/download, profile read, and account
 deletion. Current legal acceptance remains independently required where its policy says so.
-Receipt and optional-session routes do not inherit owner authority; their narrow handlers
-retain their own resource-token or optional-session semantics. Account and trip execution
-repeat live authorization after body guarding so a concurrent revocation or new deletion
-fence fails closed.
+Receipt and optional-session routes do not inherit owner authority. The only current receipt
+policy is the deletion-status read: the central preflight requires a well-formed path-scoped
+cookie and live hash-bound D1 row before the body guard, and its handler repeats that lookup at
+execution. Any future receipt policy fails closed until it receives its own explicit preflight.
+The same-origin deletion-receipt clear route is intentionally public because it only removes the
+caller's cookie and must remain available without D1; optional-session routes deliberately admit
+both authenticated and anonymous callers and keep their narrow handler semantics. Account and
+trip execution repeat live authorization after body guarding so a concurrent revocation or new
+deletion fence fails closed.
 
 `tests/route-policy-runtime.test.mjs` machine-checks unique route identities, actor,
 CSRF/legal/fence and abuse metadata, representative dynamic resources, malformed and
 lookalike paths, every exact route branch in the Worker handlers, and the central
-pre-body owner gate. Object-level ownership and cross-account behavior remain covered by
-the runtime privacy and trip suites. The terminal-trip regression supplies the exact
-token from a second authenticated account and also changes ownership between the
-handler pre-read and final update; cancellation and completion both remain `404`, and
+pre-body owner and deletion-receipt gates. Object-level ownership and cross-account behavior
+remain covered by the runtime privacy and trip suites. The terminal-trip regression supplies the
+exact token from a second authenticated account and also changes ownership between the handler
+pre-read and final update; cancellation and completion both remain `404`, and
 the final D1 predicates leave the active row unchanged. All owner-path TripStore reads
 now receive the server-derived account identity, including validation sidecars and prior
 recruitment reuse; profile-edit feasibility start/completion/correction reads repeat the

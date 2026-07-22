@@ -126,7 +126,7 @@ export const API_ROUTE_POLICIES: readonly ApiRoutePolicy[] = [
     "/api/privacy/deletion-status",
     "/api/privacy/deletion-status",
     ["DELETE"],
-    "receipt",
+    "public",
     "account",
     { sameOriginRequired: true },
   ),

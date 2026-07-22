@@ -175,6 +175,18 @@ after its acceptance checks pass in the intended environment.
       feature-on photo lane passes 8/8, the restored phone matrix passes 228/228, and the full
       security/SBOM/query-policy chain plus both zero-vulnerability audits pass under the pinned
       runtime.
+    - [x] Make the registry's deletion-receipt class executable and correct its clear-route
+      classification. The only receipt-protected policy now validates the path-scoped cookie and
+      live hash-bound D1 row centrally before body guarding, then the account handler repeats the
+      lookup so removal or expiry wins. Any future receipt policy fails closed until it has an
+      explicit preflight. `DELETE /api/privacy/deletion-status` is now truthfully public but
+      same-origin: it only expires this browser's cookie, performs no privileged or provider
+      mutation, grants no authority, and remains available when D1 is unavailable. Optional-
+      session behavior is unchanged. Exact-tree acceptance passes the production-off build and
+      all 695/695 Node tests, the feature-on 8/8 photo lane, the restored 228/228 phone matrix,
+      ESLint, TypeScript, the complete security/SBOM/query-policy chain, and both zero-
+      vulnerability npm audits. The same reviewed slice also advances Next.js and its matching
+      lint config from 16.2.10 to the advisory-fixed 16.2.11 and refreshes deterministic SBOMs.
     - [x] Bind active-trip completion and cancellation to the authenticated account in both
       the handler precheck and the final D1 update. The write now requires the same trip ID,
       account ID, active state, and token hash atomically; exact-token cross-account and

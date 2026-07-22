@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import {
+  authorizeDeletionReceiptRequest,
   authorizeOwnerRequest,
   cleanupAuthData,
   cleanupAuthRetentionData,
@@ -2969,6 +2970,78 @@ test("owner preflight binds the live session and preserves legal and deletion-fe
   assert.equal(fencedProfile.session, null);
   assert.equal(fencedProfile.response?.status, 428);
   assert.equal((await fencedProfile.response.json()).error.code, "legal_acceptance_required");
+});
+
+test("deletion-receipt preflight fails closed and the handler repeats live token authority", async () => {
+  const unavailable = await authorizeDeletionReceiptRequest(
+    request("/api/privacy/deletion-status"),
+    {},
+  );
+  assert.equal(unavailable.response?.status, 503);
+  assert.equal((await unavailable.response.json()).error.code, "storage_unavailable");
+
+  const wrongRoute = await authorizeDeletionReceiptRequest(
+    request("/api/auth/session"),
+    {},
+  );
+  assert.equal(wrongRoute.response?.status, 503);
+  assert.equal((await wrongRoute.response.json()).error.code, "route_unavailable");
+
+  const missingSchemaSqlite = new DatabaseSync(":memory:");
+  const missingSchema = await authorizeDeletionReceiptRequest(
+    request("/api/privacy/deletion-status"),
+    { DB: new TransactionalD1Adapter(missingSchemaSqlite) },
+  );
+  assert.equal(missingSchema.response?.status, 503);
+  assert.equal((await missingSchema.response.json()).error.code, "auth_schema_unavailable");
+
+  const { sqlite, d1 } = await database();
+  const missing = await authorizeDeletionReceiptRequest(
+    request("/api/privacy/deletion-status"),
+    { DB: d1 },
+  );
+  assert.equal(missing.response?.status, 404);
+  assert.equal((await missing.response.json()).error.code, "deletion_receipt_not_found");
+
+  const unknownReceipt = "z".repeat(48);
+  const unknown = await authorizeDeletionReceiptRequest(
+    request("/api/privacy/deletion-status", { cookie: `cc_deletion_receipt=${unknownReceipt}` }),
+    { DB: d1 },
+  );
+  assert.equal(unknown.response?.status, 404);
+  assert.equal((await unknown.response.json()).error.code, "deletion_receipt_not_found");
+
+  const receipt = "r".repeat(48);
+  const timestamp = "2026-07-22T23:30:00.000Z";
+  sqlite.prepare(`INSERT INTO privacy_deletion_jobs (
+      id, receipt_hash, scope, subject_hash, owner_subject_hash, state, objects_total,
+      objects_deleted, requested_at, active_data_removed_at, completed_at, updated_at)
+    VALUES (?, ?, 'trip', ?, ?, 'completed', 0, 0, ?, ?, ?, ?)`).run(
+    "deletion_receipt_preflight",
+    await sha256(receipt),
+    await sha256("trip:receipt-preflight"),
+    await sha256("account:receipt-preflight"),
+    timestamp,
+    timestamp,
+    timestamp,
+    timestamp,
+  );
+  const authorized = await authorizeDeletionReceiptRequest(
+    request("/api/privacy/deletion-status", { cookie: `cc_deletion_receipt=${receipt}` }),
+    { DB: d1 },
+  );
+  assert.equal(authorized.response, null);
+
+  sqlite.prepare("DELETE FROM privacy_deletion_jobs WHERE id = ?").run("deletion_receipt_preflight");
+  const removedBeforeExecution = await handleAccountRequest(
+    request("/api/privacy/deletion-status", { cookie: `cc_deletion_receipt=${receipt}` }),
+    { DB: d1 },
+    [],
+  );
+  assert.equal(removedBeforeExecution?.status, 404);
+  assert.equal((await removedBeforeExecution.json()).error.code, "deletion_receipt_not_found");
+
+  missingSchemaSqlite.close();
 });
 
 test("legal acceptance requires an exact live account and session receipt", async () => {

@@ -252,10 +252,14 @@ export type OwnerAuthorizationResult =
   | { session: AuthenticatedSession; response: null }
   | { session: null; response: Response };
 
+export type DeletionReceiptAuthorizationResult =
+  | { response: null }
+  | { response: Response };
+
 /**
  * Resolve registry-declared owner access before a protected request body is read.
- * Receipt and optional-session routes intentionally use their narrower handlers
- * instead of this account-session gate.
+ * Receipt routes use their separate resource-token preflight, while optional-
+ * session routes deliberately admit both authenticated and anonymous callers.
  */
 export async function authorizeOwnerRequest(
   request: Request,
@@ -283,6 +287,62 @@ export async function authorizeOwnerRequest(
     return { session, response: null };
   } catch (error) {
     return { session: null, response: accountRequestErrorResponse(error) };
+  }
+}
+
+/**
+ * Resolve the registry's deletion-receipt authority before account dispatch.
+ * The account handler intentionally repeats this live lookup at execution so
+ * an expired or removed receipt cannot survive on cached preflight state.
+ */
+export async function authorizeDeletionReceiptRequest(
+  request: Request,
+  env: AuthApiEnv,
+): Promise<DeletionReceiptAuthorizationResult> {
+  const url = new URL(request.url);
+  if (request.method !== "GET" || url.pathname !== "/api/privacy/deletion-status") {
+    return {
+      response: errorResponse(
+        503,
+        "route_unavailable",
+        "This API route is temporarily unavailable.",
+      ),
+    };
+  }
+  if (!env.DB) {
+    return {
+      response: errorResponse(
+        503,
+        "storage_unavailable",
+        "Account storage is temporarily unavailable.",
+      ),
+    };
+  }
+  try {
+    await initialize(env.DB);
+    const receipt = parseCookies(request.headers.get("Cookie") ?? "").get(DELETION_RECEIPT_COOKIE);
+    if (!receipt || !/^[A-Za-z0-9_-]{40,160}$/.test(receipt)) {
+      return {
+        response: errorResponse(
+          404,
+          "deletion_receipt_not_found",
+          "No deletion status receipt was found in this browser.",
+        ),
+      };
+    }
+    const job = await selectDeletionJobByReceipt(env.DB, receipt);
+    if (!job) {
+      return {
+        response: errorResponse(
+          404,
+          "deletion_receipt_not_found",
+          "That deletion status receipt is no longer available.",
+        ),
+      };
+    }
+    return { response: null };
+  } catch (error) {
+    return { response: accountRequestErrorResponse(error) };
   }
 }
 
@@ -314,6 +374,14 @@ export async function handleAccountRequest(
     !url.pathname.startsWith("/api/profile/reviews/") &&
     !url.pathname.startsWith("/api/profile/trips/")
   ) return null;
+  if (url.pathname === "/api/privacy/deletion-status" && request.method === "DELETE") {
+    try {
+      assertSameOrigin(request);
+      return jsonResponse({ cleared: true }, 200, clearDeletionReceiptCookie());
+    } catch (error) {
+      return accountRequestErrorResponse(error);
+    }
+  }
   if (!env.DB) return errorResponse(503, "storage_unavailable", "Account storage is temporarily unavailable.");
 
   const db = env.DB;
@@ -403,11 +471,7 @@ export async function handleAccountRequest(
     }
 
     if (url.pathname === "/api/privacy/deletion-status") {
-      if (request.method === "DELETE") {
-        assertSameOrigin(request);
-        return jsonResponse({ cleared: true }, 200, clearDeletionReceiptCookie());
-      }
-      if (request.method !== "GET") return methodNotAllowed("GET, DELETE");
+      if (request.method !== "GET") return methodNotAllowed("GET");
       const receipt = parseCookies(request.headers.get("Cookie") ?? "").get(DELETION_RECEIPT_COOKIE);
       if (!receipt || !/^[A-Za-z0-9_-]{40,160}$/.test(receipt)) {
         return errorResponse(404, "deletion_receipt_not_found", "No deletion status receipt was found in this browser.");

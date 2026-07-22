@@ -4,6 +4,7 @@ import handler from "vinext/server/app-router-entry";
 import sites from "../public/data/sites.json";
 import { handleTripRequest, type TripApiEnv } from "./trips";
 import {
+  authorizeDeletionReceiptRequest,
   authorizeOwnerRequest,
   handleAccountRequest,
   legalAcceptanceRequiredResponse,
@@ -167,6 +168,13 @@ async function handleFetchRequest(request: Request, env: Env, ctx: ExecutionCont
     });
     if (ownerAuthorization.response) return ownerAuthorization.response;
     authenticatedSession = ownerAuthorization.session;
+  }
+  if (apiPolicy?.authorization === "receipt") {
+    if (apiPolicy.id !== "privacy.deletion_status.read") {
+      return routePolicyUnavailableResponse();
+    }
+    const receiptAuthorization = await authorizeDeletionReceiptRequest(request, env);
+    if (receiptAuthorization.response) return receiptAuthorization.response;
   }
 
   const guarded = await guardRequestBody(request);
