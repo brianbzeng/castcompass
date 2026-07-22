@@ -18,6 +18,7 @@ const inputPaths = [
   ".npmrc",
   ".python-version",
   "field-review/santa-barbara-access-review-policy.json",
+  "field-review/santa-barbara-structure-depth-review-policy.json",
   "package-lock.json",
   "package.json",
   "pipeline/requirements-ci.lock",

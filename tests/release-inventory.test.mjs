@@ -9,6 +9,7 @@ const inputPaths = [
   ".npmrc",
   ".python-version",
   "field-review/santa-barbara-access-review-policy.json",
+  "field-review/santa-barbara-structure-depth-review-policy.json",
   "package-lock.json",
   "package.json",
   "pipeline/.python-version",
@@ -157,8 +158,9 @@ test("CI verifies the combined inventory and the signer rejects a narrowed hando
   assert.match(manifest, /"security:pollution-score-independent-review": "node scripts\/verify-pollution-score-independent-review\.mjs verify-policy"/u);
   assert.match(manifest, /"security:water-quality-mapping-independent-review": "node scripts\/verify-water-quality-mapping-independent-review\.mjs verify-policy"/u);
   assert.match(manifest, /"security:santa-barbara-access-review": "node scripts\/verify-santa-barbara-access-review\.mjs verify-policy"/u);
-  assert.match(ci, /npm run security:production-change-policy\n\s+- run: npm run security:operational-restore-review\n\s+- run: npm run security:key-custody-review\n\s+- run: npm run security:pollution-score-independent-review\n\s+- run: npm run security:water-quality-mapping-independent-review\n\s+- run: npm run security:santa-barbara-access-review/u);
-  assert.match(release, /npm run security:production-change-policy\n\s+- run: npm run security:operational-restore-review\n\s+- run: npm run security:key-custody-review\n\s+- run: npm run security:pollution-score-independent-review\n\s+- run: npm run security:water-quality-mapping-independent-review\n\s+- run: npm run security:santa-barbara-access-review/u);
+  assert.match(manifest, /"security:santa-barbara-structure-depth-review": "node scripts\/verify-santa-barbara-structure-depth-review\.mjs verify-policy"/u);
+  assert.match(ci, /npm run security:production-change-policy\n\s+- run: npm run security:operational-restore-review\n\s+- run: npm run security:key-custody-review\n\s+- run: npm run security:pollution-score-independent-review\n\s+- run: npm run security:water-quality-mapping-independent-review\n\s+- run: npm run security:santa-barbara-access-review\n\s+- run: npm run security:santa-barbara-structure-depth-review/u);
+  assert.match(release, /npm run security:production-change-policy\n\s+- run: npm run security:operational-restore-review\n\s+- run: npm run security:key-custody-review\n\s+- run: npm run security:pollution-score-independent-review\n\s+- run: npm run security:water-quality-mapping-independent-review\n\s+- run: npm run security:santa-barbara-access-review\n\s+- run: npm run security:santa-barbara-structure-depth-review/u);
   const signingJob = release.slice(release.indexOf("  attest-release:"));
   assert.match(signingJob, /castingcompass-release[\s\S]+not Cloudflare deployment provenance/u);
   assert.match(signingJob, /\.type == "container"[\s\S]+\.type == "operating-system"[\s\S]+pkg:pypi\//u);

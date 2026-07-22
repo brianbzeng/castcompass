@@ -1,7 +1,7 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:a5c3ef12-ceff-5cd8-8919-85d478069644",
+  "serialNumber": "urn:uuid:333069ad-180d-5d6d-8eb2-e4106c20521f",
   "version": 1,
   "metadata": {
     "component": {
@@ -69,11 +69,15 @@
         },
         {
           "name": "castingcompass:input-sha256",
+          "value": "field-review/santa-barbara-structure-depth-review-policy.json:0d795c3b2f764dfb2524bb6244903d1117e5b04d44d296e531f19009760ba11f"
+        },
+        {
+          "name": "castingcompass:input-sha256",
           "value": "package-lock.json:43ada6dd200e1d99e404744b79a6a455e86b1adc42be212464dcc703d111cef3"
         },
         {
           "name": "castingcompass:input-sha256",
-          "value": "package.json:ada64839034af72d792696fe383dcf12c95906a95bb269cba5c6a5b98106c096"
+          "value": "package.json:37fc5dd45d9faf22aa26c0371801f024c45c427f7bcf6dffc0b8383172e33b97"
         },
         {
           "name": "castingcompass:input-sha256",

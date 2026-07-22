@@ -1007,6 +1007,15 @@ after its acceptance checks pass in the intended environment.
     uncertainty-bearing source only where coverage permits; and collect protected, guarded
     deployment plus post-deployment evidence before calling any of the 61 covered locations fully
     reviewed or using this evidence in a score.
+    - [x] Prepare the first executable 14-site Santa Barbara review handoff without pretending the
+      review occurred. A source-bound blank policy and guarded private template require one current
+      local-angler review and one independent chart/GIS review per site, two distinct local
+      reviewers region-wide, strict reviewer-role separation, a seven-day NOAA source-identity
+      recheck, zero unresolved corrections, private `0600` evidence outside Git/Codex, 30-day raw
+      response disposal, and an aggregate-only receipt. The verifier rejects digest/catalog/
+      artifact drift, extra or identifying fields, unsafe correction text, stale evidence, role
+      overlap, incomplete coverage, invented score/navigation authority, and provider execution.
+      No real response, accepted receipt, score change, model evidence, or deployment exists yet.
 - [ ] Add striped bass as the first new beta using a distinct estuary/migration model.
 - [ ] Define and evaluate explicit shore-relevant rockfish species/complexes next; then model
   cabezon as its own taxon; then split surfperch into defensible habitat/taxon groups. Each beta

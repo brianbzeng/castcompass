@@ -44,6 +44,7 @@ jobs:
       - run: npm run security:pollution-score-independent-review
       - run: npm run security:water-quality-mapping-independent-review
       - run: npm run security:santa-barbara-access-review
+      - run: npm run security:santa-barbara-structure-depth-review
       - run: npm run build:cloudflare
       - name: Build deterministic release artifacts
         run: |

@@ -238,5 +238,12 @@ reviewed:
 5. any scoring use needs a separately frozen policy, independent habitat review,
    and prospective validation against the unchanged baseline.
 
+The blank
+[Santa Barbara structure/depth review packet](SANTA-BARBARA-STRUCTURE-DEPTH-REVIEW.md)
+now provides the first executable review path for items 1 and 2 across the 14
+South Coast sites. It requires disjoint local-angler and chart/GIS roles, current
+source-identity evidence, private raw answers, and an aggregate-only receipt.
+Preparing that packet is not the review itself and does not close any item above.
+
 No production, Cloudflare, database, provider, or deployment change is part of
 this repository slice.

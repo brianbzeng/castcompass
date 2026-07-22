@@ -94,7 +94,9 @@ Two owner-requested goals remain incomplete:
    resolution, missing numeric positional accuracy/uncertainty, display-only
    permission, and `scoreDelta: null`. Local sector review, dynamic habitat
    sources, per-location visual acceptance, and any separately validated model
-   use remain open. See [STRUCTURE-DEPTH-EVIDENCE.md](STRUCTURE-DEPTH-EVIDENCE.md).
+   use remain open. See [STRUCTURE-DEPTH-EVIDENCE.md](STRUCTURE-DEPTH-EVIDENCE.md)
+   and the unexecuted
+   [Santa Barbara structure/depth review packet](SANTA-BARBARA-STRUCTURE-DEPTH-REVIEW.md).
 
 The broader goals remain unchecked in the product roadmap. The implemented
 advisory slices can exclude an exactly mapped San Francisco site or a supported

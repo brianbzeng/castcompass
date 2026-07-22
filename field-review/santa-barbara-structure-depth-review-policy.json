@@ -1,0 +1,261 @@
+{
+  "schemaVersion": "castingcompass.santa-barbara-structure-depth-review/1.0.0",
+  "status": "template_only_not_executed",
+  "reviewedOn": "2026-07-22",
+  "purpose": "Collect privacy-minimized local-angler and independent chart-method review of the display-only Santa Barbara structure and depth context without collecting fishing outcomes or authorizing score, navigation, model, or deployment use.",
+  "geography": {
+    "label": "Santa Barbara South Coast",
+    "scope": "Gaviota through Rincon",
+    "expectedSiteCount": 14
+  },
+  "sourceBoundary": {
+    "artifactPath": "public/data/structure-depth.json",
+    "artifactSchemaVersion": "castingcompass.structure-depth-evidence/1.5.0",
+    "catalogPath": "data/sites.json",
+    "sourcePolicyPath": "structure-depth/policy.json",
+    "sourceSnapshotPath": "structure-depth/noaa-enc-approach-snapshot.json",
+    "collectorPath": "scripts/refresh_structure_depth.py",
+    "sourceId": "noaa-enc-direct-approach",
+    "usageBand": "Approach",
+    "depthUnits": "meters",
+    "verticalDatum": "Mean Lower Low Water (MLLW)",
+    "numericContributionAllowed": false,
+    "catalogMutationAllowed": false,
+    "navigationUseAllowed": false
+  },
+  "storage": {
+    "responseLocation": "private_outside_repository",
+    "repositoryState": "blank_policy_and_aggregate_receipt_only",
+    "rawResponseRetentionDaysAfterDecision": 30,
+    "privateEvidenceDigestRequiredForAggregateReceipt": true
+  },
+  "prohibitedFields": [
+    "reviewer_name",
+    "contact_information",
+    "account_or_user_id",
+    "exact_visit_timestamp",
+    "precise_coordinates",
+    "private_access_directions",
+    "catch_or_trip_outcomes",
+    "trip_notes",
+    "photos_or_video",
+    "credentials_or_tokens"
+  ],
+  "evidence": {
+    "schemaVersion": "castingcompass.santa-barbara-structure-depth-review-evidence/1.0.0",
+    "maximumFileBytes": 262144,
+    "maximumResponsesPerSiteAndRole": 10,
+    "maximumObservedMonthAgeMonths": 6,
+    "maximumChartReviewAgeDays": 30,
+    "maximumFutureSkewMinutes": 5
+  },
+  "responseStates": {
+    "local": [
+      "matches_context",
+      "correction_needed",
+      "not_observed",
+      "uncertain"
+    ],
+    "chart": [
+      "accepted",
+      "changes_required",
+      "unable_to_assess"
+    ]
+  },
+  "questions": {
+    "local": [
+      {
+        "id": "sector_direction",
+        "prompt": "Does the generalized offshore sector point toward the water area a shore user would associate with this public location?"
+      },
+      {
+        "id": "depth_band_usefulness",
+        "prompt": "Are the displayed broad chart bands useful only as offshore context without implying a castable or shore-reachable depth?"
+      },
+      {
+        "id": "charted_feature_usefulness",
+        "prompt": "Are the displayed chart-feature classes useful without implying that every feature is visible, reachable, safe, or fishable?"
+      },
+      {
+        "id": "catalog_clue_fit",
+        "prompt": "Do the generalized structure clues match conditions commonly associated with the public location without identifying a precise spot?"
+      },
+      {
+        "id": "display_limitations",
+        "prompt": "Does the display make the age, datum, uncertainty, non-navigation, and non-scoring limits clear enough?"
+      }
+    ],
+    "chart": [
+      {
+        "id": "source_product_fit",
+        "prompt": "Is the fixed NOAA ENC Direct Approach product appropriate for the limited display-only context claimed?"
+      },
+      {
+        "id": "sector_reproducibility",
+        "prompt": "Is the configured sector geometry reproducible and appropriately described without claiming a measured cast envelope?"
+      },
+      {
+        "id": "units_and_datum",
+        "prompt": "Are meters and the MLLW chart-datum boundary represented accurately and conservatively?"
+      },
+      {
+        "id": "source_dates",
+        "prompt": "Are exact, partial, old, and missing source dates preserved without invented precision?"
+      },
+      {
+        "id": "uncertainty_disclosure",
+        "prompt": "Are unavailable resolution, positional-accuracy, and numeric-uncertainty fields disclosed instead of represented as zero?"
+      },
+      {
+        "id": "feature_class_claim",
+        "prompt": "Are selected chart-feature classes displayed without claiming a complete structure inventory or precise feature geometry?"
+      }
+    ]
+  },
+  "publicReceipt": {
+    "schemaVersion": "castingcompass.santa-barbara-structure-depth-review-receipt/1.0.0",
+    "allowedFields": [
+      "schema_version",
+      "evaluated_at",
+      "reviewed_commit",
+      "catalog_sha256",
+      "structure_depth_artifact_sha256",
+      "structure_depth_policy_sha256",
+      "review_policy_sha256",
+      "private_evidence_sha256",
+      "read_only",
+      "provider_query_performed",
+      "production_change_authorized",
+      "local_response_count",
+      "qualifying_local_response_count",
+      "chart_response_count",
+      "qualifying_chart_response_count",
+      "distinct_local_reviewer_count",
+      "distinct_chart_reviewer_count",
+      "site_count",
+      "passing_local_site_count",
+      "passing_chart_site_count",
+      "passing_site_count",
+      "unresolved_correction_count",
+      "source_identity_recheck_current",
+      "raw_response_disposal_due_at",
+      "structure_depth_review_accepted",
+      "score_use_authorized",
+      "navigation_use_authorized",
+      "deployment_authorization_granted",
+      "model_validation_evidence_granted",
+      "blockers"
+    ],
+    "blockerCodes": [
+      "distinct-local-reviewers-insufficient",
+      "distinct-chart-reviewers-insufficient",
+      "reviewer-role-overlap",
+      "local-response-stale",
+      "chart-review-stale",
+      "local-responses-incomplete",
+      "chart-responses-incomplete",
+      "source-recheck-incomplete",
+      "source-recheck-stale",
+      "unresolved-corrections"
+    ]
+  },
+  "acceptance": {
+    "minimumLocalReviewsPerSite": 1,
+    "minimumChartReviewsPerSite": 1,
+    "minimumDistinctLocalReviewersAcrossRegion": 2,
+    "minimumDistinctChartReviewersAcrossRegion": 1,
+    "reviewerRolesMustBeDisjoint": true,
+    "sourceIdentityRecheckWithinDays": 7,
+    "maximumUnresolvedCorrections": 0,
+    "scoreUseAuthorized": false,
+    "navigationUseAuthorized": false,
+    "deploymentAuthorizationGranted": false,
+    "modelValidationEvidenceGranted": false
+  },
+  "sites": [
+    {
+      "siteId": "gaviota-state-park-beach",
+      "name": "Gaviota State Park Beach",
+      "localReviewState": "pending",
+      "chartReviewState": "pending"
+    },
+    {
+      "siteId": "refugio-state-beach",
+      "name": "Refugio State Beach",
+      "localReviewState": "pending",
+      "chartReviewState": "pending"
+    },
+    {
+      "siteId": "el-capitan-state-beach",
+      "name": "El Capitán State Beach",
+      "localReviewState": "pending",
+      "chartReviewState": "pending"
+    },
+    {
+      "siteId": "haskells-beach",
+      "name": "Haskell's Beach",
+      "localReviewState": "pending",
+      "chartReviewState": "pending"
+    },
+    {
+      "siteId": "goleta-beach",
+      "name": "Goleta Beach",
+      "localReviewState": "pending",
+      "chartReviewState": "pending"
+    },
+    {
+      "siteId": "arroyo-burro-beach",
+      "name": "Arroyo Burro Beach",
+      "localReviewState": "pending",
+      "chartReviewState": "pending"
+    },
+    {
+      "siteId": "mesa-lane-beach",
+      "name": "Mesa Lane Steps Beach",
+      "localReviewState": "pending",
+      "chartReviewState": "pending"
+    },
+    {
+      "siteId": "leadbetter-beach",
+      "name": "Leadbetter Beach",
+      "localReviewState": "pending",
+      "chartReviewState": "pending"
+    },
+    {
+      "siteId": "santa-barbara-harbor-breakwater",
+      "name": "Santa Barbara Harbor Breakwater",
+      "localReviewState": "pending",
+      "chartReviewState": "pending"
+    },
+    {
+      "siteId": "stearns-wharf",
+      "name": "Stearns Wharf",
+      "localReviewState": "pending",
+      "chartReviewState": "pending"
+    },
+    {
+      "siteId": "east-beach-santa-barbara",
+      "name": "East Beach (Santa Barbara)",
+      "localReviewState": "pending",
+      "chartReviewState": "pending"
+    },
+    {
+      "siteId": "summerland-beach-lookout-park",
+      "name": "Summerland Beach (Lookout Park)",
+      "localReviewState": "pending",
+      "chartReviewState": "pending"
+    },
+    {
+      "siteId": "carpinteria-state-beach",
+      "name": "Carpinteria State Beach",
+      "localReviewState": "pending",
+      "chartReviewState": "pending"
+    },
+    {
+      "siteId": "rincon-beach-park",
+      "name": "Rincon Beach Park",
+      "localReviewState": "pending",
+      "chartReviewState": "pending"
+    }
+  ]
+}

@@ -13,6 +13,38 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — Santa Barbara structure/depth independent review handoff
+
+- [x] Reconcile the map goal against the current artifact before adding more claims. All 61 launch
+      locations already have source-bound NOAA ENC `Approach` chart context; every depth/structure
+      record remains display-only, `scoreDelta` remains null, exact structure geometry remains
+      private, and catalog clues remain explicitly unvalidated by that source.
+- [x] Prepare a privacy-minimized 14-site Santa Barbara/Goleta review contract rather than treating
+      friends' trips as model or chart evidence. Each site requires one current generalized local-
+      angler response and one independent chart/GIS response; the region requires two distinct
+      local reviewers, at least one chart reviewer, and disjoint reviewer-role keys.
+- [x] Bind the blank private template to the exact reviewed commit, catalog, public structure/depth
+      artifact, source policy, source snapshot, and collector. A qualifying chart reviewer must
+      also record a seven-day NOAA program/service/hash/limitations recheck. Numeric score,
+      catalog mutation, navigation, model-validation, deployment, and production authority remain
+      false in policy, evidence, write receipt, and aggregate review receipt.
+- [x] Keep raw evidence outside Git and Codex in a current-user-owned, one-link, non-symlink `0600`
+      file. The guarded writer refuses checkout paths, broad/symlinked directories, and overwrite;
+      correction text rejects links, contacts, coordinates, phone-like strings, control bytes,
+      and common credential forms; raw answers expire 30 days after the review decision.
+- [x] Attack-test the handoff locally: complete disjoint evidence yields only an aggregate receipt,
+      while missing/stale review, source-recheck failure, role overlap, unresolved corrections,
+      digest or catalog drift, extra fields, unsafe text, duplicate identities, score authority,
+      and provider/process paths fail closed. Focused review and release-inventory tests pass 10/10;
+      the Cloudflare build and all 680/680 repository Node tests pass; ESLint, TypeScript, the
+      complete security/SBOM/policy chain, and both zero-vulnerability npm audits pass under the
+      pinned Node/npm toolchain.
+- [ ] Obtain the actual private local-angler and independent chart/GIS responses, resolve every
+      correction in a new exact artifact, retain only the minimized accepted receipt and private
+      digest, then extend the same independently reviewed pattern across the remaining 47 sites.
+      This prepared handoff does not authorize a merge, deployment, provider mutation, score use,
+      navigation use, model claim, or production activation.
+
 ## Active checkpoint — fail-closed MapLibre raster cancellation boundary
 
 - [x] Reproduce the demo failure against Vinext development mode before changing code. Opening
