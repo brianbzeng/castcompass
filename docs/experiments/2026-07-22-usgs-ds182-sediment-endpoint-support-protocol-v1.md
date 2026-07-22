@@ -105,10 +105,12 @@ A row is endpoint-valid only when all of the following predeclared conditions ho
 
 Any missing required column, duplicate column after ASCII-case canonicalization, unsafe archive
 member, unsupported delimiter or encoding, malformed row, non-finite number, sentinel in a
-required value, or archive/member checksum mismatch fails the audit closed. Rows that are
-well-formed but fail one of the declared endpoint criteria are counted under every applicable
-reason and excluded; no value is imputed, normalized to 100, rounded into compliance, or replaced
-from another field.
+required identity or coordinate, or archive/member checksum mismatch fails the audit closed. The
+published `-99` no-data sentinel in the explicitly filterable `SampleTop`, `Gravel`, `Sand`, or
+`Mud` fields is instead a declared well-formed row-level exclusion, as specified in criteria 5
+through 7. Rows that are well-formed but fail one of the declared endpoint criteria are counted
+under every applicable reason and excluded; no value is imputed, normalized to 100, rounded into
+compliance, or replaced from another field.
 
 ## Identity, duplication, and leakage
 
@@ -117,8 +119,10 @@ from another field.
 
 - Repeated identical rows for one `SampleKey` are reported and admitted at most once.
 - Conflicting endpoint values or identifiers for one `SampleKey` fail the audit closed.
-- A `SiteKey` appearing under multiple `DataSetKey` values, or at materially different
-  coordinates, fails closed rather than being guessed or split.
+- A `SiteKey` appearing under multiple `DataSetKey` values, or with reported longitude or latitude
+  differing by more than `0.00001` degree across its rows, fails closed rather than being guessed
+  or split. That fixed tolerance is approximately the source table's five-decimal coordinate
+  resolution and is not changed after composition values are read.
 - Multiple valid samples at one `SiteKey` remain in the same side of every split. A later modeling
   protocol must declare a label-blind aggregation rule or retain repeated measurements with
   site-clustered evaluation; this screen does neither.
