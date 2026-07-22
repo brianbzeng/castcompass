@@ -13,6 +13,31 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — fail-closed API policy conflict resolution
+
+- [x] Reconcile route-policy precedence against the deny-by-default access-control promise. The
+      executable resolver previously used first-match array order, so a future broad matcher that
+      overlapped a narrower path for the same method could silently choose the wrong handler,
+      actor, legal, same-origin, or abuse-control row.
+- [x] Require exactly one matching policy for every admitted API request. Zero matches retain the
+      existing generic `404`/policy-derived `405` behavior; two or more matches now produce a
+      generic non-cacheable `503` with no `Allow` disclosure before body parsing or handler
+      dispatch. Registry order no longer grants authority.
+- [x] Preserve the union of every matching policy's stronger abuse-limit tags while a conflicting
+      request is rejected. A conflicting route cannot shed an `auth`, `email`, or `sensitive`
+      ceiling merely because singleton resolution correctly refuses to select a policy.
+- [x] Attack-test conflicting owner/public handlers, wildcard/specific-method overlap, unique
+      wildcard resolution, narrow `Allow` behavior, and central source ordering. The focused route
+      suite passes 7/7 under pinned Node 22.23.1/npm 10.9.8; ESLint and TypeScript pass.
+- [x] Complete local exact-tree acceptance. The production-off Cloudflare build and all 690/690
+      Node tests pass; the explicit feature-on photo build and 8/8 Chromium/WebKit cases pass; the
+      production-off phone matrix passes 228/228 across four Chromium/WebKit profiles; and the
+      complete security/SBOM/query-policy chain plus both npm audits pass with zero reported
+      vulnerabilities.
+- [ ] Obtain exact-head hosted CI and CodeQL evidence and independent human review. This
+      repository boundary does not authorize merge, deployment, provider mutation, migration,
+      feature activation, staging exercise, or production acceptance.
+
 ## Active checkpoint — fail-closed API path-and-method inventory
 
 - [x] Reconcile the executable access-control promise against the actual router. The registry
@@ -34,9 +59,14 @@ by that discovery.
       8/8 across Chromium/WebKit; and the production-off phone matrix remains 228/228 across four
       Chromium/WebKit profiles. ESLint, TypeScript, the complete security/SBOM/query-policy chain,
       and both dependency audits pass with zero reported vulnerabilities.
-- [ ] Obtain exact-head hosted CI and CodeQL evidence plus independent human review. This
-      repository boundary does not authorize merge, deployment, provider mutation, migration,
-      feature activation, staging exercise, or production acceptance.
+- [x] Obtain exact-head hosted evidence through consolidated head
+      `59c183ed403e5ce9df91182ecfaba82549df72bc`: CI run `29959047232`, CodeQL run
+      `29959045029`, optional research-stack run `29959047188`, native API-image run
+      `29959047130`, and release-provenance run `29959047126` all passed. This is automation
+      evidence, not review.
+- [ ] Obtain independent human review. This repository boundary does not authorize merge,
+      deployment, provider mutation, migration, feature activation, staging exercise, or
+      production acceptance.
 
 ## Active checkpoint — truthful dormant trip-photo interaction boundary
 
@@ -3321,7 +3351,8 @@ supersedes this mutation-metadata authority while preserving its fail-closed beh
       vulnerability response, restore testing, and authorized staging penetration testing.
       **Most repository controls complete; the 13-layer owner reference mapping and zero-execution
       npm install-script boundary are locally complete.** The executable route registry also
-      rejects unclassified methods on known paths before body reads or handler dispatch.
+      rejects unclassified methods on known paths before body reads or handler dispatch, and
+      refuses overlapping same-request policies instead of granting first-match precedence.
       Production/provider/staging gates remain, including isolated DAST, active edge filtering,
       live detection/alerting, key custody, and independent review.
 - [ ] Complete the privacy lifecycle: data inventory, cascade map, deletion semantics,

@@ -143,6 +143,12 @@ after its acceptance checks pass in the intended environment.
       this rejection after the generic abuse ceiling but before body reads and every API handler
       dispatch. Exhaustive policy examples cover ordinary and extension methods, and source-order
       tests keep the central boundary ahead of request parsing and handlers.
+    - [x] Remove first-match precedence from the executable access-control registry. A request is
+      admitted only when exactly one policy claims its path and method; overlapping policies now
+      return a generic non-cacheable `503` before body parsing and handler dispatch instead of
+      allowing array order to choose an actor, handler, same-origin, legal, or abuse-control
+      contract. Rejected conflicts retain the union of stronger abuse-limit tags, and synthetic
+      owner/public plus wildcard/specific-method collisions prove the boundary fails closed.
     - [x] Bind active-trip completion and cancellation to the authenticated account in both
       the handler precheck and the final D1 update. The write now requires the same trip ID,
       account ID, active state, and token hash atomically; exact-token cross-account and

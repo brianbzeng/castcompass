@@ -155,6 +155,56 @@ test("every unclassified method on a known API path has an exact central Allow c
   assert.equal(apiRouteRejectionForRequest(request("/privacy", "POST")), null);
 });
 
+test("overlapping policies fail closed instead of granting first-match precedence", () => {
+  const tripStart = API_ROUTE_POLICIES.find((policy) => policy.id === "trips.start");
+  assert.ok(tripStart);
+  const conflicting = {
+    ...tripStart,
+    id: "synthetic.conflicting_trip_start",
+    authorization: "public",
+    handler: "account",
+    sameOriginRequired: false,
+    currentLegalAcceptanceRequired: false,
+    rateLimitTags: ["sensitive"],
+  };
+  const registry = [...API_ROUTE_POLICIES, conflicting];
+  const post = request("/api/trips/start", "POST");
+
+  assert.equal(apiRoutePolicyForRequest(post, registry), null);
+  assert.deepEqual(apiRouteRejectionForRequest(post, registry), {
+    status: 503,
+    code: "route_unavailable",
+    message: "This API route is temporarily unavailable.",
+    allowedMethods: [],
+  });
+  assert.deepEqual(allowedApiMethodsForPath("/api/trips/start", registry), ["POST"]);
+  assert.deepEqual(rateLimitClassesForRequest(post, registry), ["sensitive", "write"]);
+
+  const retiredSignup = API_ROUTE_POLICIES.find((policy) => policy.id === "auth.signup_retired");
+  assert.ok(retiredSignup);
+  const conflictingSignup = {
+    ...retiredSignup,
+    id: "synthetic.conflicting_signup",
+    methods: ["POST"],
+    authorization: "owner",
+    sameOriginRequired: true,
+    rateLimitTags: ["auth"],
+  };
+  const signupRegistry = [retiredSignup, conflictingSignup];
+
+  assert.deepEqual(apiRouteRejectionForRequest(request("/api/auth/signup", "POST"), signupRegistry), {
+    status: 503,
+    code: "route_unavailable",
+    message: "This API route is temporarily unavailable.",
+    allowedMethods: [],
+  });
+  assert.equal(
+    apiRoutePolicyForRequest(request("/api/auth/signup", "OPTIONS"), signupRegistry)?.id,
+    "auth.signup_retired",
+  );
+  assert.deepEqual(rateLimitClassesForRequest(request("/api/auth/signup", "POST"), signupRegistry), ["auth"]);
+});
+
 test("every literal route branch in Worker handlers is represented in the policy registry", async () => {
   const files = ["auth.ts", "trips.ts", "turnstile.ts", "security.ts"];
   for (const file of files) {

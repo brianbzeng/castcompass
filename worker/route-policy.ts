@@ -2,9 +2,10 @@
  * Executable API access-control inventory.
  *
  * A Worker API route does not exist until it is classified here. The entry
- * point returns a generic 404 for unclassified API paths and a registry-derived
- * 405 for unclassified methods, so adding a handler branch without adding its
- * security policy fails closed.
+ * point returns a generic 404 for unclassified API paths, a registry-derived
+ * 405 for unclassified methods, and a generic 503 when more than one policy
+ * claims the same request. Adding or overlapping a handler branch without one
+ * unambiguous security policy therefore fails closed.
  */
 
 export type ApiAuthorization = "public" | "optional_session" | "receipt" | "owner";
@@ -27,8 +28,8 @@ export interface ApiRoutePolicy {
 }
 
 export interface ApiRouteRejection {
-  status: 404 | 405;
-  code: "not_found" | "method_not_allowed";
+  status: 404 | 405 | 503;
+  code: "not_found" | "method_not_allowed" | "route_unavailable";
   message: string;
   allowedMethods: readonly ApiMethod[];
 }
@@ -363,15 +364,30 @@ export const API_ROUTE_POLICIES: readonly ApiRoutePolicy[] = [
   ),
 ];
 
-export function apiRoutePolicyForRequest(request: Request): ApiRoutePolicy | null {
+function apiRoutePoliciesForRequest(
+  request: Request,
+  policies: readonly ApiRoutePolicy[],
+): readonly ApiRoutePolicy[] {
   const { pathname } = new URL(request.url);
-  return API_ROUTE_POLICIES.find((policy) =>
+  return policies.filter((policy) =>
     policy.matches(pathname) && (policy.methods.includes("*") || policy.methods.includes(request.method as ApiMethod))
-  ) ?? null;
+  );
 }
 
-export function isKnownApiPath(pathname: string) {
-  return API_ROUTE_POLICIES.some((policy) => policy.matches(pathname));
+/** Admit a request only when exactly one executable policy claims it. */
+export function apiRoutePolicyForRequest(
+  request: Request,
+  policies: readonly ApiRoutePolicy[] = API_ROUTE_POLICIES,
+): ApiRoutePolicy | null {
+  const matches = apiRoutePoliciesForRequest(request, policies);
+  return matches.length === 1 ? matches[0] : null;
+}
+
+export function isKnownApiPath(
+  pathname: string,
+  policies: readonly ApiRoutePolicy[] = API_ROUTE_POLICIES,
+) {
+  return policies.some((policy) => policy.matches(pathname));
 }
 
 const API_METHOD_ORDER: readonly ApiMethod[] = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"];
@@ -384,18 +400,34 @@ const API_METHOD_ORDER: readonly ApiMethod[] = ["GET", "HEAD", "POST", "PUT", "P
  * method before any handler can accidentally grow a new route outside the
  * access-control matrix.
  */
-export function allowedApiMethodsForPath(pathname: string): readonly ApiMethod[] {
-  const policies = API_ROUTE_POLICIES.filter((policy) => policy.matches(pathname));
-  if (policies.some((policy) => policy.methods.includes("*"))) return ["*"];
-  const allowed = new Set(policies.flatMap((policy) => policy.methods));
+export function allowedApiMethodsForPath(
+  pathname: string,
+  policies: readonly ApiRoutePolicy[] = API_ROUTE_POLICIES,
+): readonly ApiMethod[] {
+  const pathPolicies = policies.filter((policy) => policy.matches(pathname));
+  if (pathPolicies.some((policy) => policy.methods.includes("*"))) return ["*"];
+  const allowed = new Set(pathPolicies.flatMap((policy) => policy.methods));
   return API_METHOD_ORDER.filter((method) => allowed.has(method));
 }
 
-/** Classify only API requests that the executable policy does not admit. */
-export function apiRouteRejectionForRequest(request: Request): ApiRouteRejection | null {
+/** Reject API requests that have zero or multiple executable policy matches. */
+export function apiRouteRejectionForRequest(
+  request: Request,
+  policies: readonly ApiRoutePolicy[] = API_ROUTE_POLICIES,
+): ApiRouteRejection | null {
   const { pathname } = new URL(request.url);
-  if (!pathname.startsWith("/api/") || apiRoutePolicyForRequest(request)) return null;
-  const allowedMethods = allowedApiMethodsForPath(pathname);
+  if (!pathname.startsWith("/api/")) return null;
+  const matches = apiRoutePoliciesForRequest(request, policies);
+  if (matches.length === 1) return null;
+  if (matches.length > 1) {
+    return {
+      status: 503,
+      code: "route_unavailable",
+      message: "This API route is temporarily unavailable.",
+      allowedMethods: [],
+    };
+  }
+  const allowedMethods = allowedApiMethodsForPath(pathname, policies);
   if (allowedMethods.length > 0) {
     return {
       status: 405,
@@ -412,14 +444,20 @@ export function apiRouteRejectionForRequest(request: Request): ApiRouteRejection
   };
 }
 
-export function rateLimitClassesForRequest(request: Request): RequestLimitClass[] {
+export function rateLimitClassesForRequest(
+  request: Request,
+  policies: readonly ApiRoutePolicy[] = API_ROUTE_POLICIES,
+): RequestLimitClass[] {
   const { pathname } = new URL(request.url);
-  if (!pathname.startsWith("/api/") || pathname === "/api/health") return [];
+  if (!pathname.startsWith("/api/")) return [];
 
-  const policy = apiRoutePolicyForRequest(request);
+  const matchingPolicies = apiRoutePoliciesForRequest(request, policies);
+  if (pathname === "/api/health" && matchingPolicies.length <= 1) return [];
   const classes = new Set<RequestLimitClass>();
   if (request.method === "GET" || request.method === "HEAD") classes.add("read");
-  for (const tag of policy?.rateLimitTags ?? []) classes.add(tag);
+  for (const policy of matchingPolicies) {
+    for (const tag of policy.rateLimitTags) classes.add(tag);
+  }
   if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method) && !classes.has("auth")) {
     classes.add("write");
   }
