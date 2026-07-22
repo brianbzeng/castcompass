@@ -5,6 +5,7 @@ import sites from "../public/data/sites.json";
 import { handleTripRequest, type TripApiEnv } from "./trips";
 import {
   authorizeDeletionReceiptRequest,
+  authorizeOptionalSessionRequest,
   authorizeOwnerRequest,
   handleAccountRequest,
   legalAcceptanceRequiredResponse,
@@ -175,6 +176,13 @@ async function handleFetchRequest(request: Request, env: Env, ctx: ExecutionCont
     }
     const receiptAuthorization = await authorizeDeletionReceiptRequest(request, env);
     if (receiptAuthorization.response) return receiptAuthorization.response;
+  }
+  if (apiPolicy?.authorization === "optional_session") {
+    if (apiPolicy.id !== "auth.session" && apiPolicy.id !== "auth.logout") {
+      return routePolicyUnavailableResponse();
+    }
+    const optionalSessionAuthorization = await authorizeOptionalSessionRequest(request, env);
+    if (optionalSessionAuthorization.response) return optionalSessionAuthorization.response;
   }
 
   const guarded = await guardRequestBody(request);

@@ -256,6 +256,10 @@ export type DeletionReceiptAuthorizationResult =
   | { response: null }
   | { response: Response };
 
+export type OptionalSessionAuthorizationResult =
+  | { response: null }
+  | { response: Response };
+
 /**
  * Resolve registry-declared owner access before a protected request body is read.
  * Receipt routes use their separate resource-token preflight, while optional-
@@ -287,6 +291,46 @@ export async function authorizeOwnerRequest(
     return { session, response: null };
   } catch (error) {
     return { session: null, response: accountRequestErrorResponse(error) };
+  }
+}
+
+/**
+ * Bind the registry's optional-session class to the two reviewed account
+ * routes before a request body is read. These routes intentionally admit an
+ * anonymous caller, but account storage and schema still have to be readable;
+ * any future optional-session route must receive its own explicit preflight.
+ */
+export async function authorizeOptionalSessionRequest(
+  request: Request,
+  env: AuthApiEnv,
+): Promise<OptionalSessionAuthorizationResult> {
+  const url = new URL(request.url);
+  const reviewedRoute =
+    (request.method === "GET" && url.pathname === "/api/auth/session") ||
+    (request.method === "POST" && url.pathname === "/api/auth/logout");
+  if (!reviewedRoute) {
+    return {
+      response: errorResponse(
+        503,
+        "route_unavailable",
+        "This API route is temporarily unavailable.",
+      ),
+    };
+  }
+  if (!env.DB) {
+    return {
+      response: errorResponse(
+        503,
+        "storage_unavailable",
+        "Account storage is temporarily unavailable.",
+      ),
+    };
+  }
+  try {
+    await initialize(env.DB);
+    return { response: null };
+  } catch (error) {
+    return { response: accountRequestErrorResponse(error) };
   }
 }
 
@@ -406,7 +450,7 @@ export async function handleAccountRequest(
         return jsonResponse(
           { user: null },
           200,
-          presentedSessionTokens(request).length > 0 ? clearSessionCookies(request) : undefined,
+          hasPresentedSessionCookie(request) ? clearSessionCookies(request) : undefined,
         );
       }
       if (
@@ -4659,6 +4703,11 @@ function presentedSessionTokens(request: Request) {
     tokens.push({ cookieName, token });
   }
   return tokens;
+}
+
+function hasPresentedSessionCookie(request: Request) {
+  const cookies = parseCookies(request.headers.get("Cookie") ?? "");
+  return cookies.has(SESSION_COOKIE) || cookies.has(LEGACY_SESSION_COOKIE);
 }
 
 async function revokePresentedSessions(

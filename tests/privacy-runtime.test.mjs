@@ -5,6 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import {
   authorizeDeletionReceiptRequest,
+  authorizeOptionalSessionRequest,
   authorizeOwnerRequest,
   cleanupAuthData,
   cleanupAuthRetentionData,
@@ -625,6 +626,14 @@ test("expired and deleted-account sessions fail closed", async () => {
     cookie: deleted.cookie,
   }), { DB: d1 }, []);
   assert.deepEqual(await deletedResponse.json(), { user: null });
+
+  const malformedResponse = await handleAccountRequest(request("/api/auth/session", {
+    cookie: "__Host-cc_session=not-valid; cc_session=",
+  }), { DB: d1 }, []);
+  assert.deepEqual(await malformedResponse.json(), { user: null });
+  const clearedCookies = (malformedResponse.headers.getSetCookie?.() ?? []).join("\n");
+  assert.match(clearedCookies, /__Host-cc_session=;.*Max-Age=0/u);
+  assert.match(clearedCookies, /cc_session=;.*Max-Age=0/u);
 });
 
 test("scheduled authentication retention deletes bounded batches and drains old rows", async () => {
@@ -3041,6 +3050,42 @@ test("deletion-receipt preflight fails closed and the handler repeats live token
   assert.equal(removedBeforeExecution?.status, 404);
   assert.equal((await removedBeforeExecution.json()).error.code, "deletion_receipt_not_found");
 
+  missingSchemaSqlite.close();
+});
+
+test("optional-session preflight binds only the reviewed routes and requires readable account storage", async () => {
+  const unavailable = await authorizeOptionalSessionRequest(
+    request("/api/auth/session"),
+    {},
+  );
+  assert.equal(unavailable.response?.status, 503);
+  assert.equal((await unavailable.response.json()).error.code, "storage_unavailable");
+
+  const wrongRoute = await authorizeOptionalSessionRequest(
+    request("/api/auth/login", { method: "POST", body: {} }),
+    {},
+  );
+  assert.equal(wrongRoute.response?.status, 503);
+  assert.equal((await wrongRoute.response.json()).error.code, "route_unavailable");
+
+  const missingSchemaSqlite = new DatabaseSync(":memory:");
+  const missingSchema = await authorizeOptionalSessionRequest(
+    request("/api/auth/session"),
+    { DB: new TransactionalD1Adapter(missingSchemaSqlite) },
+  );
+  assert.equal(missingSchema.response?.status, 503);
+  assert.equal((await missingSchema.response.json()).error.code, "auth_schema_unavailable");
+
+  const { sqlite, d1 } = await database();
+  const session = await authorizeOptionalSessionRequest(request("/api/auth/session"), { DB: d1 });
+  const logout = await authorizeOptionalSessionRequest(
+    request("/api/auth/logout", { method: "POST" }),
+    { DB: d1 },
+  );
+  assert.equal(session.response, null);
+  assert.equal(logout.response, null);
+
+  sqlite.close();
   missingSchemaSqlite.close();
 });
 

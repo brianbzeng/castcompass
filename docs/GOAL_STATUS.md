@@ -13,6 +13,37 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — registry-enforced optional-session boundary
+
+- [x] Reconcile the two optional-session policies against Worker execution. Session discovery and
+      logout intentionally accept callers without a live session, but the registry class had no
+      central preflight and therefore did not bind future optional-session routes to an explicit
+      storage, schema, path, or method contract before body guarding.
+- [x] Bind the class to exactly `GET /api/auth/session` and same-origin
+      `POST /api/auth/logout`. Any other policy marked `optional_session` now receives a generic
+      non-cacheable `503`; both reviewed routes require readable D1 account storage and the exact
+      authentication schema before body guarding while preserving anonymous use.
+- [x] Keep execution-time semantics live and narrow. Session discovery still resolves the current
+      database row and returns `{ user: null }` for absent, expired, removed, unknown, or malformed
+      cookies; any presented invalid host/legacy cookie is now expired so the browser cannot stay
+      pinned to stale state. Logout still clears browser cookies only after exact D1 absence is
+      readable for every well-formed presented token.
+- [x] Add adversarial coverage for missing storage, unreviewed routes, missing schema, both exact
+      routes, malformed-cookie cleanup, central source order, and an unread logout body. The
+      focused account and production-bundle registry suites pass under pinned Node 22.23.1/npm
+      10.9.8.
+- [x] Complete exact-tree local acceptance. The production-off Cloudflare build and all 696/696
+      Node tests pass; the focused executable route suite passes 10/10; the explicit feature-on
+      photo build and 8/8 Chromium/WebKit cases pass; the restored production-off phone matrix
+      passes 228/228 across four profiles; and ESLint, TypeScript, the complete security/SBOM/
+      query-policy chain, and both npm audits pass with zero reported vulnerabilities. The
+      refreshed D1 inventory remains 254 prepare sites and the release SBOM binds its new hash.
+- [ ] Obtain exact-head hosted CI and CodeQL evidence. This automation gate does not replace
+      independent review or authorize a release.
+- [ ] Obtain independent human review. This repository boundary does not authorize merge,
+      deployment, provider mutation, migration, feature activation, staging exercise, or
+      production acceptance.
+
 ## Active checkpoint — registry-enforced deletion-receipt boundary
 
 - [x] Reconcile the remaining non-owner authorization classes against dispatch. The deletion-

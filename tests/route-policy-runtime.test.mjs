@@ -305,17 +305,23 @@ test("the Worker entry point centrally denies unknown paths and unclassified met
   assert.match(source, /if \(apiPolicy\?\.authorization === "receipt"\)/);
   assert.match(source, /apiPolicy\.id !== "privacy\.deletion_status\.read"/);
   assert.match(source, /authorizeDeletionReceiptRequest\(request, env\)/);
+  assert.match(source, /if \(apiPolicy\?\.authorization === "optional_session"\)/);
+  assert.match(source, /apiPolicy\.id !== "auth\.session" && apiPolicy\.id !== "auth\.logout"/);
+  assert.match(source, /authorizeOptionalSessionRequest\(request, env\)/);
   assert.doesNotMatch(source, /url\.pathname\.startsWith\("\/api\/trips\/"\)/);
 
   const rejection = source.indexOf("apiRouteRejectionForRequest(request)");
   const ownerAuthorization = source.indexOf("authorizeOwnerRequest(request, env");
   const receiptAuthorization = source.indexOf("authorizeDeletionReceiptRequest(request, env");
+  const optionalSessionAuthorization = source.indexOf("authorizeOptionalSessionRequest(request, env");
   const bodyGuard = source.indexOf("guardRequestBody(request)");
   assert.ok(rejection >= 0);
   assert.ok(ownerAuthorization > rejection, "owner authorization must follow central route rejection");
   assert.ok(receiptAuthorization > rejection, "receipt authorization must follow central route rejection");
+  assert.ok(optionalSessionAuthorization > rejection, "optional-session preflight must follow central route rejection");
   assert.ok(bodyGuard > ownerAuthorization, "body reads must follow owner authorization");
   assert.ok(bodyGuard > receiptAuthorization, "body reads must follow receipt authorization");
+  assert.ok(bodyGuard > optionalSessionAuthorization, "body reads must follow optional-session preflight");
   for (const dispatch of [
     "handleTurnstileConfigRequest(request, env)",
     "healthResponse(request, env)",
@@ -431,6 +437,16 @@ test("the production bundle dispatches representative API policies without stati
   assert.equal(protectedResponse.status, 503);
   assert.equal((await protectedResponse.json()).error.code, "storage_unavailable");
   assert.equal(protectedRequest.bodyUsed, false, "owner storage/auth rejection must precede body parsing");
+
+  const logoutBody = request("/api/auth/logout", "POST", {
+    Origin: origin,
+    "Content-Type": "application/json",
+  });
+  const logoutRequest = new Request(logoutBody, { body: JSON.stringify({ ignored: true }) });
+  const logoutResponse = await worker.fetch(logoutRequest, baseEnv, ctx);
+  assert.equal(logoutResponse.status, 503);
+  assert.equal((await logoutResponse.json()).error.code, "storage_unavailable");
+  assert.equal(logoutRequest.bodyUsed, false, "optional-session storage rejection must precede body parsing");
 
   const unknown = await worker.fetch(request("/api/not-registered"), baseEnv, ctx);
   assert.equal(unknown.status, 404);

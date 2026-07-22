@@ -187,6 +187,18 @@ after its acceptance checks pass in the intended environment.
       ESLint, TypeScript, the complete security/SBOM/query-policy chain, and both zero-
       vulnerability npm audits. The same reviewed slice also advances Next.js and its matching
       lint config from 16.2.10 to the advisory-fixed 16.2.11 and refreshes deterministic SBOMs.
+    - [x] Make the registry's optional-session class executable without turning anonymous access
+      into owner authority. Only session discovery and same-origin logout may use the class; any
+      future optional-session policy fails with generic `503` until it receives an explicit
+      preflight. Both reviewed routes now require readable D1 account storage and exact schema
+      before body guarding. Session discovery still resolves live identity and returns anonymous
+      state when authority is absent, while expiring any presented invalid, expired, removed, or
+      malformed host/legacy cookie. Logout retains its exact post-revocation absence receipt
+      before clearing browser cookies. Adversarial tests cover route drift, missing storage/schema,
+      malformed-cookie cleanup, and pre-body ordering. Under pinned Node 22.23.1/npm 10.9.8, the
+      production-off build plus all 696/696 Node tests, focused 10/10 route suite, feature-on 8/8
+      photo lane, restored production-off 228/228 mobile matrix, lint, typecheck, full security/
+      SBOM/query-policy chain, and both zero-vulnerability audits pass.
     - [x] Bind active-trip completion and cancellation to the authenticated account in both
       the handler precheck and the final D1 update. The write now requires the same trip ID,
       account ID, active state, and token hash atomically; exact-token cross-account and

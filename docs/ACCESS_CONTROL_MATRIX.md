@@ -92,16 +92,21 @@ policy is the deletion-status read: the central preflight requires a well-formed
 cookie and live hash-bound D1 row before the body guard, and its handler repeats that lookup at
 execution. Any future receipt policy fails closed until it receives its own explicit preflight.
 The same-origin deletion-receipt clear route is intentionally public because it only removes the
-caller's cookie and must remain available without D1; optional-session routes deliberately admit
-both authenticated and anonymous callers and keep their narrow handler semantics. Account and
-trip execution repeat live authorization after body guarding so a concurrent revocation or new
-deletion fence fails closed.
+caller's cookie and must remain available without D1. The optional-session class is limited to
+`GET /api/auth/session` and same-origin `POST /api/auth/logout`; its central preflight requires
+readable account storage and schema before the body guard, while deliberately admitting both
+authenticated and anonymous callers. The session handler then resolves live identity and expires
+any presented invalid, expired, removed, or malformed host/legacy session cookie; logout clears
+the browser cookies only after exact D1 absence is readable for every well-formed presented token.
+Any future optional-session policy fails closed until it receives an explicit preflight. Account
+and trip execution repeat live authorization after body guarding so a concurrent revocation or
+new deletion fence fails closed.
 
 `tests/route-policy-runtime.test.mjs` machine-checks unique route identities, actor,
 CSRF/legal/fence and abuse metadata, representative dynamic resources, malformed and
 lookalike paths, every exact route branch in the Worker handlers, and the central
-pre-body owner and deletion-receipt gates. Object-level ownership and cross-account behavior
-remain covered by the runtime privacy and trip suites. The terminal-trip regression supplies the
+pre-body owner, deletion-receipt, and optional-session gates. Object-level ownership and cross-
+account behavior remain covered by the runtime privacy and trip suites. The terminal-trip regression supplies the
 exact token from a second authenticated account and also changes ownership between the handler
 pre-read and final update; cancellation and completion both remain `404`, and
 the final D1 predicates leave the active row unchanged. All owner-path TripStore reads
