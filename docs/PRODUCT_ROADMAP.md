@@ -513,6 +513,16 @@ after its acceptance checks pass in the intended environment.
     exact commit without a deployment. This item remains open until isolated provider resources,
     written independent authorization, a real public/authenticated/manual exercise,
     remediation/retest, and independent acceptance exist.
+    - [x] Prepare the narrow authenticated advisory-review drill without creating an execution
+      path: lock a private exact-source authorization/schema and plan-only CLI; require one hashed
+      synthetic account plus disjoint ten-trip direct and Queue sets; distinguish client response
+      loss from D1 mutation-receipt loss; and make unique D1/stub identities authoritative rather
+      than summing HTTP queued fields. Add an exact exercise/service-binding/account/stub-version
+      gate and a deterministic no-route stub that rejects credentials, echoes no trip input, and
+      can never fall back to the real provider. Production config is machine-checked to contain
+      none of these bindings or variables. No staging target, Queue, provider, D1, or production
+      resource was contacted; provisioning, authorization, execution, remediation, and independent
+      acceptance remain open.
 - [ ] Complete the privacy lifecycle and deletion policy before broader account recruitment.
   Maintain a data inventory and cascade map covering primary rows, public copies, objects,
   queues, logs, analytics, exports, derived artifacts, and backups; make deletion retries and

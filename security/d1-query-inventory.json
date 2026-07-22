@@ -25,12 +25,12 @@
     },
     {
       "file": "worker/trip-review-queue.ts",
-      "sha256": "b2fdc595f7b16b59f940eb9ad8ea18d2e8abeedd25a46e3412ad9087e736fd43",
+      "sha256": "86f2d9571b9f46e33305f326badb9aa56042fc0bef1184094d1832ac8bd832c2",
       "prepareCallCount": 21
     },
     {
       "file": "worker/trip-review.ts",
-      "sha256": "47730c3b334840d2b07b352147274d49d576acaa2d99faa67911394141962da1",
+      "sha256": "f9f57e21bbc03c50aafc90726e597cadea7e0a2a841e6bd7ac98d746fa33f23c",
       "prepareCallCount": 9
     },
     {
@@ -4041,7 +4041,7 @@
     {
       "callSiteId": "c28ae8d8cab28b58cd995962",
       "file": "worker/trip-review-queue.ts",
-      "line": 96,
+      "line": 93,
       "containingFunction": "scheduleTripReview",
       "occurrence": 1,
       "executionMode": "run",
@@ -4063,7 +4063,7 @@
     {
       "callSiteId": "2672cc32f69d89712fbe5ef0",
       "file": "worker/trip-review-queue.ts",
-      "line": 130,
+      "line": 127,
       "containingFunction": "dispatchAiReviewBacklog",
       "occurrence": 2,
       "executionMode": "all",
@@ -4086,7 +4086,7 @@
     {
       "callSiteId": "93cbb5f80306500dbcff8832",
       "file": "worker/trip-review-queue.ts",
-      "line": 142,
+      "line": 139,
       "containingFunction": "dispatchAiReviewBacklog",
       "occurrence": 3,
       "executionMode": "all",
@@ -4108,7 +4108,7 @@
     {
       "callSiteId": "587fc95c8aa23fb56d5abec8",
       "file": "worker/trip-review-queue.ts",
-      "line": 208,
+      "line": 205,
       "containingFunction": "ensureAiReviewJob",
       "occurrence": 4,
       "executionMode": "run",
@@ -4132,7 +4132,7 @@
     {
       "callSiteId": "a1b767b2d49b4b6d0a521c77",
       "file": "worker/trip-review-queue.ts",
-      "line": 234,
+      "line": 231,
       "containingFunction": "ensureAiReviewJob",
       "occurrence": 5,
       "executionMode": "first",
@@ -4154,7 +4154,7 @@
     {
       "callSiteId": "509abcb5b40dc6a07185d893",
       "file": "worker/trip-review-queue.ts",
-      "line": 259,
+      "line": 256,
       "containingFunction": "dispatchJob",
       "occurrence": 6,
       "executionMode": "run",
@@ -4176,7 +4176,7 @@
     {
       "callSiteId": "54de30c71342754adcd837fe",
       "file": "worker/trip-review-queue.ts",
-      "line": 272,
+      "line": 269,
       "containingFunction": "dispatchJob",
       "occurrence": 7,
       "executionMode": "first",
@@ -4198,7 +4198,7 @@
     {
       "callSiteId": "a707aef00e0238e37c421c0c",
       "file": "worker/trip-review-queue.ts",
-      "line": 281,
+      "line": 278,
       "containingFunction": "dispatchJob",
       "occurrence": 8,
       "executionMode": "run",
@@ -4220,7 +4220,7 @@
     {
       "callSiteId": "ee1e5f42888b837278687bef",
       "file": "worker/trip-review-queue.ts",
-      "line": 304,
+      "line": 301,
       "containingFunction": "consumeMessage",
       "occurrence": 9,
       "executionMode": "run",
@@ -4242,7 +4242,7 @@
     {
       "callSiteId": "66b429f3a682209ab3637faf",
       "file": "worker/trip-review-queue.ts",
-      "line": 317,
+      "line": 314,
       "containingFunction": "consumeMessage",
       "occurrence": 10,
       "executionMode": "first",
@@ -4264,7 +4264,7 @@
     {
       "callSiteId": "40ab7367dd1642580b6b9e69",
       "file": "worker/trip-review-queue.ts",
-      "line": 328,
+      "line": 325,
       "containingFunction": "consumeMessage",
       "occurrence": 11,
       "executionMode": "run",
@@ -4287,7 +4287,7 @@
     {
       "callSiteId": "65073b81a37752648fa70c03",
       "file": "worker/trip-review-queue.ts",
-      "line": 337,
+      "line": 334,
       "containingFunction": "consumeMessage",
       "occurrence": 12,
       "executionMode": "first",
@@ -4309,7 +4309,7 @@
     {
       "callSiteId": "80c8f3990498f7b65dd0adb4",
       "file": "worker/trip-review-queue.ts",
-      "line": 343,
+      "line": 340,
       "containingFunction": "consumeMessage",
       "occurrence": 13,
       "executionMode": "run",
@@ -4331,7 +4331,7 @@
     {
       "callSiteId": "51398a4f9306ad4aeca18fd3",
       "file": "worker/trip-review-queue.ts",
-      "line": 361,
+      "line": 358,
       "containingFunction": "consumeMessage",
       "occurrence": 14,
       "executionMode": "prepared-statement",
@@ -4353,7 +4353,7 @@
     {
       "callSiteId": "cac05ee821169a97dba40b33",
       "file": "worker/trip-review-queue.ts",
-      "line": 375,
+      "line": 372,
       "containingFunction": "consumeMessage",
       "occurrence": 15,
       "executionMode": "batch",
@@ -4376,7 +4376,7 @@
     {
       "callSiteId": "89309bc12a0abb8568796598",
       "file": "worker/trip-review-queue.ts",
-      "line": 399,
+      "line": 396,
       "containingFunction": "settleUnclaimedMessage",
       "occurrence": 16,
       "executionMode": "first",
@@ -4398,7 +4398,7 @@
     {
       "callSiteId": "cfb3cb384611fc5fbe9ca22d",
       "file": "worker/trip-review-queue.ts",
-      "line": 412,
+      "line": 409,
       "containingFunction": "settleUnclaimedMessage",
       "occurrence": 17,
       "executionMode": "first",
@@ -4420,7 +4420,7 @@
     {
       "callSiteId": "6865de88eeabb900b3c745e4",
       "file": "worker/trip-review-queue.ts",
-      "line": 443,
+      "line": 440,
       "containingFunction": "deferMessage",
       "occurrence": 18,
       "executionMode": "run",
@@ -4442,7 +4442,7 @@
     {
       "callSiteId": "91bf2bdd89e5d1c20bd2dc9f",
       "file": "worker/trip-review-queue.ts",
-      "line": 458,
+      "line": 455,
       "containingFunction": "settleAfterOwnedMutation",
       "occurrence": 19,
       "executionMode": "first",
@@ -4464,7 +4464,7 @@
     {
       "callSiteId": "2c46f2b1cba8116ccb9e7024",
       "file": "worker/trip-review-queue.ts",
-      "line": 483,
+      "line": 480,
       "containingFunction": "settleAbandonedJob",
       "occurrence": 20,
       "executionMode": "batch",
@@ -4487,7 +4487,7 @@
     {
       "callSiteId": "8aa848012ff82123a9dd6eef",
       "file": "worker/trip-review-queue.ts",
-      "line": 490,
+      "line": 487,
       "containingFunction": "settleAbandonedJob",
       "occurrence": 21,
       "executionMode": "batch",
@@ -4509,7 +4509,7 @@
     {
       "callSiteId": "339045a36794293815d71512",
       "file": "worker/trip-review.ts",
-      "line": 156,
+      "line": 176,
       "containingFunction": "reviewTripWithMimo",
       "occurrence": 1,
       "executionMode": "run",
@@ -4531,7 +4531,7 @@
     {
       "callSiteId": "eaba91a6aedc32478c8daca1",
       "file": "worker/trip-review.ts",
-      "line": 189,
+      "line": 214,
       "containingFunction": "claimReviewTrip",
       "occurrence": 2,
       "executionMode": "run",
@@ -4553,7 +4553,7 @@
     {
       "callSiteId": "6d79a2aa589cea3a661ef6a4",
       "file": "worker/trip-review.ts",
-      "line": 203,
+      "line": 228,
       "containingFunction": "claimReviewTrip",
       "occurrence": 3,
       "executionMode": "first",
@@ -4575,7 +4575,7 @@
     {
       "callSiteId": "2262132c2ef99870ab699787",
       "file": "worker/trip-review.ts",
-      "line": 210,
+      "line": 235,
       "containingFunction": "claimReviewTrip",
       "occurrence": 4,
       "executionMode": "run",
@@ -4597,7 +4597,7 @@
     {
       "callSiteId": "493dfb65d4e9c22f412c2a8b",
       "file": "worker/trip-review.ts",
-      "line": 222,
+      "line": 247,
       "containingFunction": "selectClaimedTrip",
       "occurrence": 5,
       "executionMode": "first",
@@ -4619,7 +4619,7 @@
     {
       "callSiteId": "39af51d01105208898f7ae71",
       "file": "worker/trip-review.ts",
-      "line": 252,
+      "line": 277,
       "containingFunction": "releaseReviewClaim",
       "occurrence": 6,
       "executionMode": "run",
@@ -4641,7 +4641,7 @@
     {
       "callSiteId": "86c01372d88082993448cd57",
       "file": "worker/trip-review.ts",
-      "line": 310,
+      "line": 335,
       "containingFunction": "deletionRequestedBeforeDispatch",
       "occurrence": 7,
       "executionMode": "first",
@@ -4663,7 +4663,7 @@
     {
       "callSiteId": "41cdf05b10bef460d413d9f6",
       "file": "worker/trip-review.ts",
-      "line": 314,
+      "line": 339,
       "containingFunction": "deletionRequestedBeforeDispatch",
       "occurrence": 8,
       "executionMode": "first",
@@ -4685,7 +4685,7 @@
     {
       "callSiteId": "7a111c2e51ce3ba1d0e91c79",
       "file": "worker/trip-review.ts",
-      "line": 326,
+      "line": 357,
       "containingFunction": "reviewTripBacklog",
       "occurrence": 9,
       "executionMode": "all",

@@ -37,6 +37,21 @@ by that discovery.
       A deterministic release bundle and this clean local commit complete only the repository
       receipt. Actual isolated-staging authorization, deployment, measurements, provider metrics,
       remediation, and independent acceptance remain open.
+- [x] Prepare the next authenticated advisory-review checkpoint without creating an execution
+      path. The strict private authorization and plan-only CLI fix one hashed synthetic account,
+      disjoint ten-trip direct and Queue groups, two overlapping retry requests per mode, one
+      authorized client-response drop, duplicate Queue delivery, exact source/API/Worker/exercise/
+      stub identity, private evidence, and zero production or real-provider access. There is no
+      run command.
+- [x] Add the staging-only internal review seam and deterministic stub. Partial/mixed identity,
+      wrong account hash, real MiMo configuration, injected public fetch, or wrong stub Worker
+      version performs no accepted provider work; stub output is explicitly synthetic, private,
+      human-gated, and never echoes trip input. The production build contains no exercise binding
+      or variable. These controls are local preparation, not provider or staging evidence.
+- [x] Freeze the evidence semantics: two overlapping retry responses may describe the same queued
+      rows, so their counts cannot be summed. Ten unique D1 rows and ten unique stub requests per
+      mode are authoritative. One fault-proxy response drop proves only client/Worker ambiguity,
+      not D1 SDK mutation-receipt loss.
 - [x] Reconcile the guarded security runner with the current Worker health contract. API
       compatibility discovery had added a sixth exact field after the original five-field
       preflight was sealed, so a real authorized exercise would have refused a healthy current

@@ -112,6 +112,11 @@ publish later. Never paste trip/account content into the replay record.
 
 All boxes stay open until provider access and an isolated synthetic environment are approved:
 
+The narrow ten-row direct/Queue overlap portion has a strict plan-only authorization and internal
+stub-provider boundary in [AUTHENTICATED-STAGING-DRILL.md](AUTHENTICATED-STAGING-DRILL.md). That
+repository preparation creates no Queue, binding, staging deployment, provider call, or evidence;
+the boxes below remain external gates.
+
 - [ ] Apply `0018_ai_review_queue.sql` through the guarded maintenance release; postflight must
       prove the exact table/two indexes, zero initial jobs, and no foreign-key violations.
 - [ ] Create environment-specific primary and dead-letter queues. Record queue IDs/names

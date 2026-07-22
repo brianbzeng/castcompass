@@ -10,10 +10,19 @@ import type { CuratedSite, D1DatabaseLike, TripRow } from "./trips";
 import { aiProviderRateLimitAllowed, type RateLimitEnv } from "./rate-limit.ts";
 import { logEvent } from "./observability.ts";
 
-interface ReviewEnv extends RateLimitEnv {
+export interface AiReviewExerciseProviderBinding {
+  fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
+}
+
+export interface ReviewEnv extends RateLimitEnv {
   DB?: D1DatabaseLike;
   MIMO_API_KEY?: string;
   MIMO_MODEL?: string;
+  AI_REVIEW_EXERCISE_PROVIDER?: AiReviewExerciseProviderBinding;
+  AI_REVIEW_EXERCISE_ID?: string;
+  AI_REVIEW_EXERCISE_ACCOUNT_HASH?: string;
+  AI_REVIEW_EXERCISE_PROVIDER_VERSION_ID?: string;
+  SECURITY_EXERCISE_ID?: string;
 }
 
 interface ReviewOptions {
@@ -52,6 +61,9 @@ interface StrictReview {
 }
 
 const DEFAULT_MIMO_MODEL = "mimo-v2.5";
+const EXERCISE_PROVIDER_MODEL = "castingcompass-isolated-stub-v1";
+const EXERCISE_PROVIDER_URL = "https://ai-review-stub.invalid/v1/chat/completions";
+const EXERCISE_PROVIDER_CONTRACT = "castingcompass.ai-review-exercise-provider/1.0.0";
 const MIMO_REVIEW_TIMEOUT_MS = 10_000;
 const MIMO_MAX_REQUEST_BYTES = 64 * 1024;
 const MIMO_MAX_RESPONSE_BYTES = 64 * 1024;
@@ -60,6 +72,9 @@ const REVIEW_CLAIM_VERSION = "castingcompass.ai-review-claim/1.0.0";
 const REVIEW_CLAIM_LEASE_MS = 60 * 1000;
 const REVIEW_CLAIM_TOKEN_PATTERN = /^airc_[a-f0-9]{32}$/;
 const MODEL_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,99}$/;
+const SECURITY_EXERCISE_ID_PATTERN = /^sec_[a-f0-9]{32}$/;
+const SHA256_PATTERN = /^[a-f0-9]{64}$/;
+const WORKER_VERSION_PATTERN = /^[A-Za-z0-9-]{1,128}$/;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
 const ALLOWED_MODES = new Set(["shore", "beach", "pier", "jetty", "kayak", "boat", "other"]);
 
@@ -81,15 +96,11 @@ export async function reviewTripWithMimo(
   sites: readonly CuratedSite[],
   options: ReviewOptions = {},
 ) {
-  if (!env.DB || !env.MIMO_API_KEY) return;
-  const model = configuredModel(env.MIMO_MODEL);
-  if (!model) {
-    logEvent("error", "ai_review.configuration_rejected", {
-      error_name: "ReviewError",
-      error_code: "invalid_model_configuration",
-    });
-    return;
-  }
+  if (!env.DB) return;
+  const provider = resolveReviewProvider(env, options);
+  if (provider.state === "disabled") return;
+  if (provider.state === "rejected") return logProviderConfigurationRejected(provider.errorCode);
+  const { model } = provider;
   if (!await aiProviderRateLimitAllowed(env)) return;
   const tripId = typeof tripOrId === "string" ? tripOrId : tripOrId.id;
   const claim = createReviewClaim();
@@ -99,6 +110,12 @@ export async function reviewTripWithMimo(
   const safeTrip = buildProviderTripProjection(trip, site);
 
   try {
+    if (provider.expectedAccountHash !== null) {
+      const accountHash = trip.user_id ? await sha256(`account:${trip.user_id}`) : null;
+      if (accountHash !== provider.expectedAccountHash) {
+        throw new ReviewError("exercise_account_mismatch");
+      }
+    }
     if (await deletionRequestedBeforeDispatch(env.DB, trip)) {
       await releaseReviewClaim(env.DB, trip.id, claim.serialized, null);
       return;
@@ -129,15 +146,18 @@ Return one JSON object and no surrounding prose. Use exactly these top-level key
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     let responseText: string;
     try {
-      const response = await (options.fetcher ?? fetch)("https://api.xiaomimimo.com/v1/chat/completions", {
+      const response = await provider.fetcher(provider.url, {
         method: "POST",
-        headers: {
-          "api-key": env.MIMO_API_KEY,
-          "Content-Type": "application/json",
-        },
+        headers: provider.headers,
         body: requestBody,
         signal: controller.signal,
       });
+      if (provider.expectedProviderVersion !== null
+        && response.headers.get("X-CastingCompass-Exercise-Provider-Version")
+          !== provider.expectedProviderVersion) {
+        void response.body?.cancel().catch(() => undefined);
+        throw new ReviewError("exercise_provider_identity_mismatch");
+      }
       if (!response.ok) {
         const status = response.status;
         void response.body?.cancel().catch(() => undefined);
@@ -164,7 +184,12 @@ Return one JSON object and no surrounding prose. Use exactly these top-level key
       error_code: error instanceof ReviewError ? error.code : "review_failed",
       status: error instanceof ReviewError ? error.status : undefined,
     });
-    await releaseReviewClaim(env.DB, trip.id, claim.serialized, model);
+    await releaseReviewClaim(
+      env.DB,
+      trip.id,
+      claim.serialized,
+      provider.expectedAccountHash === null ? model : null,
+    );
   }
 }
 
@@ -322,7 +347,13 @@ async function sha256(value: string) {
 }
 
 export async function reviewTripBacklog(env: ReviewEnv, sites: readonly CuratedSite[], limit = 10) {
-  if (!env.DB || !env.MIMO_API_KEY) return 0;
+  if (!env.DB) return 0;
+  const provider = resolveReviewProvider(env, {});
+  if (provider.state === "disabled") return 0;
+  if (provider.state === "rejected") {
+    logProviderConfigurationRejected(provider.errorCode);
+    return 0;
+  }
   const rows = await env.DB.prepare(`SELECT id FROM trips INDEXED BY trips_ai_review_backlog_idx
     WHERE status = 'completed'
       AND ((ai_review_status IS NULL OR ai_review_status = 'queued' OR ai_review_status = 'retry')
@@ -338,6 +369,83 @@ export async function reviewTripBacklog(env: ReviewEnv, sites: readonly CuratedS
   const trips = rows.results ?? [];
   for (const trip of trips) await reviewTripWithMimo(env, trip.id, sites);
   return trips.length;
+}
+
+type ReviewProviderResolution =
+  | { state: "disabled" }
+  | { state: "rejected"; errorCode: string }
+  | {
+    state: "ready";
+    model: string;
+    url: string;
+    fetcher: typeof fetch;
+    headers: Record<string, string>;
+    expectedAccountHash: string | null;
+    expectedProviderVersion: string | null;
+  };
+
+function resolveReviewProvider(env: ReviewEnv, options: ReviewOptions): ReviewProviderResolution {
+  const exerciseSignals = [
+    env.AI_REVIEW_EXERCISE_PROVIDER,
+    env.AI_REVIEW_EXERCISE_ID,
+    env.AI_REVIEW_EXERCISE_ACCOUNT_HASH,
+    env.AI_REVIEW_EXERCISE_PROVIDER_VERSION_ID,
+    env.SECURITY_EXERCISE_ID,
+  ];
+  if (exerciseSignals.some((value) => value !== undefined)) {
+    if (!env.AI_REVIEW_EXERCISE_PROVIDER
+      || typeof env.AI_REVIEW_EXERCISE_PROVIDER.fetch !== "function"
+      || typeof env.AI_REVIEW_EXERCISE_ID !== "string"
+      || typeof env.SECURITY_EXERCISE_ID !== "string"
+      || env.AI_REVIEW_EXERCISE_ID !== env.SECURITY_EXERCISE_ID
+      || !SECURITY_EXERCISE_ID_PATTERN.test(env.AI_REVIEW_EXERCISE_ID)
+      || typeof env.AI_REVIEW_EXERCISE_ACCOUNT_HASH !== "string"
+      || !SHA256_PATTERN.test(env.AI_REVIEW_EXERCISE_ACCOUNT_HASH)
+      || typeof env.AI_REVIEW_EXERCISE_PROVIDER_VERSION_ID !== "string"
+      || !WORKER_VERSION_PATTERN.test(env.AI_REVIEW_EXERCISE_PROVIDER_VERSION_ID)
+      || env.MIMO_API_KEY !== undefined
+      || env.MIMO_MODEL !== undefined
+      || options.fetcher !== undefined) {
+      return { state: "rejected", errorCode: "invalid_exercise_provider_configuration" };
+    }
+    const binding = env.AI_REVIEW_EXERCISE_PROVIDER;
+    return {
+      state: "ready",
+      model: EXERCISE_PROVIDER_MODEL,
+      url: EXERCISE_PROVIDER_URL,
+      fetcher: ((input, init) => binding.fetch(input, init)) as typeof fetch,
+      headers: {
+        "Content-Type": "application/json",
+        "X-CastingCompass-Exercise-Contract": EXERCISE_PROVIDER_CONTRACT,
+        "X-CastingCompass-Exercise-Id": env.AI_REVIEW_EXERCISE_ID,
+      },
+      expectedAccountHash: env.AI_REVIEW_EXERCISE_ACCOUNT_HASH,
+      expectedProviderVersion: env.AI_REVIEW_EXERCISE_PROVIDER_VERSION_ID,
+    };
+  }
+
+  if (!env.MIMO_API_KEY) return { state: "disabled" };
+  const model = configuredModel(env.MIMO_MODEL);
+  if (!model) return { state: "rejected", errorCode: "invalid_model_configuration" };
+  return {
+    state: "ready",
+    model,
+    url: "https://api.xiaomimimo.com/v1/chat/completions",
+    fetcher: options.fetcher ?? fetch,
+    headers: {
+      "api-key": env.MIMO_API_KEY,
+      "Content-Type": "application/json",
+    },
+    expectedAccountHash: null,
+    expectedProviderVersion: null,
+  };
+}
+
+function logProviderConfigurationRejected(errorCode: string) {
+  logEvent("error", "ai_review.configuration_rejected", {
+    error_name: "ReviewError",
+    error_code: errorCode,
+  });
 }
 
 function configuredModel(value: string | undefined) {

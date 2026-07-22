@@ -25,6 +25,11 @@ test("generated Cloudflare configuration keeps discussions off and exposes versi
   assert.equal(config.vars?.PRIVACY_EXPORT_QUEUE_ENABLED, "false");
   assert.equal(config.vars?.TURNSTILE_SITE_KEY, undefined);
   assert.equal(config.vars?.TURNSTILE_SECRET_KEY, undefined);
+  assert.equal(config.vars?.AI_REVIEW_EXERCISE_ID, undefined);
+  assert.equal(config.vars?.AI_REVIEW_EXERCISE_ACCOUNT_HASH, undefined);
+  assert.equal(config.vars?.AI_REVIEW_EXERCISE_PROVIDER_VERSION_ID, undefined);
+  assert.equal(config.vars?.SECURITY_EXERCISE_ID, undefined);
+  assert.deepEqual(config.services ?? [], []);
   assert.equal(config.version_metadata?.binding, "CF_VERSION_METADATA");
   assert.deepEqual(config.queues, { producers: [], consumers: [] });
 });

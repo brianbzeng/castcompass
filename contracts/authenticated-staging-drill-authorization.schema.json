@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "castingcompass.authenticated-staging-drill-authorization/1.0.0",
+  "title": "CastingCompass authenticated isolated-staging drill authorization",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "exercise_id",
+    "source_commit",
+    "environment",
+    "target_origin",
+    "expected_api_compatibility_version",
+    "expected_worker_version_id",
+    "expected_exercise_provider_version_id",
+    "window_start_at",
+    "window_end_at",
+    "synthetic_subjects",
+    "authorization",
+    "safety",
+    "fault_injection",
+    "evidence_access"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "castingcompass.authenticated-staging-drill-authorization/1.0.0"
+    },
+    "exercise_id": { "$ref": "#/$defs/exerciseId" },
+    "source_commit": { "$ref": "#/$defs/commit" },
+    "environment": { "const": "isolated-staging" },
+    "target_origin": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 253,
+      "pattern": "^https://[^/?#]+$"
+    },
+    "expected_api_compatibility_version": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]{0,8}$"
+    },
+    "expected_worker_version_id": { "$ref": "#/$defs/workerVersion" },
+    "expected_exercise_provider_version_id": { "$ref": "#/$defs/workerVersion" },
+    "window_start_at": { "$ref": "#/$defs/timestamp" },
+    "window_end_at": { "$ref": "#/$defs/timestamp" },
+    "synthetic_subjects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["account_hash", "direct_trip_hashes", "queue_trip_hashes"],
+      "properties": {
+        "account_hash": { "$ref": "#/$defs/hash" },
+        "direct_trip_hashes": { "$ref": "#/$defs/tenHashes" },
+        "queue_trip_hashes": { "$ref": "#/$defs/tenHashes" }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "written_scope_approved",
+        "authenticated_testing_approved",
+        "independent_tester_authorized",
+        "client_response_fault_authorized",
+        "queue_duplicate_delivery_authorized"
+      ],
+      "properties": {
+        "written_scope_approved": { "type": "boolean" },
+        "authenticated_testing_approved": { "type": "boolean" },
+        "independent_tester_authorized": { "type": "boolean" },
+        "client_response_fault_authorized": { "type": "boolean" },
+        "queue_duplicate_delivery_authorized": { "type": "boolean" }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "synthetic_data_only",
+        "production_bindings_attached",
+        "production_user_data_accessible",
+        "real_ai_provider_credentials_attached",
+        "exercise_service_binding_attached",
+        "email_sink_only",
+        "outbound_callbacks_disabled",
+        "monitoring_operator_ready",
+        "emergency_stop_verified",
+        "exact_source_deployed"
+      ],
+      "properties": {
+        "synthetic_data_only": { "type": "boolean" },
+        "production_bindings_attached": { "type": "boolean" },
+        "production_user_data_accessible": { "type": "boolean" },
+        "real_ai_provider_credentials_attached": { "type": "boolean" },
+        "exercise_service_binding_attached": { "type": "boolean" },
+        "email_sink_only": { "type": "boolean" },
+        "outbound_callbacks_disabled": { "type": "boolean" },
+        "monitoring_operator_ready": { "type": "boolean" },
+        "emergency_stop_verified": { "type": "boolean" },
+        "exact_source_deployed": { "type": "boolean" }
+      }
+    },
+    "fault_injection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "client_response_drop_after_upstream_completion",
+        "fault_proxy_identity_sha256",
+        "maximum_dropped_responses"
+      ],
+      "properties": {
+        "client_response_drop_after_upstream_completion": { "type": "boolean" },
+        "fault_proxy_identity_sha256": { "$ref": "#/$defs/hash" },
+        "maximum_dropped_responses": { "type": "integer", "minimum": 1, "maximum": 1 }
+      }
+    },
+    "evidence_access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "d1_read_only_evidence_approved",
+        "stub_provider_metrics_approved",
+        "queue_metrics_approved",
+        "private_evidence_location_approved"
+      ],
+      "properties": {
+        "d1_read_only_evidence_approved": { "type": "boolean" },
+        "stub_provider_metrics_approved": { "type": "boolean" },
+        "queue_metrics_approved": { "type": "boolean" },
+        "private_evidence_location_approved": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "exerciseId": { "type": "string", "pattern": "^sec_[a-f0-9]{32}$" },
+    "commit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "workerVersion": { "type": "string", "pattern": "^[A-Za-z0-9-]{1,128}$" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "tenHashes": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/hash" }
+    }
+  }
+}

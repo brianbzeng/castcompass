@@ -1,0 +1,68 @@
+{
+  "schema_version": "castingcompass.authenticated-staging-drill-policy/1.0.0",
+  "policy_id": "castingcompass-authenticated-isolated-staging-drill-v1",
+  "authorization_contract_version": "castingcompass.authenticated-staging-drill-authorization/1.0.0",
+  "plan_contract_version": "castingcompass.authenticated-staging-drill-plan/1.0.0",
+  "api_compatibility_version": "1",
+  "production_hosts": [
+    "castingcompass.com",
+    "www.castingcompass.com",
+    "castcompass.brianbzeng.com",
+    "contourcast.brianbzeng.com"
+  ],
+  "routes": [
+    { "method": "GET", "path": "/api/health" },
+    { "method": "GET", "path": "/api/profile" },
+    { "method": "POST", "path": "/api/profile/reviews/retry" }
+  ],
+  "modes": ["direct", "durable_queue"],
+  "exercise_provider": {
+    "binding": "AI_REVIEW_EXERCISE_PROVIDER",
+    "deployment_config": "staging/ai-review-exercise-stub.wrangler.jsonc",
+    "model": "castingcompass-isolated-stub-v1",
+    "contract": "castingcompass.ai-review-exercise-provider/1.0.0",
+    "public_routes_allowed": false,
+    "real_provider_key_must_be_absent": true,
+    "real_provider_model_must_be_absent": true,
+    "synthetic_account_hash_required": true
+  },
+  "limits": {
+    "maximum_authorization_window_minutes": 120,
+    "maximum_authorization_lead_days": 7,
+    "trips_per_mode": 10,
+    "overlapping_retry_requests_per_mode": 2,
+    "maximum_client_responses_dropped": 1,
+    "maximum_total_http_requests": 80,
+    "maximum_authorization_bytes": 65536,
+    "maximum_plan_bytes": 131072
+  },
+  "truth_boundaries": {
+    "queued_response_is_not_provider_dispatch_count": true,
+    "unique_d1_rows_and_stub_requests_are_authoritative": true,
+    "client_response_drop_is_not_d1_mutation_receipt_loss": true,
+    "local_fault_tests_do_not_count_as_staging_evidence": true,
+    "model_output_remains_private_and_human_gated": true
+  },
+  "required_evidence": [
+    "exact_source_and_worker_identity",
+    "exact_exercise_and_stub_worker_identity",
+    "synthetic_account_and_twenty_trip_hash_inventory",
+    "before_and_after_d1_read_only_snapshots",
+    "direct_mode_overlap_and_single_client_response_drop",
+    "durable_queue_overlap_and_duplicate_delivery",
+    "unique_stub_request_counts_and_latency",
+    "queue_depth_retry_and_attention_metrics",
+    "zero_real_provider_requests_and_cost",
+    "zero_production_binding_or_data_access",
+    "private_raw_evidence_and_minimized_aggregate_receipt",
+    "independent_review_and_remediation_retest"
+  ],
+  "production_gates": {
+    "isolated_staging_provisioned": false,
+    "written_authorization_recorded": false,
+    "authenticated_drill_completed": false,
+    "critical_high_findings_remediated_and_retested": false,
+    "independent_acceptance_recorded": false,
+    "production_authority": false
+  }
+}

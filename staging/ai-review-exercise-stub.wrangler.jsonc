@@ -1,0 +1,18 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "contourcast-ai-review-stub-isolated",
+  "main": "../worker/ai-review-exercise-stub.ts",
+  "compatibility_date": "2026-05-15",
+  "workers_dev": false,
+  "routes": [],
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "invocation_logs": false,
+      "head_sampling_rate": 1
+    }
+  }
+}

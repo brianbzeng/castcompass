@@ -3,6 +3,9 @@ import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import { reviewTripBacklog, reviewTripWithMimo } from "../worker/trip-review.ts";
 
+const EXERCISE_ID = "sec_0123456789abcdef0123456789abcdef";
+const SYNTHETIC_ACCOUNT_HASH = "29715fa7b1dd6812b482a3f325455c2cc199282ab9a731bca330f123c17f38d7";
+
 class D1StatementAdapter {
   constructor(owner, query, statement) {
     this.owner = owner;
@@ -170,6 +173,24 @@ function providerResponse(review) {
   return Response.json({ choices: [{ message: { content: JSON.stringify(review) } }] });
 }
 
+function exerciseProviderResponse(review, version = "stub-version-456") {
+  const response = providerResponse(review);
+  response.headers.set("X-CastingCompass-Exercise-Provider-Version", version);
+  return response;
+}
+
+function exerciseEnvironment(d1, binding, overrides = {}) {
+  return {
+    DB: d1,
+    AI_REVIEW_EXERCISE_PROVIDER: binding,
+    AI_REVIEW_EXERCISE_ID: EXERCISE_ID,
+    AI_REVIEW_EXERCISE_ACCOUNT_HASH: SYNTHETIC_ACCOUNT_HASH,
+    AI_REVIEW_EXERCISE_PROVIDER_VERSION_ID: "stub-version-456",
+    SECURITY_EXERCISE_ID: EXERCISE_ID,
+    ...overrides,
+  };
+}
+
 async function captureErrors(run) {
   const original = console.error;
   const entries = [];
@@ -215,6 +236,117 @@ test("AI review treats trip text as data, minimizes legacy JSON, and cannot publ
   assert.equal(stored.ai_review_status, "reviewed");
   assert.equal(JSON.parse(stored.ai_review_json).discussion.publish, true);
   assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM site_discussion_posts").get().count, 0);
+});
+
+test("isolated review uses only the exact service binding for the authorized synthetic account", async () => {
+  const { sqlite, d1, id } = database("trip_exercise_binding");
+  const requests = [];
+  const binding = {
+    async fetch(input, init) {
+      requests.push({ input: String(input), init });
+      return exerciseProviderResponse(strictReview({ summary: "Isolated stub result." }));
+    },
+  };
+
+  await reviewTripWithMimo(
+    exerciseEnvironment(d1, binding),
+    id,
+    [{ id: "ocean-beach", type: "Beach" }],
+  );
+
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].input, "https://ai-review-stub.invalid/v1/chat/completions");
+  const headers = new Headers(requests[0].init.headers);
+  assert.equal(headers.get("api-key"), null);
+  assert.equal(headers.get("X-CastingCompass-Exercise-Id"), EXERCISE_ID);
+  assert.equal(
+    headers.get("X-CastingCompass-Exercise-Contract"),
+    "castingcompass.ai-review-exercise-provider/1.0.0",
+  );
+  assert.equal(JSON.parse(requests[0].init.body).model, "castingcompass-isolated-stub-v1");
+  const stored = sqlite.prepare(
+    "SELECT ai_review_status, ai_review_model, ai_review_json FROM trips WHERE id = ?",
+  ).get(id);
+  assert.equal(stored.ai_review_status, "reviewed");
+  assert.equal(stored.ai_review_model, "castingcompass-isolated-stub-v1");
+  assert.equal(JSON.parse(stored.ai_review_json).summary, "Isolated stub result.");
+});
+
+test("partial, mixed, or mismatched exercise identity never reaches any provider", async () => {
+  const { sqlite, d1, id } = database("trip_exercise_rejected");
+  let bindingCalls = 0;
+  let publicCalls = 0;
+  const binding = {
+    async fetch() {
+      bindingCalls += 1;
+      return providerResponse(strictReview());
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    publicCalls += 1;
+    return providerResponse(strictReview());
+  };
+  try {
+    const invalidEnvironments = [
+      exerciseEnvironment(d1, binding, { SECURITY_EXERCISE_ID: undefined }),
+      exerciseEnvironment(d1, binding, {
+        SECURITY_EXERCISE_ID: "sec_ffffffffffffffffffffffffffffffff",
+      }),
+      exerciseEnvironment(d1, binding, { AI_REVIEW_EXERCISE_ACCOUNT_HASH: "not-a-hash" }),
+      exerciseEnvironment(d1, binding, { AI_REVIEW_EXERCISE_PROVIDER_VERSION_ID: undefined }),
+      exerciseEnvironment(d1, binding, { MIMO_API_KEY: "must-not-coexist" }),
+    ];
+    for (const env of invalidEnvironments) {
+      sqlite.prepare(
+        "UPDATE trips SET ai_review_status = null, ai_review_json = null, ai_review_model = null WHERE id = ?",
+      ).run(id);
+      const logs = await captureErrors(() => reviewTripWithMimo(
+        env,
+        id,
+        [{ id: "ocean-beach" }],
+      ));
+      assert.match(logs, /invalid_exercise_provider_configuration/);
+      assert.equal(sqlite.prepare("SELECT ai_review_status FROM trips WHERE id = ?").get(id).ai_review_status, null);
+    }
+
+    sqlite.prepare(
+      "UPDATE trips SET ai_review_status = null, ai_review_json = null, ai_review_model = null WHERE id = ?",
+    ).run(id);
+    const mismatchLogs = await captureErrors(() => reviewTripWithMimo(
+      exerciseEnvironment(d1, binding, { AI_REVIEW_EXERCISE_ACCOUNT_HASH: "f".repeat(64) }),
+      id,
+      [{ id: "ocean-beach" }],
+    ));
+    assert.match(mismatchLogs, /exercise_account_mismatch/);
+    const mismatch = sqlite.prepare(
+      "SELECT ai_review_status, ai_review_model FROM trips WHERE id = ?",
+    ).get(id);
+    assert.equal(mismatch.ai_review_status, "retry");
+    assert.equal(mismatch.ai_review_model, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  assert.equal(bindingCalls, 0);
+  assert.equal(publicCalls, 0);
+});
+
+test("an isolated provider response with the wrong Worker identity is rejected", async () => {
+  const { sqlite, d1, id } = database("trip_exercise_wrong_provider");
+  const binding = {
+    async fetch() {
+      return exerciseProviderResponse(strictReview(), "wrong-stub-version");
+    },
+  };
+  const logs = await captureErrors(() => reviewTripWithMimo(
+    exerciseEnvironment(d1, binding),
+    id,
+    [{ id: "ocean-beach" }],
+  ));
+  assert.match(logs, /exercise_provider_identity_mismatch/);
+  const stored = sqlite.prepare("SELECT ai_review_status, ai_review_model FROM trips WHERE id = ?").get(id);
+  assert.equal(stored.ai_review_status, "retry");
+  assert.equal(stored.ai_review_model, null);
 });
 
 test("AI review rejects coercion, prose wrapping, extra keys, and oversized fields", async () => {

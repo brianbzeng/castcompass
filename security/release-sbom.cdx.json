@@ -1,7 +1,7 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:6501c597-c702-5dd9-8ace-f30c83c01ab7",
+  "serialNumber": "urn:uuid:2b1c73e6-0ef2-5051-8ec8-173b6b03e6ef",
   "version": 1,
   "metadata": {
     "component": {
@@ -30,6 +30,10 @@
         {
           "name": "castingcompass:input-sha256",
           "value": "contracts/ai-review-queue-message.schema.json:e535131586e6c9deb5aa606c280bfbd100fae2bb724a1b5756ff144c61c303b0"
+        },
+        {
+          "name": "castingcompass:input-sha256",
+          "value": "contracts/authenticated-staging-drill-authorization.schema.json:d05b0bf399051e8671d51a98e54a98755570fc4aa39029c4cdf805db723d9139"
         },
         {
           "name": "castingcompass:input-sha256",
@@ -65,7 +69,7 @@
         },
         {
           "name": "castingcompass:input-sha256",
-          "value": "package.json:35fb096efb62a224818d2c67e17a40cfc414ca40db9a641d10be8a114474cef7"
+          "value": "package.json:75e71cb3ec492307d86d8f190738c0444f449fba27e49138837fb928686004cc"
         },
         {
           "name": "castingcompass:input-sha256",
@@ -89,6 +93,10 @@
         },
         {
           "name": "castingcompass:input-sha256",
+          "value": "security/authenticated-staging-drill-policy.json:7738d84062087385673ae1430c266747263565b19d70af8513bb89ef4057afb5"
+        },
+        {
+          "name": "castingcompass:input-sha256",
           "value": "security/cloudflare-provider-state-policy.json:d95530d8400909171a87d6d3d65bbbbd8b6fc4d1caf76a0554f95b809be9c26f"
         },
         {
@@ -97,7 +105,7 @@
         },
         {
           "name": "castingcompass:input-sha256",
-          "value": "security/d1-query-inventory.json:2b28165b09f20b6c9e315c5b5271e5e931ad567e593e350630deadfdc4bf7512"
+          "value": "security/d1-query-inventory.json:f091cecf007ab5a38699884ee20dc89024fe9571409ef24394a4d85ad1e99658"
         },
         {
           "name": "castingcompass:input-sha256",
@@ -141,6 +149,10 @@
         },
         {
           "name": "castingcompass:input-sha256",
+          "value": "staging/ai-review-exercise-stub.wrangler.jsonc:69803e6ce5f1936a87aed17a77f59f8b99caa3db8db0133dd5c0a097992c1dde"
+        },
+        {
+          "name": "castingcompass:input-sha256",
           "value": "water-quality/audits/east-bay-parks-beachwatch-station-mappings.json:8e002941c5f757d78367b41c643e269b1841fb754caed6923a340c5638c0c3e9"
         },
         {
@@ -166,6 +178,10 @@
         {
           "name": "castingcompass:input-sha256",
           "value": "water-quality/pollution-score-source-policy.json:1061fcffec8283bf48e333a20a58ac8ea77545f5537f1d68685dda267d89d250"
+        },
+        {
+          "name": "castingcompass:input-sha256",
+          "value": "worker/ai-review-exercise-stub.ts:1d44976ec9656fc32b60648618ae772ad47626bcedda0d8c3adf5a81aa39b8c7"
         },
         {
           "name": "castingcompass:input-sha256",

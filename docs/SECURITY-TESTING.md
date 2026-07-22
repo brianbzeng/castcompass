@@ -126,5 +126,12 @@ composition, browser extensions, infrastructure consoles, or business logic. L10
 until an independent tester completes the written authenticated/manual scope, critical and high
 findings are fixed and retested, and a separate independent acceptance receipt is recorded.
 
+The next authenticated advisory-review exercise now has a separate local-only, non-executing
+contract in [AUTHENTICATED-STAGING-DRILL.md](AUTHENTICATED-STAGING-DRILL.md). It locks exact
+synthetic-account/trip identities, direct and Queue overlap, an internal deterministic AI stub,
+client-response-loss truth boundaries, and private evidence requirements. It deliberately has no
+run command and is not a substitute for provisioning, written independent authorization, or real
+staging evidence.
+
 Never use this runner as permission to load-test or penetration-test a host. Written owner
 authorization, the isolated staging boundary, and applicable law/provider rules remain required.

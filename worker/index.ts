@@ -51,11 +51,8 @@ interface AssetFetcher {
 
 interface Env extends TripApiEnv, TurnstileEnv, RateLimitEnv, ObservabilityEnv, AiReviewQueueEnv, PrivacyExportEnv {
   ASSETS: AssetFetcher;
-  MIMO_API_KEY?: string;
-  MIMO_MODEL?: string;
   PUBLIC_DISCUSSIONS_ENABLED?: string;
   RELEASE_MAINTENANCE_MODE?: string;
-  SECURITY_EXERCISE_ID?: string;
 }
 
 interface ExecutionContext {

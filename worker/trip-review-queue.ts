@@ -2,7 +2,7 @@ import type { CuratedSite, D1DatabaseLike } from "./trips";
 import { logEvent } from "./observability.ts";
 import { releaseMaintenanceEnabled } from "./security.ts";
 import { reviewTripBacklog, reviewTripWithMimo } from "./trip-review.ts";
-import type { RateLimitEnv } from "./rate-limit.ts";
+import type { ReviewEnv } from "./trip-review.ts";
 
 export const AI_REVIEW_QUEUE_MESSAGE_VERSION = "castingcompass.ai-review-queue/1.0.0";
 const JOB_ID_PATTERN = /^airj_[a-f0-9]{32}$/;
@@ -36,10 +36,7 @@ export interface QueueBatchLike {
   readonly messages: readonly QueueMessageLike[];
 }
 
-export interface AiReviewQueueEnv extends RateLimitEnv {
-  DB?: D1DatabaseLike;
-  MIMO_API_KEY?: string;
-  MIMO_MODEL?: string;
+export interface AiReviewQueueEnv extends ReviewEnv {
   AI_REVIEW_QUEUE_ENABLED?: string;
   AI_REVIEW_QUEUE?: QueueBindingLike;
   RELEASE_MAINTENANCE_MODE?: string;
