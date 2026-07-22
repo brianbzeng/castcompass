@@ -150,7 +150,7 @@ async function initialize(db: D1DatabaseLike) {
   await pending;
 }
 
-interface AuthenticatedSession {
+export interface AuthenticatedSession {
   user: AuthUser;
   accountVersion: AuthenticatedAccountVersion;
   sessionTokenHash: string;
@@ -241,6 +241,49 @@ async function getAuthenticatedSession(request: Request, env: AuthApiEnv): Promi
 export async function getAuthenticatedUser(request: Request, env: AuthApiEnv): Promise<AuthUser | null> {
   const session = await getAuthenticatedSession(request, env);
   return session && !session.deletionFenced ? session.user : null;
+}
+
+export interface OwnerAuthorizationOptions {
+  currentLegalAcceptanceRequired: boolean;
+  deletionFenceAccessAllowed: boolean;
+}
+
+export type OwnerAuthorizationResult =
+  | { session: AuthenticatedSession; response: null }
+  | { session: null; response: Response };
+
+/**
+ * Resolve registry-declared owner access before a protected request body is read.
+ * Receipt and optional-session routes intentionally use their narrower handlers
+ * instead of this account-session gate.
+ */
+export async function authorizeOwnerRequest(
+  request: Request,
+  env: AuthApiEnv,
+  options: OwnerAuthorizationOptions,
+): Promise<OwnerAuthorizationResult> {
+  if (!env.DB) {
+    return {
+      session: null,
+      response: errorResponse(503, "storage_unavailable", "Account storage is temporarily unavailable."),
+    };
+  }
+  try {
+    const session = await getAuthenticatedSession(request, env);
+    if (!session) return { session: null, response: unauthorizedResponse() };
+    if (session.deletionFenced && !options.deletionFenceAccessAllowed) {
+      return { session: null, response: accountDeletionInProgressResponse() };
+    }
+    if (options.currentLegalAcceptanceRequired && !session.user.legalAccepted) {
+      return {
+        session: null,
+        response: legalAcceptanceRequiredResponse(session.user.ageEligible),
+      };
+    }
+    return { session, response: null };
+  } catch (error) {
+    return { session: null, response: accountRequestErrorResponse(error) };
+  }
 }
 
 function accountRequestAllowedWhileDeletionFenced(request: Request) {
@@ -965,11 +1008,7 @@ export async function handleAccountRequest(
     if (!authenticatedSession) return unauthorizedResponse();
     const user = authenticatedSession.user;
     if (authenticatedSession.deletionFenced && !accountRequestAllowedWhileDeletionFenced(request)) {
-      return errorResponse(
-        409,
-        "account_deletion_in_progress",
-        "Account deletion is already in progress. Export or retry deletion from Profile.",
-      );
+      return accountDeletionInProgressResponse();
     }
 
     if (url.pathname === "/api/auth/eligibility") {
@@ -2138,6 +2177,14 @@ function parseOptionalProfileTripNumber(value: unknown, label: string, minimum: 
 
 export function unauthorizedResponse() {
   return errorResponse(401, "authentication_required", "Sign in to submit a trip report or save a location.");
+}
+
+function accountDeletionInProgressResponse() {
+  return errorResponse(
+    409,
+    "account_deletion_in_progress",
+    "Account deletion is already in progress. Export or retry deletion from Profile.",
+  );
 }
 
 export function legalAcceptanceRequiredResponse(ageEligible = true) {

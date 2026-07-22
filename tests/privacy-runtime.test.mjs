@@ -3,7 +3,15 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
-import { cleanupAuthData, cleanupAuthRetentionData, LEGAL_VERSION, evaluateAgeEligibility, handleAccountRequest, processPrivacyDeletionTasks } from "../worker/auth.ts";
+import {
+  authorizeOwnerRequest,
+  cleanupAuthData,
+  cleanupAuthRetentionData,
+  LEGAL_VERSION,
+  evaluateAgeEligibility,
+  handleAccountRequest,
+  processPrivacyDeletionTasks,
+} from "../worker/auth.ts";
 import { createTripStore, handleTripRequest } from "../worker/trips.ts";
 import { reviewTripBacklog, reviewTripWithMimo } from "../worker/trip-review.ts";
 import { scheduleTripReview } from "../worker/trip-review-queue.ts";
@@ -2860,6 +2868,107 @@ test("legal reacceptance preserves prior age eligibility and legacy accounts fai
   assert.equal(legacyDob?.status, 422);
   const legacyExport = await handleAccountRequest(request("/api/profile/export", { cookie: rotatedLegacyCookie }), { DB: d1 }, []);
   assert.equal(legacyExport?.status, 200);
+});
+
+test("owner preflight binds the live session and preserves legal and deletion-fence rights", async () => {
+  const protectedOptions = {
+    currentLegalAcceptanceRequired: true,
+    deletionFenceAccessAllowed: false,
+  };
+  const unavailableRequest = request("/api/trips/start", {
+    method: "POST",
+    body: { siteId: "ocean-beach" },
+  });
+  const unavailable = await authorizeOwnerRequest(unavailableRequest, {}, protectedOptions);
+  assert.equal(unavailable.session, null);
+  assert.equal(unavailable.response?.status, 503);
+  assert.equal((await unavailable.response.json()).error.code, "storage_unavailable");
+  assert.equal(unavailableRequest.bodyUsed, false);
+
+  const { sqlite, d1 } = await database();
+  const anonymousRequest = request("/api/trips/start", {
+    method: "POST",
+    body: { siteId: "ocean-beach" },
+  });
+  const anonymous = await authorizeOwnerRequest(anonymousRequest, { DB: d1 }, protectedOptions);
+  assert.equal(anonymous.session, null);
+  assert.equal(anonymous.response?.status, 401);
+  assert.equal((await anonymous.response.json()).error.code, "authentication_required");
+  assert.equal(anonymousRequest.bodyUsed, false);
+
+  const owner = await addUser(sqlite, "owner-preflight-166");
+  const other = await addUser(sqlite, "other-preflight-167");
+  const ownerResult = await authorizeOwnerRequest(
+    request("/api/trips/start", { method: "POST", cookie: owner.cookie, body: {} }),
+    { DB: d1 },
+    protectedOptions,
+  );
+  const otherResult = await authorizeOwnerRequest(
+    request("/api/trips/start", { method: "POST", cookie: other.cookie, body: {} }),
+    { DB: d1 },
+    protectedOptions,
+  );
+  assert.equal(ownerResult.response, null);
+  assert.equal(ownerResult.session?.user.id, owner.id);
+  assert.equal(otherResult.response, null);
+  assert.equal(otherResult.session?.user.id, other.id);
+  assert.notEqual(ownerResult.session?.user.id, otherResult.session?.user.id);
+
+  sqlite.prepare("UPDATE users SET terms_version = 'old', privacy_version = 'old' WHERE id = ?").run(owner.id);
+  const staleLegal = await authorizeOwnerRequest(
+    request("/api/trips/start", { method: "POST", cookie: owner.cookie, body: {} }),
+    { DB: d1 },
+    protectedOptions,
+  );
+  assert.equal(staleLegal.session, null);
+  assert.equal(staleLegal.response?.status, 428);
+  assert.equal((await staleLegal.response.json()).error.code, "legal_acceptance_required");
+
+  const legalException = await authorizeOwnerRequest(
+    request("/api/profile/export", { cookie: owner.cookie }),
+    { DB: d1 },
+    { currentLegalAcceptanceRequired: false, deletionFenceAccessAllowed: true },
+  );
+  assert.equal(legalException.response, null);
+  assert.equal(legalException.session?.user.id, owner.id);
+
+  const timestamp = new Date().toISOString();
+  sqlite.prepare(`INSERT INTO account_deletion_fences
+      (user_id, owner_subject_hash, lease_token, lease_expires_at, requested_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?)`).run(
+    owner.id,
+    await sha256(`account:${owner.id}`),
+    `lease_${"a".repeat(40)}`,
+    new Date(Date.now() + 60_000).toISOString(),
+    timestamp,
+    timestamp,
+  );
+
+  const fencedMutation = await authorizeOwnerRequest(
+    request("/api/trips/start", { method: "POST", cookie: owner.cookie, body: {} }),
+    { DB: d1 },
+    protectedOptions,
+  );
+  assert.equal(fencedMutation.session, null);
+  assert.equal(fencedMutation.response?.status, 409);
+  assert.equal((await fencedMutation.response.json()).error.code, "account_deletion_in_progress");
+
+  const fencedExport = await authorizeOwnerRequest(
+    request("/api/profile/export", { cookie: owner.cookie }),
+    { DB: d1 },
+    { currentLegalAcceptanceRequired: false, deletionFenceAccessAllowed: true },
+  );
+  assert.equal(fencedExport.response, null);
+  assert.equal(fencedExport.session?.user.id, owner.id);
+
+  const fencedProfile = await authorizeOwnerRequest(
+    request("/api/profile", { cookie: owner.cookie }),
+    { DB: d1 },
+    { currentLegalAcceptanceRequired: true, deletionFenceAccessAllowed: true },
+  );
+  assert.equal(fencedProfile.session, null);
+  assert.equal(fencedProfile.response?.status, 428);
+  assert.equal((await fencedProfile.response.json()).error.code, "legal_acceptance_required");
 });
 
 test("legal acceptance requires an exact live account and session receipt", async () => {

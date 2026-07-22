@@ -24,6 +24,7 @@ export interface ApiRoutePolicy {
   handler: ApiHandler;
   sameOriginRequired: boolean;
   currentLegalAcceptanceRequired: boolean;
+  deletionFenceAccessAllowed: boolean;
   rateLimitTags: readonly Exclude<RequestLimitClass, "read" | "write">[];
   matches(pathname: string): boolean;
 }
@@ -59,6 +60,7 @@ const route = (
   options: {
     sameOriginRequired?: boolean;
     currentLegalAcceptanceRequired?: boolean;
+    deletionFenceAccessAllowed?: boolean;
     rateLimitTags?: readonly Exclude<RequestLimitClass, "read" | "write">[];
     matches?: (pathname: string) => boolean;
   } = {},
@@ -71,6 +73,7 @@ const route = (
   handler,
   sameOriginRequired: options.sameOriginRequired ?? false,
   currentLegalAcceptanceRequired: options.currentLegalAcceptanceRequired ?? false,
+  deletionFenceAccessAllowed: options.deletionFenceAccessAllowed ?? false,
   rateLimitTags: options.rateLimitTags ?? [],
   matches: options.matches ?? exact(pathTemplate),
 });
@@ -206,7 +209,11 @@ export const API_ROUTE_POLICIES: readonly ApiRoutePolicy[] = [
     ["GET"],
     "owner",
     "account",
-    { rateLimitTags: ["sensitive"], matches: (path) => API_ROUTE_PATTERNS.profileExportPhoto.test(path) },
+    {
+      deletionFenceAccessAllowed: true,
+      rateLimitTags: ["sensitive"],
+      matches: (path) => API_ROUTE_PATTERNS.profileExportPhoto.test(path),
+    },
   ),
   route(
     "profile.export_status",
@@ -215,7 +222,10 @@ export const API_ROUTE_POLICIES: readonly ApiRoutePolicy[] = [
     ["GET"],
     "owner",
     "account",
-    { matches: (path) => API_ROUTE_PATTERNS.profileExportStatus.test(path) },
+    {
+      deletionFenceAccessAllowed: true,
+      matches: (path) => API_ROUTE_PATTERNS.profileExportStatus.test(path),
+    },
   ),
   route(
     "profile.export_download",
@@ -224,7 +234,11 @@ export const API_ROUTE_POLICIES: readonly ApiRoutePolicy[] = [
     ["GET"],
     "owner",
     "account",
-    { rateLimitTags: ["sensitive"], matches: (path) => API_ROUTE_PATTERNS.profileExportDownload.test(path) },
+    {
+      deletionFenceAccessAllowed: true,
+      rateLimitTags: ["sensitive"],
+      matches: (path) => API_ROUTE_PATTERNS.profileExportDownload.test(path),
+    },
   ),
   route(
     "profile.export",
@@ -233,7 +247,7 @@ export const API_ROUTE_POLICIES: readonly ApiRoutePolicy[] = [
     ["GET"],
     "owner",
     "account",
-    { rateLimitTags: ["sensitive"] },
+    { deletionFenceAccessAllowed: true, rateLimitTags: ["sensitive"] },
   ),
   route(
     "profile.export_request",
@@ -246,9 +260,11 @@ export const API_ROUTE_POLICIES: readonly ApiRoutePolicy[] = [
   ),
   route("profile.read", "/api/profile", "/api/profile", ["GET"], "owner", "account", {
     currentLegalAcceptanceRequired: true,
+    deletionFenceAccessAllowed: true,
   }),
   route("profile.delete", "/api/profile", "/api/profile", ["DELETE"], "owner", "account", {
     sameOriginRequired: true,
+    deletionFenceAccessAllowed: true,
     rateLimitTags: ["sensitive"],
   }),
   route(

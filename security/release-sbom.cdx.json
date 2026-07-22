@@ -1,7 +1,7 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:134ee8b9-00fc-53a2-b970-4c502a01ce88",
+  "serialNumber": "urn:uuid:c5df051d-26be-5b54-8b5f-d03aad35990e",
   "version": 1,
   "metadata": {
     "component": {
@@ -113,7 +113,7 @@
         },
         {
           "name": "castingcompass:input-sha256",
-          "value": "security/d1-query-inventory.json:4342905d65df461a3d178df7e8396279b14aee0eebef5bdef793b16e3210182d"
+          "value": "security/d1-query-inventory.json:3f396da25bf3b6cb020f8c479616a1d2dac4af1f94e832cf0b21e1c019aaa619"
         },
         {
           "name": "castingcompass:input-sha256",

@@ -13,6 +13,42 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — registry-enforced owner and current-legal boundary
+
+- [x] Reconcile the executable actor/legal fields against Worker request flow. The registry
+      classified owner and current-legal routes, but account routes enforced them only inside
+      their handler and trip routes used a separate partial session check. A missing D1 binding
+      could therefore be mislabeled as missing authentication, and future protected handlers
+      could receive an untrusted body before applying the declared policy.
+- [x] Resolve every singleton policy classified `owner` after rate limiting, route/method/conflict
+      rejection, and exact same-origin enforcement but before body guarding. Missing storage now
+      returns `503`, absent session authority returns `401`, a disallowed deletion fence returns
+      `409`, and stale legal acceptance returns `428` exactly when the route policy requires it.
+- [x] Make deletion-fence access explicit and exhaustive in policy. Only the six existing
+      privacy-rights rows—direct export, export photo/status/download, profile read, and account
+      deletion—can cross the fence; current legal acceptance remains an independent requirement.
+      Receipt and optional-session routes retain their narrower resource-token/session semantics
+      and never inherit owner authority.
+- [x] Preserve a live execution-time defense after the pre-body gate. Account handlers repeat
+      their session/fence/legal lookup, and protected trip handlers re-authorize immediately
+      before execution, so a concurrent revocation or new deletion fence wins. Every private SQL
+      lookup continues to bind the server-derived account identity; the existing cross-account
+      regressions remain green.
+- [x] Attack-test missing storage, missing session, two distinct account identities, stale legal
+      versions, deletion-fenced mutations, legal/export exceptions, the exact six-row policy set,
+      public handler independence, and an unread owner request body. The focused route suite
+      passes 10/10 under pinned Node 22.23.1/npm 10.9.8; ESLint and TypeScript pass.
+- [x] Complete local exact-tree acceptance. The production-off Cloudflare build and all 694/694
+      Node tests pass; the explicit feature-on photo build and 8/8 Chromium/WebKit cases pass;
+      the restored production-off phone matrix passes 228/228 across four Chromium/WebKit
+      profiles; and the complete security/SBOM/query-policy chain plus both npm audits pass with
+      zero reported vulnerabilities.
+- [ ] Obtain exact-head hosted CI and CodeQL evidence. This automation gate does not replace
+      independent review or authorize a release.
+- [ ] Obtain independent human review. This repository boundary does not authorize merge,
+      deployment, provider mutation, migration, feature activation, staging exercise, or
+      production acceptance.
+
 ## Active checkpoint — registry-owned API handler dispatch
 
 - [x] Reconcile the executable handler field against the actual Worker router. Although every
@@ -36,8 +72,11 @@ by that discovery.
       photo build and 8/8 Chromium/WebKit cases pass; the restored production-off phone matrix
       passes 228/228 across four Chromium/WebKit profiles; and the complete security/SBOM/query-
       policy chain plus both npm audits pass with zero reported vulnerabilities.
-- [ ] Obtain exact-head hosted CI and CodeQL evidence. This automation gate does not replace
-      independent review or authorize a release.
+- [x] Obtain exact-head hosted evidence through consolidated head
+      `c3c1fca1dd81a1ab5d5b09d3739fea126829b1e3`: CI run `29963344828`, CodeQL run
+      `29963343019`, optional research-stack run `29963344781`, native API-image run
+      `29963344771`, and release-provenance run `29963344764` all passed. This is automation
+      evidence, not review.
 - [ ] Obtain independent human review. This
       repository boundary does not authorize merge, deployment, provider mutation, migration,
       feature activation, staging exercise, or production acceptance.

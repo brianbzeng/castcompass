@@ -1,8 +1,8 @@
 # CastingCompass access-control matrix
 
 Status: reviewed implementation baseline, not production activation evidence  
-Last reviewed source: `9ee519f11362811b8ffa44ddca5e0c8974884c04` plus the
-executable route inventory introduced with this revision
+Last reviewed source: `c3c1fca1dd81a1ab5d5b09d3739fea126829b1e3` plus the
+owner-preflight boundary introduced with this revision
 
 CastingCompass uses Cloudflare D1/SQLite, which does not provide PostgreSQL-style
 native row-level security. The required equivalent is a deny-by-default server
@@ -16,7 +16,7 @@ output never grants authority.
 
 | Actor | Allowed | Explicitly not allowed | Enforcement and evidence |
 | --- | --- | --- | --- |
-| Anonymous visitor | Read public pages/assets, aggregate trip summary, health status, and approved public discussion summaries when the feature is enabled; start account verification and recovery flows | Read private trips, photos, saved sites, gear, exports, drafts, validation ledgers, or operator data; mutate trip/account data | Public route allowlist; all other account routes require `getAuthenticatedUser`; trip mutations are rejected before the trip handler without a session; public discussion queries require complete human-approval fields |
+| Anonymous visitor | Read public pages/assets, aggregate trip summary, health status, and approved public discussion summaries when the feature is enabled; start account verification and recovery flows | Read private trips, photos, saved sites, gear, exports, drafts, validation ledgers, or operator data; mutate trip/account data | Public route allowlist; every registry row classified `owner` resolves a live server session before body parsing and again at handler execution; public discussion queries require complete human-approval fields |
 | Account owner | Read/export their account data and photos; manage their saved sites and gear; create trips; edit or remove only their own pending trips; accept legal updates; delete their account | Supply another account identity, read/mutate another account's objects, alter server-controlled observation identity, edit an approved trip, approve/publish an AI draft, activate validation, or perform operator actions | Random session token is stored only as a SHA-256 hash in D1 and sent over HTTPS in a `Secure`, `HttpOnly`, `SameSite=Lax`, host-only cookie; private SQL binds `user.id`; mutations also require same-origin requests; cross-account regression tests require indistinguishable `404` results and no mutation |
 | Human moderator | No public application endpoint currently grants this role | Use a client-side role flag or model recommendation as approval; expose moderator identity publicly | Publication requires a separately recorded `approved_at` and `approved_by` plus matching approved trip state. Until a reviewed moderator service exists, approval remains an operator-controlled database/runbook action and public discussions remain default-off |
 | Support staff | No private-data application role currently exists | Impersonate an account, reset credentials, read trip content, or bypass deletion through the web app | No support route or browser role exists. A future support surface requires purpose limitation, MFA, field-level minimization, time-bounded elevation, reason capture, and immutable audit events before use |
@@ -70,20 +70,32 @@ output never grants authority.
 
 `worker/route-policy.ts` is the source-controlled API inventory. Every route records
 its stable identifier, path template, accepted methods, actor boundary, handler,
-same-origin requirement, current-legal-acceptance requirement, and extra abuse-limit
-classes. Dynamic path patterns are imported by both the inventory and the route
-handlers so their object shapes cannot drift independently.
+same-origin requirement, current-legal-acceptance requirement, deletion-fence exception,
+and extra abuse-limit classes. Dynamic path patterns are imported by both the inventory
+and the route handlers so their object shapes cannot drift independently.
 
 The Worker returns a generic, non-cacheable `404` for any `/api/` path that is not
-in the inventory. A newly written handler therefore remains unreachable until its
-security policy is reviewed. Known paths with unsupported methods still reach their
-handler's explicit `405` response. The rate limiter consumes the same inventory and
-retains a generic read/write ceiling for unclassified probes before they are denied.
+in the inventory and a registry-derived `405` for an unclassified method. A newly written
+handler therefore remains unreachable until its exact path and method policy is reviewed.
+Conflicting policies fail with a generic `503`, and the singleton policy alone selects the
+handler. The rate limiter consumes the same inventory and retains a generic read/write
+ceiling for unclassified probes before they are denied.
+
+After those route and same-origin checks, every `owner` policy must resolve a live session
+before the request-body guard can consume input. Missing storage is `503`, absent authority
+is `401`, an account deletion fence is `409`, and stale legal acceptance is `428` when the
+policy requires the current version. The only fence exceptions are the exact six existing
+privacy-rights rows: direct export, export photo/status/download, profile read, and account
+deletion. Current legal acceptance remains independently required where its policy says so.
+Receipt and optional-session routes do not inherit owner authority; their narrow handlers
+retain their own resource-token or optional-session semantics. Account and trip execution
+repeat live authorization after body guarding so a concurrent revocation or new deletion
+fence fails closed.
 
 `tests/route-policy-runtime.test.mjs` machine-checks unique route identities, actor,
-CSRF/legal and abuse metadata, representative dynamic resources, malformed and
+CSRF/legal/fence and abuse metadata, representative dynamic resources, malformed and
 lookalike paths, every exact route branch in the Worker handlers, and the central
-trip-owner gate. Object-level ownership and cross-account behavior remain covered by
+pre-body owner gate. Object-level ownership and cross-account behavior remain covered by
 the runtime privacy and trip suites. The terminal-trip regression supplies the exact
 token from a second authenticated account and also changes ownership between the
 handler pre-read and final update; cancellation and completion both remain `404`, and

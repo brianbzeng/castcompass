@@ -164,6 +164,17 @@ after its acceptance checks pass in the intended environment.
       suite passes 10/10, including representative production-bundle dispatch for all five
       families, and the production-off build plus all 693/693 Node tests pass under the pinned
       runtime; non-API routing and protected-trip owner/legal checks remain unchanged.
+    - [x] Make the registry's owner and current-legal fields executable before body parsing.
+      Every singleton `owner` policy now resolves a live server-side session after generic abuse,
+      route/method/conflict, and same-origin rejection but before the body guard. Missing storage,
+      missing authority, deletion fences, and stale legal acceptance fail with distinct truthful
+      responses. Exactly six policy rows preserve the existing export/profile/delete access
+      needed during deletion; receipt and optional-session routes remain separate. Account and
+      trip execution repeat live authorization so revocation/fence races fail closed. The focused
+      registry suite passes 10/10, the production-off build plus all 694/694 Node tests pass, the
+      feature-on photo lane passes 8/8, the restored phone matrix passes 228/228, and the full
+      security/SBOM/query-policy chain plus both zero-vulnerability audits pass under the pinned
+      runtime.
     - [x] Bind active-trip completion and cancellation to the authenticated account in both
       the handler precheck and the final D1 update. The write now requires the same trip ID,
       account ID, active state, and token hash atomically; exact-token cross-account and

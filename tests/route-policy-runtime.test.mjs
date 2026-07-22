@@ -26,6 +26,12 @@ test("every declared API route example resolves to its exact executable policy",
     if (mutates && policy.id !== "auth.signup_retired") {
       assert.equal(policy.sameOriginRequired, true, policy.id);
     }
+    if (policy.currentLegalAcceptanceRequired) {
+      assert.equal(policy.authorization, "owner", policy.id);
+    }
+    if (policy.deletionFenceAccessAllowed) {
+      assert.equal(policy.authorization, "owner", policy.id);
+    }
     if (policy.authorization === "owner" && !policy.currentLegalAcceptanceRequired) {
       assert.equal(
         [
@@ -42,6 +48,18 @@ test("every declared API route example resolves to its exact executable policy",
       );
     }
   }
+
+  assert.deepEqual(
+    API_ROUTE_POLICIES.filter((policy) => policy.deletionFenceAccessAllowed).map((policy) => policy.id),
+    [
+      "profile.export_photo",
+      "profile.export_status",
+      "profile.export_download",
+      "profile.export",
+      "profile.read",
+      "profile.delete",
+    ],
+  );
 });
 
 test("route policy records actor, CSRF, legal, and abuse controls for representative boundaries", () => {
@@ -273,11 +291,16 @@ test("the Worker entry point centrally denies unknown paths and unclassified met
   assert.match(source, /Allow: apiRejection\.allowedMethods\.join\(", "\)/);
   assert.doesNotMatch(source, /!apiPolicy && !isKnownApiPath/);
   assert.match(source, /const protectedTripMutation = apiPolicy\.authorization === "owner"/);
+  assert.match(source, /if \(apiPolicy\?\.authorization === "owner"\)/);
+  assert.match(source, /authorizeOwnerRequest\(request, env/);
   assert.doesNotMatch(source, /url\.pathname\.startsWith\("\/api\/trips\/"\)/);
 
   const rejection = source.indexOf("apiRouteRejectionForRequest(request)");
+  const ownerAuthorization = source.indexOf("authorizeOwnerRequest(request, env");
+  const bodyGuard = source.indexOf("guardRequestBody(request)");
   assert.ok(rejection >= 0);
-  assert.ok(source.indexOf("guardRequestBody(request)") > rejection, "body reads must follow central rejection");
+  assert.ok(ownerAuthorization > rejection, "owner authorization must follow central route rejection");
+  assert.ok(bodyGuard > ownerAuthorization, "body reads must follow owner authorization");
   for (const dispatch of [
     "handleTurnstileConfigRequest(request, env)",
     "healthResponse(request, env)",
@@ -375,6 +398,16 @@ test("the production bundle dispatches representative API policies without stati
     assert.equal(response.status, 503, path);
     assert.equal((await response.json()).error.code, expectedCode, path);
   }
+
+  const protectedBody = request("/api/trips/start", "POST", {
+    Origin: origin,
+    "Content-Type": "application/json",
+  });
+  const protectedRequest = new Request(protectedBody, { body: JSON.stringify({ siteId: "ocean-beach" }) });
+  const protectedResponse = await worker.fetch(protectedRequest, baseEnv, ctx);
+  assert.equal(protectedResponse.status, 503);
+  assert.equal((await protectedResponse.json()).error.code, "storage_unavailable");
+  assert.equal(protectedRequest.bodyUsed, false, "owner storage/auth rejection must precede body parsing");
 
   const unknown = await worker.fetch(request("/api/not-registered"), baseEnv, ctx);
   assert.equal(unknown.status, 404);

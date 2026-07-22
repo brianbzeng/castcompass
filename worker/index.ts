@@ -3,7 +3,13 @@ import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } fr
 import handler from "vinext/server/app-router-entry";
 import sites from "../public/data/sites.json";
 import { handleTripRequest, type TripApiEnv } from "./trips";
-import { getAuthenticatedUser, handleAccountRequest, legalAcceptanceRequiredResponse, unauthorizedResponse } from "./auth";
+import {
+  authorizeOwnerRequest,
+  handleAccountRequest,
+  legalAcceptanceRequiredResponse,
+  unauthorizedResponse,
+  type AuthenticatedSession,
+} from "./auth";
 import {
   AI_REVIEW_QUEUE_MESSAGE_VERSION,
   consumeAiReviewQueue,
@@ -29,7 +35,11 @@ import {
 } from "./security";
 import { handleTurnstileConfigRequest, type TurnstileEnv } from "./turnstile";
 import { enforceRequestRateLimit, type RateLimitEnv } from "./rate-limit";
-import { apiRoutePolicyForRequest, apiRouteRejectionForRequest } from "./route-policy";
+import {
+  apiRoutePolicyForRequest,
+  apiRouteRejectionForRequest,
+  type ApiRoutePolicy,
+} from "./route-policy";
 import { unsupportedApiVersionResponse } from "./api-version.ts";
 import {
   attachRequestId,
@@ -148,11 +158,22 @@ async function handleFetchRequest(request: Request, env: Env, ctx: ExecutionCont
     });
   }
 
+  const apiPolicy = apiRoutePolicyForRequest(request);
+  let authenticatedSession: AuthenticatedSession | null = null;
+  if (apiPolicy?.authorization === "owner") {
+    const ownerAuthorization = await authorizeOwnerRequest(request, env, {
+      currentLegalAcceptanceRequired: apiPolicy.currentLegalAcceptanceRequired,
+      deletionFenceAccessAllowed: apiPolicy.deletionFenceAccessAllowed,
+    });
+    if (ownerAuthorization.response) return ownerAuthorization.response;
+    authenticatedSession = ownerAuthorization.session;
+  }
+
   const guarded = await guardRequestBody(request);
   if (guarded.response) return guarded.response;
 
   const routedRequest = guarded.request;
-  return routeRequest(routedRequest, env, ctx);
+  return routeRequest(routedRequest, env, ctx, apiPolicy, authenticatedSession);
 }
 
 function routePolicyUnavailableResponse(): Response {
@@ -170,9 +191,14 @@ function routePolicyUnavailableResponse(): Response {
   });
 }
 
-async function routeRequest(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+async function routeRequest(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  apiPolicy: ApiRoutePolicy | null,
+  authenticatedSession: AuthenticatedSession | null,
+): Promise<Response> {
   const url = new URL(request.url);
-  const apiPolicy = apiRoutePolicyForRequest(request);
 
   if (url.pathname.startsWith("/api/")) {
     // The route registry is the sole API dispatcher. A handler that no longer
@@ -204,11 +230,20 @@ async function routeRequest(request: Request, env: Env, ctx: ExecutionContext): 
         break;
       case "trips": {
         const protectedTripMutation = apiPolicy.authorization === "owner";
-        const authenticatedUser = protectedTripMutation ? await getAuthenticatedUser(request, env) : null;
+        let tripSession = authenticatedSession;
+        if (protectedTripMutation) {
+          const ownerAuthorization = await authorizeOwnerRequest(request, env, {
+            currentLegalAcceptanceRequired: apiPolicy.currentLegalAcceptanceRequired,
+            deletionFenceAccessAllowed: apiPolicy.deletionFenceAccessAllowed,
+          });
+          if (ownerAuthorization.response) return ownerAuthorization.response;
+          tripSession = ownerAuthorization.session;
+        }
+        const authenticatedUser = protectedTripMutation ? tripSession?.user ?? null : null;
         if (protectedTripMutation && !authenticatedUser) {
           return unauthorizedResponse();
         }
-        if (protectedTripMutation && !authenticatedUser?.legalAccepted) {
+        if (apiPolicy.currentLegalAcceptanceRequired && !authenticatedUser?.legalAccepted) {
           return legalAcceptanceRequiredResponse(authenticatedUser?.ageEligible ?? false);
         }
         apiResponse = await handleTripRequest(request, env, sites, {
