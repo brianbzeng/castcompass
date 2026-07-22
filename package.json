@@ -25,6 +25,7 @@
     "release:cloudflare:safety-floor": "node scripts/release-cloudflare.mjs --mode safety-floor --release-root \"$RELEASE_ROOT\" --expected-commit \"$RELEASE_COMMIT\" --expected-gate-commit \"$RELEASE_GATE_COMMIT\" --authorization-file \"$RELEASE_AUTHORIZATION_FILE\"",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "test": "npm run build:cloudflare && node --test tests/*.test.mjs",
+    "test:photo-ui:browser": "playwright test tests/photo-upload-ui.spec.ts --config=playwright.photo.config.ts",
     "test:mobile": "playwright test tests/mobile-viewport.spec.ts",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit",

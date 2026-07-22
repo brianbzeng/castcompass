@@ -111,7 +111,7 @@ function pastTripReceipt(route: Route) {
   const tripId = route.request().postData()?.match(/trip_[a-f0-9-]{36}/)?.[0];
   if (!tripId) throw new Error("Past-trip request did not include a client trip identity.");
   return {
-    trip: { id: tripId, status: "completed", source: "past_report" },
+    trip: { id: tripId, status: "completed", source: "past_report", hasPhoto: false },
     receipt: { operation: "past", tripId },
   };
 }

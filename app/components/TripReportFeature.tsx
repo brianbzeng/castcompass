@@ -27,14 +27,22 @@ import {
 } from "../lib/account-browser-storage";
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const PHOTO_UPLOADS_ENABLED = process.env.NEXT_PUBLIC_PHOTO_UPLOADS !== "false";
+const PHOTO_UPLOADS_ENABLED = process.env.NEXT_PUBLIC_PHOTO_UPLOADS === "true";
 // Keep a slow request pending. If its response is lost, the stable request
 // identity below makes an explicit user retry idempotent; nothing auto-replays.
 const SLOW_SUBMISSION_NOTICE_MS = 4_000;
 
 type Panel = "start" | "complete" | "past";
 type SubmitState = "idle" | "submitting" | "success" | "error" | "ambiguous";
+type PhotoTransferState = "idle" | "selected" | "sending" | "confirmed" | "failed" | "ambiguous";
 type TripReceiptOperation = "start" | "complete" | "past";
+
+interface RejectedPhoto {
+  name: string;
+  type: string;
+  size: number;
+  message: string;
+}
 
 interface TripRequestMaterial {
   id: string;
@@ -353,6 +361,7 @@ function exactTripReceipt(
   tripId: string,
   status: "active" | "completed",
   source: "live" | "past_report",
+  expectedHasPhoto?: boolean,
 ) {
   const receipt = payload.receipt && typeof payload.receipt === "object"
     ? payload.receipt as Record<string, unknown>
@@ -362,7 +371,8 @@ function exactTripReceipt(
     : {};
   if (
     receipt.operation !== operation || receipt.tripId !== tripId ||
-    trip.id !== tripId || trip.status !== status || trip.source !== source
+    trip.id !== tripId || trip.status !== status || trip.source !== source ||
+    (typeof expectedHasPhoto === "boolean" && trip.hasPhoto !== expectedHasPhoto)
   ) throw new AmbiguousTripSubmissionError();
   return trip;
 }
@@ -523,6 +533,8 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
   const [formStep, setFormStep] = useState<1 | 2>(1);
   const [gearProfiles, setGearProfiles] = useState<GearProfile[]>([]);
   const [photo, setPhoto] = useState<File | null>(null);
+  const [rejectedPhoto, setRejectedPhoto] = useState<RejectedPhoto | null>(null);
+  const [photoTransferState, setPhotoTransferState] = useState<PhotoTransferState>("idle");
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [message, setMessage] = useState("");
   const [summary, setSummary] = useState<SummaryView | null>(null);
@@ -546,6 +558,8 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
     setSubmitState("idle");
     setMessage("");
     setPhoto(null);
+    setRejectedPhoto(null);
+    setPhotoTransferState("idle");
     if (photoInputRef.current) photoInputRef.current.value = "";
   }, []);
 
@@ -683,19 +697,35 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
 
   const handlePhoto = (event: ChangeEvent<HTMLInputElement>) => {
     const nextPhoto = event.target.files?.[0] ?? null;
+    if (!nextPhoto) {
+      setPhoto(null);
+      setRejectedPhoto(null);
+      setPhotoTransferState("idle");
+      return;
+    }
     try {
       validatePhoto(nextPhoto);
       setPhoto(nextPhoto);
-      if (submitState === "error") {
-        setSubmitState("idle");
-        setMessage("");
-      }
+      setRejectedPhoto(null);
+      setPhotoTransferState("selected");
     } catch (error) {
       setPhoto(null);
+      setRejectedPhoto({
+        name: nextPhoto.name,
+        type: nextPhoto.type,
+        size: nextPhoto.size,
+        message: error instanceof Error ? error.message : "That photo cannot be used.",
+      });
+      setPhotoTransferState("idle");
       event.target.value = "";
-      setSubmitState("error");
-      setMessage(error instanceof Error ? error.message : "That photo cannot be used.");
     }
+  };
+
+  const removePhoto = () => {
+    setPhoto(null);
+    setRejectedPhoto(null);
+    setPhotoTransferState("idle");
+    if (photoInputRef.current) photoInputRef.current.value = "";
   };
 
   const updateCount = (key: "anglerCount" | "keeperCount" | "shortReleasedCount" | "otherCatchCount", value: string) => {
@@ -860,28 +890,32 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
       formData.set("mode", fields.mode);
       formData.set("fishingMethod", fields.fishingMethod);
       formData.set("method", fields.fishingMethod);
+      if (photo) setPhotoTransferState("sending");
       markTripPending(`complete.${activeTrip.id}`);
       const response = await fetch(`/api/trips/${encodeURIComponent(activeTrip.id)}/complete`, {
         method: "POST",
         body: formData,
       });
       const payload = await tripSubmissionPayload(response);
-      exactTripReceipt(payload, "complete", activeTrip.id, "completed", "live");
+      exactTripReceipt(payload, "complete", activeTrip.id, "completed", "live", Boolean(photo));
       window.localStorage.removeItem(ACTIVE_TRIP_KEY);
       window.localStorage.removeItem(LEGACY_ACTIVE_TRIP_KEY);
       window.localStorage.removeItem(`${TRIP_DRAFT_PREFIX}complete.${activeTrip.id}`);
       clearTripPending(`complete.${activeTrip.id}`);
       setActiveTrip(null);
       void refreshSummary(setSummary, setSummaryUnavailable);
+      if (photo) setPhotoTransferState("confirmed");
       setSubmitState("success");
-      setMessage(anyFishEncounters === 0
+      const photoConfirmation = photo ? " The verification photo is stored privately with the trip." : "";
+      setMessage((anyFishEncounters === 0
         ? "No-fish trip recorded. That result is essential for an honest evaluation backlog and is pending review."
         : targetEncounters === 0
           ? "Non-target fish recorded with zero California halibut. The complete result is pending review."
-        : "Trip recorded and pending review. Thanks for helping build the evaluation backlog.");
+        : "Trip recorded and pending review. Thanks for helping build the evaluation backlog.") + photoConfirmation);
     } catch (error) {
       const ambiguous = isAmbiguousSubmission(error);
       if (!ambiguous) clearTripPending(`complete.${activeTrip.id}`);
+      if (photo) setPhotoTransferState(ambiguous ? "ambiguous" : "failed");
       setSubmitState(ambiguous ? "ambiguous" : "error");
       setMessage(ambiguous
         ? ambiguousSubmissionMessage("complete")
@@ -933,26 +967,30 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
       formData.set("scoreInfluencedChoice", String(fields.scoreInfluencedChoice === "yes"));
       formData.set("reporterKey", anonymousReporterKey());
       if (referralCodeRef.current) formData.set("referralCode", referralCodeRef.current);
+      if (photo) setPhotoTransferState("sending");
       markTripPending("past");
       const response = await fetch("/api/trips/report", { method: "POST", body: formData });
       const payload = await tripSubmissionPayload(response);
-      exactTripReceipt(payload, "past", requestMaterial.id, "completed", "past_report");
+      exactTripReceipt(payload, "past", requestMaterial.id, "completed", "past_report", Boolean(photo));
       window.localStorage.removeItem(`${TRIP_DRAFT_PREFIX}past`);
       window.localStorage.removeItem(`${TRIP_REQUEST_PREFIX}past`);
       clearTripPending("past");
       void refreshSummary(setSummary, setSummaryUnavailable);
+      if (photo) setPhotoTransferState("confirmed");
       setSubmitState("success");
-      setMessage(anyFishEncounters === 0
+      const photoConfirmation = photo ? " The verification photo is stored privately with the trip." : "";
+      setMessage((anyFishEncounters === 0
         ? "No-fish trip recorded and pending review. Past reports provide descriptive context and stay outside prospective evidence."
         : targetEncounters === 0
           ? "Non-target fish recorded with zero California halibut. The complete result is pending review."
-        : "Past trip recorded and pending review. Thank you.");
+        : "Past trip recorded and pending review. Thank you.") + photoConfirmation);
     } catch (error) {
       const ambiguous = isAmbiguousSubmission(error);
       if (!ambiguous) {
         window.localStorage.removeItem(`${TRIP_REQUEST_PREFIX}past`);
         clearTripPending("past");
       }
+      if (photo) setPhotoTransferState(ambiguous ? "ambiguous" : "failed");
       setSubmitState(ambiguous ? "ambiguous" : "error");
       setMessage(ambiguous
         ? ambiguousSubmissionMessage("past")
@@ -1136,7 +1174,7 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
                   <small>If the mode changed after you started, choose the mode that best describes the whole attempt. The report will stay useful as context.</small>
                 </label>
                 <TripGearFields fields={fields} setFields={setFields} gearProfiles={gearProfiles} applyGearProfile={applyGearProfile} includeObservations />
-                <TripCompletionFields fields={fields} setFields={setFields} updateCount={updateCount} photo={photo} photoInputRef={photoInputRef} onPhoto={handlePhoto} hideTimes />
+                <TripCompletionFields fields={fields} setFields={setFields} updateCount={updateCount} photo={photo} rejectedPhoto={rejectedPhoto} photoTransferState={photoTransferState} photoInputRef={photoInputRef} onPhoto={handlePhoto} onRemovePhoto={removePhoto} hideTimes />
                 </fieldset>
                 <button className="trip-submit" type="submit" disabled={submitState === "submitting" || submitState === "success" || networkState === "offline"}>
                   {submitState === "submitting"
@@ -1221,7 +1259,7 @@ export function TripReportFeature({ sites, snapshot, request, canSubmit, onRequi
                   </label>
                 </div> : <>
                 <TripGearFields fields={fields} setFields={setFields} gearProfiles={gearProfiles} applyGearProfile={applyGearProfile} includeObservations />
-                <TripCompletionFields fields={fields} setFields={setFields} updateCount={updateCount} photo={photo} photoInputRef={photoInputRef} onPhoto={handlePhoto} hideTimes />
+                <TripCompletionFields fields={fields} setFields={setFields} updateCount={updateCount} photo={photo} rejectedPhoto={rejectedPhoto} photoTransferState={photoTransferState} photoInputRef={photoInputRef} onPhoto={handlePhoto} onRemovePhoto={removePhoto} hideTimes />
                 </>}
                 {formStep === 2 ? <button className="trip-back-button" type="button" onClick={() => setFormStep(1)}>← Back to trip details</button> : null}
                 </fieldset>
@@ -1247,8 +1285,11 @@ interface TripCompletionFieldsProps {
   setFields: (updater: (current: FormFields) => FormFields) => void;
   updateCount: (key: "anglerCount" | "keeperCount" | "shortReleasedCount" | "otherCatchCount", value: string) => void;
   photo: File | null;
+  rejectedPhoto: RejectedPhoto | null;
+  photoTransferState: PhotoTransferState;
   photoInputRef: React.RefObject<HTMLInputElement | null>;
   onPhoto: (event: ChangeEvent<HTMLInputElement>) => void;
+  onRemovePhoto: () => void;
   hideTimes?: boolean;
 }
 
@@ -1301,8 +1342,11 @@ function TripCompletionFields({
   setFields,
   updateCount,
   photo,
+  rejectedPhoto,
+  photoTransferState,
   photoInputRef,
   onPhoto,
+  onRemovePhoto,
   hideTimes = false,
 }: TripCompletionFieldsProps) {
   return (
@@ -1349,11 +1393,14 @@ function TripCompletionFields({
         <small className="discussion-publish-notice">Automated review may prepare a shortened discussion draft. It is not posted automatically and must be approved by a human moderator before it can appear publicly.</small>
       </label>
       {PHOTO_UPLOADS_ENABLED ? (
-        <label className="photo-field">
-          <span>Verification photo <em>optional</em></span>
-          <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={onPhoto} />
-          <strong>{photo ? photo.name : "JPEG, PNG, or WebP · 5 MB max"}</strong>
-        </label>
+        <TripPhotoField
+          photo={photo}
+          rejectedPhoto={rejectedPhoto}
+          transferState={photoTransferState}
+          inputRef={photoInputRef}
+          onPhoto={onPhoto}
+          onRemove={onRemovePhoto}
+        />
       ) : null}
       <label className="consent-field">
         <input type="checkbox" checked={fields.primaryTargetConfirmed} onChange={(event) => setFields((current) => ({ ...current, primaryTargetConfirmed: event.target.checked }))} required />
@@ -1368,5 +1415,112 @@ function TripCompletionFields({
         <span>I own anything I submit and consent to the uses described in the <Link href="/terms" target="_blank">Terms</Link> and <Link href="/privacy" target="_blank">Privacy Policy</Link>, including structured evaluation and preparation of a possible public summary. Model use requires separate protocol activation, and a summary cannot appear unless a human moderator approves it.</span>
       </label>
     </>
+  );
+}
+
+function formatPhotoSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function photoTypeLabel(type: string) {
+  if (type === "image/jpeg") return "JPEG";
+  if (type === "image/png") return "PNG";
+  if (type === "image/webp") return "WebP";
+  return type || "Unknown type";
+}
+
+function TripPhotoField({
+  photo,
+  rejectedPhoto,
+  transferState,
+  inputRef,
+  onPhoto,
+  onRemove,
+}: {
+  photo: File | null;
+  rejectedPhoto: RejectedPhoto | null;
+  transferState: PhotoTransferState;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onPhoto: (event: ChangeEvent<HTMLInputElement>) => void;
+  onRemove: () => void;
+}) {
+  const [preview, setPreview] = useState<{ file: File; url: string } | null>(null);
+
+  useEffect(() => {
+    if (!photo) return;
+    const reader = new FileReader();
+    const handleLoad = () => {
+      if (typeof reader.result === "string") setPreview({ file: photo, url: reader.result });
+    };
+    reader.addEventListener("load", handleLoad);
+    reader.readAsDataURL(photo);
+    return () => {
+      reader.removeEventListener("load", handleLoad);
+      if (reader.readyState === FileReader.LOADING) reader.abort();
+    };
+  }, [photo]);
+
+  const previewUrl = preview?.file === photo ? preview.url : null;
+
+  const displayedFile = photo ?? rejectedPhoto;
+  const state = rejectedPhoto ? "invalid" : transferState;
+  const statusCopy = rejectedPhoto
+    ? rejectedPhoto.message
+    : transferState === "selected"
+      ? "Browser checks passed. Selected only—nothing has uploaded yet."
+      : transferState === "sending"
+        ? "Sending with the trip report. No attachment is confirmed yet."
+        : transferState === "confirmed"
+          ? "The exact trip receipt confirms a private stored photo."
+          : transferState === "failed"
+            ? "Not confirmed. Correct any report error, then retry the whole report explicitly."
+            : transferState === "ambiguous"
+              ? "Outcome unknown. Keep this file selected and use the same safe report retry."
+              : "Choose one private verification photo. Nothing uploads until the report is submitted.";
+  const removable = state === "selected" || state === "failed" || state === "invalid";
+
+  return (
+    <section className={`photo-field photo-field-${state}`} aria-labelledby="trip-photo-label">
+      <div className="photo-field-heading">
+        <span id="trip-photo-label">Verification photo <em>optional</em></span>
+        <small aria-live="polite">{statusCopy}</small>
+      </div>
+      {!displayedFile ? (
+        <label className="photo-picker">
+          <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={onPhoto} />
+          <strong>Choose a photo</strong>
+          <small>One JPEG, PNG, or WebP · 5 MB max</small>
+        </label>
+      ) : (
+        <div className="photo-file-card" data-state={state}>
+          {previewUrl && photo ? (
+            // A local data URL is deliberately not routed through the image optimizer or a provider.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={previewUrl} alt="Selected verification photo preview" />
+          ) : <span className="photo-file-placeholder" aria-hidden="true">IMG</span>}
+          <div>
+            <strong>{displayedFile.name}</strong>
+            <span>{photoTypeLabel(displayedFile.type)} · {formatPhotoSize(displayedFile.size)}</span>
+            <small>{statusCopy}</small>
+          </div>
+          {removable ? <button type="button" onClick={onRemove}>{state === "invalid" ? "Dismiss" : "Remove"}</button> : null}
+          {state === "failed" ? <button type="submit">Retry report with this photo</button> : null}
+        </div>
+      )}
+      {state === "sending" ? (
+        <span
+          className="photo-indeterminate-progress"
+          role="progressbar"
+          aria-label="Sending verification photo with trip report"
+          aria-valuetext="Sending with the report; byte progress is unavailable"
+        />
+      ) : null}
+      {state === "sending" || state === "ambiguous" ? (
+        <small className="photo-no-cancel-note">A cancel control is intentionally unavailable after submission starts because the server may already have committed the report or photo.</small>
+      ) : null}
+      <small className="photo-contract-note">Current storage supports one private photo per trip. The server strips metadata and re-encodes accepted files before storage.</small>
+    </section>
   );
 }

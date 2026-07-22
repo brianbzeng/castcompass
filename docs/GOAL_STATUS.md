@@ -13,6 +13,32 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — truthful dormant trip-photo interaction boundary
+
+- [x] Reconcile the requested photo experience against the authoritative storage contract. D1 and
+      the trip API currently support exactly one photo attached inside the trip write, so this
+      slice does not pretend that independent multi-file uploads, byte progress, cancellation,
+      or per-file retries exist.
+- [x] Fail the browser feature closed. `NEXT_PUBLIC_PHOTO_UPLOADS` must now be exactly `true` to
+      render the controls; the production Cloudflare build remains explicitly false, matching the
+      server's separate explicit opt-in gate.
+- [x] Make every current one-file state visible and accessible without implying success: local
+      selection and validation show preview, name, type, and size; sending uses an indeterminate
+      progress status; only an exact trip receipt whose `hasPhoto` value matches the request can
+      confirm storage; authoritative failure permits removal or explicit whole-report retry; and
+      an ambiguous response preserves the file and the same idempotent trip identity without an
+      unsafe cancel control.
+- [x] Add a separate feature-on Chromium/WebKit acceptance lane and restore the production-off
+      bundle before the normal mobile suite. Focused contract tests pass 4/4, browser cases pass
+      8/8, the complete repository suite passes 688/688, and the production-off phone matrix
+      passes 228/228. The Cloudflare build, lint, TypeScript, complete security/SBOM/query-policy
+      chain, and both dependency audits pass under the pinned runtime with zero reported
+      vulnerabilities.
+- [ ] Define and independently review a versioned multi-file API/schema contract, then add true
+      per-file progress, cancellation, and retry only where the backend can prove those outcomes.
+      Keep photos disabled until production migration, bindings, privacy/security review, alerts,
+      drills, provider evidence, guarded deployment, and explicit activation all pass.
+
 ## Active checkpoint — accessible keyboard, dialog, motion, and non-map boundary
 
 - [x] Reconcile the home surface against the actual interaction model rather than restyling it.
@@ -3441,6 +3467,10 @@ supersedes this mutation-metadata authority while preserving its fail-closed beh
 - [ ] Add per-file photo upload states: visible glow plus copy shift, thumbnail, type, size,
       validation, independent progress/retry/cancel, and honest indeterminate state. Photos stay
       disabled until storage/privacy/security gates pass.
+      **Current one-photo UI boundary is locally complete and default-off:** it distinguishes
+      selection, rejection, indeterminate sending, exact stored-photo confirmation, correctable
+      failure, and ambiguous idempotent retry. True multi-file state remains open because the API
+      and schema do not yet support independent files; provider and activation gates remain open.
 - [ ] Refresh visual design, graphics, species art, empty states, social cards, and brand
       illustration. Artist collaboration remains deferred until higher-risk work is complete.
 

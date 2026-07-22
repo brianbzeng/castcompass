@@ -1111,6 +1111,20 @@ after its acceptance checks pass in the intended environment.
   and per-file progress/retry/cancel. Multiple files receive independent state and progress;
   indeterminate progress is used when byte progress is unavailable, and completed uploads remain
   distinguishable from files that are merely selected or locally previewed.
+  - [x] Make the current one-photo trip contract truthful and fail closed. The browser feature is
+    now explicit opt-in; selection and validation remain local; the UI shows name, type, size,
+    preview, copy plus visual emphasis, honest indeterminate sending, authoritative stored-photo
+    confirmation, correctable failure, and ambiguous may-have-committed retry states. Removal is
+    available only before submission or after an authoritative failure; no fake byte percentage
+    or unsafe post-submit cancellation is offered. Dedicated Chromium/WebKit acceptance builds
+    the dormant feature on, tests it, then rebuilds the production bundle with uploads off. The
+    bounded slice passes 4/4 source contracts, 8/8 feature-on Chromium/WebKit cases, 688/688
+    repository tests, and 228/228 production-off phone cases plus build, lint, TypeScript,
+    security/SBOM policy checks, and both zero-vulnerability dependency audits.
+  - [ ] Design and independently review a versioned multi-file API and schema before claiming
+    per-file upload, progress, cancellation, or retry. The current authoritative trip write and
+    D1 schema support one photo only; uploads remain disabled until the existing storage,
+    privacy, migration, provider, drill, review, and explicit activation gates all pass.
 - [ ] Refresh visual design, graphics, species art, empty states, social cards, and brand
   illustration. Artist collaboration is intentionally deferred and can focus on expressive
   assets while product interaction remains usability-led.
