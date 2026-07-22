@@ -148,6 +148,24 @@ def _parse_exact_csv(
     expected_header: Sequence[str],
     label: str,
 ) -> list[dict[str, str]]:
+    inspection = _inspect_exact_csv(
+        data, expected_header=expected_header, label=label
+    )
+    if not inspection["valid"]:
+        raise ValueError(f"{label} contains a malformed row width")
+    text = data.decode("utf-8")
+    rows = list(csv.reader(io.StringIO(text, newline=""), strict=True))
+    return [dict(zip(expected_header, row)) for row in rows[1:]]
+
+
+def _inspect_exact_csv(
+    data: bytes,
+    *,
+    expected_header: Sequence[str],
+    label: str,
+) -> Mapping[str, Any]:
+    """Inspect structural CSV validity without reading or aggregating outcomes."""
+
     if b"\0" in data:
         raise ValueError(f"{label} contains a NUL byte")
     try:
@@ -161,9 +179,17 @@ def _parse_exact_csv(
     if not rows or tuple(rows[0]) != tuple(expected_header):
         raise ValueError(f"{label} header disagrees with the frozen schema")
     width = len(expected_header)
-    if any(len(row) != width for row in rows[1:]):
-        raise ValueError(f"{label} contains a malformed row width")
-    return [dict(zip(expected_header, row)) for row in rows[1:]]
+    width_counts = Counter(len(row) for row in rows[1:])
+    invalid_rows = sum(count for row_width, count in width_counts.items() if row_width != width)
+    return {
+        "valid": invalid_rows == 0,
+        "header_width": width,
+        "data_rows": len(rows) - 1,
+        "row_width_counts": {
+            str(row_width): count for row_width, count in sorted(width_counts.items())
+        },
+        "invalid_row_count": invalid_rows,
+    }
 
 
 def _dbf_record_count(data: bytes) -> int:
@@ -450,12 +476,14 @@ def audit_usgs_ds182_sediment_endpoint_support(
 
     archive = _read_exact_archive(archive_path, outcome_spec)
     data_member = str(outcome_spec["data_member"])
-    outcome_rows = _parse_exact_csv(
-        archive[data_member], expected_header=OUTCOME_HEADER, label="DS182 EXT outcome table"
+    csv_structure = _inspect_exact_csv(
+        archive[data_member],
+        expected_header=OUTCOME_HEADER,
+        label="DS182 EXT outcome table",
     )
     record_count = int(outcome_spec["record_count"])
     structural_counts = {
-        "text_rows": len(outcome_rows),
+        "text_rows": csv_structure["data_rows"],
         "dbf_records": _dbf_record_count(archive["pac_ext.dbf"]),
         "shapefile_records": _point_shapefile_record_count(archive["pac_ext.shp"]),
     }
@@ -465,6 +493,123 @@ def audit_usgs_ds182_sediment_endpoint_support(
     source_bytes = source_table_path.read_bytes()
     source_rows = _parse_source_table(source_bytes, source_spec)
     reference = _verify_reference_raster(reference_raster_path, reference_spec)
+    if not csv_structure["valid"]:
+        metrics = {
+            "schema_version": SEDIMENT_ENDPOINT_SUPPORT_SCHEMA_VERSION,
+            "source_id": source_id,
+            "official_inputs": {
+                "outcome_archive": {
+                    "sha256": outcome_spec["archive_sha256"],
+                    "bytes": outcome_spec["archive_bytes"],
+                    "member_inventory_verified": True,
+                    "data_member": data_member,
+                },
+                "source_table": {
+                    "sha256": source_spec["sha256"],
+                    "bytes": source_spec["bytes"],
+                    "records": source_spec["record_count"],
+                },
+                "reference_raster": {
+                    "sha256": reference_spec["geotiff_sha256"],
+                    **reference,
+                    "pixels_read": False,
+                },
+            },
+            "source_schema": {
+                "valid": False,
+                "published_metadata_record_count": outcome_spec[
+                    "published_metadata_record_count"
+                ],
+                "exact_archive_record_count": record_count,
+                "published_count_matches_archive": outcome_spec[
+                    "published_metadata_record_count"
+                ]
+                == record_count,
+                "structural_record_counts": structural_counts,
+                "field_name_canonicalization": {"DataTypes": "DataType"},
+                "csv_structure": csv_structure,
+                "failure": (
+                    "The exact PAC_EXT.txt member contains rows whose field counts disagree "
+                    "with its 32-field header. The frozen protocol forbids padding the omitted "
+                    "trailing field, switching to the companion dBASE table, or aggregating "
+                    "outcome values after this schema failure."
+                ),
+                "outcome_values_aggregated": False,
+                "repair_or_imputation_performed": False,
+            },
+            "row_flow": {
+                "official_records": record_count,
+                "endpoint_valid_rows": "not_computed_after_schema_failure",
+                "endpoint_valid_sites": "not_computed_after_schema_failure",
+                "endpoint_valid_source_groups": "not_computed_after_schema_failure",
+            },
+            "partition_audit": {
+                "performed": False,
+                "eligible_partition_count": 0,
+                "reason": "source_schema_invalid",
+            },
+            "decision": {
+                "source_schema_valid": False,
+                "raw_endpoint_support_admissible": False,
+                "source_accuracy_review_authorized": False,
+                "raster_alignment_authorized": False,
+                "patch_corpus_built": False,
+                "model_training_run": False,
+                "encoder_promoted": False,
+                "live_score_changed": False,
+                "production_or_provider_state_changed": False,
+            },
+            "claim_boundary": (
+                "This result establishes only that the frozen PAC_EXT.txt representation fails "
+                "the preregistered exact-width schema. No composition values were aggregated, "
+                "no support partition was evaluated, no raster pixels were read, and no patch, "
+                "model, score, serving, provider, production, or deployment state changed."
+            ),
+        }
+        output_dir.mkdir(parents=True, exist_ok=True)
+        metrics_path = output_dir / "metrics.json"
+        write_json(metrics_path, metrics)
+        run = build_run_record(
+            command="audit-usgs-ds182-sediment-endpoint-support",
+            target_taxon_id=None,
+            config={
+                "source_id": source_id,
+                "endpoint": ["Gravel", "Sand", "Mud"],
+                "outcome_member": data_member,
+                "required_csv_fields": len(OUTCOME_HEADER),
+                "min_rows_per_side": min_rows,
+                "min_sites_per_side": min_sites,
+                "min_anchor_rows_per_side": min_anchor_rows,
+                "min_anchor_sites_per_side": min_anchor_sites,
+                "min_train_sources": min_train_sources,
+                "coordinate_tolerance_degrees": coordinate_tolerance_degrees,
+                "raster_pixels_read": False,
+            },
+            input_paths=(archive_path, source_table_path, reference_raster_path),
+            dataset_kind="official_sediment_endpoint_support_audit",
+            status="completed",
+            metrics={
+                "metrics_sha256": sha256_file(metrics_path),
+                "source_schema_valid": False,
+                "raw_endpoint_support_admissible": False,
+                "invalid_csv_rows": csv_structure["invalid_row_count"],
+                "eligible_whole_source_partitions": 0,
+                "model_training_run": False,
+            },
+            notes=(
+                "Fail-closed raw source-schema result. Outcome values were not aggregated, "
+                "reference raster pixels were not read, no patch corpus or model was created, "
+                "and no score, serving, provider, production, or deployment state changed."
+            ),
+        )
+        verify_run_record_integrity(run, rehash_inputs=True)
+        run_path = output_dir / "run-metadata.json"
+        write_json(run_path, run)
+        return {"metrics": metrics_path, "run_metadata": run_path}
+
+    outcome_rows = _parse_exact_csv(
+        archive[data_member], expected_header=OUTCOME_HEADER, label="DS182 EXT outcome table"
+    )
     try:
         from rasterio.warp import transform as transform_coordinates
     except ImportError as error:

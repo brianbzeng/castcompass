@@ -15,6 +15,7 @@ from pipeline.contourcast.sediment_endpoint_audit import (
     DS182_SOURCE_ID,
     OUTCOME_HEADER,
     SOURCE_HEADER,
+    _inspect_exact_csv,
     _parse_exact_csv,
     _point_shapefile_record_count,
     _read_exact_archive,
@@ -119,6 +120,13 @@ class SedimentEndpointAuditTests(unittest.TestCase):
             _parse_exact_csv(valid, expected_header=("b", "a"), label="fixture")
         with self.assertRaisesRegex(ValueError, "row width"):
             _parse_exact_csv(b"a,b\r\n1\r\n", expected_header=("a", "b"), label="fixture")
+        inspection = _inspect_exact_csv(
+            b"a,b\r\n1\r\n2,3\r\n", expected_header=("a", "b"), label="fixture"
+        )
+        self.assertFalse(inspection["valid"])
+        self.assertEqual(inspection["data_rows"], 2)
+        self.assertEqual(inspection["row_width_counts"], {"1": 1, "2": 1})
+        self.assertEqual(inspection["invalid_row_count"], 1)
 
     def test_point_record_counter_rejects_header_drift(self) -> None:
         data = _shp([(-122.5, 37.75), (-122.4, 37.8)])
@@ -302,6 +310,71 @@ class SedimentEndpointAuditTests(unittest.TestCase):
             self.assertFalse(metrics["decision"]["model_training_run"])
             self.assertEqual(run["dataset_kind"], "official_sediment_endpoint_support_audit")
             self.assertIsNone(run["target_taxon_id"])
+
+            malformed_bytes = _csv_bytes(
+                OUTCOME_HEADER, [row[:-1] for row in outcome_rows]
+            )
+            malformed_archive = root / "pac_ext-malformed.zip"
+            malformed_members = {
+                "PAC_EXT.txt": malformed_bytes,
+                "pac_ext.dbf": dbf_bytes,
+                "pac_ext.shp": shp_bytes,
+            }
+            with ZipFile(malformed_archive, "w", ZIP_DEFLATED) as archive:
+                for name, data in malformed_members.items():
+                    archive.writestr(name, data)
+            malformed_spec = {
+                **outcome_spec,
+                "archive_sha256": _sha(malformed_archive.read_bytes()),
+                "archive_bytes": malformed_archive.stat().st_size,
+                "members": [
+                    {"path": name, "bytes": len(data), "sha256": _sha(data)}
+                    for name, data in malformed_members.items()
+                ],
+            }
+            malformed_manifest = {
+                "access": {
+                    **manifest["access"],
+                    "outcome_asset": malformed_spec,
+                }
+            }
+
+            def malformed_lookup(source_id: str):
+                if source_id == DS182_SOURCE_ID:
+                    return malformed_manifest
+                if source_id == "reference-source":
+                    return reference_manifest
+                raise AssertionError(source_id)
+
+            with (
+                patch(
+                    "pipeline.contourcast.sediment_endpoint_audit.assert_source_operation"
+                ),
+                patch(
+                    "pipeline.contourcast.sediment_endpoint_audit.get_source_manifest",
+                    side_effect=malformed_lookup,
+                ),
+            ):
+                failed = audit_usgs_ds182_sediment_endpoint_support(
+                    malformed_archive,
+                    source_path,
+                    raster_path,
+                    root / "schema-failure-output",
+                )
+            failure_metrics = json.loads(
+                failed["metrics"].read_text(encoding="utf-8")
+            )
+            self.assertFalse(failure_metrics["source_schema"]["valid"])
+            self.assertEqual(
+                failure_metrics["source_schema"]["csv_structure"][
+                    "invalid_row_count"
+                ],
+                len(outcome_rows),
+            )
+            self.assertFalse(
+                failure_metrics["source_schema"]["outcome_values_aggregated"]
+            )
+            self.assertFalse(failure_metrics["partition_audit"]["performed"])
 
 
 if __name__ == "__main__":
