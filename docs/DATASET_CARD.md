@@ -405,3 +405,22 @@ samples inside the footprint, 26 rows/sites across three source groups satisfy e
 are gravel-bearing and only three are sand-dominant. Zero of three whole-source partitions passes.
 No raster pixel is read and the result cannot authorize alignment, training, promotion, or a local
 habitat/fishing claim.
+
+The subsequent
+[independent endpoint inventory](experiments/2026-07-22-independent-endpoint-source-inventory-v1.md)
+reviews seven official candidate families without admitting them as source manifests. NOAA's
+California substrate layer is an unvalidated compiled hard/soft map; its California-halibut HSM is
+derived from bathymetry and substrate; Digital Coast grab data lacks a California collection and
+cannot sample hard bottom; mapped habitat/cover is not a direct independent endpoint; and the
+DS781/DS182 families are the same support-incomplete evidence already audited. The exact machine
+policy gives all seven candidates empty evidence roles and denies raster pairing, supervised
+training, representation comparison, promotion, and production scoring.
+
+The separate
+[prospective direct-video protocol](experiments/2026-07-22-prospective-seafloor-endpoint-collection-protocol-v1.md)
+is frozen locally but inactive. It is not a dataset and creates no current source authority. If it
+is ever activated after external preregistration and required legal/privacy/safety/data-steward
+review, ordinary fishing-trip logs remain in the catch-validation lane and cannot be backfilled as
+seafloor labels. Only prospectively assigned purpose-built camera deployments can enter that
+endpoint, and a support pass would still require a new raster-alignment and representation
+comparison protocol.

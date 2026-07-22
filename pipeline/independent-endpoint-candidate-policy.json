@@ -1,0 +1,161 @@
+{
+  "schema_version": "castingcompass.independent-endpoint-candidate-policy/1.0.0",
+  "policy_id": "castingcompass-independent-seafloor-endpoint-candidates-v1",
+  "policy_version": "1.0.0",
+  "reviewed_at": "2026-07-22",
+  "target_question": "Does a frozen bathymetry/backscatter representation generalize to a direct, independently collected three-class seafloor endpoint across whole source groups?",
+  "current_decision": "no-reviewed-candidate-admissible",
+  "model_actions_authorized": {
+    "raster_pairing": false,
+    "supervised_training": false,
+    "representation_comparison": false,
+    "encoder_promotion": false,
+    "production_scoring": false
+  },
+  "admission_requirements": [
+    "The endpoint is a direct measurement or prospectively collected visual observation rather than a mapped interpretation, suitability model, or derivative of the candidate inputs.",
+    "The endpoint footprint overlaps an admitted exact raster footprint and every paired observation has auditable time, coordinates, measurement identity, and source lineage.",
+    "Collection and labeling are independent of candidate model outputs and do not reuse a source family already exposed during representation development unless a new protocol explicitly treats it as exploratory.",
+    "The endpoint schema, class mapping, grouping unit, spatial buffer, support floor, exclusions, and decision rule are frozen before labels or class support are read.",
+    "Every frozen class has the preregistered minimum support on both sides of at least one whole-source-group partition; adjacent rows, tracks, cruises, sites, deployments, or source programs cannot cross the partition boundary.",
+    "Exact licensing, permitted use, source accuracy, uncertainty, and data-custody reviews pass before any raster pairing or model access."
+  ],
+  "reviewed_candidates": [
+    {
+      "candidate_id": "noaa-digital-coast-benthic-grab-samples",
+      "title": "NOAA Digital Coast Benthic Grab Samples",
+      "steward": "National Oceanic and Atmospheric Administration",
+      "official_url": "https://www.coast.noaa.gov/digitalcoast/data/benthicgrab.html",
+      "geographic_relation": "The published inventory contains five East Coast data collections and no San Francisco or Santa Barbara collection.",
+      "observation_form": "direct-soft-substrate-grab",
+      "lineage_relation": "Independent measurement mechanism, but absent from the target geography and structurally unable to sample hard substrate.",
+      "verdict": "exclude",
+      "reason_codes": [
+        "no-target-geography",
+        "hard-substrate-class-not-observable",
+        "support-unavailable"
+      ],
+      "allowed_evidence_roles": [],
+      "raster_pairing_authorized": false,
+      "supervised_training_authorized": false,
+      "representation_comparison_authorized": false
+    },
+    {
+      "candidate_id": "noaa-digital-coast-san-francisco-benthic-cover-2011",
+      "title": "San Francisco Bay Benthic Habitat 2011",
+      "steward": "National Oceanic and Atmospheric Administration",
+      "official_url": "https://coast.noaa.gov/digitalcoast/data/benthiccover.html",
+      "geographic_relation": "Mapped San Francisco Bay benthic cover does not establish direct endpoint coverage inside the admitted offshore state-waters raster footprint.",
+      "observation_form": "derived-benthic-cover-map",
+      "lineage_relation": "The catalog class is a mapped product derived primarily from remote imagery or acoustic surveys, not a new direct independently collected endpoint.",
+      "verdict": "exclude",
+      "reason_codes": [
+        "derived-map-not-direct-endpoint",
+        "offshore-footprint-overlap-unproven",
+        "lineage-independence-unproven"
+      ],
+      "allowed_evidence_roles": [],
+      "raster_pairing_authorized": false,
+      "supervised_training_authorized": false,
+      "representation_comparison_authorized": false
+    },
+    {
+      "candidate_id": "noaa-nccos-california-benthic-substrate-2006",
+      "title": "Benthic substrate type off California",
+      "steward": "NOAA National Centers for Coastal Ocean Science",
+      "official_url": "https://www.fisheries.noaa.gov/inport/item/39578",
+      "geographic_relation": "The broad California polygon layer includes southern California but has variable spatial resolution and is not an exact direct-observation footprint.",
+      "observation_form": "compiled-hard-soft-substrate-map",
+      "lineage_relation": "A Moss Landing compilation revised with digitized hard-bottom maps from UCSB and the Minerals Management Service; NOAA states that the map has not been field validated.",
+      "verdict": "exclude",
+      "reason_codes": [
+        "derived-map-not-direct-endpoint",
+        "not-field-validated",
+        "resolution-variable",
+        "three-class-endpoint-unavailable"
+      ],
+      "allowed_evidence_roles": [],
+      "raster_pairing_authorized": false,
+      "supervised_training_authorized": false,
+      "representation_comparison_authorized": false
+    },
+    {
+      "candidate_id": "noaa-nccos-california-halibut-hsm-2006",
+      "title": "California halibut habitat suitability model for Channel Islands National Marine Sanctuary",
+      "steward": "NOAA National Centers for Coastal Ocean Science",
+      "official_url": "https://www.fisheries.noaa.gov/inport/item/39324",
+      "geographic_relation": "The modeled southern California extent overlaps the broader product region but does not provide direct seafloor observations.",
+      "observation_form": "deterministic-habitat-suitability-model",
+      "lineage_relation": "Suitability classes were calculated from literature associations and combined bathymetry and benthic-substrate GIS layers; NOAA states that the suitability values have not been validated.",
+      "verdict": "exclude",
+      "reason_codes": [
+        "model-output-not-observation",
+        "candidate-input-circularity",
+        "not-field-validated",
+        "wrong-endpoint"
+      ],
+      "allowed_evidence_roles": [],
+      "raster_pairing_authorized": false,
+      "supervised_training_authorized": false,
+      "representation_comparison_authorized": false
+    },
+    {
+      "candidate_id": "usgs-ds781-video-observations",
+      "title": "USGS Data Series 781 video observations",
+      "steward": "U.S. Geological Survey",
+      "official_url": "https://pubs.usgs.gov/ds/781/video_observations/data_catalog_video_observations.html",
+      "geographic_relation": "Direct observations overlap portions of San Francisco and the Santa Barbara South Coast admitted imagery.",
+      "observation_form": "direct-camera-video-observation",
+      "lineage_relation": "This is the already audited DS781 source family; whole-track, whole-cruise, and residual statewide screens do not distribute every frozen class across separable valid groups.",
+      "verdict": "not-new-independent-evidence",
+      "reason_codes": [
+        "already-audited-source-family",
+        "whole-group-support-incomplete",
+        "targeted-sonar-validation-sampling"
+      ],
+      "allowed_evidence_roles": [],
+      "raster_pairing_authorized": false,
+      "supervised_training_authorized": false,
+      "representation_comparison_authorized": false
+    },
+    {
+      "candidate_id": "usgs-ds182-pacific-coast-sediment",
+      "title": "USGS Data Series 182 Pacific Coast sediment database",
+      "steward": "U.S. Geological Survey",
+      "official_url": "https://pubs.usgs.gov/publication/ds182",
+      "geographic_relation": "Direct sediment records intersect both admitted regions, but valid local observations are sparse and source-concentrated.",
+      "observation_form": "direct-bulk-surficial-sediment-measurement",
+      "lineage_relation": "This is the already audited DS182 source family; the San Francisco endpoint has zero valid rows and the Santa Barbara endpoint has no gravel-bearing rows and no eligible whole-source partition.",
+      "verdict": "not-new-independent-evidence",
+      "reason_codes": [
+        "already-audited-source-family",
+        "whole-group-support-incomplete",
+        "hard-substrate-class-not-observable"
+      ],
+      "allowed_evidence_roles": [],
+      "raster_pairing_authorized": false,
+      "supervised_training_authorized": false,
+      "representation_comparison_authorized": false
+    },
+    {
+      "candidate_id": "usgs-ds781-habitat-interpretations",
+      "title": "USGS Data Series 781 seafloor-character and habitat interpretations",
+      "steward": "U.S. Geological Survey",
+      "official_url": "https://cmgds.marine.usgs.gov/catalog/pcmsc/SeriesReports/DS_DDS/DS_781/SantaBarbara/Habitat_OffshoreSantaBarbara_metadata.faq.html",
+      "geographic_relation": "Mapped habitat products cover admitted San Francisco and Santa Barbara imagery.",
+      "observation_form": "interpreted-seafloor-character-map",
+      "lineage_relation": "The interpretations use bathymetry, backscatter, and hillshade as primary sources, with DS781 video and DS182 sediment as supporting observations.",
+      "verdict": "exclude",
+      "reason_codes": [
+        "derived-map-not-direct-endpoint",
+        "candidate-input-circularity",
+        "endpoint-source-reuse"
+      ],
+      "allowed_evidence_roles": [],
+      "raster_pairing_authorized": false,
+      "supervised_training_authorized": false,
+      "representation_comparison_authorized": false
+    }
+  ],
+  "next_admissible_path": "Freeze and externally timestamp a prospective direct-video collection protocol before site assignments or labels exist; keep the candidate representations and their outputs hidden from collection and labeling, preserve whole-deployment groups, and require fixed three-class support on both sides of a whole-group partition before raster pairing or model access."
+}

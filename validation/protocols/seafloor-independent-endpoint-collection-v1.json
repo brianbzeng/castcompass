@@ -1,0 +1,119 @@
+{
+  "schema_version": "castingcompass.seafloor-independent-endpoint-collection/1.0.0",
+  "protocol_id": "seafloor-independent-endpoint-collection-v1",
+  "protocol_version": "1.0.0",
+  "status": "frozen-local-not-activated",
+  "frozen_at": "2026-07-22",
+  "purpose_and_claim_boundary": {
+    "study_type": "prospective-independent-direct-video-endpoint-collection",
+    "question": "Can enough independently collected direct seafloor observations be obtained to support a later leakage-resistant comparison of frozen bathymetry/backscatter representations?",
+    "supported_output": "collection-support-and-source-separability-only",
+    "candidate_model_access_allowed": false,
+    "raster_pairing_allowed": false,
+    "representation_comparison_allowed": false,
+    "model_promotion_allowed": false,
+    "catch_or_fish_endpoint_claim_allowed": false
+  },
+  "activation": {
+    "externally_timestamped_preregistration_required": true,
+    "legal_privacy_safety_and_data_steward_approval_required": true,
+    "fixed_collection_interval_required": true,
+    "exact_site_assignment_manifest_required": true,
+    "exact_equipment_and_label_manual_hashes_required": true,
+    "collector_and_labeler_training_required": true,
+    "activation_must_precede_site_assignment_and_first_observation": true,
+    "backdating_prohibited": true,
+    "current_activation_authorized": false
+  },
+  "geography_and_frame": {
+    "eligible_regions": [
+      "offshore_refugio_beach",
+      "offshore_coal_oil_point",
+      "offshore_santa_barbara",
+      "offshore_carpinteria"
+    ],
+    "frame_basis": "exact admitted raster footprint minus preregistered navigation, access, protected-area, depth, visibility, and safety exclusions",
+    "site_selection": "spatially balanced probability sample within region and prespecified depth strata",
+    "model_score_or_embedding_visible_during_frame_construction": false,
+    "bathymetry_or_backscatter_texture_used_to_target_substrate": false,
+    "replacement_rule": "replace only from the same frozen region-depth reserve list before the seafloor label is observed and record the reason",
+    "adaptive_targeting_after_label_visibility_allowed": false
+  },
+  "observation": {
+    "primary_endpoint": "direct-downward-video-seafloor-class",
+    "unit": "one-preregistered-camera-deployment-at-one-assigned-site",
+    "required_identity": [
+      "deployment_id",
+      "vessel_or_platform_group_id",
+      "collector_group_id",
+      "camera_system_id",
+      "site_assignment_id",
+      "region_id",
+      "recorded_at",
+      "latitude",
+      "longitude",
+      "position_accuracy_m",
+      "water_depth_m",
+      "video_sha256",
+      "raw_metadata_sha256"
+    ],
+    "minimum_usable_bottom_time_seconds": 30,
+    "continuous_unedited_video_required": true,
+    "original_media_retained_under_approved_custody": true,
+    "physical_grab_role": "optional-method-check-only-because-hard-bottom-cannot-be-sampled-reliably",
+    "fishing-trip-log_role": "separate-catch-observation-only-and-never-a-seafloor-label"
+  },
+  "labeling": {
+    "classes": [
+      "smooth_fine_medium_sediment",
+      "mixed_or_rugose_rock",
+      "mobile_coarse_sediment"
+    ],
+    "class_manual_frozen_before_first_label": true,
+    "labelers_blinded_to_candidate_inputs_outputs_location_name_and_fishing_outcomes": true,
+    "two_independent_labelers_required": true,
+    "adjudicator_required_for_disagreement": true,
+    "labeler_identity_and_timestamps_required": true,
+    "uncertain_or_unusable_is_exclusion_not_a_class": true,
+    "post_label_class_collapse_allowed": false,
+    "automated_pseudo_labels_allowed": false
+  },
+  "independence_and_partitioning": {
+    "indivisible_group": "whole-vessel-or-platform-collection-day",
+    "deployment_rows_from_one_group_may_cross_partition": false,
+    "minimum_spatial_buffer_m": 512,
+    "buffer_applies_to_train_evaluation_and_reserve_boundaries": true,
+    "collector_group_source_separation_report_required": true,
+    "camera_system_source_separation_report_required": true,
+    "region_and_depth_support_report_required": true,
+    "row_random_split_allowed": false,
+    "deployment_random_split_allowed": false
+  },
+  "support_gate": {
+    "minimum_retained_deployments_per_class_per_side": 32,
+    "minimum_indivisible_groups_per_side": 3,
+    "minimum_regions_per_side": 3,
+    "every_class_required_on_both_sides": true,
+    "all_unique_whole_group_partitions_reported": true,
+    "partition_selected_from_outcome_balance": false,
+    "zero_eligible_partition_action": "preserve-negative-result-and-stop",
+    "one_or_more_eligible_partition_action": "freeze-separate-raster-alignment-and-representation-comparison-protocol"
+  },
+  "quality_and_safety": {
+    "navigation_use_prohibited": true,
+    "unsafe_or_illegal_collection_prohibited": true,
+    "protected_area_and_permitting_review_required": true,
+    "weather_visibility_and_equipment_abort_rules_required": true,
+    "aborted_deployments_retained_in_flow_accounting": true,
+    "coordinate_access_least_privilege_required": true,
+    "public_precise_coordinates_allowed": false
+  },
+  "outcome_blind_decision_rules": {
+    "no_label_read_before_activation": true,
+    "no_support_threshold_change_after_label_visibility": true,
+    "no_region_or_site_removal_after_label_visibility": true,
+    "no_source_group_subdivision_after_label_visibility": true,
+    "negative_and_inconclusive_results_required": true
+  },
+  "claim_boundary": "A support pass would authorize only a separate frozen alignment and representation-comparison protocol. It would not prove current habitat prevalence, fish presence, catch skill, calibration, model promotion, product quality, or deployment readiness."
+}

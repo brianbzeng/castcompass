@@ -156,6 +156,25 @@ by that discovery.
       independent survey must be designed, or a materially different scientific question must be
       preregistered before its labels are read; post-outcome class dropping, schema repair, and
       row-randomized adjacent observations remain prohibited.
+  - [x] Complete a fail-closed official-source inventory before acquiring more pixels or fitting
+        another probe. Seven candidate families were reviewed. NOAA's California hard/soft layer
+        is an unvalidated compiled map, its California-halibut HSM is a bathymetry/substrate model,
+        Digital Coast grab data has no California collection and cannot sample hard bottom, mapped
+        cover/habitat reuses remote or acoustic inputs, and the DS781/DS182 families are the same
+        support-incomplete evidence already audited. The machine policy gives every candidate an
+        empty evidence role and authorizes no raster pairing, training, representation comparison,
+        promotion, scoring, or production use.
+  - [x] Freeze a prospective direct-video collection design without activating it. The frame hides
+        model outputs and substrate texture, the three existing classes cannot be changed after
+        label visibility, two blinded labelers plus adjudication are required, a whole
+        vessel/platform collection day is indivisible, every boundary carries a 512 m buffer, and
+        a later comparison requires at least 32 deployments per class, three groups, and three
+        regions on both sides of an outcome-blind whole-group partition.
+  - [ ] Activate and execute that survey only after externally timestamped preregistration; legal,
+        privacy, safety, protected-area/permitting, and data-steward approval; fixed assignments;
+        equipment and label-manual hashes; trained collectors/labelers; and approved custody for
+        video and precise coordinates. Ordinary fishing-trip logs remain separate catch evidence
+        and cannot be backfilled as seafloor labels.
 
 This checkpoint changes no browser behavior, API, Worker, D1/R2/Queue state, production provider,
 live score, public model claim, or deployment authority.

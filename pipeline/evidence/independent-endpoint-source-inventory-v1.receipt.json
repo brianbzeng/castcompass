@@ -1,0 +1,47 @@
+{
+  "schema_version": "castingcompass.independent-endpoint-source-inventory-receipt/1.0.0",
+  "created_at": "2026-07-22T16:18:26Z",
+  "source_commit": "f808bd31a6db658d555e226804d73fd2bba9aa53",
+  "experiment_class": "official_metadata_source_discovery_and_inactive_prospective_design",
+  "result": {
+    "path": "docs/experiments/2026-07-22-independent-endpoint-source-inventory-v1.md",
+    "sha256": "0967c4618909b556d79cf62510e8abce8847e321daa4eb20251664131050eb8c"
+  },
+  "candidate_policy": {
+    "path": "pipeline/independent-endpoint-candidate-policy.json",
+    "file_sha256": "d362e19961dc24f4ae5db05808f7f6f0b769f674029f80ef6f93277c6f8e3ac5",
+    "canonical_sha256": "5127ef90fe425d9dd1b0469a631a13cbd556a798208b7fb514190794dcc540e1",
+    "candidate_count": 7,
+    "exclude_count": 5,
+    "not_new_independent_evidence_count": 2,
+    "admissible_count": 0
+  },
+  "prospective_protocol": {
+    "path": "validation/protocols/seafloor-independent-endpoint-collection-v1.json",
+    "file_sha256": "af330ba4b1dc35f1904343d20d249b9e7d19af606006a3c01fb7b5c39b060178",
+    "canonical_sha256": "eef862df95d11747aeffc9f6aaff698d6fe2e41d1f74b0092ada3e1dbf673923",
+    "documentation_path": "docs/experiments/2026-07-22-prospective-seafloor-endpoint-collection-protocol-v1.md",
+    "documentation_sha256": "aed4add0a6e1387069b8e1839a333e91619fed5a2b79583d8bec7b71ed6adfc6",
+    "status": "frozen-local-not-activated",
+    "collection_authorized": false
+  },
+  "review_boundary": {
+    "official_metadata_pages_reviewed": 7,
+    "source_assets_downloaded": false,
+    "raster_pixels_read_or_acquired": false,
+    "candidate_labels_read": false,
+    "new_source_manifests_admitted": false,
+    "production_or_provider_state_contacted": false
+  },
+  "decision": {
+    "reviewed_candidate_admissible": false,
+    "raster_pairing_authorized": false,
+    "supervised_training_authorized": false,
+    "representation_comparison_authorized": false,
+    "encoder_promotion_authorized": false,
+    "production_scoring_authorized": false,
+    "prospective_collection_activation_authorized": false,
+    "reason": "The direct official source families already fail whole-group class support; the newly reviewed candidates are outside the target geography, cannot observe the frozen endpoint, are unvalidated compiled maps or model outputs, or reuse the candidate bathymetry/backscatter and endpoint source families."
+  },
+  "claim_boundary": "This metadata review and inactive protocol establish only that none of the seven reviewed candidate families is currently admissible as a new independent three-class seafloor endpoint. They establish no habitat prevalence, fish presence, catch skill, calibration, model quality, product readiness, or deployment authority."
+}
