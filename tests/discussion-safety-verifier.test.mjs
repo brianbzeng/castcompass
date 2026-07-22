@@ -1,12 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { verifyLiveSafety, verifySourceSafety } from "../scripts/verify-discussion-safety.mjs";
+import {
+  verifyLiveSafety,
+  verifyRuntimeDiscussionWriterSource,
+  verifySourceSafety,
+} from "../scripts/verify-discussion-safety.mjs";
 
 test("discussion safety source preflight covers the release invariants", async () => {
   const checks = await verifySourceSafety();
   assert.ok(checks.length >= 12);
   assert.ok(checks.includes("public discussions default off"));
   assert.ok(checks.includes("AI review must not reference the public table or writer"));
+  assert.ok(checks.includes("runtime Worker has no public discussion writer"));
   assert.ok(checks.includes("safe rollback floor is documented"));
   assert.ok(checks.includes("patched safety-floor commit is pinned"));
   assert.ok(checks.includes("full release provenance precedes D1 work"));
@@ -15,6 +20,31 @@ test("discussion safety source preflight covers the release invariants", async (
   assert.ok(checks.includes("release rebuilds before deployment"));
   assert.ok(checks.includes("migration uses the guarded staged wrapper"));
   assert.ok(checks.includes("maintenance suppresses scheduled work"));
+});
+
+test("source preflight rejects a public discussion writer in any runtime Worker module", () => {
+  assert.equal(
+    verifyRuntimeDiscussionWriterSource("DELETE FROM site_discussion_posts WHERE trip_id = ?"),
+    "runtime Worker has no public discussion writer",
+  );
+  assert.equal(
+    verifyRuntimeDiscussionWriterSource("INSERT INTO site_discussion_posts_archive (id) VALUES (?)"),
+    "runtime Worker has no public discussion writer",
+  );
+  for (const source of [
+    "INSERT INTO site_discussion_posts (id) VALUES (?)",
+    "insert or replace into `site_discussion_posts` (id) values (?)",
+    "INSERT OR IGNORE INTO [site_discussion_posts] (id) VALUES (?)",
+    "REPLACE\nINTO site_discussion_posts (id) VALUES (?)",
+    "UPDATE OR FAIL site_discussion_posts SET summary = ?",
+    'UPDATE main."site_discussion_posts" SET summary = ?',
+  ]) {
+    assert.throws(
+      () => verifyRuntimeDiscussionWriterSource(source),
+      /runtime Worker has no public discussion writer/,
+      source,
+    );
+  }
 });
 
 test("live verifier checks every site plus mutation and invalid-site behavior", async () => {

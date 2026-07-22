@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -12,6 +12,31 @@ function requirePattern(source, pattern, label) {
 function forbidPattern(source, pattern, label) {
   if (pattern.test(source)) throw new Error(`Source preflight failed: ${label}`);
   return label;
+}
+
+const PUBLIC_DISCUSSION_WRITER_PATTERN = /\b(?:INSERT(?:\s+OR\s+\w+)?\s+INTO|REPLACE\s+INTO|UPDATE(?:\s+OR\s+\w+)?)\s+(?:(?:[`"']?main[`"']?|\[main\])\s*\.\s*)?(?:[`"']?site_discussion_posts[`"']?|\[site_discussion_posts\])(?!\w)/iu;
+
+async function readTypeScriptTree(directory) {
+  const entries = (await readdir(directory, { withFileTypes: true }))
+    .sort((left, right) => left.name.localeCompare(right.name));
+  const sources = [];
+  for (const entry of entries) {
+    const path = resolve(directory, entry.name);
+    if (entry.isDirectory()) {
+      sources.push(await readTypeScriptTree(path));
+    } else if (entry.isFile() && entry.name.endsWith(".ts")) {
+      sources.push(await readFile(path, "utf8"));
+    }
+  }
+  return sources.join("\n");
+}
+
+export function verifyRuntimeDiscussionWriterSource(source) {
+  return forbidPattern(
+    source,
+    PUBLIC_DISCUSSION_WRITER_PATTERN,
+    "runtime Worker has no public discussion writer",
+  );
 }
 
 export async function verifySourceSafety(root = DEFAULT_ROOT) {
@@ -32,6 +57,7 @@ export async function verifySourceSafety(root = DEFAULT_ROOT) {
     postMigrationAudit,
     packageJson,
     releaseWrapper,
+    workerRuntime,
   ] = await Promise.all([
     read("wrangler.jsonc"),
     read("worker/trip-review.ts"),
@@ -48,11 +74,13 @@ export async function verifySourceSafety(root = DEFAULT_ROOT) {
     read("scripts/discussion-post-migration-audit.sql"),
     read("package.json"),
     read("scripts/release-cloudflare.mjs"),
+    readTypeScriptTree(resolve(root, "worker")),
   ]);
   return [
     requirePattern(wrangler, /"PUBLIC_DISCUSSIONS_ENABLED"\s*:\s*"false"/, "public discussions default off"),
     requirePattern(wrangler, /"version_metadata"[\s\S]*"CF_VERSION_METADATA"/, "Worker version metadata is bound"),
     forbidPattern(review, /publishTripDiscussion|site_discussion_posts/, "AI review must not reference the public table or writer"),
+    verifyRuntimeDiscussionWriterSource(workerRuntime),
     requirePattern(review, /You cannot publish or approve it/, "AI prompt denies publication authority"),
     requirePattern(discussions, /!publicDiscussionsEnabled\(env\).*posts:\s*\[\]/s, "disabled endpoint returns no posts"),
     requirePattern(discussions, /post\.site_id = trip\.site_id/, "post site must match the reviewed trip"),

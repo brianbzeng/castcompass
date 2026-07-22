@@ -3159,6 +3159,12 @@ supersedes this mutation-metadata authority while preserving its fail-closed beh
 - [ ] Prevent AI-generated trip summaries from publishing without explicit human approval.
       **Local complete;** guarded production migration/deployment, legacy-row audit, and live
       smoke evidence remain.
+  - [x] Recursively enforce the no-runtime-publisher boundary across every Worker TypeScript
+        module. Any `INSERT`, `REPLACE`, or `UPDATE` writer for the public discussion table now
+        fails the release source preflight; private AI drafts and cleanup deletes remain allowed.
+        Verification: focused discussion/migration/source-safety suite 24/24, lint, TypeScript,
+        670 repository tests, the complete security/SBOM/policy chain, and zero-vulnerability
+        full and production npm audits. No production or provider state changed.
 - [ ] Release production hardening: headers, health/security endpoints, abuse controls,
       sanitized logs, migrations, alerts, backup verification, and restore readiness.
       **Local implementation and synthetic restore drill complete;** Cloudflare deployment,

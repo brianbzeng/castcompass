@@ -13,6 +13,14 @@ after its acceptance checks pass in the intended environment.
   smoke tests pass.
   - [x] Implement and verify the patched isolated safety-floor commit plus the additive
     approval release.
+  - [x] Make the no-runtime-publisher invariant repository-wide. The release source preflight
+    now recursively scans every Worker TypeScript module and rejects any `INSERT`, `REPLACE`, or
+    `UPDATE` writer for `site_discussion_posts`; private AI-draft storage and bounded cleanup
+    deletes remain allowed. Adversarial mixed-case, conflict-clause, quoted-table, and multiline
+    writer fixtures fail closed, while the runtime route, migration, and source-safety suite
+    passes 24/24. Full local acceptance passes lint, TypeScript, 670 repository tests, the complete
+    security/SBOM/policy chain, and both npm audits with zero vulnerabilities. This repository
+    guard does not replace the production migration, legacy-row audit, or live smoke gate.
   - [x] Audit the live D1 ledger/schema without reading user rows and locally verify the
     integrated release path: exact `0007` drift reconciliation, one-file migration staging,
     a default-off API/scheduled-work maintenance bridge, aggregate pre/postflight checks,
