@@ -107,6 +107,18 @@
       ]
     },
     {
+      "source_id": "usgs_ds182_pacific_ext_sediment",
+      "source_class": "official-sediment-measurement",
+      "allowed_operations": ["endpoint-support-audit"],
+      "supervised_model_training_authorized": false,
+      "model_validation_authorized": false,
+      "production_scoring_authorized": false,
+      "conditions": [
+        "Only the exact content-addressed official EXT archive and source table may enter the preregistered bulk-surficial composition support audit.",
+        "A passing raw whole-source screen does not authorize source-accuracy admission, raster alignment, model training, validation, promotion, production scoring, or deployment."
+      ]
+    },
+    {
       "source_id": "usgs_ds781_residual_video_observations",
       "source_class": "official-video-observation",
       "allowed_operations": ["endpoint-support-audit"],

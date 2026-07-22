@@ -1,0 +1,68 @@
+{
+  "manifest_version": "1.0.0",
+  "source_id": "usgs_ds182_pacific_ext_sediment",
+  "title": "USGS Data Series 182 usSEABED Pacific Coast extracted sediment measurements",
+  "steward": "U.S. Geological Survey",
+  "official_landing_page": "https://pubs.usgs.gov/publication/ds182",
+  "access": {
+    "mode": "direct_official_download",
+    "data_catalog": "https://pubs.usgs.gov/ds/2006/182/data_cata.html",
+    "outcome_asset": {
+      "url": "https://pubs.usgs.gov/ds/2006/182/data/pac_ext.zip",
+      "archive_sha256": "0643827168d4a91e8f2ed6df7962dee16ff39bdf203a263a833e7f3d7faa51ff",
+      "archive_bytes": 1087605,
+      "data_member": "PAC_EXT.txt",
+      "record_count": 16485,
+      "published_metadata_record_count": 16486,
+      "members": [
+        {"path": "pac_ext.dbf", "bytes": 4369583, "sha256": "0617c5e83a0bd4de5b423bc1cf8774bd753ffdb5ed87f9bc32699fb6292c8afa"},
+        {"path": "pac_ext.sbn", "bytes": 165476, "sha256": "5242a624c3e463318608881011c7bd55cc8f7f0cbdeabd115bad485b9febf190"},
+        {"path": "pac_ext.sbx", "bytes": 4628, "sha256": "2e2ab46618fd8f5f01db7ec9c461d534e569b9994ebc3b1a51eeee12e5fbe4fa"},
+        {"path": "pac_ext.shp", "bytes": 461680, "sha256": "52c4e6008735d186c966bd67e472830fa63d3347c66349e8c1acfa67212e488e"},
+        {"path": "pac_ext.shx", "bytes": 131980, "sha256": "b074e0e871bcafab9241af6227356f6c33b120b32fb13bde835355df6837757a"},
+        {"path": "PAC_EXT.txt", "bytes": 2356622, "sha256": "424d67579319b37a92c032428e11ba65b83ab9020803c9618a9afcdfd889a65d"},
+        {"path": "pac_ext.jpg", "bytes": 44112, "sha256": "135a7e6cec59722797f56e181ffd85554ecb125aa15d69f43f72fe255c505469"},
+        {"path": "pac_ext.prj", "bytes": 169, "sha256": "a06c4c68796c631f9cb9d692a51a19fc91d905bbd3714d7df612ef322a328eb6"},
+        {"path": "pac_ext.shp.xml", "bytes": 43319, "sha256": "2583950d7245d227b83f5c42eb87a4e342f564ca1f5c7db2a31cf982ea2e70b9"},
+        {"path": "meta_faqs_pac_ext.html", "bytes": 36285, "sha256": "2d029789329795a54a22ded3f000d4ff9d16e1db5623157f6fa6afa49fe6c1dc"},
+        {"path": "metadata_pac_ext.html", "bytes": 58019, "sha256": "83b4fb381d50f9a7e7b5c24c0bc21eb4e66d03d8ea8661beb5d38762f175f9ab"},
+        {"path": "metadata_pac_ext.txt", "bytes": 38620, "sha256": "790632acba955d8822390a5800bee5cf6bc92e1f3689525c283919287cebae2c"},
+        {"path": "metadata_pac_ext.xml", "bytes": 31152, "sha256": "62afc7e59ea374d877e4f152e0961be9dd3858cca6e1c5509c2e82ce92a3c537"},
+        {"path": "README.txt", "bytes": 1055, "sha256": "ae307f1a2d5760ed6bfed013e073851a0d08602477fc4ccc96be38da23507277"}
+      ]
+    },
+    "source_table": {
+      "url": "https://pubs.usgs.gov/ds/2006/182/data/pac_src.txt",
+      "sha256": "89bc35fd455f623cae5c3c7ab3942e9bd933bac7a56f447f7ec236f000af4a1e",
+      "bytes": 19495,
+      "record_count": 114
+    },
+    "reference_raster": {
+      "source_id": "usgs_sf_state_waters_2m",
+      "url": "https://pubs.usgs.gov/ds/781/OffshoreSanFrancisco/data/Bathymetry_OffshoreSanFrancisco.zip",
+      "archive_sha256": "79c93fac3ae3d35213b808b3913115744676c03aead72a686651817e86d5be53",
+      "geotiff_member": "Bathymetry_OffshoreSanFrancisco.tif",
+      "geotiff_sha256": "75629f6a8bc7e3ea78fb6b3b22c737ec75a8cba1621f2c0066a2343ab61a242a",
+      "crs": "EPSG:26910",
+      "transform": [2.0, 0.0, 533700.0, 0.0, -2.0, 4190050.0, 0.0, 0.0, 1.0],
+      "width": 8850,
+      "height": 8845,
+      "bounds": [533700.0, 4172360.0, 551400.0, 4190050.0]
+    }
+  },
+  "coverage": {
+    "region": "Pacific Coast of the conterminous United States; endpoint support is screened only within the exact Offshore San Francisco reference-raster footprint"
+  },
+  "resolution": {
+    "measurement": "source-reported laboratory sediment percentages with one-percent published field resolution",
+    "horizontal_accuracy": "source-dependent, approximately 5 m to more than 2 km"
+  },
+  "temporal_coverage": "Original source collection dates span 1840 through 2003; Data Series published 2006",
+  "limitations": [
+    "Not for navigation and not evidence of current conditions.",
+    "The compilation combines heterogeneous sampling, laboratory, positioning, datum, and reporting methods and may retain duplicate sites across sources.",
+    "This source is admitted only for a frozen raw endpoint-support audit; it has no raster-alignment, model-training, validation, scoring, or production authority.",
+    "Only bulk surficial rows with direct Gravel, Sand, and Mud measurements are eligible; derived classifications and parsed or calculated outputs remain excluded.",
+    "A passing raw whole-source screen still requires a separately frozen source-accuracy, alignment, spatial-buffering, and support protocol before any representation comparison."
+  ]
+}
