@@ -9,6 +9,7 @@ const inputPaths = [
   ".npmrc",
   ".python-version",
   "field-review/marin-structure-depth-review-policy.json",
+  "field-review/north-east-bay-structure-depth-review-policy.json",
   "field-review/san-francisco-structure-depth-review-policy.json",
   "field-review/san-mateo-structure-depth-review-policy.json",
   "field-review/santa-barbara-access-review-policy.json",
@@ -165,8 +166,9 @@ test("CI verifies the combined inventory and the signer rejects a narrowed hando
   assert.match(manifest, /"security:san-francisco-structure-depth-review": "node scripts\/verify-san-francisco-structure-depth-review\.mjs verify-policy"/u);
   assert.match(manifest, /"security:san-mateo-structure-depth-review": "node scripts\/verify-san-mateo-structure-depth-review\.mjs verify-policy"/u);
   assert.match(manifest, /"security:marin-structure-depth-review": "node scripts\/verify-marin-structure-depth-review\.mjs verify-policy"/u);
-  assert.match(ci, /npm run security:production-change-policy\n\s+- run: npm run security:operational-restore-review\n\s+- run: npm run security:key-custody-review\n\s+- run: npm run security:pollution-score-independent-review\n\s+- run: npm run security:water-quality-mapping-independent-review\n\s+- run: npm run security:santa-barbara-access-review\n\s+- run: npm run security:santa-barbara-structure-depth-review\n\s+- run: npm run security:san-francisco-structure-depth-review\n\s+- run: npm run security:san-mateo-structure-depth-review\n\s+- run: npm run security:marin-structure-depth-review/u);
-  assert.match(release, /npm run security:production-change-policy\n\s+- run: npm run security:operational-restore-review\n\s+- run: npm run security:key-custody-review\n\s+- run: npm run security:pollution-score-independent-review\n\s+- run: npm run security:water-quality-mapping-independent-review\n\s+- run: npm run security:santa-barbara-access-review\n\s+- run: npm run security:santa-barbara-structure-depth-review\n\s+- run: npm run security:san-francisco-structure-depth-review\n\s+- run: npm run security:san-mateo-structure-depth-review\n\s+- run: npm run security:marin-structure-depth-review/u);
+  assert.match(manifest, /"security:north-east-bay-structure-depth-review": "node scripts\/verify-north-east-bay-structure-depth-review\.mjs verify-policy"/u);
+  assert.match(ci, /npm run security:production-change-policy\n\s+- run: npm run security:operational-restore-review\n\s+- run: npm run security:key-custody-review\n\s+- run: npm run security:pollution-score-independent-review\n\s+- run: npm run security:water-quality-mapping-independent-review\n\s+- run: npm run security:santa-barbara-access-review\n\s+- run: npm run security:santa-barbara-structure-depth-review\n\s+- run: npm run security:san-francisco-structure-depth-review\n\s+- run: npm run security:san-mateo-structure-depth-review\n\s+- run: npm run security:marin-structure-depth-review\n\s+- run: npm run security:north-east-bay-structure-depth-review/u);
+  assert.match(release, /npm run security:production-change-policy\n\s+- run: npm run security:operational-restore-review\n\s+- run: npm run security:key-custody-review\n\s+- run: npm run security:pollution-score-independent-review\n\s+- run: npm run security:water-quality-mapping-independent-review\n\s+- run: npm run security:santa-barbara-access-review\n\s+- run: npm run security:santa-barbara-structure-depth-review\n\s+- run: npm run security:san-francisco-structure-depth-review\n\s+- run: npm run security:san-mateo-structure-depth-review\n\s+- run: npm run security:marin-structure-depth-review\n\s+- run: npm run security:north-east-bay-structure-depth-review/u);
   const signingJob = release.slice(release.indexOf("  attest-release:"));
   assert.match(signingJob, /castingcompass-release[\s\S]+not Cloudflare deployment provenance/u);
   assert.match(signingJob, /\.type == "container"[\s\S]+\.type == "operating-system"[\s\S]+pkg:pypi\//u);

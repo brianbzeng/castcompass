@@ -1,7 +1,7 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:12064db5-3fe1-5b06-afc1-c761d27a8c95",
+  "serialNumber": "urn:uuid:32ebf586-d169-5ffe-80c4-15f8a9831055",
   "version": 1,
   "metadata": {
     "component": {
@@ -69,6 +69,10 @@
         },
         {
           "name": "castingcompass:input-sha256",
+          "value": "field-review/north-east-bay-structure-depth-review-policy.json:098cfeea8d1e8fab1b0ac99bc78e519b01739ae374aed1e27dbed88cb80e21e1"
+        },
+        {
+          "name": "castingcompass:input-sha256",
           "value": "field-review/san-francisco-structure-depth-review-policy.json:e51dd09712bb5e6872a0dc402a726dc616fd55cff30892dcb32951d43d305080"
         },
         {
@@ -89,7 +93,7 @@
         },
         {
           "name": "castingcompass:input-sha256",
-          "value": "package.json:ce75c21d7d7bfbe62d9152ea96ad7df19e35f70d70675a92a35138924335f012"
+          "value": "package.json:d2520b39a5789e21dd61dd9782b89fde8f3f072d77bf627070ac6da34085d217"
         },
         {
           "name": "castingcompass:input-sha256",

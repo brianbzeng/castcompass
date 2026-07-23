@@ -26,6 +26,10 @@ const MARIN_POLICY_SCHEMA = "castingcompass.marin-structure-depth-review/1.0.0";
 const MARIN_EVIDENCE_SCHEMA = "castingcompass.marin-structure-depth-review-evidence/1.0.0";
 const MARIN_RECEIPT_SCHEMA = "castingcompass.marin-structure-depth-review-receipt/1.0.0";
 const MARIN_WRITE_RECEIPT_SCHEMA = "castingcompass.marin-structure-depth-review-template-write-receipt/1.0.0";
+const NORTH_EAST_BAY_POLICY_SCHEMA = "castingcompass.north-east-bay-structure-depth-review/1.0.0";
+const NORTH_EAST_BAY_EVIDENCE_SCHEMA = "castingcompass.north-east-bay-structure-depth-review-evidence/1.0.0";
+const NORTH_EAST_BAY_RECEIPT_SCHEMA = "castingcompass.north-east-bay-structure-depth-review-receipt/1.0.0";
+const NORTH_EAST_BAY_WRITE_RECEIPT_SCHEMA = "castingcompass.north-east-bay-structure-depth-review-template-write-receipt/1.0.0";
 const ARTIFACT_SCHEMA = "castingcompass.structure-depth-evidence/1.5.0";
 const COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
@@ -227,6 +231,20 @@ export const STRUCTURE_DEPTH_REVIEW_PROFILES = Object.freeze({
     regionNames: Object.freeze(["Point Reyes", "Marin Coast"]),
     partialSiteIds: Object.freeze(["bolinas-beach", "muir-beach"]),
     siteCount: 7,
+  }),
+  "north-east-bay": Object.freeze({
+    id: "north-east-bay",
+    policySchema: NORTH_EAST_BAY_POLICY_SCHEMA,
+    evidenceSchema: NORTH_EAST_BAY_EVIDENCE_SCHEMA,
+    receiptSchema: NORTH_EAST_BAY_RECEIPT_SCHEMA,
+    writeReceiptSchema: NORTH_EAST_BAY_WRITE_RECEIPT_SCHEMA,
+    policyPath: "field-review/north-east-bay-structure-depth-review-policy.json",
+    guidePath: "docs/NORTH-EAST-BAY-STRUCTURE-DEPTH-REVIEW.md",
+    geographyLabel: "North and East Bay",
+    geographyScope: "McNears Beach Pier through Emeryville Marina Fishing Pier",
+    regionNames: Object.freeze(["San Pablo Bay", "North Bay", "Golden Gate", "Richmond", "East Bay"]),
+    partialSiteIds: Object.freeze(["mcnears-beach-pier", "ferry-point-pier"]),
+    siteCount: 10,
   }),
 });
 
@@ -490,6 +508,10 @@ export function validateMarinStructureDepthReview(sources) {
   return validateRegionalStructureDepthReview(sources, "marin");
 }
 
+export function validateNorthEastBayStructureDepthReview(sources) {
+  return validateRegionalStructureDepthReview(sources, "north-east-bay");
+}
+
 function createRegionalStructureDepthReviewTemplate({
   policy,
   catalog,
@@ -548,6 +570,10 @@ export function createSanMateoStructureDepthReviewTemplate(sources) {
 
 export function createMarinStructureDepthReviewTemplate(sources) {
   return createRegionalStructureDepthReviewTemplate(sources, "marin");
+}
+
+export function createNorthEastBayStructureDepthReviewTemplate(sources) {
+  return createRegionalStructureDepthReviewTemplate(sources, "north-east-bay");
 }
 
 function validateCorrection(response, states, correctionState, categories, label) {
@@ -750,6 +776,10 @@ export function evaluateMarinStructureDepthReview(sources) {
   return evaluateRegionalStructureDepthReview(sources, "marin");
 }
 
+export function evaluateNorthEastBayStructureDepthReview(sources) {
+  return evaluateRegionalStructureDepthReview(sources, "north-east-bay");
+}
+
 export async function loadStructureDepthReviewSources(profileId, root = DEFAULT_ROOT) {
   const profile = requireReviewProfile(profileId);
   const [policySource, catalogSource, artifactSource, sourcePolicySource, sourceSnapshotSource, collectorSource, guide] = await Promise.all([
@@ -863,6 +893,10 @@ export async function writeMarinStructureDepthReviewTemplate(options) {
   return writeRegionalStructureDepthReviewTemplate({ ...options, profileId: "marin" });
 }
 
+export async function writeNorthEastBayStructureDepthReviewTemplate(options) {
+  return writeRegionalStructureDepthReviewTemplate({ ...options, profileId: "north-east-bay" });
+}
+
 export async function verifySantaBarbaraStructureDepthReview(root = DEFAULT_ROOT) {
   const sources = await loadReviewSources(root);
   return validateSantaBarbaraStructureDepthReview(sources);
@@ -881,6 +915,11 @@ export async function verifySanMateoStructureDepthReview(root = DEFAULT_ROOT) {
 export async function verifyMarinStructureDepthReview(root = DEFAULT_ROOT) {
   const sources = await loadStructureDepthReviewSources("marin", root);
   return validateMarinStructureDepthReview(sources);
+}
+
+export async function verifyNorthEastBayStructureDepthReview(root = DEFAULT_ROOT) {
+  const sources = await loadStructureDepthReviewSources("north-east-bay", root);
+  return validateNorthEastBayStructureDepthReview(sources);
 }
 
 function parseFlag(args, name) {

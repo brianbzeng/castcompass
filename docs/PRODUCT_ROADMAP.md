@@ -1153,8 +1153,17 @@ after its acceptance checks pass in the intended environment.
       seabed records, catalog clues, or review responses cannot fill those gaps. The packet keeps
       private roles disjoint, binds every digest and status, and grants no score, model,
       navigation, provider, merge, deployment, or production authority. No real response or
-      accepted receipt exists yet; the remaining 20 catalog sites still lack executable
+      accepted receipt exists yet; the remaining 10 catalog sites still lack executable
       location-review handoffs.
+    - [x] Extend the executable handoff to the ten North and East Bay sites. The exact profile
+      binds McNears Beach Pier through Emeryville Marina Fishing Pier, preserves the eight
+      charted-context records, and fails closed unless McNears Beach Pier and Ferry Point Fishing
+      Pier remain `partial` with no sector depth-area band. Nearby soundings,
+      shoreline-construction records, catalog clues, or responses cannot promote either record.
+      The policy, private evidence, and aggregate receipt remain region-isolated and grant no
+      score, model, navigation, provider, merge, deployment, or production authority. No real
+      response or accepted receipt exists yet; the final ten Oakland-through-South-Bay catalog
+      sites still lack executable location-review handoffs.
 - [ ] Add striped bass as the first new beta using a distinct estuary/migration model.
 - [ ] Define and evaluate explicit shore-relevant rockfish species/complexes next; then model
   cabezon as its own taxon; then split surfperch into defensible habitat/taxon groups. Each beta

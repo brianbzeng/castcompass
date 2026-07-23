@@ -255,8 +255,13 @@ Pier's independent closure and recommendation exclusion intact. The blank
 [Point Reyes and Marin Coast structure/depth review packet](MARIN-STRUCTURE-DEPTH-REVIEW.md)
 adds the next seven sites while preserving Bolinas Beach and Muir Beach as
 `partial`; no response can invent either missing sector band or promote those
-records to charted context. Preparing any packet is not the review itself and
-does not close any item above.
+records to charted context. The blank
+[North and East Bay structure/depth review packet](NORTH-EAST-BAY-STRUCTURE-DEPTH-REVIEW.md)
+adds the next ten sites while preserving McNears Beach Pier and Ferry Point
+Fishing Pier as `partial`; nearby soundings, shoreline-construction records,
+catalog clues, or human responses cannot substitute for either missing
+depth-area band. Preparing any packet is not the review itself and does not
+close any item above.
 
 No production, Cloudflare, database, provider, or deployment change is part of
 this repository slice.

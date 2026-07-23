@@ -58,6 +58,7 @@ jobs:
       - run: npm run security:san-francisco-structure-depth-review
       - run: npm run security:san-mateo-structure-depth-review
       - run: npm run security:marin-structure-depth-review
+      - run: npm run security:north-east-bay-structure-depth-review
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test

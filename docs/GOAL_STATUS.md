@@ -91,7 +91,35 @@ by that discovery.
       safe-area, map-abort, and regional-evidence cases; ESLint; TypeScript; the complete
       security/SBOM/query-policy chain; and both npm audits pass with zero reported
       vulnerabilities.
-- [ ] Obtain exact-head hosted automation evidence for the Marin checkpoint.
+- [x] Obtain exact-head hosted automation evidence for the Marin checkpoint. The initial
+      intermediate head `9e92fb2a0fb0459bf0be3c21eeabccb26b2f1809` passed its CodeQL workflow
+      but the PR result check correctly flagged a broad URL-substring pattern in a test-only email
+      provider mock. The isolated exact-endpoint remediation at
+      `7829e3a7f7fb119ccd6f4bb91a44b5fd3910055b` then passed CI run `29986463426`,
+      CodeQL run `29986461650`, optional research-stack run `29986463445`, native API-image
+      run `29986463413`, and release-provenance run `29986463448`. This is automation evidence,
+      not independent review.
+- [x] Add the fifth exact regional profile and blank handoff for all ten North and East Bay
+      locations. The packet preserves eight charted-context records and requires McNears Beach
+      Pier and Ferry Point Fishing Pier to remain `partial`; nearby soundings,
+      shoreline-construction records, catalog clues, and human responses cannot invent either
+      missing sector depth-area band.
+- [x] Add fail-closed North and East Bay coverage for cross-region schema/file isolation, exact
+      site population, partial-to-charted or charted-to-partial status drift, accepted aggregate
+      receipts, incomplete/overlapping/stale/corrected evidence, digest/identity/unsafe-text/
+      duplicate-ID drift, owner-only writes, overwrite refusal, and provider/process paths. The
+      six new focused tests pass, and all five regional suites pass 33/33 together.
+- [x] Bind the North and East Bay policy and verifier into the security aggregate, deterministic
+      release inventory, combined release SBOM, CI, and release-provenance workflow. The regional
+      and release-inventory suites pass 35/35 against regenerated deterministic evidence.
+- [x] Complete exact-tree local acceptance and generated-evidence review for the North and East
+      Bay checkpoint. Under pinned Node 22.23.1/npm 10.9.8, the production-off Cloudflare build;
+      725/725 Node tests; 33/33 regional review tests; 35/35 regional plus release-inventory
+      tests; 8/8 photo UI cases; 244/244 Chromium and WebKit mobile, offline, recovery, 404,
+      safe-area, map-abort, and regional-evidence cases; ESLint; TypeScript; the complete
+      security/SBOM/query-policy chain; and both npm audits pass with zero reported
+      vulnerabilities.
+- [ ] Obtain exact-head hosted automation evidence for the North and East Bay checkpoint.
 - [ ] Obtain real independent local-angler and chart/GIS responses. This packet does not
       authorize a score or catalog change, model claim, merge, deployment, provider mutation,
       migration, feature activation, staging exercise, or production acceptance.

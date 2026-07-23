@@ -18,6 +18,7 @@ const inputPaths = [
   ".npmrc",
   ".python-version",
   "field-review/marin-structure-depth-review-policy.json",
+  "field-review/north-east-bay-structure-depth-review-policy.json",
   "field-review/san-francisco-structure-depth-review-policy.json",
   "field-review/san-mateo-structure-depth-review-policy.json",
   "field-review/santa-barbara-access-review-policy.json",
