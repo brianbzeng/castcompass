@@ -23,8 +23,8 @@ async function preparePastTrip(page: Page) {
   await expect(modal).toBeVisible();
   const location = modal.getByRole("combobox", { name: "Fishing location" });
   await expect(location).toBeVisible();
-  await location.fill("Port View Park Fishing Pier");
-  await expect(modal.getByRole("option", { name: /^Port View Park Fishing Pier\b/ })).toBeVisible();
+  await location.fill("Pacifica Municipal Pier");
+  await expect(modal.getByRole("option", { name: /^Pacifica Municipal Pier\b/ })).toBeVisible();
   await location.press("ArrowDown");
   await expect(location).toHaveAttribute("aria-activedescendant", /.+/);
   await location.press("Enter");
