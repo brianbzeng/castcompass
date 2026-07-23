@@ -13,6 +13,31 @@ Current provider truth overrides historical “paused” language in completed r
 2026-07-19 read-only reconciliation found an active Worker; no production mutation is authorized
 by that discovery.
 
+## Active checkpoint — registry-enforced public execution boundary
+
+- [x] Reconcile all fourteen public policies against their handlers. The reviewed set consists of
+      harmless health/configuration/summary/discussion reads, one retired signup tombstone, the
+      cookie-only deletion-receipt clear action, and same-origin anonymous account-entry actions.
+      The primary registry alone previously made a newly added `public` policy executable.
+- [x] Add an independent exhaustive public contract for exact policy ID, path template, method
+      set, handler family, same-origin requirement, legal/fence flags, and stronger abuse tags.
+      Any new public ID or field drift now receives generic non-cacheable `503` before body
+      guarding; existing public behavior and handler-local defenses remain unchanged.
+- [x] Add adversarial coverage for the exact fourteen-ID set plus ID, path, method, handler,
+      origin, legal, deletion-fence, missing-tag, and reordered-tag drift. The central source-order
+      contract proves this gate follows route rejection and precedes body guarding.
+- [x] Complete exact-tree local acceptance and generated-evidence review. Under pinned Node
+      22.23.1/npm 10.9.8, the production-off Cloudflare build and all 697/697 Node tests pass;
+      the focused executable route suite passes 11/11; the explicit feature-on photo build and
+      8/8 Chromium/WebKit cases pass; the restored production-off phone matrix passes 228/228
+      across four profiles; and ESLint, TypeScript, the complete security/SBOM/query-policy
+      chain, and both npm audits pass with zero reported vulnerabilities.
+- [ ] Obtain exact-head hosted CI and CodeQL evidence. This automation gate does not replace
+      independent review or authorize a release.
+- [ ] Obtain independent human review. This repository boundary does not authorize merge,
+      deployment, provider mutation, migration, feature activation, staging exercise, or
+      production acceptance.
+
 ## Active checkpoint — registry-enforced optional-session boundary
 
 - [x] Reconcile the two optional-session policies against Worker execution. Session discovery and

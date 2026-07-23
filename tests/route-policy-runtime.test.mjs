@@ -6,6 +6,7 @@ import {
   allowedApiMethodsForPath,
   apiRoutePolicyForRequest,
   apiRouteRejectionForRequest,
+  isReviewedPublicApiPolicy,
   isKnownApiPath,
   rateLimitClassesForRequest,
 } from "../worker/route-policy.ts";
@@ -68,6 +69,50 @@ test("every declared API route example resolves to its exact executable policy",
     API_ROUTE_POLICIES.filter((policy) => policy.authorization === "optional_session").map((policy) => policy.id),
     ["auth.session", "auth.logout"],
   );
+  assert.deepEqual(
+    API_ROUTE_POLICIES.filter((policy) => policy.authorization === "public").map((policy) => policy.id),
+    [
+      "health",
+      "auth.turnstile_config",
+      "auth.signup_retired",
+      "auth.signup_eligibility.read",
+      "auth.signup_eligibility.submit",
+      "privacy.deletion_status.clear",
+      "auth.signup_request",
+      "auth.signup_verify",
+      "auth.challenge_resend",
+      "auth.password_request",
+      "auth.password_reset",
+      "auth.login",
+      "trips.summary",
+      "discussions.site",
+    ],
+  );
+  for (const policy of API_ROUTE_POLICIES.filter((policy) => policy.authorization === "public")) {
+    assert.equal(isReviewedPublicApiPolicy(policy), true, policy.id);
+  }
+});
+
+test("public execution requires the exact independently reviewed policy contract", () => {
+  const login = API_ROUTE_POLICIES.find((policy) => policy.id === "auth.login");
+  assert.ok(login);
+  for (const drifted of [
+    { ...login, id: "auth.login_alias" },
+    { ...login, pathTemplate: "/api/auth/login/{accountId}" },
+    { ...login, methods: ["POST", "PUT"] },
+    { ...login, handler: "trips" },
+    { ...login, sameOriginRequired: false },
+    { ...login, currentLegalAcceptanceRequired: true },
+    { ...login, deletionFenceAccessAllowed: true },
+    { ...login, rateLimitTags: [] },
+    { ...login, rateLimitTags: ["email", "auth"] },
+  ]) {
+    assert.equal(isReviewedPublicApiPolicy(drifted), false, JSON.stringify(drifted));
+  }
+
+  const owner = API_ROUTE_POLICIES.find((policy) => policy.id === "trips.start");
+  assert.ok(owner);
+  assert.equal(isReviewedPublicApiPolicy(owner), false);
 });
 
 test("route policy records actor, CSRF, legal, and abuse controls for representative boundaries", () => {
@@ -300,6 +345,7 @@ test("the Worker entry point centrally denies unknown paths and unclassified met
   assert.match(source, /Allow: apiRejection\.allowedMethods\.join\(", "\)/);
   assert.doesNotMatch(source, /!apiPolicy && !isKnownApiPath/);
   assert.match(source, /const protectedTripMutation = apiPolicy\.authorization === "owner"/);
+  assert.match(source, /if \(apiPolicy\?\.authorization === "public" && !isReviewedPublicApiPolicy\(apiPolicy\)\)/);
   assert.match(source, /if \(apiPolicy\?\.authorization === "owner"\)/);
   assert.match(source, /authorizeOwnerRequest\(request, env/);
   assert.match(source, /if \(apiPolicy\?\.authorization === "receipt"\)/);
@@ -311,15 +357,18 @@ test("the Worker entry point centrally denies unknown paths and unclassified met
   assert.doesNotMatch(source, /url\.pathname\.startsWith\("\/api\/trips\/"\)/);
 
   const rejection = source.indexOf("apiRouteRejectionForRequest(request)");
+  const publicAuthorization = source.indexOf("isReviewedPublicApiPolicy(apiPolicy)");
   const ownerAuthorization = source.indexOf("authorizeOwnerRequest(request, env");
   const receiptAuthorization = source.indexOf("authorizeDeletionReceiptRequest(request, env");
   const optionalSessionAuthorization = source.indexOf("authorizeOptionalSessionRequest(request, env");
   const bodyGuard = source.indexOf("guardRequestBody(request)");
   assert.ok(rejection >= 0);
+  assert.ok(publicAuthorization > rejection, "public policy review must follow central route rejection");
   assert.ok(ownerAuthorization > rejection, "owner authorization must follow central route rejection");
   assert.ok(receiptAuthorization > rejection, "receipt authorization must follow central route rejection");
   assert.ok(optionalSessionAuthorization > rejection, "optional-session preflight must follow central route rejection");
   assert.ok(bodyGuard > ownerAuthorization, "body reads must follow owner authorization");
+  assert.ok(bodyGuard > publicAuthorization, "body reads must follow public policy review");
   assert.ok(bodyGuard > receiptAuthorization, "body reads must follow receipt authorization");
   assert.ok(bodyGuard > optionalSessionAuthorization, "body reads must follow optional-session preflight");
   for (const dispatch of [

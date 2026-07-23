@@ -199,6 +199,16 @@ after its acceptance checks pass in the intended environment.
       production-off build plus all 696/696 Node tests, focused 10/10 route suite, feature-on 8/8
       photo lane, restored production-off 228/228 mobile matrix, lint, typecheck, full security/
       SBOM/query-policy chain, and both zero-vulnerability audits pass.
+    - [x] Make public authorization an exhaustive execution contract. The fourteen reviewed
+      public policies now independently bind their exact ID, path template, method set, handler,
+      same-origin rule, legal/deletion-fence flags, and stronger abuse tags; a new public policy or
+      field drift fails with generic `503` before body guarding. Existing health/configuration,
+      summary/discussion, retired-tombstone, cookie-clear, and anonymous account-entry behavior is
+      unchanged. Adversarial tests cover ID/path/method/handler/origin/legal/fence/tag drift and
+      central source order. Under pinned Node 22.23.1/npm 10.9.8, the production-off build and all
+      697/697 Node tests pass; the focused route suite passes 11/11; the feature-on photo lane
+      passes 8/8; the restored production-off mobile matrix passes 228/228; and lint, typecheck,
+      the full security/SBOM/query-policy chain, and both zero-vulnerability audits pass.
     - [x] Bind active-trip completion and cancellation to the authenticated account in both
       the handler precheck and the final D1 update. The write now requires the same trip ID,
       account ID, active state, and token hash atomically; exact-token cross-account and

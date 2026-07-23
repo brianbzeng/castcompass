@@ -381,6 +381,139 @@ export const API_ROUTE_POLICIES: readonly ApiRoutePolicy[] = [
   ),
 ];
 
+type ReviewedPublicApiRouteContract = Readonly<{
+  pathTemplate: string;
+  methods: readonly ApiMethod[];
+  handler: ApiHandler;
+  sameOriginRequired: boolean;
+  rateLimitTags: readonly Exclude<RequestLimitClass, "read" | "write">[];
+}>;
+
+/**
+ * Independent execution boundary for routes that intentionally require no
+ * account, session, or resource-token authority. A new or changed `public`
+ * policy must update this exhaustive contract before the Worker will execute
+ * it; merely changing the primary registry cannot silently widen anonymous
+ * access.
+ */
+const REVIEWED_PUBLIC_API_ROUTE_CONTRACTS: Readonly<Record<string, ReviewedPublicApiRouteContract>> = {
+  health: {
+    pathTemplate: "/api/health",
+    methods: ["GET", "HEAD"],
+    handler: "health",
+    sameOriginRequired: false,
+    rateLimitTags: [],
+  },
+  "auth.turnstile_config": {
+    pathTemplate: "/api/auth/turnstile-config",
+    methods: ["GET", "HEAD"],
+    handler: "turnstile",
+    sameOriginRequired: false,
+    rateLimitTags: [],
+  },
+  "auth.signup_retired": {
+    pathTemplate: "/api/auth/signup",
+    methods: ["*"],
+    handler: "account",
+    sameOriginRequired: false,
+    rateLimitTags: [],
+  },
+  "auth.signup_eligibility.read": {
+    pathTemplate: "/api/auth/signup/eligibility",
+    methods: ["GET"],
+    handler: "account",
+    sameOriginRequired: false,
+    rateLimitTags: [],
+  },
+  "auth.signup_eligibility.submit": {
+    pathTemplate: "/api/auth/signup/eligibility",
+    methods: ["POST"],
+    handler: "account",
+    sameOriginRequired: true,
+    rateLimitTags: ["auth"],
+  },
+  "privacy.deletion_status.clear": {
+    pathTemplate: "/api/privacy/deletion-status",
+    methods: ["DELETE"],
+    handler: "account",
+    sameOriginRequired: true,
+    rateLimitTags: [],
+  },
+  "auth.signup_request": {
+    pathTemplate: "/api/auth/signup/request",
+    methods: ["POST"],
+    handler: "account",
+    sameOriginRequired: true,
+    rateLimitTags: ["auth", "email"],
+  },
+  "auth.signup_verify": {
+    pathTemplate: "/api/auth/signup/verify",
+    methods: ["POST"],
+    handler: "account",
+    sameOriginRequired: true,
+    rateLimitTags: ["auth", "email"],
+  },
+  "auth.challenge_resend": {
+    pathTemplate: "/api/auth/challenge/resend",
+    methods: ["POST"],
+    handler: "account",
+    sameOriginRequired: true,
+    rateLimitTags: ["auth", "email"],
+  },
+  "auth.password_request": {
+    pathTemplate: "/api/auth/password/request",
+    methods: ["POST"],
+    handler: "account",
+    sameOriginRequired: true,
+    rateLimitTags: ["auth", "email"],
+  },
+  "auth.password_reset": {
+    pathTemplate: "/api/auth/password/reset",
+    methods: ["POST"],
+    handler: "account",
+    sameOriginRequired: true,
+    rateLimitTags: ["auth"],
+  },
+  "auth.login": {
+    pathTemplate: "/api/auth/login",
+    methods: ["POST"],
+    handler: "account",
+    sameOriginRequired: true,
+    rateLimitTags: ["auth"],
+  },
+  "trips.summary": {
+    pathTemplate: "/api/trips/summary",
+    methods: ["GET"],
+    handler: "trips",
+    sameOriginRequired: false,
+    rateLimitTags: [],
+  },
+  "discussions.site": {
+    pathTemplate: "/api/discussions/{siteId}",
+    methods: ["GET"],
+    handler: "discussions",
+    sameOriginRequired: false,
+    rateLimitTags: [],
+  },
+};
+
+function sameOrderedValues<T>(actual: readonly T[], expected: readonly T[]) {
+  return actual.length === expected.length && actual.every((value, index) => value === expected[index]);
+}
+
+export function isReviewedPublicApiPolicy(policy: ApiRoutePolicy): boolean {
+  const reviewed = REVIEWED_PUBLIC_API_ROUTE_CONTRACTS[policy.id];
+  return Boolean(reviewed) &&
+    policy.authorization === "public" &&
+    policy.pathTemplate === reviewed.pathTemplate &&
+    sameOrderedValues(policy.methods, reviewed.methods) &&
+    policy.handler === reviewed.handler &&
+    policy.sameOriginRequired === reviewed.sameOriginRequired &&
+    policy.currentLegalAcceptanceRequired === false &&
+    policy.deletionFenceAccessAllowed === false &&
+    sameOrderedValues(policy.rateLimitTags, reviewed.rateLimitTags);
+}
+
 function apiRoutePoliciesForRequest(
   request: Request,
   policies: readonly ApiRoutePolicy[],

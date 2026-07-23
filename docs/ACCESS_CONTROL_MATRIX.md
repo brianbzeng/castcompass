@@ -102,10 +102,18 @@ Any future optional-session policy fails closed until it receives an explicit pr
 and trip execution repeat live authorization after body guarding so a concurrent revocation or
 new deletion fence fails closed.
 
+Public authority is also an exhaustive execution contract, not a registry default. The fourteen
+reviewed public policies bind their exact path template, method set, handler family, same-origin
+requirement, and stronger abuse tags in a second contract. Any new public ID or drift in one of
+those fields receives generic non-cacheable `503` before body guarding. This preserves the
+intentional public reads and tombstone, the same-origin anonymous account-entry actions, and the
+cookie-only deletion-receipt clear action without allowing a future `public` label alone to widen
+anonymous execution.
+
 `tests/route-policy-runtime.test.mjs` machine-checks unique route identities, actor,
 CSRF/legal/fence and abuse metadata, representative dynamic resources, malformed and
 lookalike paths, every exact route branch in the Worker handlers, and the central
-pre-body owner, deletion-receipt, and optional-session gates. Object-level ownership and cross-
+pre-body public, owner, deletion-receipt, and optional-session gates. Object-level ownership and cross-
 account behavior remain covered by the runtime privacy and trip suites. The terminal-trip regression supplies the
 exact token from a second authenticated account and also changes ownership between the handler
 pre-read and final update; cancellation and completion both remain `404`, and
