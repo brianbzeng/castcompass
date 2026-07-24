@@ -4,7 +4,7 @@
 -c requirements-validation.txt
 
 # Preserve the reviewed pandas 3 behavior; 3.0.4 was yanked for reported segfaults.
-pandas==3.0.3
+pandas==3.0.5
 
 # CI-only lint tool; not part of the research runtime identity.
 ruff==0.15.22

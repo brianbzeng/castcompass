@@ -2,7 +2,7 @@
 
 # Keep the optional research stack on the behavior-tested pipeline foundation.
 numpy==2.5.1
-pandas==3.0.3
+pandas==3.0.5
 scikit-learn==1.9.0
 scipy==1.18.0
 cryptography==48.0.1
