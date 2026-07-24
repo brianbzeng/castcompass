@@ -73,16 +73,16 @@
   "dependencies": {
     "drizzle-orm": "0.45.2",
     "maplibre-gl": "5.24.0",
-    "next": "16.2.10",
-    "react": "19.2.7",
-    "react-dom": "19.2.7"
+    "next": "16.2.11",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.45.1",
     "@playwright/test": "1.61.1",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "22.19.19",
-    "@types/react": "19.2.14",
+    "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.3",
     "@vitejs/plugin-rsc": "0.5.26",
@@ -90,8 +90,8 @@
     "ajv-formats": "3.0.1",
     "drizzle-kit": "0.31.10",
     "eslint": "9.39.5",
-    "eslint-config-next": "16.2.10",
-    "react-server-dom-webpack": "19.2.7",
+    "eslint-config-next": "16.2.11",
+    "react-server-dom-webpack": "19.2.8",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
     "vinext": "0.0.50",
