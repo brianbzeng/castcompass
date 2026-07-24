@@ -1,5 +1,5 @@
 # API tests extend the deployment graph without placing test tools in the image.
 -r requirements.txt
 
-httpx2==2.7.0
+httpx2==2.9.1
 pytest==9.0.3
