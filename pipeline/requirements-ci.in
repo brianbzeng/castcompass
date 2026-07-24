@@ -7,4 +7,4 @@
 pandas==3.0.3
 
 # CI-only lint tool; not part of the research runtime identity.
-ruff==0.15.22
+ruff==0.16.0
